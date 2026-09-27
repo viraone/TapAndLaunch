@@ -31,6 +31,9 @@ export function AppCard({ app, rootDomain }: { app: AppRow; rootDomain: string }
           <Link href={`/dashboard/apps/${app.id}/members`} className="text-muted-foreground underline">
             Members
           </Link>
+          <Link href={`/dashboard/apps/${app.id}/notifications`} className="text-muted-foreground underline">
+            Notifications
+          </Link>
         </div>
       </CardContent>
     </Card>

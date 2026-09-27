@@ -8,6 +8,7 @@ export function MemberAuthForm({ mode, next }: { mode: "login" | "signup"; next:
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +20,7 @@ export function MemberAuthForm({ mode, next }: { mode: "login" | "signup"; next:
     const url = mode === "signup" ? "/members" : "/members/session";
     const body =
       mode === "signup"
-        ? { email, password, display_name: displayName || undefined }
+        ? { email, password, display_name: displayName || undefined, phone: phone || undefined }
         : { email, password };
 
     const res = await fetch(url, {
@@ -42,15 +43,26 @@ export function MemberAuthForm({ mode, next }: { mode: "login" | "signup"; next:
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       {mode === "signup" && (
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Name</label>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full rounded-md border px-3 py-2 text-sm"
-          />
-        </div>
+        <>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Name</label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className="w-full rounded-md border px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Phone (optional, for SMS notifications)</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full rounded-md border px-3 py-2 text-sm"
+            />
+          </div>
+        </>
       )}
       <div className="space-y-1">
         <label className="text-sm font-medium">Email</label>

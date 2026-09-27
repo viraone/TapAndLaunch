@@ -1,7 +1,7 @@
-# Beezer — Phase 1–3 scaffold
+# Beezer — Phase 1–4 scaffold
 
 A no-code, multi-tenant Progressive Web App builder (a Beezer-style product).
-This repo covers **Phases 1–3 of a phased build** — see
+This repo covers **Phases 1–4 of a phased build** — see
 [Scope](#scope--whats-deferred) before assuming something is here that isn't.
 
 ## Stack
@@ -12,6 +12,11 @@ This repo covers **Phases 1–3 of a phased build** — see
 - Zod for API route input validation
 - Hand-rolled inline-SVG charts for the analytics dashboard (no charting
   library dependency) — see `src/components/dashboard/charts/`
+- `web-push` for Web Push/VAPID (the one real crypto library dependency in
+  this repo — see the note in `lib/notifications/push.ts` on why, unlike
+  password hashing or session tokens, this wasn't worth hand-rolling); email
+  and SMS go straight to Resend's and Twilio's HTTP APIs via `fetch`, no SDK
+  for either
 
 > **Next.js 16 note:** this scaffold uses a newer Next.js than most training
 > data / tutorials reflect — `middleware.ts` is renamed to `proxy.ts`,
@@ -36,7 +41,10 @@ This repo covers **Phases 1–3 of a phased build** — see
 1. Create a Supabase project.
 2. Copy `.env.local.example` to `.env.local`, fill in the three Supabase
    values from Project Settings → API, and generate `MEMBER_SESSION_SECRET`
-   with `openssl rand -hex 32`.
+   with `openssl rand -hex 32`. Notification channels are each optional —
+   see the comments in `.env.local.example` for VAPID (push), Resend
+   (email), and Twilio (SMS); leave any of them blank to leave that channel
+   disabled (the compose UI marks it "not configured" instead of failing).
 3. Link and push the schema (this also creates the `app-assets` Storage
    bucket used for image/icon/logo uploads — see `0002_storage.sql`):
    ```bash
@@ -103,11 +111,28 @@ This repo covers **Phases 1–3 of a phased build** — see
   the dataviz skill's validated reference palette, not shadcn's default
   grayscale placeholders — swap these if/when there's an actual brand
   palette to validate instead.
+- **One send route, three channels, no queue**: `/api/apps/[appId]/notifications/send`
+  resolves recipients (`lib/notifications/recipients.ts` — "all members" or
+  an exact tier match, same concept `blocks.min_tier` uses) and dispatches
+  synchronously within the request (`Promise.allSettled`, not a background
+  job) to whichever of push/email/SMS was selected. Fine at scaffold-scale
+  recipient counts; a slow provider call at real scale would hold the
+  request open for the whole batch — see Scope.
+- **Send authorization isn't RLS**: unlike almost every other write in this
+  repo, sending a notification is a side effect through the service-role
+  client (calling Resend/Twilio/web-push), not an insert a table policy can
+  gate. `lib/org.ts`'s `isAppEditor` does that check explicitly instead —
+  still built from RLS-scoped reads (a non-member gets `false` the same way
+  they'd get an empty/`null` row elsewhere), just not a policy itself.
+- **A stale push subscription self-heals**: a 404/410 from the push service
+  means the browser subscription is gone (site data cleared, uninstalled,
+  etc.) — the send route deletes that `push_subscriptions` row itself
+  rather than leaving it to fail forever on every future send.
 
 ## Scope — what's deferred
 
-Phase 3 adds member accounts and gated content on top of Phase 2's
-production-usable builder. Deliberately **not** in this phase (all
+Phase 4 adds notifications (Web Push, email, SMS) on top of Phase 3's member
+accounts and gating. Deliberately **not** in this phase (all
 schema-compatible to add later, none of it blocked by what's here):
 
 - Custom domains + SSL provisioning (Vercel Domains API / Cloudflare for
@@ -118,32 +143,42 @@ schema-compatible to add later, none of it blocked by what's here):
   (`/dashboard/settings`) and the logo shows in the dashboard header, but
   `primary_color`/`footer_text` aren't applied anywhere yet; there's no
   separate reseller-facing surface to apply them to.
-- Web Push, SMS, email notifications — `analytics_events.event_type` already
-  has `push_sent`/`push_opened` but nothing sends anything yet. Gating and
-  notifications are natural partners (e.g. "notify premium-tier members") —
-  worth wiring up together in whichever phase does push.
+- A send queue/background job for notifications — see the "one send route,
+  three channels, no queue" architecture note. Fine until either a send has
+  enough recipients to matter, or a provider's own rate limits start
+  rejecting a large batch sent all at once.
+- Rich notification composition: plain title/body only, no images, action
+  buttons, or scheduling ("send this at 6pm") — a notification goes out the
+  moment "Send" is clicked.
+- Member notification preferences (e.g. opt out of email but stay on push) —
+  a member can revoke *push* themselves (the "Disable notifications"
+  button), but there's no per-channel unsubscribe for email/SMS beyond an
+  admin removing their phone/deleting them from
+  `/dashboard/apps/[appId]/members`.
 - Member account recovery: no email verification on signup, no "forgot
   password" flow, no email uniqueness check beyond the DB constraint
   surfacing as a generic error. A member who forgets their password has no
   way back in yet.
 - Tiers are flat strings, not a ranked hierarchy — a block's `min_tier`
-  either matches a member's `tier` exactly or it's `"*"` (any member) or
-  unset (public). There's no "premium includes everything basic includes"
-  inheritance, and no tier-management UI beyond typing a tier name into a
-  block's Inspector or a member's row in `/dashboard/apps/[appId]/members`.
+  (or a notification's tier target) either matches a member's `tier`
+  exactly or it's `"*"` (any member) or unset (public/everyone). There's no
+  "premium includes everything basic includes" inheritance, and no
+  tier-management UI beyond typing a tier name into a block's Inspector, the
+  notification composer's audience picker, or a member's row in
+  `/dashboard/apps/[appId]/members`.
 - No paid-tier enforcement — `app_members.tier` is set by hand from the
   dashboard; there's no checkout flow that assigns it (that's Phase 7's
   billing work, once it exists).
 - E-commerce/product listing, event/booking blocks, and the Shopify/Canva/Zoom
   integrations.
 - Billing/subscriptions (Stripe), plan limits.
-- Background sync in the generated service worker (offline caching is there;
-  background sync and push are commented TODOs in
-  `app/published-apps/[appSlug]/sw.js/route.ts`).
-- Rate limiting / spam filtering on the public contact-form and member
-  signup/login endpoints (`app/published-apps/[appSlug]/submit`,
-  `.../members`, `.../members/session`) — fine for a scaffold, not for a
-  public deployment.
+- Background sync in the generated service worker (offline caching and Web
+  Push are both there now; background sync — e.g. retrying a queued offline
+  form submission — is a commented TODO in
+  `app/published-apps/[appSlug]/sw.js/route.ts`, and is unrelated to push).
+- Rate limiting / spam filtering on every public write endpoint on the
+  published-app runtime (contact-form submit, member signup/login, push
+  subscribe) — fine for a scaffold, not for a public deployment.
 - The analytics date-range filter is a full page navigation (Link + query
   param), not a client-side refetch that holds the previous render while
   loading — simpler, but doesn't follow the dataviz skill's "refetch keeps

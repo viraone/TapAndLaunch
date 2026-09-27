@@ -63,6 +63,7 @@ export function MembersTable({ appId, members }: { appId: string; members: Omit<
         <tr className="border-b text-left text-muted-foreground">
           <th className="py-2 font-medium">Email</th>
           <th className="py-2 font-medium">Name</th>
+          <th className="py-2 font-medium">Phone</th>
           <th className="py-2 font-medium">Tier</th>
           <th className="py-2 font-medium">Joined</th>
           <th className="py-2"></th>
@@ -73,6 +74,7 @@ export function MembersTable({ appId, members }: { appId: string; members: Omit<
           <tr key={member.id} className="border-b last:border-b-0">
             <td className="py-2">{member.email}</td>
             <td className="py-2">{member.display_name ?? "—"}</td>
+            <td className="py-2">{member.phone ?? "—"}</td>
             <td className="py-2">
               <div className="flex items-center gap-1">
                 <Input

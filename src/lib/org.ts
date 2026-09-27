@@ -70,3 +70,31 @@ export async function getActiveOrganizationId(
   }
   return memberships[0].organization_id;
 }
+
+/**
+ * Whether the current user may perform editor-level actions (not just
+ * read) on `appId` — `admin`/`creator`, not `client`. Used by routes whose
+ * write isn't itself an RLS-gated table row (e.g. sending a notification is
+ * a side effect via the service-role client, not an insert `is_org_editor`
+ * would gate), so the check has to happen here instead. Both queries below
+ * are still RLS-scoped — a non-member gets `null`/no rows the same as a
+ * genuinely missing app, never a distinguishable "forbidden".
+ */
+export async function isAppEditor(supabase: SupabaseClient<Database>, appId: string): Promise<boolean> {
+  const { data: app } = await supabase.from("apps").select("organization_id").eq("id", appId).maybeSingle();
+  if (!app) return false;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("organization_id", app.organization_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  return membership?.role === "admin" || membership?.role === "creator";
+}

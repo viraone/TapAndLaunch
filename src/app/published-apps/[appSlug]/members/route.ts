@@ -8,6 +8,7 @@ const SignupSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8, "Password must be at least 8 characters"),
   display_name: z.string().max(120).optional(),
+  phone: z.string().max(32).optional(),
 });
 
 /** Member signup for a published app. Uses the service-role client — see
@@ -34,6 +35,7 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
       email: parsed.data.email,
       password_hash: passwordHash,
       display_name: parsed.data.display_name,
+      phone: parsed.data.phone,
     })
     .select("id, email, display_name, tier")
     .single();

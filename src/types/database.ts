@@ -18,7 +18,15 @@ export type AnalyticsEventType =
   | "install"
   | "click"
   | "push_sent"
-  | "push_opened";
+  | "push_opened"
+  | "email_sent"
+  | "sms_sent";
+
+export type NotificationChannel = "push" | "email" | "sms";
+
+/** "all" reaches every member (and, for push, subscriptions with no member
+ * at all); "tier" reaches only members whose `tier` matches exactly. */
+export type NotificationTarget = { type: "all" } | { type: "tier"; tier: string };
 
 export interface OrganizationBranding {
   logo_url?: string;
@@ -181,6 +189,7 @@ export interface Database {
           email: string;
           password_hash: string;
           display_name: string | null;
+          phone: string | null;
           tier: string;
           created_at: string;
         };
@@ -221,6 +230,25 @@ export interface Database {
           app_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["form_submissions"]["Row"]>;
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          app_id: string;
+          member_id: string | null;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["push_subscriptions"]["Row"]> & {
+          app_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["push_subscriptions"]["Row"]>;
         Relationships: [];
       };
     };

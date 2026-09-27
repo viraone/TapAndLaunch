@@ -1,11 +1,12 @@
 import { getPublishedApp } from "@/lib/pwa/data";
 
 /**
- * Generates a per-tenant service worker. Phase 1 scope is offline caching
- * only (cache-first for static assets, network-first-with-cache-fallback
- * for navigations) — background sync and Web Push are schema-ready
- * (`analytics_events.event_type` already has `push_sent`/`push_opened`) but
- * intentionally not wired up here yet; see the README's phase notes.
+ * Generates a per-tenant service worker: offline caching (cache-first for
+ * static assets, network-first-with-cache-fallback for navigations, from
+ * Phase 1) plus Web Push (Phase 4) — a `push` handler that displays the
+ * notification and a `notificationclick` handler that focuses/opens the
+ * target URL and records `push_opened`. Background sync is still not
+ * wired up; see the README's phase notes.
  *
  * `no-store` on the response matters more than usual for a service worker
  * file: browsers already refuse to cache it past 24h, but an intermediary
@@ -74,8 +75,45 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// TODO (later phase): "push" and "sync" event listeners for Web Push
-// notifications (VAPID) and background sync go here once that phase lands.
+self.addEventListener("push", (event) => {
+  let data = { title: "New notification", body: "" };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {
+    // Non-JSON payload (shouldn't happen -- every sender in this repo sends
+    // JSON) -- fall back to the default title/body rather than throwing and
+    // dropping the notification entirely.
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data && event.notification.data.url ? event.notification.data.url : "/";
+
+  event.waitUntil(
+    Promise.all([
+      fetch("/push/opened", { method: "POST" }).catch(() => {}),
+      self.clients
+        .matchAll({ type: "window", includeUncontrolled: true })
+        .then((clients) => {
+          const existing = clients.find((client) => client.url.endsWith(targetUrl));
+          if (existing) return existing.focus();
+          return self.clients.openWindow(targetUrl);
+        }),
+    ])
+  );
+});
+
+// TODO (later phase): a "sync" event listener for background sync (e.g.
+// retrying a queued offline form submission) -- unrelated to push, and not
+// part of this phase's scope.
 `.trim();
 
   return new Response(script, {
