@@ -5,6 +5,7 @@ const BlockSchema = z.object({
   type: z.enum(["text", "image", "video", "contact_form"]),
   position: z.number().int().min(0),
   config: z.record(z.string(), z.unknown()),
+  min_tier: z.string().nullable().optional(),
 });
 
 const SaveBlocksSchema = z.object({

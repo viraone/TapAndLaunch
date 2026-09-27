@@ -1,7 +1,7 @@
-# Beezer — Phase 1 + 2 scaffold
+# Beezer — Phase 1–3 scaffold
 
 A no-code, multi-tenant Progressive Web App builder (a Beezer-style product).
-This repo covers **Phases 1–2 of a phased build** — see
+This repo covers **Phases 1–3 of a phased build** — see
 [Scope](#scope--whats-deferred) before assuming something is here that isn't.
 
 ## Stack
@@ -34,8 +34,9 @@ This repo covers **Phases 1–2 of a phased build** — see
 ## Getting started
 
 1. Create a Supabase project.
-2. Copy `.env.local.example` to `.env.local` and fill in the three Supabase
-   values from Project Settings → API.
+2. Copy `.env.local.example` to `.env.local`, fill in the three Supabase
+   values from Project Settings → API, and generate `MEMBER_SESSION_SECRET`
+   with `openssl rand -hex 32`.
 3. Link and push the schema (this also creates the `app-assets` Storage
    bucket used for image/icon/logo uploads — see `0002_storage.sql`):
    ```bash
@@ -65,8 +66,19 @@ This repo covers **Phases 1–2 of a phased build** — see
   (org admins/creators) are real Supabase Auth users. End-users who sign up
   *inside* a published app (`app_members`) are not — a single Supabase
   project's `auth.users` isn't a good fit for arbitrary end-users across many
-  tenants' apps. `app_members` is schema-ready but there's no signup/login
-  UI for it yet (see below).
+  tenants' apps. Members instead get their own session: a
+  `scrypt`-hashed password (`lib/pwa/member-auth.ts`, Node's built-in
+  `crypto` — no bcrypt/argon2 dependency) and an HMAC-signed session cookie
+  (`lib/pwa/member-session.ts`) scoped to one app, verified against the DB on
+  every request (`lib/pwa/get-current-member.ts`) rather than trusted from
+  the token alone, so removing a member invalidates their session
+  immediately rather than at cookie expiry.
+- **Block-level gating, not a container block**: rather than a special
+  "gated content" block wrapping others, *any* block can carry a
+  `min_tier` (`blocks.min_tier` — public / any member / an exact tier-name
+  match, set per-block in the builder's Inspector under "Visible to").
+  Simpler than nested block containers, and doesn't require the schema to
+  model block nesting at all.
 - **Subdomain routing**: `src/proxy.ts` rewrites `{slug}.$ROOT_DOMAIN/*` to
   `/published-apps/{slug}/*`. The render tree there (`src/app/published-apps/[appSlug]/...`)
   reads published content with the Supabase **service-role** client
@@ -94,10 +106,8 @@ This repo covers **Phases 1–2 of a phased build** — see
 
 ## Scope — what's deferred
 
-Only what's needed to get from a working Phase 1 scaffold to "the builder is
-actually usable end to end — real image/icon uploads, real theming, an org
-you can rebrand, multiple orgs per user, contact forms that go somewhere, and
-basic analytics" is built in Phase 2. Deliberately **not** in this phase (all
+Phase 3 adds member accounts and gated content on top of Phase 2's
+production-usable builder. Deliberately **not** in this phase (all
 schema-compatible to add later, none of it blocked by what's here):
 
 - Custom domains + SSL provisioning (Vercel Domains API / Cloudflare for
@@ -109,18 +119,31 @@ schema-compatible to add later, none of it blocked by what's here):
   `primary_color`/`footer_text` aren't applied anywhere yet; there's no
   separate reseller-facing surface to apply them to.
 - Web Push, SMS, email notifications — `analytics_events.event_type` already
-  has `push_sent`/`push_opened` but nothing sends anything yet.
-- `app_members` signup/login inside a published app (member tiers, gated
-  content blocks).
+  has `push_sent`/`push_opened` but nothing sends anything yet. Gating and
+  notifications are natural partners (e.g. "notify premium-tier members") —
+  worth wiring up together in whichever phase does push.
+- Member account recovery: no email verification on signup, no "forgot
+  password" flow, no email uniqueness check beyond the DB constraint
+  surfacing as a generic error. A member who forgets their password has no
+  way back in yet.
+- Tiers are flat strings, not a ranked hierarchy — a block's `min_tier`
+  either matches a member's `tier` exactly or it's `"*"` (any member) or
+  unset (public). There's no "premium includes everything basic includes"
+  inheritance, and no tier-management UI beyond typing a tier name into a
+  block's Inspector or a member's row in `/dashboard/apps/[appId]/members`.
+- No paid-tier enforcement — `app_members.tier` is set by hand from the
+  dashboard; there's no checkout flow that assigns it (that's Phase 7's
+  billing work, once it exists).
 - E-commerce/product listing, event/booking blocks, and the Shopify/Canva/Zoom
   integrations.
 - Billing/subscriptions (Stripe), plan limits.
 - Background sync in the generated service worker (offline caching is there;
   background sync and push are commented TODOs in
   `app/published-apps/[appSlug]/sw.js/route.ts`).
-- Rate limiting / spam filtering on the public contact-form submit endpoint
-  (`app/published-apps/[appSlug]/submit/route.ts`) — fine for a scaffold,
-  not for a public deployment.
+- Rate limiting / spam filtering on the public contact-form and member
+  signup/login endpoints (`app/published-apps/[appSlug]/submit`,
+  `.../members`, `.../members/session`) — fine for a scaffold, not for a
+  public deployment.
 - The analytics date-range filter is a full page navigation (Link + query
   param), not a client-side refetch that holds the previous render while
   loading — simpler, but doesn't follow the dataviz skill's "refetch keeps

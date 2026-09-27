@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Trash2 } from "lucide-react";
+import { GripVertical, Lock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BlockRenderer } from "@/components/pwa-runtime/BlockRenderer";
 import type { BuilderBlock } from "@/components/builder/types";
@@ -37,6 +37,15 @@ export function SortableBlockItem({
       <div className="pointer-events-none">
         <BlockRenderer block={block} />
       </div>
+      {block.minTier && (
+        <div
+          className="absolute left-1 top-1 flex items-center gap-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] text-muted-foreground shadow-sm"
+          title={block.minTier === "*" ? "Members only" : `Requires tier: ${block.minTier}`}
+        >
+          <Lock className="h-3 w-3" />
+          {block.minTier === "*" ? "Members" : block.minTier}
+        </div>
+      )}
       <div className="absolute right-1 top-1 flex gap-1 opacity-0 group-hover:opacity-100">
         <button
           type="button"

@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { getBlocksForPage, getPublishedApp, resolvePage } from "@/lib/pwa/data";
 import { BlockRenderer } from "@/components/pwa-runtime/BlockRenderer";
+import { GatedPlaceholder } from "@/components/pwa-runtime/GatedPlaceholder";
 import { recordAnalyticsEvent } from "@/lib/pwa/analytics";
+import { getCurrentMember, memberSatisfiesTier } from "@/lib/pwa/get-current-member";
 
 // See the note in `../layout.tsx` on why `params` is typed by hand here
 // instead of via the generated `PageProps<'/published-apps/[appSlug]/[[...path]]'>`
@@ -18,6 +20,8 @@ export default async function PublishedAppPage({ params }: { params: Params }) {
   if (!page) notFound();
 
   const blocks = await getBlocksForPage(page.id);
+  const member = await getCurrentMember(published.app.id);
+  const currentPath = `/${(path ?? []).join("/")}`;
 
   // Fire-and-forget: a page view should never block or fail the render.
   void recordAnalyticsEvent({ appId: published.app.id, pageId: page.id, eventType: "view" });
@@ -29,7 +33,13 @@ export default async function PublishedAppPage({ params }: { params: Params }) {
           This page has no content yet.
         </p>
       ) : (
-        blocks.map((block) => <BlockRenderer key={block.id} block={block} pageId={page.id} />)
+        blocks.map((block) =>
+          memberSatisfiesTier(member, block.min_tier) ? (
+            <BlockRenderer key={block.id} block={block} pageId={page.id} />
+          ) : (
+            <GatedPlaceholder key={block.id} signedIn={!!member} next={currentPath} />
+          )
+        )
       )}
     </main>
   );

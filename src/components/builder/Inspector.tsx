@@ -2,6 +2,7 @@ import { TextBlockEditor } from "@/components/builder/blocks/TextBlockEditor";
 import { ImageBlockEditor } from "@/components/builder/blocks/ImageBlockEditor";
 import { VideoBlockEditor } from "@/components/builder/blocks/VideoBlockEditor";
 import { ContactFormBlockEditor } from "@/components/builder/blocks/ContactFormBlockEditor";
+import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
 import { BLOCK_TYPE_LABELS } from "@/lib/builder/block-defaults";
 import type { BlockConfig } from "@/types/database";
 import type { BuilderBlock } from "@/components/builder/types";
@@ -10,10 +11,12 @@ export function Inspector({
   block,
   organizationId,
   onChange,
+  onMinTierChange,
 }: {
   block: BuilderBlock | null;
   organizationId: string;
   onChange: (config: BlockConfig) => void;
+  onMinTierChange: (minTier: string | null) => void;
 }) {
   if (!block) {
     return (
@@ -42,6 +45,7 @@ export function Inspector({
       {block.type === "contact_form" && (
         <ContactFormBlockEditor config={block.config} onChange={onChange} />
       )}
+      <BlockAccessControl key={block.id} minTier={block.minTier} onChange={onMinTierChange} />
     </div>
   );
 }

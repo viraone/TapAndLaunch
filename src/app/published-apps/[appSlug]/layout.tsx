@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getPublishedApp } from "@/lib/pwa/data";
 import { ServiceWorkerRegister } from "@/components/pwa-runtime/ServiceWorkerRegister";
 import { PublishedBottomNav } from "@/components/pwa-runtime/PublishedBottomNav";
+import { MemberAccountBar } from "@/components/pwa-runtime/MemberAccountBar";
+import { getCurrentMember } from "@/lib/pwa/get-current-member";
 
 // `params` is typed manually (Promise<{...}>) rather than via the generated
 // `LayoutProps<'/published-apps/[appSlug]'>` helper: that helper only exists after
@@ -47,6 +49,7 @@ export default async function PublishedAppLayout({
   const published = await getPublishedApp(appSlug);
   if (!published) notFound();
 
+  const member = await getCurrentMember(published.app.id);
   const { theme } = published.app;
   // Overriding `--primary` here re-themes every `bg-primary`/`text-primary`
   // usage in the subtree (Tailwind v4's `@theme inline` keeps those
@@ -64,6 +67,7 @@ export default async function PublishedAppLayout({
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-background" style={style}>
       <ServiceWorkerRegister />
+      <MemberAccountBar member={member} />
       <div className="flex-1 overflow-y-auto">{children}</div>
       <PublishedBottomNav items={theme.bottom_nav ?? []} />
     </div>

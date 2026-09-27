@@ -33,7 +33,7 @@ function toBuilderBlock(row: BlockRow): BuilderBlock {
   // Safe by construction: `type` narrows `config` at the DB layer via the
   // same union this file uses, just not provably to TypeScript across the
   // jsonb boundary.
-  return { id: row.id, type: row.type, config: row.config } as BuilderBlock;
+  return { id: row.id, type: row.type, config: row.config, minTier: row.min_tier } as BuilderBlock;
 }
 
 export function BuilderClient({
@@ -63,7 +63,12 @@ export function BuilderClient({
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) ?? null;
 
   function addBlock(type: BlockType) {
-    const block = { id: crypto.randomUUID(), type, config: defaultConfigFor(type) } as BuilderBlock;
+    const block = {
+      id: crypto.randomUUID(),
+      type,
+      config: defaultConfigFor(type),
+      minTier: null,
+    } as BuilderBlock;
     setBlocks((prev) => [...prev, block]);
     setSelectedBlockId(block.id);
   }
@@ -73,6 +78,11 @@ export function BuilderClient({
     setBlocks((prev) =>
       prev.map((b) => (b.id === selectedBlockId ? ({ ...b, config } as BuilderBlock) : b))
     );
+  }
+
+  function updateSelectedBlockMinTier(minTier: string | null) {
+    if (!selectedBlockId) return;
+    setBlocks((prev) => prev.map((b) => (b.id === selectedBlockId ? { ...b, minTier } : b)));
   }
 
   function removeBlock(id: string) {
@@ -132,7 +142,12 @@ export function BuilderClient({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          blocks: blocks.map((b, index) => ({ type: b.type, config: b.config, position: index })),
+          blocks: blocks.map((b, index) => ({
+            type: b.type,
+            config: b.config,
+            min_tier: b.minTier,
+            position: index,
+          })),
         }),
       });
       const body = await res.json();
@@ -235,6 +250,7 @@ export function BuilderClient({
             block={selectedBlock}
             organizationId={currentApp.organization_id}
             onChange={updateSelectedBlockConfig}
+            onMinTierChange={updateSelectedBlockMinTier}
           />
         </aside>
       </div>

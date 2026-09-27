@@ -163,6 +163,7 @@ export interface Database {
           type: BlockType;
           position: number;
           config: BlockConfig;
+          min_tier: string | null;
           created_at: string;
           updated_at: string;
         };
