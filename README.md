@@ -1,15 +1,17 @@
-# Beezer — Phase 1 scaffold
+# Beezer — Phase 1 + 2 scaffold
 
 A no-code, multi-tenant Progressive Web App builder (a Beezer-style product).
-This repo is **Phase 1 of a phased build** — see [Scope](#scope--whats-deferred)
-before assuming something is here that isn't.
+This repo covers **Phases 1–2 of a phased build** — see
+[Scope](#scope--whats-deferred) before assuming something is here that isn't.
 
 ## Stack
 
 - Next.js 16 (App Router, TypeScript), Tailwind CSS v4, shadcn/ui
 - `@dnd-kit` for the builder's drag-and-drop canvas
-- Supabase (Postgres + RLS, Auth, to be joined by Storage in a later phase)
+- Supabase (Postgres + RLS, Auth, Storage)
 - Zod for API route input validation
+- Hand-rolled inline-SVG charts for the analytics dashboard (no charting
+  library dependency) — see `src/components/dashboard/charts/`
 
 > **Next.js 16 note:** this scaffold uses a newer Next.js than most training
 > data / tutorials reflect — `middleware.ts` is renamed to `proxy.ts`,
@@ -34,7 +36,8 @@ before assuming something is here that isn't.
 1. Create a Supabase project.
 2. Copy `.env.local.example` to `.env.local` and fill in the three Supabase
    values from Project Settings → API.
-3. Link and push the schema:
+3. Link and push the schema (this also creates the `app-assets` Storage
+   bucket used for image/icon/logo uploads — see `0002_storage.sql`):
    ```bash
    supabase link --project-ref <your-project-ref>
    supabase db push
@@ -71,35 +74,57 @@ before assuming something is here that isn't.
   session for RLS to check — draft apps 404 there by construction.
 - **Builder → published app, one renderer**: `BlockRenderer` is shared
   between the builder's canvas and the published-app runtime, so what a
-  creator sees while editing is what ships.
+  creator sees while editing is what ships. The one exception is the
+  contact-form block, split into its own Client Component
+  (`ContactFormRuntime`) so it can actually submit — everything else stays a
+  plain server-rendered view.
+- **Active org via cookie, not URL**: `active_org_id` (`src/lib/org.ts`)
+  tracks which org a multi-org user is currently viewing. Set on org
+  creation and by the switcher; falls back to the user's first membership if
+  unset or stale (e.g. pointing at an org they've since left).
+- **Uploads via one public bucket, not one per tenant**: `app-assets`
+  (`0002_storage.sql`), objects path-prefixed `{organization_id}/...`; RLS on
+  `storage.objects` gates writes to that org's editors, reads are public
+  (everything stored here ends up visible on a published app or as a
+  logo/icon anyway).
+- **Analytics palette**: chart colors (`--chart-1..5` in `globals.css`) are
+  the dataviz skill's validated reference palette, not shadcn's default
+  grayscale placeholders — swap these if/when there's an actual brand
+  palette to validate instead.
 
 ## Scope — what's deferred
 
-Only what's needed to go from "empty repo" to "sign up, build a PWA with a
-few block types, publish it, view it on a subdomain, with proper tenant
-isolation" is built here. Deliberately **not** in this phase (all schema-
-compatible to add later, none of it blocked by what's here):
+Only what's needed to get from a working Phase 1 scaffold to "the builder is
+actually usable end to end — real image/icon uploads, real theming, an org
+you can rebrand, multiple orgs per user, contact forms that go somewhere, and
+basic analytics" is built in Phase 2. Deliberately **not** in this phase (all
+schema-compatible to add later, none of it blocked by what's here):
 
 - Custom domains + SSL provisioning (Vercel Domains API / Cloudflare for
   SaaS) — apps are only reachable on the platform's own wildcard subdomain.
   `apps.custom_domain` exists in the schema but is unused.
-- Reseller white-labeling (custom branding/logo/footer) — `organizations.branding`
-  exists in the schema but there's no UI for it.
+- A fully white-labeled reseller **portal** (its own domain, fully re-skinned
+  for an agency's own clients) — `organizations.branding` is editable
+  (`/dashboard/settings`) and the logo shows in the dashboard header, but
+  `primary_color`/`footer_text` aren't applied anywhere yet; there's no
+  separate reseller-facing surface to apply them to.
 - Web Push, SMS, email notifications — `analytics_events.event_type` already
   has `push_sent`/`push_opened` but nothing sends anything yet.
 - `app_members` signup/login inside a published app (member tiers, gated
   content blocks).
 - E-commerce/product listing, event/booking blocks, and the Shopify/Canva/Zoom
   integrations.
-- Analytics dashboard UI — events are written (`view` on every page render)
-  but nothing reads them back yet.
 - Billing/subscriptions (Stripe), plan limits.
-- File/image upload (Supabase Storage) — the image block takes a raw URL.
-- Multi-org switching in the dashboard UI (a user can belong to more than one
-  org per the schema; the dashboard only ever shows the first one).
 - Background sync in the generated service worker (offline caching is there;
   background sync and push are commented TODOs in
   `app/published-apps/[appSlug]/sw.js/route.ts`).
+- Rate limiting / spam filtering on the public contact-form submit endpoint
+  (`app/published-apps/[appSlug]/submit/route.ts`) — fine for a scaffold,
+  not for a public deployment.
+- The analytics date-range filter is a full page navigation (Link + query
+  param), not a client-side refetch that holds the previous render while
+  loading — simpler, but doesn't follow the dataviz skill's "refetch keeps
+  the frame" guidance for a SPA-style filter.
 
 ## Regenerating Supabase types
 

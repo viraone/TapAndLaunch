@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { activeOrgCookieHeader } from "@/lib/org";
 
 const CreateOrgSchema = z.object({
   name: z.string().min(1).max(120),
@@ -52,5 +53,10 @@ export async function POST(request: Request) {
     return Response.json({ error: membershipError.message }, { status: 400 });
   }
 
-  return Response.json({ organization: org }, { status: 201 });
+  // A newly created org becomes the active one immediately — otherwise it
+  // would only appear in the switcher, unselected, until the user picked it
+  // by hand.
+  const response = Response.json({ organization: org }, { status: 201 });
+  response.headers.append("Set-Cookie", activeOrgCookieHeader(org.id));
+  return response;
 }

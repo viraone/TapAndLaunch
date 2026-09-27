@@ -8,9 +8,11 @@ import type { BuilderBlock } from "@/components/builder/types";
 
 export function Inspector({
   block,
+  organizationId,
   onChange,
 }: {
   block: BuilderBlock | null;
+  organizationId: string;
   onChange: (config: BlockConfig) => void;
 }) {
   if (!block) {
@@ -32,7 +34,7 @@ export function Inspector({
         <TextBlockEditor config={block.config} onChange={onChange} />
       )}
       {block.type === "image" && (
-        <ImageBlockEditor config={block.config} onChange={onChange} />
+        <ImageBlockEditor config={block.config} organizationId={organizationId} onChange={onChange} />
       )}
       {block.type === "video" && (
         <VideoBlockEditor config={block.config} onChange={onChange} />

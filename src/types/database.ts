@@ -208,6 +208,20 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["analytics_events"]["Row"]>;
         Relationships: [];
       };
+      form_submissions: {
+        Row: {
+          id: string;
+          app_id: string;
+          page_id: string | null;
+          data: Record<string, string>;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["form_submissions"]["Row"]> & {
+          app_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["form_submissions"]["Row"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

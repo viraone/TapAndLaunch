@@ -18,12 +18,17 @@ export function AppCard({ app, rootDomain }: { app: AppRow; rootDomain: string }
         <a href={previewUrl} target="_blank" rel="noreferrer" className="block text-sm text-muted-foreground underline">
           {app.slug}.{rootDomain}
         </a>
-        <Link
-          href={`/dashboard/apps/${app.id}/builder`}
-          className="inline-block text-sm font-medium text-primary underline"
-        >
-          Open builder
-        </Link>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
+          <Link href={`/dashboard/apps/${app.id}/builder`} className="font-medium text-primary underline">
+            Open builder
+          </Link>
+          <Link href={`/dashboard/apps/${app.id}/analytics`} className="text-muted-foreground underline">
+            Analytics
+          </Link>
+          <Link href={`/dashboard/apps/${app.id}/submissions`} className="text-muted-foreground underline">
+            Submissions
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );

@@ -29,7 +29,7 @@ export default async function PublishedAppPage({ params }: { params: Params }) {
           This page has no content yet.
         </p>
       ) : (
-        blocks.map((block) => <BlockRenderer key={block.id} block={block} />)
+        blocks.map((block) => <BlockRenderer key={block.id} block={block} pageId={page.id} />)
       )}
     </main>
   );

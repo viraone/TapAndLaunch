@@ -2,13 +2,14 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getRootDomain } from "@/lib/tenant";
+import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 import { NewAppForm } from "./NewAppForm";
 
 export default async function NewAppPage() {
   const supabase = await createClient();
 
-  const { data: memberships } = await supabase.from("memberships").select("organization_id").limit(1);
-  const organizationId = memberships?.[0]?.organization_id;
+  const memberships = await getMemberships(supabase);
+  const organizationId = await getActiveOrganizationId(supabase, memberships);
   if (!organizationId) redirect("/onboarding");
 
   return (

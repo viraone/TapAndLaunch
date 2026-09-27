@@ -50,7 +50,11 @@ export function MobilePreviewFrame({
       {device === "ios" && (
         <div className="mx-auto -mb-2 mt-1 h-5 w-32 rounded-full bg-neutral-900" />
       )}
-      <div className="flex-1 overflow-y-auto">{children}</div>
+      {/* Unlike the published-app runtime, the caller controls scrolling
+          here (not a single wrapping overflow div) so a bottom nav preview
+          can sit fixed below a scrollable block list, matching how the
+          published app actually lays out. */}
+      <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
       {device === "android" && <div className="mx-auto mb-1 h-1 w-24 rounded-full bg-neutral-300" />}
     </div>
   );

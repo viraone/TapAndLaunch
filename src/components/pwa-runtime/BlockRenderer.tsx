@@ -1,4 +1,5 @@
 import type { BlockConfig, BlockType, ContactFormBlockConfig, ImageBlockConfig, TextBlockConfig, VideoBlockConfig } from "@/types/database";
+import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
 
 /**
  * Minimal shape needed to render a block — deliberately not the full
@@ -17,7 +18,7 @@ export interface RenderableBlock {
  * (client-rendered, read-only view *inside* a draggable wrapper) so the two
  * never visually drift apart.
  */
-export function BlockRenderer({ block }: { block: RenderableBlock }) {
+export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageId?: string }) {
   switch (block.type) {
     case "text":
       return <TextBlockView config={block.config as TextBlockConfig} />;
@@ -26,7 +27,7 @@ export function BlockRenderer({ block }: { block: RenderableBlock }) {
     case "video":
       return <VideoBlockView config={block.config as VideoBlockConfig} />;
     case "contact_form":
-      return <ContactFormBlockView config={block.config as ContactFormBlockConfig} />;
+      return <ContactFormRuntime config={block.config as ContactFormBlockConfig} pageId={pageId} />;
     default:
       return <UnknownBlockView type={block.type} />;
   }
@@ -95,40 +96,6 @@ function toEmbedUrl(config: VideoBlockConfig): string {
 function extractYoutubeId(url: string): string | null {
   const match = url.match(/(?:youtu\.be\/|v=|embed\/)([a-zA-Z0-9_-]{11})/);
   return match ? match[1] : null;
-}
-
-function ContactFormBlockView({ config }: { config: ContactFormBlockConfig }) {
-  return (
-    <form className="mx-4 my-2 space-y-3 rounded-md border p-4">
-      {config.title && <h3 className="font-medium">{config.title}</h3>}
-      {(config.fields ?? []).map((field) => (
-        <div key={field.name} className="space-y-1">
-          <label className="text-sm font-medium">{field.label}</label>
-          {field.type === "textarea" ? (
-            <textarea
-              name={field.name}
-              required={field.required}
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              rows={3}
-            />
-          ) : (
-            <input
-              name={field.name}
-              type={field.type}
-              required={field.required}
-              className="w-full rounded-md border px-3 py-2 text-sm"
-            />
-          )}
-        </div>
-      ))}
-      <button
-        type="submit"
-        className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-      >
-        {config.submit_label ?? "Submit"}
-      </button>
-    </form>
-  );
 }
 
 function UnknownBlockView({ type }: { type: string }) {

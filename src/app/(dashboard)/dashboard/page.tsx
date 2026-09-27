@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { AppCard } from "@/components/dashboard/AppCard";
 import { createClient } from "@/lib/supabase/server";
 import { getRootDomain } from "@/lib/tenant";
+import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const { data: memberships } = await supabase.from("memberships").select("organization_id").limit(1);
-  const organizationId = memberships?.[0]?.organization_id;
+  const memberships = await getMemberships(supabase);
+  const organizationId = await getActiveOrganizationId(supabase, memberships);
   if (!organizationId) redirect("/onboarding");
 
   const { data: apps } = await supabase
@@ -24,7 +25,10 @@ export default async function DashboardPage() {
     <main className="mx-auto w-full max-w-4xl flex-1 p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Your apps</h1>
-        <Button render={<Link href="/dashboard/apps/new">New app</Link>} />
+        <div className="flex gap-2">
+          <Button variant="outline" render={<Link href="/dashboard/settings">Organization settings</Link>} />
+          <Button render={<Link href="/dashboard/apps/new">New app</Link>} />
+        </div>
       </div>
 
       {!apps || apps.length === 0 ? (
