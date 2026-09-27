@@ -1,9 +1,28 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 import type { Database } from "@/types/database";
 
 type AppRow = Database["public"]["Tables"]["apps"]["Row"];
+
+const MANAGE_LINKS = [
+  { path: "analytics", label: "Analytics" },
+  { path: "submissions", label: "Submissions" },
+  { path: "members", label: "Members" },
+  { path: "notifications", label: "Notifications" },
+  { path: "products", label: "Products" },
+  { path: "orders", label: "Orders" },
+  { path: "events", label: "Events" },
+  { path: "bookings", label: "Bookings" },
+];
 
 export function AppCard({ app, rootDomain }: { app: AppRow; rootDomain: string }) {
   const previewUrl = `//${app.slug}.${rootDomain}`;
@@ -18,22 +37,26 @@ export function AppCard({ app, rootDomain }: { app: AppRow; rootDomain: string }
         <a href={previewUrl} target="_blank" rel="noreferrer" className="block text-sm text-muted-foreground underline">
           {app.slug}.{rootDomain}
         </a>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
+        <div className="flex items-center gap-2 text-sm">
           <Link href={`/dashboard/apps/${app.id}/builder`} className="font-medium text-primary underline">
             Open builder
           </Link>
-          <Link href={`/dashboard/apps/${app.id}/analytics`} className="text-muted-foreground underline">
-            Analytics
-          </Link>
-          <Link href={`/dashboard/apps/${app.id}/submissions`} className="text-muted-foreground underline">
-            Submissions
-          </Link>
-          <Link href={`/dashboard/apps/${app.id}/members`} className="text-muted-foreground underline">
-            Members
-          </Link>
-          <Link href={`/dashboard/apps/${app.id}/notifications`} className="text-muted-foreground underline">
-            Notifications
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button type="button" variant="ghost" size="sm">
+                  Manage <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="start">
+              {MANAGE_LINKS.map((item) => (
+                <DropdownMenuItem key={item.path} render={<Link href={`/dashboard/apps/${app.id}/${item.path}`} />}>
+                  {item.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>

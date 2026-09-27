@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { BLOCK_TYPES, BLOCK_TYPE_LABELS } from "@/lib/builder/block-defaults";
-import { Type, Image as ImageIcon, Video, ClipboardList } from "lucide-react";
+import { Type, Image as ImageIcon, Video, ClipboardList, ShoppingBag, CalendarDays, Video as ZoomIcon, Palette as CanvaIcon } from "lucide-react";
 import type { BlockType } from "@/types/database";
 
 const ICONS: Record<BlockType, React.ComponentType<{ className?: string }>> = {
@@ -8,6 +8,10 @@ const ICONS: Record<BlockType, React.ComponentType<{ className?: string }>> = {
   image: ImageIcon,
   video: Video,
   contact_form: ClipboardList,
+  product_list: ShoppingBag,
+  event_calendar: CalendarDays,
+  zoom_meeting: ZoomIcon,
+  canva_embed: CanvaIcon,
 };
 
 /**

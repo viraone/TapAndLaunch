@@ -1,7 +1,7 @@
-# Beezer — Phase 1–4 scaffold
+# Beezer — Phase 1–5 scaffold
 
 A no-code, multi-tenant Progressive Web App builder (a Beezer-style product).
-This repo covers **Phases 1–4 of a phased build** — see
+This repo covers **Phases 1–5 of a phased build** — see
 [Scope](#scope--whats-deferred) before assuming something is here that isn't.
 
 ## Stack
@@ -128,12 +128,34 @@ This repo covers **Phases 1–4 of a phased build** — see
   means the browser subscription is gone (site data cleared, uninstalled,
   etc.) — the send route deletes that `push_subscriptions` row itself
   rather than leaving it to fail forever on every future send.
+- **Products and events are "show everything," not per-block curation**:
+  there's exactly one active-products list and one upcoming-events list per
+  app — the `product_list`/`event_calendar` blocks always show all of it,
+  with no per-block product/event picker. Simpler than building a
+  multi-select UI, and it's the same simplification `min_tier` gating
+  already made for blocks in general (whole-block, not partial content).
+- **An order is one product, not a cart**: `ProductBuyRuntime` creates one
+  order with one line item per "Buy" click — there's no multi-item basket
+  to check out at once. `orders`/`order_items` are still modeled as
+  order-with-line-items (not a flattened single-product row) so a real cart
+  can be layered on later without a schema change, just a different write
+  path.
+- **No payment processor**: an order is a purchase *request*
+  (`orders.status` starts `'pending'`) a merchant follows up on manually —
+  Stripe integration is Phase 7's job. Naming avoids "paid"/"payment"
+  anywhere in the schema or code for this reason.
+- **Zoom/Canva are link embeds, not API integrations**: matching the
+  original spec's own wording ("meeting link embeds", "embed/button widget
+  integration") — no OAuth app, no calling out to either service's API.
+  Creating/managing the actual Zoom meeting or Canva design still happens
+  in Zoom/Canva; these blocks just render the link a creator pastes in.
 
 ## Scope — what's deferred
 
-Phase 4 adds notifications (Web Push, email, SMS) on top of Phase 3's member
-accounts and gating. Deliberately **not** in this phase (all
-schema-compatible to add later, none of it blocked by what's here):
+Phase 5 adds a product catalog + order requests, an event calendar +
+bookings, and two link-embed blocks (Zoom, Canva) on top of Phase 4's
+notifications. Deliberately **not** in this phase (all schema-compatible
+to add later, none of it blocked by what's here):
 
 - Custom domains + SSL provisioning (Vercel Domains API / Cloudflare for
   SaaS) — apps are only reachable on the platform's own wildcard subdomain.
@@ -169,8 +191,24 @@ schema-compatible to add later, none of it blocked by what's here):
 - No paid-tier enforcement — `app_members.tier` is set by hand from the
   dashboard; there's no checkout flow that assigns it (that's Phase 7's
   billing work, once it exists).
-- E-commerce/product listing, event/booking blocks, and the Shopify/Canva/Zoom
-  integrations.
+- No real payment processing (Stripe is Phase 7) — see the "no payment
+  processor" architecture note. Orders are purchase requests, not
+  transactions.
+- No product variants or inventory tracking — one price per product, no
+  size/color options, no stock counts or oversell prevention.
+- No per-block product/event curation (see the "show everything" note) — a
+  merchant with two very different product lines can't split them across
+  two `product_list` blocks on different pages.
+- Booking capacity is enforced with a count-then-insert, not an atomic
+  check — see the comment in `app/published-apps/[appSlug]/bookings/route.ts`.
+  Two people booking the last seat at the same instant could both get it.
+- Shopify/Canva-as-API-integration/Zoom-as-API-integration: Canva and Zoom
+  are link embeds only (see the architecture note); Shopify isn't
+  integrated at all — the product catalog is this repo's own
+  (`products`/`orders`/`order_items`), not synced from a connected Shopify
+  store. Layering Shopify in as an *additional* import source into the same
+  `products` table, rather than replacing it, is the natural way to add
+  that later without reworking the block.
 - Billing/subscriptions (Stripe), plan limits.
 - Background sync in the generated service worker (offline caching and Web
   Push are both there now; background sync — e.g. retrying a queued offline
@@ -178,7 +216,8 @@ schema-compatible to add later, none of it blocked by what's here):
   `app/published-apps/[appSlug]/sw.js/route.ts`, and is unrelated to push).
 - Rate limiting / spam filtering on every public write endpoint on the
   published-app runtime (contact-form submit, member signup/login, push
-  subscribe) — fine for a scaffold, not for a public deployment.
+  subscribe, order/booking creation) — fine for a scaffold, not for a
+  public deployment.
 - The analytics date-range filter is a full page navigation (Link + query
   param), not a client-side refetch that holds the previous render while
   loading — simpler, but doesn't follow the dataviz skill's "refetch keeps

@@ -12,7 +12,15 @@
 
 export type Role = "admin" | "creator" | "client";
 export type AppStatus = "draft" | "published";
-export type BlockType = "text" | "image" | "video" | "contact_form";
+export type BlockType =
+  | "text"
+  | "image"
+  | "video"
+  | "contact_form"
+  | "product_list"
+  | "event_calendar"
+  | "zoom_meeting"
+  | "canva_embed";
 export type AnalyticsEventType =
   | "view"
   | "install"
@@ -20,7 +28,10 @@ export type AnalyticsEventType =
   | "push_sent"
   | "push_opened"
   | "email_sent"
-  | "sms_sent";
+  | "sms_sent"
+  | "order_placed"
+  | "booking_created";
+export type OrderStatus = "pending" | "fulfilled" | "cancelled";
 
 export type NotificationChannel = "push" | "email" | "sms";
 
@@ -57,7 +68,11 @@ export type BlockConfig =
   | TextBlockConfig
   | ImageBlockConfig
   | VideoBlockConfig
-  | ContactFormBlockConfig;
+  | ContactFormBlockConfig
+  | ProductListBlockConfig
+  | EventCalendarBlockConfig
+  | ZoomMeetingBlockConfig
+  | CanvaEmbedBlockConfig;
 
 export interface TextBlockConfig {
   heading?: string;
@@ -78,6 +93,32 @@ export interface ContactFormBlockConfig {
   title?: string;
   fields?: Array<{ name: string; label: string; type: "text" | "email" | "textarea"; required?: boolean }>;
   submit_label?: string;
+}
+
+/** No product selection here — always shows every active product for the
+ * app. See the migration comment on `products` for why. */
+export interface ProductListBlockConfig {
+  title?: string;
+}
+
+/** No event selection either, same reasoning as `ProductListBlockConfig`. */
+export interface EventCalendarBlockConfig {
+  title?: string;
+}
+
+export interface ZoomMeetingBlockConfig {
+  title?: string;
+  description?: string;
+  meeting_url?: string;
+}
+
+export interface CanvaEmbedBlockConfig {
+  /** A Canva design's public "embed" share link (renders as an iframe). */
+  embed_url?: string;
+  /** An optional button under/instead of the embed, linking to any Canva
+   * design/template/profile URL. */
+  button_label?: string;
+  button_url?: string;
 }
 
 // `Relationships`/`Views`/`Functions` below are required by supabase-js's
@@ -249,6 +290,109 @@ export interface Database {
           auth: string;
         };
         Update: Partial<Database["public"]["Tables"]["push_subscriptions"]["Row"]>;
+        Relationships: [];
+      };
+      products: {
+        Row: {
+          id: string;
+          app_id: string;
+          name: string;
+          description: string | null;
+          price_cents: number;
+          currency: string;
+          image_url: string | null;
+          is_active: boolean;
+          position: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["products"]["Row"]> & {
+          app_id: string;
+          name: string;
+          price_cents: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["products"]["Row"]>;
+        Relationships: [];
+      };
+      orders: {
+        Row: {
+          id: string;
+          app_id: string;
+          member_id: string | null;
+          customer_name: string;
+          customer_email: string;
+          status: OrderStatus;
+          total_cents: number;
+          currency: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["orders"]["Row"]> & {
+          app_id: string;
+          customer_name: string;
+          customer_email: string;
+          total_cents: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["orders"]["Row"]>;
+        Relationships: [];
+      };
+      order_items: {
+        Row: {
+          id: string;
+          order_id: string;
+          product_id: string | null;
+          product_name: string;
+          unit_price_cents: number;
+          quantity: number;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["order_items"]["Row"]> & {
+          order_id: string;
+          product_name: string;
+          unit_price_cents: number;
+          quantity: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["order_items"]["Row"]>;
+        Relationships: [];
+      };
+      events: {
+        Row: {
+          id: string;
+          app_id: string;
+          title: string;
+          description: string | null;
+          location: string | null;
+          starts_at: string;
+          ends_at: string | null;
+          capacity: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["events"]["Row"]> & {
+          app_id: string;
+          title: string;
+          starts_at: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["events"]["Row"]>;
+        Relationships: [];
+      };
+      bookings: {
+        Row: {
+          id: string;
+          event_id: string;
+          app_id: string;
+          member_id: string | null;
+          customer_name: string;
+          customer_email: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["bookings"]["Row"]> & {
+          event_id: string;
+          app_id: string;
+          customer_name: string;
+          customer_email: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["bookings"]["Row"]>;
         Relationships: [];
       };
     };

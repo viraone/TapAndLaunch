@@ -248,6 +248,7 @@ export function BuilderClient({
         <aside className="overflow-y-auto border-l">
           <Inspector
             block={selectedBlock}
+            appId={currentApp.id}
             organizationId={currentApp.organization_id}
             onChange={updateSelectedBlockConfig}
             onMinTierChange={updateSelectedBlockMinTier}

@@ -1,8 +1,12 @@
 import type {
+  CanvaEmbedBlockConfig,
   ContactFormBlockConfig,
+  EventCalendarBlockConfig,
   ImageBlockConfig,
+  ProductListBlockConfig,
   TextBlockConfig,
   VideoBlockConfig,
+  ZoomMeetingBlockConfig,
 } from "@/types/database";
 
 /**
@@ -19,4 +23,8 @@ export type BuilderBlock =
   | { id: string; type: "text"; config: TextBlockConfig; minTier: string | null }
   | { id: string; type: "image"; config: ImageBlockConfig; minTier: string | null }
   | { id: string; type: "video"; config: VideoBlockConfig; minTier: string | null }
-  | { id: string; type: "contact_form"; config: ContactFormBlockConfig; minTier: string | null };
+  | { id: string; type: "contact_form"; config: ContactFormBlockConfig; minTier: string | null }
+  | { id: string; type: "product_list"; config: ProductListBlockConfig; minTier: string | null }
+  | { id: string; type: "event_calendar"; config: EventCalendarBlockConfig; minTier: string | null }
+  | { id: string; type: "zoom_meeting"; config: ZoomMeetingBlockConfig; minTier: string | null }
+  | { id: string; type: "canva_embed"; config: CanvaEmbedBlockConfig; minTier: string | null };

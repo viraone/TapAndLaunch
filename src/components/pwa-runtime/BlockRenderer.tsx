@@ -1,5 +1,18 @@
-import type { BlockConfig, BlockType, ContactFormBlockConfig, ImageBlockConfig, TextBlockConfig, VideoBlockConfig } from "@/types/database";
+import type {
+  BlockConfig,
+  BlockType,
+  CanvaEmbedBlockConfig,
+  ContactFormBlockConfig,
+  EventCalendarBlockConfig,
+  ImageBlockConfig,
+  ProductListBlockConfig,
+  TextBlockConfig,
+  VideoBlockConfig,
+  ZoomMeetingBlockConfig,
+} from "@/types/database";
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
+import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
+import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
 
 /**
  * Minimal shape needed to render a block — deliberately not the full
@@ -18,7 +31,22 @@ export interface RenderableBlock {
  * (client-rendered, read-only view *inside* a draggable wrapper) so the two
  * never visually drift apart.
  */
-export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageId?: string }) {
+export function BlockRenderer({
+  block,
+  pageId,
+  products,
+  events,
+}: {
+  block: RenderableBlock;
+  pageId?: string;
+  /** Only passed by the published-app runtime (`page.tsx` fetches once per
+   * page and shares it across every `product_list` block on it — there's
+   * only ever one "set" to show, see `ProductListBlockConfig`). Undefined
+   * in the builder, where this block instead shows a static placeholder. */
+  products?: RuntimeProduct[];
+  /** Same idea as `products`, for `event_calendar` blocks. */
+  events?: RuntimeEvent[];
+}) {
   switch (block.type) {
     case "text":
       return <TextBlockView config={block.config as TextBlockConfig} />;
@@ -28,6 +56,14 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       return <VideoBlockView config={block.config as VideoBlockConfig} />;
     case "contact_form":
       return <ContactFormRuntime config={block.config as ContactFormBlockConfig} pageId={pageId} />;
+    case "product_list":
+      return <ProductListBlockView config={block.config as ProductListBlockConfig} products={products} />;
+    case "event_calendar":
+      return <EventCalendarBlockView config={block.config as EventCalendarBlockConfig} events={events} />;
+    case "zoom_meeting":
+      return <ZoomMeetingBlockView config={block.config as ZoomMeetingBlockConfig} />;
+    case "canva_embed":
+      return <CanvaEmbedBlockView config={block.config as CanvaEmbedBlockConfig} />;
     default:
       return <UnknownBlockView type={block.type} />;
   }
@@ -96,6 +132,111 @@ function toEmbedUrl(config: VideoBlockConfig): string {
 function extractYoutubeId(url: string): string | null {
   const match = url.match(/(?:youtu\.be\/|v=|embed\/)([a-zA-Z0-9_-]{11})/);
   return match ? match[1] : null;
+}
+
+function ProductListBlockView({
+  config,
+  products,
+}: {
+  config: ProductListBlockConfig;
+  products?: RuntimeProduct[];
+}) {
+  return (
+    <div className="px-4 py-3">
+      {config.title && <h2 className="mb-2 text-lg font-semibold">{config.title}</h2>}
+      {products === undefined ? (
+        <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+          Shows every active product when published.
+        </p>
+      ) : products.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No products yet.</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-3">
+          {products.map((product) => (
+            <ProductBuyRuntime key={product.id} product={product} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EventCalendarBlockView({
+  config,
+  events,
+}: {
+  config: EventCalendarBlockConfig;
+  events?: RuntimeEvent[];
+}) {
+  return (
+    <div className="px-4 py-3">
+      {config.title && <h2 className="mb-2 text-lg font-semibold">{config.title}</h2>}
+      {events === undefined ? (
+        <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+          Shows every upcoming event when published.
+        </p>
+      ) : events.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No upcoming events.</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-3">
+          {events.map((event) => (
+            <EventBookRuntime key={event.id} event={event} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ZoomMeetingBlockView({ config }: { config: ZoomMeetingBlockConfig }) {
+  return (
+    <div className="mx-4 my-2 space-y-2 rounded-md border p-4">
+      {config.title && <h3 className="font-medium">{config.title}</h3>}
+      {config.description && <p className="text-sm text-muted-foreground">{config.description}</p>}
+      {config.meeting_url ? (
+        <a
+          href={config.meeting_url}
+          target="_blank"
+          rel="noreferrer"
+          className="block w-full rounded-md bg-primary px-3 py-2 text-center text-sm font-medium text-primary-foreground"
+        >
+          Join meeting
+        </a>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">No meeting URL set</p>
+      )}
+    </div>
+  );
+}
+
+function CanvaEmbedBlockView({ config }: { config: CanvaEmbedBlockConfig }) {
+  if (!config.embed_url && !config.button_url) {
+    return (
+      <div className="mx-4 flex h-32 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+        No Canva embed or link set
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-4 my-2 space-y-2">
+      {config.embed_url && (
+        <div className="aspect-video w-full overflow-hidden rounded-md border">
+          <iframe src={config.embed_url} className="h-full w-full" allow="fullscreen" allowFullScreen />
+        </div>
+      )}
+      {config.button_url && (
+        <a
+          href={config.button_url}
+          target="_blank"
+          rel="noreferrer"
+          className="block w-full rounded-md bg-primary px-3 py-2 text-center text-sm font-medium text-primary-foreground"
+        >
+          {config.button_label || "Open in Canva"}
+        </a>
+      )}
+    </div>
+  );
 }
 
 function UnknownBlockView({ type }: { type: string }) {

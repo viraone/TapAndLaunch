@@ -2,7 +2,16 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
 const BlockSchema = z.object({
-  type: z.enum(["text", "image", "video", "contact_form"]),
+  type: z.enum([
+    "text",
+    "image",
+    "video",
+    "contact_form",
+    "product_list",
+    "event_calendar",
+    "zoom_meeting",
+    "canva_embed",
+  ]),
   position: z.number().int().min(0),
   config: z.record(z.string(), z.unknown()),
   min_tier: z.string().nullable().optional(),
