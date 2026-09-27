@@ -1,0 +1,83 @@
+import "server-only";
+import { cache } from "react";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/types/database";
+
+type AppRow = Database["public"]["Tables"]["apps"]["Row"];
+type PageRow = Database["public"]["Tables"]["pages"]["Row"];
+type BlockRow = Database["public"]["Tables"]["blocks"]["Row"];
+
+export interface PublishedApp {
+  app: AppRow;
+  pages: PageRow[];
+}
+
+/**
+ * Loads a published app by its subdomain slug for the PWA runtime. Uses the
+ * service-role client because visitors of a published app are anonymous —
+ * there is no Supabase Auth session to satisfy the `apps` RLS policy with.
+ * Draft apps resolve to `null` so an unpublished app can never leak by
+ * guessing its slug.
+ *
+ * Returns `null` rather than calling `notFound()` itself: this is shared by
+ * both page/layout Server Components (which can call `notFound()`) and
+ * Route Handlers for `manifest.webmanifest` / `sw.js` (which can't — that
+ * helper only works in the render path) — each caller decides how to turn
+ * "no app" into a response.
+ *
+ * Wrapped in React's `cache()` so `generateMetadata`, `generateViewport`,
+ * and the page/layout components — which each call this independently for
+ * the same request — share one Supabase round trip instead of four.
+ */
+export const getPublishedApp = cache(async (slug: string): Promise<PublishedApp | null> => {
+  const admin = createAdminClient();
+
+  const { data: app, error } = await admin
+    .from("apps")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!app) return null;
+
+  const { data: pages, error: pagesError } = await admin
+    .from("pages")
+    .select("*")
+    .eq("app_id", app.id)
+    .order("position", { ascending: true });
+
+  if (pagesError) throw pagesError;
+
+  return { app, pages: pages ?? [] };
+});
+
+/**
+ * Resolves the optional catch-all path segments from
+ * `app/published-apps/[appSlug]/[[...path]]/page.tsx` to a page row: `[]` (the app
+ * root) resolves to the `is_home` page, anything else matches `pages.path`
+ * joined with `/`. Returns `null` if nothing matches — see `getPublishedApp`
+ * for why this doesn't call `notFound()` itself.
+ */
+export function resolvePage(published: PublishedApp, pathSegments: string[] | undefined): PageRow | null {
+  const joinedPath = (pathSegments ?? []).join("/");
+
+  const page = joinedPath
+    ? published.pages.find((p) => p.path === joinedPath)
+    : published.pages.find((p) => p.is_home) ?? published.pages[0];
+
+  return page ?? null;
+}
+
+export async function getBlocksForPage(pageId: string): Promise<BlockRow[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("blocks")
+    .select("*")
+    .eq("page_id", pageId)
+    .order("position", { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+}
