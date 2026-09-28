@@ -11,12 +11,12 @@ const BookingSchema = z.object({
 });
 
 /**
- * Books one seat at an event. Capacity is enforced with a plain
- * count-then-insert — not atomic (two requests racing at the last open
- * seat could both succeed), a fine tradeoff at the traffic a scaffold's
- * booking block deals with, and not something to leave unfixed at real
- * scale (a `select ... for update` or a DB-side check constraint via a
- * trigger would close the race).
+ * Books one seat at an event. Capacity is enforced twice: the count check
+ * below gives a fast, friendly 409, and the `bookings_enforce_capacity`
+ * before-insert trigger (see supabase/migrations/0008_booking_capacity.sql)
+ * closes the race — it locks the event's row with `select ... for update`
+ * and raises 'event_fully_booked' if the seat is already taken, so two
+ * concurrent requests can't both book the last one.
  */
 export async function POST(request: Request, context: { params: Promise<{ appSlug: string }> }) {
   const { appSlug } = await context.params;
@@ -69,6 +69,9 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
     .single();
 
   if (error) {
+    if (error.message.includes("event_fully_booked")) {
+      return Response.json({ error: "This event is fully booked" }, { status: 409 });
+    }
     return Response.json({ error: error.message }, { status: 400 });
   }
 

@@ -252,9 +252,6 @@ to add later, none of it blocked by what's here):
 - No per-block product/event curation (see the "show everything" note) — a
   merchant with two very different product lines can't split them across
   two `product_list` blocks on different pages.
-- Booking capacity is enforced with a count-then-insert, not an atomic
-  check — see the comment in `app/published-apps/[appSlug]/bookings/route.ts`.
-  Two people booking the last seat at the same instant could both get it.
 - Shopify/Canva-as-API-integration/Zoom-as-API-integration: Canva and Zoom
   are link embeds only (see the architecture note); Shopify isn't
   integrated at all — the product catalog is this repo's own
