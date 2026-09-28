@@ -56,6 +56,7 @@ This repo covers **Phases 1–6 of a phased build** — see
    supabase link --project-ref <your-project-ref>
    supabase db push
    ```
+   The schema gives the API roles their table rights in `0009_api_grants.sql`, and every new table needs row-level security turned on.
 4. `npm install && npm run dev`
    (the first `dev`/`build` run also generates `.next/types`, which is where
    the ambient `PageProps`/`LayoutProps`/`RouteContext` helpers this repo
