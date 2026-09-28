@@ -33,6 +33,17 @@ export type AnalyticsEventType =
   | "booking_created";
 export type OrderStatus = "pending" | "fulfilled" | "cancelled";
 
+export type CustomDomainStatus = "pending" | "verified" | "error";
+
+/** One DNS record Vercel's Domains API asks the tenant to add, passed
+ * through verbatim — see `lib/domains/vercel.ts`. */
+export interface DomainVerificationRecord {
+  type: string;
+  domain: string;
+  value: string;
+  reason?: string;
+}
+
 export type NotificationChannel = "push" | "email" | "sms";
 
 /** "all" reaches every member (and, for push, subscriptions with no member
@@ -172,6 +183,8 @@ export interface Database {
           slug: string;
           status: AppStatus;
           custom_domain: string | null;
+          custom_domain_status: CustomDomainStatus | null;
+          custom_domain_verification: DomainVerificationRecord[];
           theme: ThemeConfig;
           manifest: ManifestConfig;
           created_by: string | null;

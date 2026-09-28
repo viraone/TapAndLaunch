@@ -1,12 +1,9 @@
 /**
  * Subdomain <-> published-app resolution, shared between `proxy.ts` and the
- * `/published-apps/[appSlug]` route tree it rewrites into.
- *
- * Phase 1 only supports the platform's own wildcard subdomain
- * (`{slug}.NEXT_PUBLIC_ROOT_DOMAIN`). Custom domains (`custom_domain` on the
- * `apps` table) are modeled in the schema but not resolved here yet — see
- * the README's phase notes before wiring up Vercel Domains / Cloudflare for
- * SaaS.
+ * `/published-apps/[appSlug]` route tree it rewrites into. Custom domains
+ * (Phase 6) are resolved separately below, in `resolveAppSlugForHost` —
+ * `extractAppSlug` itself stays a pure, DB-free function since it's the
+ * fast path that runs on every request.
  */
 export function getRootDomain(): string {
   return process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
@@ -41,4 +38,43 @@ export function extractAppSlug(host: string | null): string | null {
   if (!subdomain || subdomain.includes(".")) return null;
 
   return subdomain;
+}
+
+/**
+ * The full host → app-slug resolution `proxy.ts` actually uses: the fast,
+ * DB-free subdomain check first, falling back to a `custom_domain` lookup
+ * (Phase 6) only for hosts that don't match the platform's own wildcard
+ * subdomain — so ordinary `{slug}.$ROOT_DOMAIN` traffic never pays for a
+ * query it doesn't need.
+ *
+ * Only a `custom_domain_status = 'verified'` **and** `status = 'published'`
+ * row resolves — an app mid-verification, or unpublished, must not become
+ * reachable just because someone pointed DNS at it early.
+ */
+export async function resolveAppSlugForHost(host: string | null): Promise<string | null> {
+  const subdomainSlug = extractAppSlug(host);
+  if (subdomainSlug) return subdomainSlug;
+  if (!host) return null;
+
+  const rootDomain = getRootDomain().toLowerCase();
+  const normalizedHost = host.toLowerCase();
+  if (normalizedHost === rootDomain || normalizedHost === `www.${rootDomain}`) {
+    return null;
+  }
+
+  // Deferred import: this file is otherwise DB-free and importable from
+  // anywhere; the admin client is only needed for this one custom-domain
+  // path.
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  const { data } = await admin
+    .from("apps")
+    .select("slug")
+    .eq("custom_domain", normalizedHost)
+    .eq("custom_domain_status", "verified")
+    .eq("status", "published")
+    .maybeSingle();
+
+  return data?.slug ?? null;
 }

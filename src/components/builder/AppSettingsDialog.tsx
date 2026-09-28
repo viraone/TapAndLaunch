@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Settings, Trash2, Plus } from "lucide-react";
 import { ImageUploadField } from "@/components/builder/ImageUploadField";
+import { DomainSettings } from "@/components/builder/DomainSettings";
 import type { Database, ManifestConfig, ThemeConfig } from "@/types/database";
 
 type AppRow = Database["public"]["Tables"]["apps"]["Row"];
@@ -105,6 +106,9 @@ export function AppSettingsDialog({
             </TabsTrigger>
             <TabsTrigger value="manifest" className="flex-1">
               App icon &amp; manifest
+            </TabsTrigger>
+            <TabsTrigger value="domain" className="flex-1">
+              Domain
             </TabsTrigger>
           </TabsList>
 
@@ -240,6 +244,10 @@ export function AppSettingsDialog({
                 </SelectContent>
               </Select>
             </div>
+          </TabsContent>
+
+          <TabsContent value="domain">
+            <DomainSettings app={app} onUpdated={onSaved} />
           </TabsContent>
         </Tabs>
 

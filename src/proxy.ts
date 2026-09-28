@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { extractAppSlug } from "@/lib/tenant";
+import { resolveAppSlugForHost } from "@/lib/tenant";
 import { updateSession } from "@/lib/supabase/middleware";
 
 /**
@@ -8,7 +8,8 @@ import { updateSession } from "@/lib/supabase/middleware";
  *  1. Refresh the Supabase session cookie (`lib/supabase/middleware.ts`) —
  *     irrelevant on tenant subdomains today (no dashboard auth there) but
  *     harmless, and keeps this correct if that ever changes.
- *  2. Host-based routing: requests to `{slug}.NEXT_PUBLIC_ROOT_DOMAIN` are
+ *  2. Host-based routing: requests to `{slug}.NEXT_PUBLIC_ROOT_DOMAIN`, or
+ *     to a verified custom domain (Phase 6 — `resolveAppSlugForHost`), are
  *     rewritten to the published-PWA route tree at `/published-apps/{slug}/...`;
  *     requests to the root domain itself fall through to the dashboard /
  *     marketing routes.
@@ -24,7 +25,17 @@ export async function proxy(request: NextRequest) {
   const sessionResponse = await updateSession(request);
 
   const host = request.headers.get("host");
-  const appSlug = extractAppSlug(host);
+  // A DB hiccup on the custom-domain lookup degrades to "no tenant" (falls
+  // through to the marketing/dashboard routes) rather than a 500 — every
+  // ordinary `{slug}.$ROOT_DOMAIN` request never reaches this catch at all
+  // (`resolveAppSlugForHost` returns from the DB-free fast path first).
+  let appSlug: string | null;
+  try {
+    appSlug = await resolveAppSlugForHost(host);
+  } catch (error) {
+    console.error("Custom domain lookup failed:", error);
+    appSlug = null;
+  }
   if (!appSlug) return sessionResponse;
 
   const url = request.nextUrl.clone();

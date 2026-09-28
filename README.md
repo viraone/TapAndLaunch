@@ -1,7 +1,7 @@
-# Beezer — Phase 1–5 scaffold
+# Beezer — Phase 1–6 scaffold
 
 A no-code, multi-tenant Progressive Web App builder (a Beezer-style product).
-This repo covers **Phases 1–5 of a phased build** — see
+This repo covers **Phases 1–6 of a phased build** — see
 [Scope](#scope--whats-deferred) before assuming something is here that isn't.
 
 ## Stack
@@ -17,6 +17,11 @@ This repo covers **Phases 1–5 of a phased build** — see
   password hashing or session tokens, this wasn't worth hand-rolling); email
   and SMS go straight to Resend's and Twilio's HTTP APIs via `fetch`, no SDK
   for either
+- Custom domains via the **Vercel Domains API** (`lib/domains/vercel.ts`,
+  plain `fetch` calls, no SDK) — the decision picked over Cloudflare for
+  SaaS was Vercel specifically because this app is assumed to deploy there;
+  see that file's own caveat on what hasn't been exercised against a real
+  account
 
 > **Next.js 16 note:** this scaffold uses a newer Next.js than most training
 > data / tutorials reflect — `middleware.ts` is renamed to `proxy.ts`,
@@ -62,6 +67,11 @@ This repo covers **Phases 1–5 of a phased build** — see
 6. To preview a published app locally: publish it from the builder, then
    visit `http://{app-slug}.localhost:3000` (subdomains of `localhost` work
    in modern browsers, and with `curl -H "Host: {app-slug}.localhost:3000" http://localhost:3000`).
+7. Custom domains (Phase 6) only do anything once this app is actually
+   deployed on Vercel — fill in `VERCEL_API_TOKEN`/`VERCEL_PROJECT_ID` (and
+   `VERCEL_TEAM_ID` if the project belongs to a team) once it is. Until
+   then, the builder's Settings → Domain tab reports "not configured"
+   rather than failing oddly.
 
 ## Architecture
 
@@ -149,17 +159,60 @@ This repo covers **Phases 1–5 of a phased build** — see
   integration") — no OAuth app, no calling out to either service's API.
   Creating/managing the actual Zoom meeting or Canva design still happens
   in Zoom/Canva; these blocks just render the link a creator pastes in.
+- **A custom domain is additional, not a replacement**: adding one to an
+  app doesn't disable its `{slug}.$ROOT_DOMAIN` subdomain — both keep
+  serving the same app. That subdomain also still works as a stable
+  preview/fallback link, which is why this isn't framed as a limitation.
+  One consequence worth knowing: they're different browser origins, so an
+  `app_members` session started on one won't carry over to the other.
+- **The custom-domain lookup is the one place `proxy.ts` touches the
+  database**: `resolveAppSlugForHost` (`lib/tenant.ts`) tries the DB-free
+  subdomain check first and only falls back to a `custom_domain` query for
+  hosts that don't match `{slug}.$ROOT_DOMAIN` — so ordinary subdomain
+  traffic never pays for a query it doesn't need, and a DB hiccup on that
+  fallback degrades to "no tenant" (falls through to the marketing/
+  dashboard routes) rather than a 500.
+- **Verified + published, not just verified**: `resolveAppSlugForHost` only
+  resolves a `custom_domain` whose `custom_domain_status = 'verified'` *and*
+  whose app `status = 'published'` — an app mid-DNS-verification, or a
+  since-unpublished one, can't become reachable just because DNS already
+  points at it.
+- **The Vercel API call happens before the authorization check would
+  otherwise fail it**: sending a notification and adding/removing a custom
+  domain are the two places in this repo where an *external* side effect
+  (calling Resend/Twilio/web-push, or Vercel's API) isn't itself gated by
+  RLS. Both explicitly check `isAppEditor` (`lib/org.ts`) first, rather
+  than letting the side effect happen and only the subsequent DB write
+  fail — see the comment in `api/apps/[appId]/domain/route.ts` for why
+  that ordering specifically matters here (a non-editor could otherwise
+  trigger a real Vercel API call, quota and all, with no lasting DB effect
+  to show for it).
 
 ## Scope — what's deferred
 
-Phase 5 adds a product catalog + order requests, an event calendar +
-bookings, and two link-embed blocks (Zoom, Canva) on top of Phase 4's
-notifications. Deliberately **not** in this phase (all schema-compatible
+Phase 6 adds custom domains (Vercel Domains API) on top of Phase 5's
+commerce/events. Deliberately **not** in this phase (all schema-compatible
 to add later, none of it blocked by what's here):
 
-- Custom domains + SSL provisioning (Vercel Domains API / Cloudflare for
-  SaaS) — apps are only reachable on the platform's own wildcard subdomain.
-  `apps.custom_domain` exists in the schema but is unused.
+- **Not exercised against a real Vercel account** — see the caveat in
+  `lib/domains/vercel.ts`. Implemented against Vercel's documented REST API
+  shape (add domain → DNS records returned if unverified → re-verify →
+  remove), but there were no credentials available to actually test the
+  flow end-to-end. Double-check response shapes against Vercel's current
+  API reference before relying on this in production.
+- Cloudflare for SaaS was the alternative considered and not built — if
+  this app ever needs to run somewhere other than Vercel, that's a
+  from-scratch addition (a different provisioning flow entirely, not an
+  extension of `lib/domains/vercel.ts`), not a small swap.
+- No automatic verification polling — the dashboard's "Check verification"
+  is a manual button, not a background job that notices DNS propagated and
+  updates the status on its own.
+- No canonical redirect between an app's subdomain and its custom domain
+  once verified (deliberate, not just deferred — see the "additional, not
+  a replacement" architecture note) and no per-domain SEO
+  canonical-URL/sitemap handling for the two-hostnames-one-app case.
+- No confirmation step before removing a domain, and no history of past
+  domains an app has used.
 - A fully white-labeled reseller **portal** (its own domain, fully re-skinned
   for an agency's own clients) — `organizations.branding` is editable
   (`/dashboard/settings`) and the logo shows in the dashboard header, but
