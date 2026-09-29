@@ -3,6 +3,7 @@ import type { OpenMic } from "./record";
 import { getNextOpenMicOccurrenceDate, openMicOccursOnSeattleDate } from "./recurrence";
 import { selectOpenMicsForSeattleDate } from "./select";
 import { formatSeattleCalendarDate, getNextSeattleWeekdayDate, getSeattleNow } from "./time";
+import { getOpenMicTravelEstimate, type LatLng } from "./travel";
 
 export type OpenMicTypeFilter = "all" | "comedy" | "variety";
 
@@ -38,19 +39,22 @@ const byStartThenName = (a: OpenMic, b: OpenMic): number => {
 };
 
 /** What StageTime's open mic view shows for one day (renderOpenMicMapView in
- * its app.js). `selectedDayName` null means today in Seattle. */
+ * its app.js). `selectedDayName` null means today in Seattle. With the
+ * viewer's location, mics starting at the same time go nearest first. */
 export function buildOpenMicDay(
   allMics: OpenMic[],
   now: Date,
   selectedDayName: string | null,
-  selectedType: OpenMicTypeFilter
+  selectedType: OpenMicTypeFilter,
+  userLocation: LatLng | null = null
 ): OpenMicDay {
   const selected = getNextSeattleWeekdayDate(selectedDayName ?? getSeattleNow(now).dayName, now);
   const mics = filterOpenMicsByType(allMics, selectedType);
   const { dayName, todays, nextMic, lastMic } = selectOpenMicsForSeattleDate(
     mics,
     selected.isToday ? now : selected.date,
-    selected.isToday
+    selected.isToday,
+    userLocation ? (mic) => getOpenMicTravelEstimate(mic, userLocation)?.distanceMiles : undefined
   );
 
   const selectedSeattleDate = getSeattleNow(selected.date);

@@ -63,6 +63,15 @@ describe("buildOpenMicDay", () => {
     expect(buildOpenMicDay(mics(EVERY_OTHER), new Date("2026-10-05T19:00:00Z"), null, "all").cards[0].upcomingDate).toBeNull();
   });
 
+  it("puts the nearest first among mics starting at the same time, once there is a location", () => {
+    const far = { ...NO_DAYS, id: "far", name: "A Far Mic", timeSignupStart: "7pm", monday: "Yes", latitude: 47.25, longitude: -122.44 };
+    const near = { ...NO_DAYS, id: "near", name: "Z Near Mic", timeSignupStart: "7pm", monday: "Yes", latitude: 47.62, longitude: -122.32 };
+    expect(buildOpenMicDay(mics(far, near), MONDAY_NOON, null, "all").todays.map((m) => m.id)).toEqual(["far", "near"]);
+    expect(
+      buildOpenMicDay(mics(far, near), MONDAY_NOON, null, "all", { latitude: 47.6205, longitude: -122.3212 }).todays.map((m) => m.id)
+    ).toEqual(["near", "far"]);
+  });
+
   it("says why the list is empty", () => {
     expect(buildOpenMicDay(mics(EARLY), MONDAY_NOON, "Wednesday", "all").status).toBe("No open mics listed for this day.");
     expect(buildOpenMicDay(mics(TUESDAY), MONDAY_NOON, null, "all").status).toBe("No open mics listed for today.");

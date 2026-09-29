@@ -1,6 +1,7 @@
 import type { OpenMic } from "@/lib/listings/record";
 import type { OpenMicDay, OpenMicTypeFilter } from "@/lib/listings/day";
 import { formatMinutesToClock } from "@/lib/listings/format";
+import { getOpenMicTravelEstimate, type LatLng, type TravelEstimate } from "@/lib/listings/travel";
 import { ListingCard } from "@/components/pwa-runtime/ListingCard";
 
 const DAY_BUTTONS = [
@@ -25,6 +26,30 @@ const SELECTED_DAY = "border-[#00C805] bg-[#00C805] text-black font-bold";
 const SELECTED_PILL = "border-[#00C805] bg-[#00C805] text-black font-black";
 const UNSELECTED_PILL = "border-zinc-700 bg-transparent text-zinc-400 font-bold";
 
+/** Where Show Distance is: off, asking the browser, on, or refused. */
+export type DistanceState =
+  | { state: "off" }
+  | { state: "locating" }
+  | { state: "on"; location: LatLng }
+  | { state: "denied" }
+  | { state: "unsupported" };
+
+const DISTANCE_BUTTON_TEXT: Record<DistanceState["state"], string> = {
+  off: "Show Distance",
+  locating: "Locating…",
+  on: "Disable Distance",
+  denied: "Show Distance",
+  unsupported: "Show Distance",
+};
+
+const DISTANCE_STATUS_TEXT: Record<DistanceState["state"], string> = {
+  off: "Turn on location to see distance and drive times.",
+  locating: "Requesting location permissions…",
+  on: "Showing distances from your current location.",
+  denied: "Location access denied or unavailable.",
+  unsupported: "Geolocation is not supported by your browser.",
+};
+
 function micSummary(mic: OpenMic | null): string {
   return mic ? `${formatMinutesToClock(mic.startMinutes) || "Time TBD"} · ${mic.name}` : "—";
 }
@@ -38,20 +63,27 @@ export function ListingDirectoryView({
   day,
   selectedType,
   activeId,
+  distance = { state: "off" },
   onSelectDay,
   onSelectType,
   onSelectMic,
   onShowSignupDetails,
+  onToggleDistance,
+  onOpenTrip,
 }: {
   day: OpenMicDay;
   selectedType: OpenMicTypeFilter;
   activeId: string | null;
+  distance?: DistanceState;
   onSelectDay?: (dayName: string) => void;
   onSelectType?: (type: OpenMicTypeFilter) => void;
   /** A card or a summary line was chosen; `scroll` when the card should come into view. */
   onSelectMic?: (id: string, scroll: boolean) => void;
   onShowSignupDetails?: (mic: OpenMic) => void;
+  onToggleDistance?: () => void;
+  onOpenTrip?: (mic: OpenMic, travelEstimate: TravelEstimate) => void;
 }) {
+  const userLocation = distance.state === "on" ? distance.location : null;
   return (
     // py-5 on top of the block's own py-3 gives StageTime's 32px page margin.
     <section aria-labelledby="openmicmap-title" className="min-w-0 py-5">
@@ -67,9 +99,9 @@ export function ListingDirectoryView({
             </div>
           </div>
           <div>
-            {/* Distance and drive times come in a later step; the button is here now so the header matches. */}
             <button
               type="button"
+              onClick={onToggleDistance}
               className="group w-full sm:w-auto inline-flex justify-center items-center gap-2 rounded-full bg-[#00C805] px-4 py-2 text-xs font-black text-black shadow-[0_0_20px_rgba(0,200,5,0.45)] transition-all duration-200 [&:hover]:scale-105 [&:hover]:bg-[#00E006] [&:hover]:shadow-[0_0_28px_rgba(0,200,5,0.7)] active:scale-95 focus:outline-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             >
               <svg
@@ -84,7 +116,7 @@ export function ListingDirectoryView({
                 <line x1="12" y1="6" x2="12" y2="2"></line>
                 <line x1="12" y1="22" x2="12" y2="18"></line>
               </svg>
-              <span className="tracking-tight">Show Distance</span>
+              <span className="tracking-tight">{DISTANCE_BUTTON_TEXT[distance.state]}</span>
             </button>
           </div>
         </div>
@@ -133,7 +165,7 @@ export function ListingDirectoryView({
 
         <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border-t border-zinc-800/60 pt-2.5">
           <p className="text-xs text-zinc-400 leading-normal" role="status" aria-live="polite">
-            Turn on location to see distance and drive times.
+            {DISTANCE_STATUS_TEXT[distance.state]}
           </p>
           <p className="text-[10px] text-zinc-600">
             Distance coordinates ©{" "}
@@ -170,8 +202,10 @@ export function ListingDirectoryView({
                 isToday={day.isToday}
                 selectedDate={day.selectedDate}
                 upcomingDate={upcomingDate}
+                travelEstimate={getOpenMicTravelEstimate(mic, userLocation)}
                 onSelect={(id) => onSelectMic?.(id, false)}
                 onShowSignupDetails={onShowSignupDetails}
+                onOpenTrip={onOpenTrip}
               />
             ))}
           </div>

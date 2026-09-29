@@ -3,6 +3,8 @@ import { getOpenMicHost, type OpenMic } from "@/lib/listings/record";
 import { buildOpenMicListButtonLabel, buildOpenMicTimeLabel, formatMinutesToClock } from "@/lib/listings/format";
 import { formatUpcomingOpenMicDate } from "@/lib/listings/recurrence";
 import { getSeattleNow } from "@/lib/listings/time";
+import type { TravelEstimate } from "@/lib/listings/travel";
+import { TripPill } from "@/components/pwa-runtime/TripPill";
 import styles from "@/components/pwa-runtime/ListingDirectory.module.css";
 
 // StageTime's classes, as its app.js writes them. Hover styles are written
@@ -53,7 +55,9 @@ function HostBadgeContent({ host }: { host: string }) {
 /** One open mic in a published Listing directory, as StageTime draws it
  * (renderOpenMicCard in its app.js). With `upcomingDate` it is a locked
  * preview: a mic whose schedule skips the selected day, with its next date.
- * The distance and drive-time pill arrives with Show Distance. */
+ * With a `travelEstimate` (Show Distance is on) it carries the distance pill.
+ * StageTime's "YOU CAN MAKE IT / Leave by" line is left out: its app.js
+ * never turns it on (openMicReachabilityRequests is never filled). */
 export function ListingCard({
   mic,
   isNext,
@@ -61,8 +65,10 @@ export function ListingCard({
   isToday,
   selectedDate,
   upcomingDate = null,
+  travelEstimate = null,
   onSelect,
   onShowSignupDetails,
+  onOpenTrip,
 }: {
   mic: OpenMic;
   isNext: boolean;
@@ -72,8 +78,10 @@ export function ListingCard({
   /** The selected day, for its name and that day's host. */
   selectedDate: Date;
   upcomingDate?: Date | null;
+  travelEstimate?: TravelEstimate | null;
   onSelect?: (id: string) => void;
   onShowSignupDetails?: (mic: OpenMic) => void;
+  onOpenTrip?: (mic: OpenMic, travelEstimate: TravelEstimate) => void;
 }) {
   const isLockedPreview = upcomingDate !== null;
   const selectedDayName = getSeattleNow(selectedDate).dayName;
@@ -92,7 +100,9 @@ export function ListingCard({
   const cardHost = getOpenMicHost(mic, upcomingDate ?? selectedDate);
   // When a list link exists the host is shown on that button instead of as a line.
   const hostOnListButton = Boolean(cardHost && mic.listUrl);
-  const hasActions = Boolean(mic.address || mic.website || mic.signupDetails || mic.contact || mic.listUrl);
+  const hasActions = Boolean(
+    mic.address || mic.website || mic.signupDetails || mic.contact || mic.listUrl || (travelEstimate && isToday)
+  );
 
   const actions: ReactNode[] = [];
   if (mic.website) {
@@ -205,6 +215,10 @@ export function ListingCard({
         <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#00C805]">{mic.recurrenceText}</p>
       )}
       <p className="mt-1 text-sm font-semibold leading-5 text-zinc-400 sm:text-base">{buildOpenMicTimeLabel(mic)}</p>
+
+      {travelEstimate && (
+        <TripPill mic={mic} travelEstimate={travelEstimate} onOpen={() => onOpenTrip?.(mic, travelEstimate)} />
+      )}
 
       {mic.address && <p className="mt-2 text-base font-medium leading-6 text-zinc-300">{mic.address}</p>}
 

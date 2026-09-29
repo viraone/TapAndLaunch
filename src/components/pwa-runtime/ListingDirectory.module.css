@@ -1,6 +1,8 @@
 /* StageTime's own rules for its open mic list (style.css on stagetimepnw.com),
    for what Tailwind classes can't say: the pulsing highlight on the chosen
-   card and the sign-up details window. */
+   card, the distance pill, and the trip and sign-up details windows. These
+   rules are outside Tailwind's layers, so they win over its classes, as
+   style.css does on StageTime. */
 
 .card {
   scroll-margin-top: 24px;
@@ -43,7 +45,7 @@
 
 .modalPanel {
   position: relative;
-  width: min(560px, 100%);
+  width: min(760px, 100%);
   max-height: min(780px, calc(100vh - 40px));
   overflow: auto;
   border: 1px solid #27272a;
@@ -54,6 +56,10 @@
   opacity: 0;
   transform: translateY(10px) scale(0.975);
   transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.signupPanel {
+  width: min(560px, 100%);
 }
 
 .modalOpen .modalBackdrop,
@@ -127,6 +133,242 @@
   background: #18181b;
 }
 
+.sectionTitle {
+  margin: 0;
+  margin-bottom: 12px;
+  color: #a1a1aa;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.route {
+  margin: 0 0 14px;
+  color: #f4f4f5;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.route span {
+  padding: 0 5px;
+  color: #22c55e;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metrics > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: #101010;
+}
+
+.metricLabel {
+  color: #a1a1aa;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.metrics strong {
+  color: #fafafa;
+  font-size: 16px;
+}
+
+.metrics .metricTotal {
+  border-color: rgba(34, 197, 94, 0.42);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.metrics .metricTotal strong {
+  color: #4ade80;
+}
+
+.loading,
+.weatherLine,
+.accessList {
+  color: #e4e4e7;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.loading {
+  color: #71717a;
+}
+
+.weatherLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.weatherLine strong {
+  color: #fafafa;
+}
+
+.accessList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.accessList > div {
+  display: grid;
+  grid-template-columns: 125px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.accessList dt {
+  color: #a1a1aa;
+  font-weight: 800;
+}
+
+.accessList dd {
+  margin: 0;
+  color: #f4f4f5;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  border-top: 1px solid #27272a;
+  padding: 14px;
+}
+
+.action {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #3f3f46;
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: #e4e4e7;
+  font-size: 12px;
+  font-weight: 850;
+  text-align: center;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.action:hover,
+.action:focus-visible {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.08);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.actionPrimary {
+  border-color: #22c55e;
+  background: #22c55e;
+  color: #071108;
+}
+
+.actionPrimary:hover,
+.actionPrimary:focus-visible {
+  background: #4ade80;
+  color: #071108;
+}
+
+.actionTransit {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+}
+
+.actionTransit:hover,
+.actionTransit:focus-visible {
+  border-color: #60a5fa;
+  background: rgba(59, 130, 246, 0.25);
+  color: #ffffff;
+}
+
+.feedback {
+  min-height: 20px;
+  margin: -5px 14px 12px;
+  color: #4ade80;
+  font-size: 12px;
+  text-align: center;
+}
+
+.tripTrigger {
+  max-width: 100%;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.tripTrigger:hover,
+.tripTrigger:focus-visible {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.09);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.25);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.liveDot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.9);
+  animation: trip-pulse 2s infinite;
+}
+
+.pillSeparator {
+  color: #3f3f46;
+  font-size: 10px;
+}
+
+.pillCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid #3f3f46;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #27272a;
+  color: #86efac;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pillArrow {
+  display: inline-block;
+  transition: transform 150ms ease;
+}
+
+.tripTrigger:hover .pillArrow,
+.tripTrigger:focus-visible .pillArrow {
+  transform: translate(1px, -1px);
+}
+
+@keyframes trip-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.78);
+  }
+}
+
 /* On a phone the window is a sheet rising from the bottom of the screen. */
 @media (max-width: 640px) {
   .modal {
@@ -151,6 +393,27 @@
   .modalClose span {
     display: none;
   }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .accessList > div {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tripTrigger {
+    border-radius: 16px;
+  }
+
+  .pillCta {
+    margin-left: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -158,7 +421,12 @@
     animation: none;
   }
   .modalBackdrop,
-  .modalPanel {
+  .modalPanel,
+  .tripTrigger,
+  .action {
     transition: none;
+  }
+  .liveDot {
+    animation: none;
   }
 }

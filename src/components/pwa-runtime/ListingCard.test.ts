@@ -127,6 +127,23 @@ describe("ListingCard", () => {
     );
   });
 
+  it("carries the distance pill once Show Distance is on", () => {
+    const html = renderToStaticMarkup(
+      createElement(ListingCard, {
+        mic: mic(LAUGHS),
+        isNext: false,
+        isToday: true,
+        selectedDate: MONDAY,
+        travelEstimate: { distanceMiles: 4.87, driveMinutes: 15, transitMinutes: 40 },
+      })
+    );
+    for (const text of ["4.9 mi", "🚗 15 min (", ">Clear<", "🌡️ --°F", "Directions &amp; Transit",
+      'aria-label="Open trip and venue information for The Rabbit Hole"']) {
+      expect(html).toContain(text);
+    }
+    expect(render(LAUGHS)).not.toContain(" mi<");
+  });
+
   it("highlights only the active card", () => {
     expect(render(LAUGHS, { isActive: true })).toMatch(/cardActive/);
     expect(render(LAUGHS)).not.toMatch(/cardActive/);
