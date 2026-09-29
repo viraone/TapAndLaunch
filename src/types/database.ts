@@ -408,6 +408,24 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["bookings"]["Row"]>;
         Relationships: [];
       };
+      listings: {
+        Row: {
+          id: string;
+          app_id: string;
+          slug: string;
+          record: Record<string, unknown>;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["listings"]["Row"]> & {
+          app_id: string;
+          slug: string;
+          record: Record<string, unknown>;
+        };
+        Update: Partial<Database["public"]["Tables"]["listings"]["Row"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
