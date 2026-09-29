@@ -3,6 +3,7 @@ import type {
   ContactFormBlockConfig,
   EventCalendarBlockConfig,
   ImageBlockConfig,
+  ListingDirectoryBlockConfig,
   ProductListBlockConfig,
   TextBlockConfig,
   VideoBlockConfig,
@@ -27,4 +28,5 @@ export type BuilderBlock =
   | { id: string; type: "product_list"; config: ProductListBlockConfig; minTier: string | null }
   | { id: string; type: "event_calendar"; config: EventCalendarBlockConfig; minTier: string | null }
   | { id: string; type: "zoom_meeting"; config: ZoomMeetingBlockConfig; minTier: string | null }
-  | { id: string; type: "canva_embed"; config: CanvaEmbedBlockConfig; minTier: string | null };
+  | { id: string; type: "canva_embed"; config: CanvaEmbedBlockConfig; minTier: string | null }
+  | { id: string; type: "listing_directory"; config: ListingDirectoryBlockConfig; minTier: string | null };

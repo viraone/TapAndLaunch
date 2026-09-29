@@ -11,6 +11,7 @@ const BlockSchema = z.object({
     "event_calendar",
     "zoom_meeting",
     "canva_embed",
+    "listing_directory",
   ]),
   position: z.number().int().min(0),
   config: z.record(z.string(), z.unknown()),

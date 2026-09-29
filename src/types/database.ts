@@ -20,7 +20,8 @@ export type BlockType =
   | "product_list"
   | "event_calendar"
   | "zoom_meeting"
-  | "canva_embed";
+  | "canva_embed"
+  | "listing_directory";
 export type AnalyticsEventType =
   | "view"
   | "install"
@@ -83,7 +84,8 @@ export type BlockConfig =
   | ProductListBlockConfig
   | EventCalendarBlockConfig
   | ZoomMeetingBlockConfig
-  | CanvaEmbedBlockConfig;
+  | CanvaEmbedBlockConfig
+  | ListingDirectoryBlockConfig;
 
 export interface TextBlockConfig {
   heading?: string;
@@ -130,6 +132,14 @@ export interface CanvaEmbedBlockConfig {
    * design/template/profile URL. */
   button_label?: string;
   button_url?: string;
+}
+
+/** StageTime's open-mic directory: shows the app's active listings (the
+ * `listings` table) that happen today in `time_zone`. */
+export interface ListingDirectoryBlockConfig {
+  title?: string;
+  /** An IANA zone such as "America/Los_Angeles"; "today" is worked out in it. */
+  time_zone?: string;
 }
 
 // `Relationships`/`Views`/`Functions` below are required by supabase-js's
