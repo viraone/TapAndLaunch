@@ -20,12 +20,12 @@ describe("listing_directory blocks", () => {
     expect(html).toContain("Shows the open mics happening today when published.");
   });
 
-  it("shows how many listings were loaded once they are passed", () => {
+  it("waits for the browser's clock once listings are passed", () => {
     const html = render(
       { type: "listing_directory", config: { title: "Tonight" } },
       [{ slug: "a", record: {} }, { slug: "b", record: {} }]
     );
-    expect(html).toContain("2 open mics listed.");
+    expect(html).toContain("Loading today&#x27;s open mics…");
     expect(html).not.toContain("when published");
   });
 

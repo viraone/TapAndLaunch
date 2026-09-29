@@ -14,6 +14,7 @@ import type {
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
 import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
+import { ListingDirectoryRuntime } from "@/components/pwa-runtime/ListingDirectoryRuntime";
 import type { RuntimeListing } from "@/lib/pwa/listings";
 
 /**
@@ -246,9 +247,9 @@ function CanvaEmbedBlockView({ config }: { config: CanvaEmbedBlockConfig }) {
   );
 }
 
-/** For now the published page only says how many listings it got; the
- * directory itself (today's open mics, worked out in the browser) replaces
- * this in a later step. */
+/** On a published page, today's open mics (worked out in the browser by
+ * ListingDirectoryRuntime); in the builder, which passes no listings, a
+ * placeholder. */
 function ListingDirectoryBlockView({
   config,
   listings,
@@ -264,7 +265,7 @@ function ListingDirectoryBlockView({
           Shows the open mics happening today when published.
         </p>
       ) : (
-        <p className="text-sm text-muted-foreground">{`${listings.length} open mics listed.`}</p>
+        <ListingDirectoryRuntime listings={listings} />
       )}
     </div>
   );
