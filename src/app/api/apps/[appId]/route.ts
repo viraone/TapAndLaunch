@@ -9,6 +9,9 @@ const ThemeSchema = z.object({
   bottom_nav: z
     .array(z.object({ label: z.string(), icon: z.string(), page_path: z.string() }))
     .optional(),
+  color_scheme: z.enum(["light", "dark"]).optional(),
+  show_member_bar: z.boolean().optional(),
+  bottom_nav_style: z.enum(["compact", "tabs"]).optional(),
 });
 
 const ManifestSchema = z.object({

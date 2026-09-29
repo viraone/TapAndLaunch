@@ -1,0 +1,164 @@
+/* StageTime's own rules for its open mic list (style.css on stagetimepnw.com),
+   for what Tailwind classes can't say: the pulsing highlight on the chosen
+   card and the sign-up details window. */
+
+.card {
+  scroll-margin-top: 24px;
+}
+
+.cardActive {
+  border-color: #00c805 !important;
+  border-left-width: 4px !important;
+  background: linear-gradient(to right, rgba(6, 78, 59, 0.2), rgba(24, 24, 27, 0.5)) !important;
+  animation: active-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes active-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(0, 200, 5, 0.15), 0 0 0 0 rgba(0, 200, 5, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(0, 200, 5, 0.35), 0 0 0 6px rgba(0, 200, 5, 0);
+  }
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.modalBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.modalPanel {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: min(780px, calc(100vh - 40px));
+  overflow: auto;
+  border: 1px solid #27272a;
+  border-radius: 20px;
+  background: #121212;
+  color: #f4f4f5;
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.65), 0 0 40px rgba(34, 197, 94, 0.08);
+  opacity: 0;
+  transform: translateY(10px) scale(0.975);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.modalOpen .modalBackdrop,
+.modalOpen .modalPanel {
+  opacity: 1;
+}
+
+.modalOpen .modalPanel {
+  transform: translateY(0) scale(1);
+}
+
+.modalHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #27272a;
+  padding: 18px 20px;
+  background: rgba(18, 18, 18, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.modalEyebrow {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #22c55e;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.modalVenue {
+  color: #fafafa;
+}
+
+.modalClose {
+  flex: 0 0 auto;
+  border: 1px solid #3f3f46;
+  border-radius: 999px;
+  padding: 7px 11px;
+  color: #d4d4d8;
+  font-size: 12px;
+  font-weight: 800;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.modalClose:hover,
+.modalClose:focus-visible {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.08);
+  color: #fff;
+  outline: none;
+}
+
+.modalContent {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.modalSection {
+  border: 1px solid #27272a;
+  border-radius: 14px;
+  padding: 16px;
+  background: #18181b;
+}
+
+/* On a phone the window is a sheet rising from the bottom of the screen. */
+@media (max-width: 640px) {
+  .modal {
+    align-items: end;
+    padding: 0;
+  }
+
+  .modalPanel {
+    width: 100%;
+    max-height: min(88vh, 760px);
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 20px 20px 0 0;
+    transform: translateY(28px) scale(1);
+  }
+
+  .modalHeader {
+    padding: 16px;
+  }
+
+  .modalClose span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardActive {
+    animation: none;
+  }
+  .modalBackdrop,
+  .modalPanel {
+    transition: none;
+  }
+}

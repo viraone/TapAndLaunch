@@ -64,6 +64,14 @@ export interface ThemeConfig {
   font_family?: string;
   header_title?: string;
   bottom_nav?: Array<{ label: string; icon: string; page_path: string }>;
+  /** "dark" puts the published app on a dark zinc palette, the whole page
+   * (not just the column) in `background_color`. Unset keeps the light look. */
+  color_scheme?: "light" | "dark";
+  /** false hides the "Sign in" bar at the top of a published app. */
+  show_member_bar?: boolean;
+  /** "tabs" is a tall tab bar fixed to the bottom of the screen, with large
+   * icons (StageTime's look). Unset keeps the compact bar. */
+  bottom_nav_style?: "compact" | "tabs";
 }
 
 export interface ManifestConfig {

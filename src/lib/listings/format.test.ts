@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildOpenMicTimeLabel, formatMinutesToClock } from "@/lib/listings/format";
+import { buildOpenMicListButtonLabel, buildOpenMicTimeLabel, formatMinutesToClock } from "@/lib/listings/format";
 
 describe("formatMinutesToClock", () => {
   it("formats minutes since midnight as a 12-hour clock", () => {
@@ -23,5 +23,14 @@ describe("buildOpenMicTimeLabel", () => {
     expect(buildOpenMicTimeLabel({ name: "Spice of Life Variety Open Mic", startMinutes: 1170 })).toBe("6:00 PM - Midnight");
     expect(buildOpenMicTimeLabel({ name: "Laughs", startMinutes: 1170 })).toBe("Start 7:30 PM");
     expect(buildOpenMicTimeLabel({ name: "Laughs", startMinutes: null })).toBe("Time not listed");
+  });
+});
+
+describe("buildOpenMicListButtonLabel", () => {
+  it("names the month in the list's label, or just says See List", () => {
+    expect(buildOpenMicListButtonLabel("6th & Proctor October List")).toBe("See October List");
+    expect(buildOpenMicListButtonLabel("downtown september list")).toBe("See September List");
+    expect(buildOpenMicListButtonLabel("Mayhem List")).toBe("See List");
+    expect(buildOpenMicListButtonLabel("")).toBe("See List");
   });
 });

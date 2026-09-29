@@ -2,22 +2,29 @@ import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ListingDirectoryView } from "@/components/pwa-runtime/ListingDirectoryView";
+import { buildOpenMicDay, type OpenMicTypeFilter } from "@/lib/listings/day";
+import { normalizeOpenMicRecord, type OpenMic } from "@/lib/listings/record";
 
 const NO_DAYS = { monday: "no", tuesday: "no", wednesday: "no", thursday: "no", friday: "no", saturday: "no", sunday: "no" };
 const EARLY = { ...NO_DAYS, id: "early", name: "Early Mic", timeSignupStart: "6pm/7pm", monday: "Yes" };
 const LATE = { ...NO_DAYS, id: "late", name: "Late Mic", timeSignupStart: "9pm", monday: "Yes" };
-const TUESDAY = { ...NO_DAYS, id: "tuesday", name: "Tuesday Mic", timeSignupStart: "8pm", tuesday: "Yes" };
-const EVERY_OTHER = { ...NO_DAYS, id: "every-other", name: "Every Other Mic", timeSignupStart: "8pm",
-  recurrence: { type: "biweekly", weekday: "Monday", anchorDate: "2026-09-28" }, recurrenceText: "Every Other Monday" };
 
-// Monday 28 Sept 2026 in Seattle (PDT is UTC-7).
+// Monday 28 Sept 2026 at noon in Seattle (PDT is UTC-7).
 const MONDAY_NOON = new Date("2026-09-28T19:00:00Z");
-const MONDAY_9_30_PM = new Date("2026-09-29T04:30:00Z");
-const MONDAY_11_30_PM = new Date("2026-09-29T06:30:00Z");
 
-function render(records: Record<string, unknown>[], now: Date) {
-  const listings = records.map((record, i) => ({ slug: `s${i}`, record }));
-  return renderToStaticMarkup(createElement(ListingDirectoryView, { listings, now }));
+function render(
+  records: Record<string, unknown>[],
+  { day = null, type = "all", activeId }: { day?: string | null; type?: OpenMicTypeFilter; activeId?: string | null } = {}
+) {
+  const mics = records.map((r) => normalizeOpenMicRecord(r)).filter((m): m is OpenMic => m !== null);
+  const openMicDay = buildOpenMicDay(mics, MONDAY_NOON, day, type);
+  return renderToStaticMarkup(
+    createElement(ListingDirectoryView, {
+      day: openMicDay,
+      selectedType: type,
+      activeId: activeId === undefined ? (openMicDay.nextMic?.id ?? null) : activeId,
+    })
+  );
 }
 
 /** The card (article) that holds this mic's name. */
@@ -28,47 +35,51 @@ function cardFor(html: string, name: string): string {
 }
 
 describe("ListingDirectoryView", () => {
-  it("shows the header and today's mics in start-time order, with the next one badged", () => {
-    const html = render([LATE, TUESDAY, EARLY], MONDAY_NOON);
-    for (const text of ["Open Mics Today", ">Monday<", "September 28, 2026"]) {
+  it("shows StageTime's header, the day and type buttons, and the location line", () => {
+    const html = render([EARLY]);
+    for (const text of ["Open Mics Today", "<span>Monday</span>", "September 28, 2026", "Show Distance",
+      "Turn on location to see distance and drive times.", "OpenStreetMap contributors", ">All<", ">Comedy<",
+      ">Music &amp; Variety<"]) {
       expect(html).toContain(text);
     }
-    expect(html).not.toContain("Tuesday Mic");
+    for (const label of ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]) {
+      expect(html).toContain(`>${label}</button>`);
+    }
+    expect(html).toMatch(/aria-pressed="true"[^>]*>Mon</);
+    expect(html).toMatch(/aria-pressed="true"[^>]*>All</);
+    expect(html).toMatch(/aria-pressed="false"[^>]*>Tue</);
+  });
+
+  it("shows the cards in time order with the next one badged and highlighted", () => {
+    const html = render([LATE, EARLY]);
     expect(html.indexOf("Early Mic")).toBeLessThan(html.indexOf("Late Mic"));
     expect(cardFor(html, "Early Mic")).toContain("Next Open Mic");
-    expect(cardFor(html, "Late Mic")).not.toContain("Next Open Mic");
+    expect(cardFor(html, "Early Mic")).toMatch(/cardActive/);
+    expect(cardFor(html, "Late Mic")).not.toMatch(/cardActive/);
   });
 
-  it("moves the Next badge to the mic that has most recently started", () => {
-    const html = render([EARLY, LATE], MONDAY_9_30_PM);
-    expect(cardFor(html, "Late Mic")).toContain("Next Open Mic");
-    expect(cardFor(html, "Early Mic")).not.toContain("Next Open Mic");
+  it("moves the highlight, not the Next badge, to a chosen mic", () => {
+    const html = render([LATE, EARLY], { activeId: "late" });
+    expect(cardFor(html, "Late Mic")).toMatch(/cardActive/);
+    expect(cardFor(html, "Early Mic")).not.toMatch(/cardActive/);
+    expect(cardFor(html, "Early Mic")).toContain("Next Open Mic");
   });
 
-  it("uses Seattle's day, not UTC's, late in the evening", () => {
-    const html = render([EARLY, TUESDAY], MONDAY_11_30_PM);
-    expect(html).toContain(">Monday<");
-    expect(html).toContain("Early Mic");
-    expect(html).not.toContain("Tuesday Mic");
+  it("sums up the selected day: count, next, last, and a line per mic", () => {
+    const html = render([LATE, EARLY]);
+    expect(html).toContain("Monday&#x27;s Mics");
+    expect(html).toContain(">2 open mics<");
+    expect(html).toContain("7:00 PM · Early Mic");
+    expect(html).toContain("9:00 PM · Late Mic");
+    expect(render([EARLY])).toContain(">1 open mic<");
   });
 
-  it("says so when no mic is on today", () => {
-    const html = render([EARLY, LATE], new Date("2026-09-30T19:00:00Z"));
-    expect(html).toContain(">Wednesday<");
-    expect(html).toContain("No open mics listed for today.");
+  it("says so, with dashes in the summary, when nothing is on", () => {
+    const html = render([EARLY], { day: "Wednesday" });
+    expect(html).toContain("<span>Wednesday</span>");
+    expect(html).toContain("No open mics listed for this day.");
+    expect(html).toContain(">0 open mics<");
+    expect(html).toContain(">—</dd>");
     expect(html).not.toContain("<article");
-  });
-
-  it("shows an every-other-week mic only on its weeks", () => {
-    const onItsWeek = render([EVERY_OTHER], MONDAY_NOON);
-    expect(onItsWeek).toContain("Every Other Mic");
-    expect(onItsWeek).toContain("✓ Happening tonight!");
-    expect(render([EVERY_OTHER], new Date("2026-10-05T19:00:00Z"))).toContain("No open mics listed for today.");
-  });
-
-  it("skips a record that has no name", () => {
-    const html = render([{ ...EARLY, name: "" }, LATE], MONDAY_NOON);
-    expect(html.split("<article").length - 1).toBe(1);
-    expect(html).toContain("Late Mic");
   });
 });

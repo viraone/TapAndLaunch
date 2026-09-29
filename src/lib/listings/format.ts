@@ -18,3 +18,14 @@ export function buildOpenMicTimeLabel(mic: Pick<OpenMic, "name" | "startMinutes"
   if (startLabel) return `Start ${startLabel}`;
   return "Time not listed";
 }
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** "See September List" when the list's label names a month, else "See List". */
+export function buildOpenMicListButtonLabel(listLabel: string): string {
+  const month = MONTH_NAMES.find((name) => new RegExp(`\\b${name}\\b`, "i").test(listLabel));
+  return month ? `See ${month} List` : "See List";
+}
