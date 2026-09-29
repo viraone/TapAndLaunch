@@ -5,6 +5,7 @@ import type {
   ContactFormBlockConfig,
   EventCalendarBlockConfig,
   ImageBlockConfig,
+  ListingDirectoryBlockConfig,
   ProductListBlockConfig,
   TextBlockConfig,
   VideoBlockConfig,
@@ -13,6 +14,7 @@ import type {
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
 import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
+import type { RuntimeListing } from "@/lib/pwa/listings";
 
 /**
  * Minimal shape needed to render a block — deliberately not the full
@@ -36,6 +38,7 @@ export function BlockRenderer({
   pageId,
   products,
   events,
+  listings,
 }: {
   block: RenderableBlock;
   pageId?: string;
@@ -46,6 +49,8 @@ export function BlockRenderer({
   products?: RuntimeProduct[];
   /** Same idea as `products`, for `event_calendar` blocks. */
   events?: RuntimeEvent[];
+  /** Same idea as `products`, for `listing_directory` blocks. */
+  listings?: RuntimeListing[];
 }) {
   switch (block.type) {
     case "text":
@@ -64,6 +69,8 @@ export function BlockRenderer({
       return <ZoomMeetingBlockView config={block.config as ZoomMeetingBlockConfig} />;
     case "canva_embed":
       return <CanvaEmbedBlockView config={block.config as CanvaEmbedBlockConfig} />;
+    case "listing_directory":
+      return <ListingDirectoryBlockView config={block.config as ListingDirectoryBlockConfig} listings={listings} />;
     default:
       return <UnknownBlockView type={block.type} />;
   }
@@ -234,6 +241,30 @@ function CanvaEmbedBlockView({ config }: { config: CanvaEmbedBlockConfig }) {
         >
           {config.button_label || "Open in Canva"}
         </a>
+      )}
+    </div>
+  );
+}
+
+/** For now the published page only says how many listings it got; the
+ * directory itself (today's open mics, worked out in the browser) replaces
+ * this in a later step. */
+function ListingDirectoryBlockView({
+  config,
+  listings,
+}: {
+  config: ListingDirectoryBlockConfig;
+  listings?: RuntimeListing[];
+}) {
+  return (
+    <div className="px-4 py-3">
+      {config.title && <h2 className="mb-2 text-lg font-semibold">{config.title}</h2>}
+      {listings === undefined ? (
+        <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+          Shows the open mics happening today when published.
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">{`${listings.length} open mics listed.`}</p>
       )}
     </div>
   );
