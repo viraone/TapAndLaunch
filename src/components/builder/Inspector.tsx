@@ -6,6 +6,7 @@ import { ProductListBlockEditor } from "@/components/builder/blocks/ProductListB
 import { EventCalendarBlockEditor } from "@/components/builder/blocks/EventCalendarBlockEditor";
 import { ZoomMeetingBlockEditor } from "@/components/builder/blocks/ZoomMeetingBlockEditor";
 import { CanvaEmbedBlockEditor } from "@/components/builder/blocks/CanvaEmbedBlockEditor";
+import { ListingDirectoryBlockEditor } from "@/components/builder/blocks/ListingDirectoryBlockEditor";
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
 import { BLOCK_TYPE_LABELS } from "@/lib/builder/block-defaults";
 import type { BlockConfig } from "@/types/database";
@@ -62,6 +63,9 @@ export function Inspector({
       )}
       {block.type === "canva_embed" && (
         <CanvaEmbedBlockEditor config={block.config} onChange={onChange} />
+      )}
+      {block.type === "listing_directory" && (
+        <ListingDirectoryBlockEditor config={block.config} onChange={onChange} />
       )}
       <BlockAccessControl key={block.id} minTier={block.minTier} onChange={onMinTierChange} />
     </div>
