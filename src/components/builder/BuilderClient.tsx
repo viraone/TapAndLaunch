@@ -139,33 +139,44 @@ export function BuilderClient({
     setSelectedBlockId(null);
   }
 
+  /** Persists the current page's blocks. Returns whether it succeeded so
+   * `togglePublish` can bail out instead of publishing a stale page. */
+  async function saveBlocks(): Promise<boolean> {
+    const res = await fetch(`/api/apps/${currentApp.id}/pages/${currentPageId}/blocks`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        blocks: blocks.map((b, index) => ({
+          type: b.type,
+          config: b.config,
+          min_tier: b.minTier,
+          position: index,
+        })),
+      }),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      toast.error(body.error ?? "Failed to save");
+      return false;
+    }
+    setBlocks((body.blocks as BlockRow[]).map(toBuilderBlock));
+    return true;
+  }
+
   function save() {
     startSaving(async () => {
-      const res = await fetch(`/api/apps/${currentApp.id}/pages/${currentPageId}/blocks`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          blocks: blocks.map((b, index) => ({
-            type: b.type,
-            config: b.config,
-            min_tier: b.minTier,
-            position: index,
-          })),
-        }),
-      });
-      const body = await res.json();
-      if (!res.ok) {
-        toast.error(body.error ?? "Failed to save");
-        return;
-      }
-      setBlocks((body.blocks as BlockRow[]).map(toBuilderBlock));
-      toast.success("Saved");
+      if (await saveBlocks()) toast.success("Saved");
     });
   }
 
   function togglePublish() {
     const nextStatus = currentApp.status === "published" ? "draft" : "published";
     startPublishing(async () => {
+      // Publishing saves the canvas first — otherwise "Publish" only flips
+      // the status and a creator who never clicked Save ships an empty
+      // page (exactly what happened the first time this was used).
+      if (nextStatus === "published" && !(await saveBlocks())) return;
+
       const res = await fetch(`/api/apps/${currentApp.id}/publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,7 +188,7 @@ export function BuilderClient({
         return;
       }
       setCurrentApp(body.app);
-      toast.success(nextStatus === "published" ? "App published" : "App unpublished");
+      toast.success(nextStatus === "published" ? "Saved and published" : "App unpublished");
     });
   }
 
