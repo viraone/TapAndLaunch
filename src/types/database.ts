@@ -21,7 +21,8 @@ export type BlockType =
   | "event_calendar"
   | "zoom_meeting"
   | "canva_embed"
-  | "listing_directory";
+  | "listing_directory"
+  | "gas_directory";
 export type AnalyticsEventType =
   | "view"
   | "install"
@@ -93,7 +94,8 @@ export type BlockConfig =
   | EventCalendarBlockConfig
   | ZoomMeetingBlockConfig
   | CanvaEmbedBlockConfig
-  | ListingDirectoryBlockConfig;
+  | ListingDirectoryBlockConfig
+  | GasDirectoryBlockConfig;
 
 export interface TextBlockConfig {
   heading?: string;
@@ -148,6 +150,21 @@ export interface ListingDirectoryBlockConfig {
   title?: string;
   /** An IANA zone such as "America/Los_Angeles"; "today" is worked out in it. */
   time_zone?: string;
+}
+
+export type FuelGrade = "regular" | "midgrade" | "premium" | "diesel";
+
+/** GasPal. Ranking and the radius are computed from the *viewer's* live GPS
+ * position; `fallback_*` is only used when the browser can't provide one
+ * (permission denied, no GPS). */
+export interface GasDirectoryBlockConfig {
+  title?: string;
+  radius_miles?: number;
+  fallback_label?: string;
+  fallback_latitude?: number;
+  fallback_longitude?: number;
+  default_sort?: "price" | "distance";
+  default_grade?: FuelGrade;
 }
 
 // `Relationships`/`Views`/`Functions` below are required by supabase-js's
@@ -442,6 +459,46 @@ export interface Database {
           record: Record<string, unknown>;
         };
         Update: Partial<Database["public"]["Tables"]["listings"]["Row"]>;
+        Relationships: [];
+      };
+      gas_stations: {
+        Row: {
+          id: string;
+          app_id: string;
+          google_place_id: string | null;
+          station_name: string;
+          brand: string | null;
+          address: string | null;
+          latitude: number;
+          longitude: number;
+          price_regular: number | null;
+          price_midgrade: number | null;
+          price_premium: number | null;
+          price_diesel: number | null;
+          price_updated: Partial<Record<FuelGrade, string>>;
+          price_source: "google" | "user" | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["gas_stations"]["Row"]> & {
+          app_id: string;
+          station_name: string;
+          latitude: number;
+          longitude: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["gas_stations"]["Row"]>;
+        Relationships: [];
+      };
+      gas_fetch_cells: {
+        Row: { app_id: string; cell_key: string; fetched_at: string };
+        Insert: { app_id: string; cell_key: string; fetched_at?: string };
+        Update: Partial<{ app_id: string; cell_key: string; fetched_at: string }>;
+        Relationships: [];
+      };
+      gas_fetch_budget: {
+        Row: { app_id: string; day: string; calls: number };
+        Insert: { app_id: string; day: string; calls?: number };
+        Update: Partial<{ app_id: string; day: string; calls: number }>;
         Relationships: [];
       };
     };

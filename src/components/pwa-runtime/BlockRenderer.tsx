@@ -4,6 +4,7 @@ import type {
   CanvaEmbedBlockConfig,
   ContactFormBlockConfig,
   EventCalendarBlockConfig,
+  GasDirectoryBlockConfig,
   ImageBlockConfig,
   ListingDirectoryBlockConfig,
   ProductListBlockConfig,
@@ -14,6 +15,7 @@ import type {
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
 import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
+import { GasDirectoryRuntime } from "@/components/pwa-runtime/GasDirectoryRuntime";
 import { ListingDirectoryRuntime } from "@/components/pwa-runtime/ListingDirectoryRuntime";
 import type { RuntimeListing } from "@/lib/pwa/listings";
 
@@ -53,6 +55,8 @@ export function BlockRenderer({
   /** Same idea as `products`, for `listing_directory` blocks. */
   listings?: RuntimeListing[];
 }) {
+  // The builder never passes `pageId`; the published runtime always does.
+  const live = pageId !== undefined;
   switch (block.type) {
     case "text":
       return <TextBlockView config={block.config as TextBlockConfig} />;
@@ -72,6 +76,8 @@ export function BlockRenderer({
       return <CanvaEmbedBlockView config={block.config as CanvaEmbedBlockConfig} />;
     case "listing_directory":
       return <ListingDirectoryBlockView config={block.config as ListingDirectoryBlockConfig} listings={listings} />;
+    case "gas_directory":
+      return <GasDirectoryBlockView config={block.config as GasDirectoryBlockConfig} live={live} />;
     default:
       return <UnknownBlockView type={block.type} />;
   }
@@ -269,6 +275,20 @@ function ListingDirectoryBlockView({
       )}
     </div>
   );
+}
+
+function GasDirectoryBlockView({ config, live }: { config: GasDirectoryBlockConfig; live: boolean }) {
+  if (!live) {
+    return (
+      <div className="px-4 py-3">
+        {config.title && <h2 className="mb-2 text-lg font-semibold">{config.title}</h2>}
+        <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+          Live gas prices around each viewer&rsquo;s location when published (within {config.radius_miles ?? 2} mi).
+        </p>
+      </div>
+    );
+  }
+  return <GasDirectoryRuntime config={config} />;
 }
 
 function UnknownBlockView({ type }: { type: string }) {

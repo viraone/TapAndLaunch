@@ -22,6 +22,7 @@ const MANAGE_LINKS = [
   { path: "orders", label: "Orders" },
   { path: "events", label: "Events" },
   { path: "bookings", label: "Bookings" },
+  { path: "gas-stations", label: "Gas stations" },
 ];
 
 export function AppCard({ app, rootDomain }: { app: AppRow; rootDomain: string }) {

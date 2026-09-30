@@ -24,6 +24,16 @@ export function defaultConfigFor(type: BlockType): BlockConfig {
       return {};
     case "listing_directory":
       return { title: "Open mics today", time_zone: "America/Los_Angeles" };
+    case "gas_directory":
+      return {
+        title: "Cheapest gas near me",
+        radius_miles: 2,
+        fallback_label: "Capitol Hill, Seattle",
+        fallback_latitude: 47.6249,
+        fallback_longitude: -122.3223,
+        default_sort: "price",
+        default_grade: "regular",
+      };
   }
 }
 
@@ -37,6 +47,7 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   zoom_meeting: "Zoom meeting",
   canva_embed: "Canva embed",
   listing_directory: "Listing directory",
+  gas_directory: "Gas prices",
 };
 
 export const BLOCK_TYPES: BlockType[] = [
@@ -49,4 +60,5 @@ export const BLOCK_TYPES: BlockType[] = [
   "zoom_meeting",
   "canva_embed",
   "listing_directory",
+  "gas_directory",
 ];

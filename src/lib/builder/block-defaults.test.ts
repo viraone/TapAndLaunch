@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { BLOCK_TYPES, BLOCK_TYPE_LABELS, defaultConfigFor } from "@/lib/builder/block-defaults";
 
 describe("block defaults", () => {
-  it("lists exactly nine distinct block types ending in listing_directory", () => {
-    expect(BLOCK_TYPES).toHaveLength(9);
+  it("lists exactly ten distinct block types ending in gas_directory", () => {
+    expect(BLOCK_TYPES).toHaveLength(10);
     expect(new Set(BLOCK_TYPES).size).toBe(BLOCK_TYPES.length);
-    expect(BLOCK_TYPES[BLOCK_TYPES.length - 1]).toBe("listing_directory");
+    expect(BLOCK_TYPES[BLOCK_TYPES.length - 1]).toBe("gas_directory");
   });
 
   it("has a non-empty label and an object default config for every block type", () => {
@@ -24,6 +24,18 @@ describe("block defaults", () => {
     expect(defaultConfigFor("listing_directory")).toEqual({
       title: "Open mics today",
       time_zone: "America/Los_Angeles",
+    });
+  });
+
+  it("defaults gas_directory to a live-location search with a Capitol Hill fallback", () => {
+    expect(defaultConfigFor("gas_directory")).toEqual({
+      title: "Cheapest gas near me",
+      radius_miles: 2,
+      fallback_label: "Capitol Hill, Seattle",
+      fallback_latitude: 47.6249,
+      fallback_longitude: -122.3223,
+      default_sort: "price",
+      default_grade: "regular",
     });
   });
 
