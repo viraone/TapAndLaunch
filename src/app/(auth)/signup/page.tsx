@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, MailCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
@@ -49,58 +50,71 @@ export default function SignupPage() {
 
   if (checkEmail) {
     return (
-      <div className="flex min-h-dvh items-center justify-center p-4">
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle>Check your email</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              We sent a confirmation link to <strong>{email}</strong>. Click it to finish creating your
-              account.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <AuthShell title="Check your email" subtitle="One more step.">
+        <div className="flex items-start gap-3 text-sm text-neutral-300">
+          <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+          <p>
+            We sent a confirmation link to <strong className="text-neutral-50">{email}</strong>. Click it
+            to finish creating your account.
+          </p>
+        </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Create an account</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account…" : "Sign up"}
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login" className="underline">
-              Log in
-            </Link>
+    <AuthShell
+      title="Create your account"
+      subtitle="Your first app is a few minutes away."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link href="/login" className="font-medium text-neutral-100 underline-offset-4 hover:underline">
+            Log in
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder="you@example.com"
+            className="h-10"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="password">Password</Label>
+          <PasswordInput
+            id="password"
+            autoComplete="new-password"
+            required
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <p className="text-xs text-neutral-500">At least 6 characters.</p>
+        </div>
+        {error && (
+          <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+            {error}
           </p>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+        <button
+          type="submit"
+          disabled={loading}
+          className="group mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-110 disabled:opacity-60 disabled:hover:brightness-100"
+        >
+          {loading ? "Creating account…" : "Create account"}
+          {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
+        </button>
+      </form>
+    </AuthShell>
   );
 }
