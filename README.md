@@ -189,6 +189,34 @@ This repo covers **Phases 1–6 of a phased build** — see
   trigger a real Vercel API call, quota and all, with no lasting DB effect
   to show for it).
 
+### Gas prices block (GasPal)
+
+The `gas_directory` block turns any app into a "cheapest gas near me" PWA
+(the first tenant using it is GasPal, `gaspal.tapandlaunch.com`).
+
+- **Live location, not a hard-coded one**: `GasDirectoryRuntime` asks the
+  browser for the viewer's GPS position and searches around *that*; the
+  block's configured coordinates are only a fallback for when permission
+  is denied. Distances are haversine from the viewer.
+- **Per-station prices come from Google Places API (New)** — the
+  `fuelOptions` field of `places:searchNearby` (`lib/gas/google.ts`),
+  which returns each station's current price per grade with a timestamp.
+  This is the one paid dependency: the Enterprise + Atmosphere SKU, 1,000
+  calls/month free. `GOOGLE_MAPS_API_KEY` is server-only (never
+  `NEXT_PUBLIC_`), restricted to the Places API (New) in Google Cloud.
+- **Caching keeps the bill near zero**: results are stored in
+  `gas_stations` and the map is split into ~1 mi cells
+  (`gas_fetch_cells`, 60-minute TTL) — a second viewer in the same cell
+  within the hour is served from the DB, not Google. A daily ledger
+  (`gas_fetch_budget`, 200 calls/day) hard-stops further Google calls;
+  past it, or with no key configured, `lib/gas/overpass.ts` falls back to
+  OpenStreetMap for station *locations* (no prices).
+- **Crowd-sourced corrections**: "Update price" and "Add station" submit
+  to `/gas/prices` and `/gas/stations` with `price_source = 'user'`; a
+  user price wins over Google's until Google reports something newer.
+- Editors manage and delete stations at Dashboard → app → Manage → Gas
+  stations. Schema: `0013_gas_stations.sql`.
+
 ## Scope — what's deferred
 
 Phase 6 adds custom domains (Vercel Domains API) on top of Phase 5's
