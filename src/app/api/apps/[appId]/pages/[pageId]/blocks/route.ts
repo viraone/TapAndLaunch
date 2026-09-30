@@ -13,6 +13,7 @@ const BlockSchema = z.object({
     "canva_embed",
     "listing_directory",
     "gas_directory",
+    "food_directory",
   ]),
   position: z.number().int().min(0),
   config: z.record(z.string(), z.unknown()),

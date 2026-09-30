@@ -4,6 +4,7 @@ import type {
   CanvaEmbedBlockConfig,
   ContactFormBlockConfig,
   EventCalendarBlockConfig,
+  FoodDirectoryBlockConfig,
   GasDirectoryBlockConfig,
   ImageBlockConfig,
   ListingDirectoryBlockConfig,
@@ -16,6 +17,7 @@ import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime"
 import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
 import { GasDirectoryRuntime } from "@/components/pwa-runtime/GasDirectoryRuntime";
+import { FoodDirectoryRuntime } from "@/components/pwa-runtime/FoodDirectoryRuntime";
 import { ListingDirectoryRuntime } from "@/components/pwa-runtime/ListingDirectoryRuntime";
 import type { RuntimeListing } from "@/lib/pwa/listings";
 
@@ -78,6 +80,8 @@ export function BlockRenderer({
       return <ListingDirectoryBlockView config={block.config as ListingDirectoryBlockConfig} listings={listings} />;
     case "gas_directory":
       return <GasDirectoryBlockView config={block.config as GasDirectoryBlockConfig} live={live} />;
+    case "food_directory":
+      return <FoodDirectoryBlockView config={block.config as FoodDirectoryBlockConfig} live={live} />;
     default:
       return <UnknownBlockView type={block.type} />;
   }
@@ -289,6 +293,22 @@ function GasDirectoryBlockView({ config, live }: { config: GasDirectoryBlockConf
     );
   }
   return <GasDirectoryRuntime config={config} />;
+}
+
+function FoodDirectoryBlockView({ config, live }: { config: FoodDirectoryBlockConfig; live: boolean }) {
+  if (!live) {
+    return (
+      <div className="px-4 py-3">
+        {config.title && <h2 className="text-lg font-semibold">{config.title}</h2>}
+        {config.subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{config.subtitle}</p>}
+        <p className="mt-2 rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+          Live open / closing-soon / closed status and wait times for restaurants around each viewer
+          when published (within {config.radius_miles ?? 2} mi).
+        </p>
+      </div>
+    );
+  }
+  return <FoodDirectoryRuntime config={config} />;
 }
 
 function UnknownBlockView({ type }: { type: string }) {

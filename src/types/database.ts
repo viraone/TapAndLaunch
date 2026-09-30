@@ -22,7 +22,8 @@ export type BlockType =
   | "zoom_meeting"
   | "canva_embed"
   | "listing_directory"
-  | "gas_directory";
+  | "gas_directory"
+  | "food_directory";
 export type AnalyticsEventType =
   | "view"
   | "install"
@@ -95,7 +96,8 @@ export type BlockConfig =
   | ZoomMeetingBlockConfig
   | CanvaEmbedBlockConfig
   | ListingDirectoryBlockConfig
-  | GasDirectoryBlockConfig;
+  | GasDirectoryBlockConfig
+  | FoodDirectoryBlockConfig;
 
 export interface TextBlockConfig {
   heading?: string;
@@ -165,6 +167,32 @@ export interface GasDirectoryBlockConfig {
   fallback_longitude?: number;
   default_sort?: "price" | "distance";
   default_grade?: FuelGrade;
+}
+
+/** Cuisine quick-filter keys; the catalog (labels, Google types, name
+ * keywords) lives in lib/food/cuisines.ts. */
+export type CuisineKey = "ramen" | "thai" | "korean" | "vietnamese" | "japanese";
+
+/** Google's opening-hours period shape, stored verbatim. `close` is absent
+ * for a place that is open 24 hours. */
+export interface OpeningPeriod {
+  open: { day: number; hour: number; minute: number };
+  close?: { day: number; hour: number; minute: number };
+}
+
+/** LiveBites. Restaurants around the *viewer's* live position with
+ * open / closing-soon / closed computed live from Google's hours;
+ * `fallback_*` is only used when the browser can't provide a position. */
+export interface FoodDirectoryBlockConfig {
+  title?: string;
+  subtitle?: string;
+  radius_miles?: number;
+  fallback_label?: string;
+  fallback_latitude?: number;
+  fallback_longitude?: number;
+  /** Which cuisine pills to show, in order. "All" is always first. */
+  cuisines?: CuisineKey[];
+  default_sort?: "distance" | "open";
 }
 
 // `Relationships`/`Views`/`Functions` below are required by supabase-js's
@@ -496,6 +524,56 @@ export interface Database {
         Relationships: [];
       };
       gas_fetch_budget: {
+        Row: { app_id: string; day: string; calls: number };
+        Insert: { app_id: string; day: string; calls?: number };
+        Update: Partial<{ app_id: string; day: string; calls: number }>;
+        Relationships: [];
+      };
+      food_places: {
+        Row: {
+          id: string;
+          app_id: string;
+          google_place_id: string;
+          name: string;
+          address: string | null;
+          latitude: number;
+          longitude: number;
+          primary_type: string | null;
+          types: string[];
+          rating: number | null;
+          rating_count: number | null;
+          price_level: number | null;
+          opening_periods: OpeningPeriod[];
+          weekday_descriptions: string[];
+          utc_offset_minutes: number | null;
+          business_status: string | null;
+          google_synced_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["food_places"]["Row"]> & {
+          app_id: string;
+          google_place_id: string;
+          name: string;
+          latitude: number;
+          longitude: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["food_places"]["Row"]>;
+        Relationships: [];
+      };
+      food_wait_reports: {
+        Row: { id: string; app_id: string; place_id: string; wait_minutes: number; reported_at: string };
+        Insert: { id?: string; app_id: string; place_id: string; wait_minutes: number; reported_at?: string };
+        Update: Partial<{ id: string; app_id: string; place_id: string; wait_minutes: number; reported_at: string }>;
+        Relationships: [];
+      };
+      food_fetch_cells: {
+        Row: { app_id: string; cell_key: string; fetched_at: string };
+        Insert: { app_id: string; cell_key: string; fetched_at?: string };
+        Update: Partial<{ app_id: string; cell_key: string; fetched_at: string }>;
+        Relationships: [];
+      };
+      food_fetch_budget: {
         Row: { app_id: string; day: string; calls: number };
         Insert: { app_id: string; day: string; calls?: number };
         Update: Partial<{ app_id: string; day: string; calls: number }>;

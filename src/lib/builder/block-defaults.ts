@@ -34,6 +34,17 @@ export function defaultConfigFor(type: BlockType): BlockConfig {
         default_sort: "price",
         default_grade: "regular",
       };
+    case "food_directory":
+      return {
+        title: "Real-time food near me",
+        subtitle: "Live restaurant status, open hours, and wait times within 2 miles of your location.",
+        radius_miles: 2,
+        fallback_label: "Capitol Hill, Seattle",
+        fallback_latitude: 47.6249,
+        fallback_longitude: -122.3223,
+        cuisines: ["ramen", "thai", "korean", "vietnamese", "japanese"],
+        default_sort: "open",
+      };
   }
 }
 
@@ -48,6 +59,7 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   canva_embed: "Canva embed",
   listing_directory: "Listing directory",
   gas_directory: "Gas prices",
+  food_directory: "Live food",
 };
 
 export const BLOCK_TYPES: BlockType[] = [
@@ -61,4 +73,5 @@ export const BLOCK_TYPES: BlockType[] = [
   "canva_embed",
   "listing_directory",
   "gas_directory",
+  "food_directory",
 ];

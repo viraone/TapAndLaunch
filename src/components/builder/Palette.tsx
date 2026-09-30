@@ -1,5 +1,5 @@
 import { BLOCK_TYPES, BLOCK_TYPE_LABELS } from "@/lib/builder/block-defaults";
-import { Type, Image as ImageIcon, Video, ClipboardList, ShoppingBag, CalendarDays, Video as ZoomIcon, Palette as CanvaIcon, Mic, Fuel, Plus } from "lucide-react";
+import { Type, Image as ImageIcon, Video, ClipboardList, ShoppingBag, CalendarDays, Video as ZoomIcon, Palette as CanvaIcon, Mic, Fuel, Plus, UtensilsCrossed } from "lucide-react";
 import type { BlockType } from "@/types/database";
 
 const ICONS: Record<BlockType, React.ComponentType<{ className?: string }>> = {
@@ -12,6 +12,7 @@ const ICONS: Record<BlockType, React.ComponentType<{ className?: string }>> = {
   zoom_meeting: ZoomIcon,
   canva_embed: CanvaIcon,
   gas_directory: Fuel,
+  food_directory: UtensilsCrossed,
   listing_directory: Mic,
 };
 
@@ -27,6 +28,7 @@ const ACCENTS: Record<BlockType, string> = {
   zoom_meeting: "from-blue-400 to-indigo-500 text-white",
   canva_embed: "from-fuchsia-400 to-pink-500 text-white",
   gas_directory: "from-teal-400 to-emerald-500 text-teal-950",
+  food_directory: "from-orange-400 to-red-500 text-white",
   listing_directory: "from-orange-400 to-rose-500 text-white",
 };
 

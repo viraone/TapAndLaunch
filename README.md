@@ -217,6 +217,31 @@ The `gas_directory` block turns any app into a "cheapest gas near me" PWA
 - Editors manage and delete stations at Dashboard → app → Manage → Gas
   stations. Schema: `0013_gas_stations.sql`.
 
+### Live food block (LiveBites)
+
+The `food_directory` block is a real-time "what's open near me" restaurant
+directory (first tenant: LiveBites).
+
+- **Live status without live polling**: Google Places (New) supplies each
+  restaurant's full weekly `regularOpeningHours` and `utcOffsetMinutes`;
+  `lib/food/hours.ts` evaluates them in the restaurant's own time zone to
+  produce Open (with closing time), Closing soon (≤ 30 min, with a
+  countdown) or Closed (with the next opening, "11 AM" / "Wed 11 AM"). The
+  published app re-evaluates every 30 s, so countdowns tick with zero
+  network traffic. Covered by `hours.test.ts` (after-midnight closes,
+  week wrap, 24/7, unknown hours).
+- **Cuisine quick-filters** (Ramen, Thai, Korean, Vietnamese/Pho,
+  Japanese — `lib/food/cuisines.ts`): one Nearby Search per cuisine per
+  grid cell plus a general sweep, so every pill has real coverage. A
+  fetched cell is trusted for 24 h (`food_fetch_cells`); a daily budget
+  (`food_fetch_budget`, 200 calls) caps spend. Enterprise SKU, 1,000 free
+  calls/month, `GOOGLE_MAPS_API_KEY` server-only.
+- **Wait times are crowd-sourced** — there is no public live-busyness
+  feed. "Report wait" posts to `/food/wait` (`food_wait_reports`, append-
+  only); the newest report per place is shown for 90 minutes.
+- Directions open Google Maps with the place id. Schema:
+  `0014_food_places.sql`.
+
 ## Scope — what's deferred
 
 Phase 6 adds custom domains (Vercel Domains API) on top of Phase 5's
