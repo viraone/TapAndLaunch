@@ -169,6 +169,7 @@ export function AppSettingsDialog({
                   />
                   <Select
                     value={item.page_path}
+                    items={Object.fromEntries(pages.map((page) => [page.path, page.name]))}
                     onValueChange={(value) => updateNavItem(index, { page_path: value ?? "" })}
                   >
                     <SelectTrigger className="w-28">
@@ -231,6 +232,7 @@ export function AppSettingsDialog({
               <Label>Display mode</Label>
               <Select
                 value={manifest.display ?? "standalone"}
+                items={{ standalone: "Standalone", fullscreen: "Fullscreen", "minimal-ui": "Minimal UI", browser: "Browser" }}
                 onValueChange={(value) => setManifest({ ...manifest, display: value as ManifestConfig["display"] })}
               >
                 <SelectTrigger>

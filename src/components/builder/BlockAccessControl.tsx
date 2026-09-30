@@ -43,7 +43,11 @@ export function BlockAccessControl({
   return (
     <div className="space-y-1 border-t pt-3">
       <Label>Visible to</Label>
-      <Select value={mode} onValueChange={(value) => handleModeChange(value as Mode)}>
+      <Select
+        value={mode}
+        items={{ public: "Everyone", members: "Members only", custom: "Specific tier" }}
+        onValueChange={(value) => handleModeChange(value as Mode)}
+      >
         <SelectTrigger className="w-full">
           <SelectValue />
         </SelectTrigger>

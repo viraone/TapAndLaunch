@@ -37,7 +37,12 @@ export function OrderStatusSelect({ appId, orderId, status }: { appId: string; o
   }
 
   return (
-    <Select value={value} onValueChange={(v) => handleChange(v as OrderStatus)} disabled={saving}>
+    <Select
+      value={value}
+      items={{ pending: "Pending", fulfilled: "Fulfilled", cancelled: "Cancelled" }}
+      onValueChange={(v) => handleChange(v as OrderStatus)}
+      disabled={saving}
+    >
       <SelectTrigger className="h-7 w-32">
         <SelectValue />
       </SelectTrigger>

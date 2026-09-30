@@ -67,6 +67,7 @@ export function ContactFormBlockEditor({
             <div className="flex items-center gap-3">
               <Select
                 value={field.type}
+                items={{ text: "Text", email: "Email", textarea: "Long text" }}
                 onValueChange={(value) => updateField(index, { type: value as Field["type"] })}
               >
                 <SelectTrigger className="w-32">

@@ -69,7 +69,7 @@ export function ComposeForm({ appId, channelsConfigured }: { appId: string; chan
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1">
         <Label>Channel</Label>
-        <Select value={channel} onValueChange={(value) => setChannel(value as NotificationChannel)}>
+        <Select value={channel} items={CHANNEL_LABELS} onValueChange={(value) => setChannel(value as NotificationChannel)}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -87,7 +87,11 @@ export function ComposeForm({ appId, channelsConfigured }: { appId: string; chan
       <div className="space-y-1">
         <Label>Audience</Label>
         <div className="flex items-center gap-2">
-          <Select value={audience} onValueChange={(value) => setAudience(value as "all" | "tier")}>
+          <Select
+            value={audience}
+            items={{ all: "Everyone", tier: "Specific tier" }}
+            onValueChange={(value) => setAudience(value as "all" | "tier")}
+          >
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>

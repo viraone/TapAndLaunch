@@ -22,6 +22,7 @@ export function VideoBlockEditor({
         <Label>Provider</Label>
         <Select
           value={config.provider ?? "youtube"}
+          items={{ youtube: "YouTube", vimeo: "Vimeo", embed: "Custom embed URL" }}
           onValueChange={(value) => onChange({ ...config, provider: value as VideoBlockConfig["provider"] })}
         >
           <SelectTrigger>
