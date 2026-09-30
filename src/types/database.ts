@@ -446,6 +446,11 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      create_organization: {
+        Args: { p_name: string; p_slug: string };
+        Returns: Database["public"]["Tables"]["organizations"]["Row"];
+      };
+    };
   };
 }

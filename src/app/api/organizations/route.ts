@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { activeOrgCookieHeader } from "@/lib/org";
+import type { Database } from "@/types/database";
+
+type OrganizationRow = Database["public"]["Tables"]["organizations"]["Row"];
 
 const CreateOrgSchema = z.object({
   name: z.string().min(1).max(120),
@@ -12,12 +15,12 @@ const CreateOrgSchema = z.object({
 });
 
 /**
- * Creates an organization and makes the calling user its admin. Two inserts,
- * not a transaction: Supabase's PostgREST-backed client has no client-side
- * transaction API, so if the membership insert fails after the org insert
- * succeeds, the caller is left with an orgless org. Acceptable for Phase 1
- * (single onboarding action, low volume); a Postgres function callable via
- * `rpc()` would make this atomic if it becomes a real failure mode.
+ * Creates an organization and makes the calling user its admin, via the
+ * `create_organization` Postgres function (0012) — one transaction for
+ * both inserts, and it sidesteps the RLS gotcha that broke the original
+ * two-insert version: an INSERT ... RETURNING on `organizations` has to
+ * pass the SELECT policy too, which the creator can't at that instant
+ * because they aren't a member yet.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -34,23 +37,17 @@ export async function POST(request: Request) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { data: org, error: orgError } = await supabase
-    .from("organizations")
-    .insert({ name: parsed.data.name, slug: parsed.data.slug })
-    .select("*")
-    .single();
+  // No `.single()`: the function returns one composite row (not `setof`),
+  // which PostgREST already serializes as a single object.
+  const { data, error } = await supabase.rpc("create_organization", {
+    p_name: parsed.data.name,
+    p_slug: parsed.data.slug,
+  });
+  const org = data as OrganizationRow | null;
 
-  if (orgError) {
-    const message = orgError.code === "23505" ? "That URL slug is already taken" : orgError.message;
+  if (error || !org) {
+    const message = error?.code === "23505" ? "That URL slug is already taken" : (error?.message ?? "Failed to create organization");
     return Response.json({ error: message }, { status: 400 });
-  }
-
-  const { error: membershipError } = await supabase
-    .from("memberships")
-    .insert({ organization_id: org.id, user_id: user.id, role: "admin" });
-
-  if (membershipError) {
-    return Response.json({ error: membershipError.message }, { status: 400 });
   }
 
   // A newly created org becomes the active one immediately — otherwise it
