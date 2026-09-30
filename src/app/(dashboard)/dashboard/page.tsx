@@ -26,8 +26,8 @@ export default async function DashboardPage() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Your apps</h1>
         <div className="flex gap-2">
-          <Button variant="outline" render={<Link href="/dashboard/settings">Organization settings</Link>} />
-          <Button render={<Link href="/dashboard/apps/new">New app</Link>} />
+          <Button variant="outline" nativeButton={false} render={<Link href="/dashboard/settings">Organization settings</Link>} />
+          <Button nativeButton={false} render={<Link href="/dashboard/apps/new">New app</Link>} />
         </div>
       </div>
 

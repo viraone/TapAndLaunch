@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Beezer",
-  description: "No-code Progressive Web App builder",
+  title: "LinkLaunch",
+  description: "Launch a progressive web app from a link — no code required",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

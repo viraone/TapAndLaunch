@@ -1,6 +1,6 @@
-# Beezer — Phase 1–6 scaffold
+# LinkLaunch — Phase 1–6 scaffold
 
-A no-code, multi-tenant Progressive Web App builder (a Beezer-style product).
+A no-code, multi-tenant Progressive Web App builder (a Beezer-style product, branded LinkLaunch).
 This repo covers **Phases 1–6 of a phased build** — see
 [Scope](#scope--whats-deferred) before assuming something is here that isn't.
 
