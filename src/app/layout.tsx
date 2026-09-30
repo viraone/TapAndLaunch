@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LinkLaunch",
-  description: "Launch a progressive web app from a link — no code required",
+  title: "TapAndLaunch",
+  description: "Build an installable progressive web app in minutes — no code required",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

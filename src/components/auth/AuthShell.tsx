@@ -31,7 +31,7 @@ export function AuthShell({
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-indigo-400 to-pink-400 text-neutral-950 shadow-lg shadow-indigo-500/30">
             <ArrowRight className="h-4 w-4 -rotate-45" strokeWidth={2.5} />
           </span>
-          LinkLaunch
+          TapAndLaunch
         </Link>
       </header>
 

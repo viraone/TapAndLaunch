@@ -24,7 +24,7 @@ export default function Home() {
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-indigo-400 to-pink-400 text-neutral-950 shadow-lg shadow-indigo-500/30">
             <ArrowRight className="h-4 w-4 -rotate-45" strokeWidth={2.5} />
           </span>
-          LinkLaunch
+          TapAndLaunch
         </Link>
         <nav className="flex items-center gap-2 text-sm">
           <Link href="/login" className="rounded-full px-4 py-2 text-neutral-300 transition hover:bg-white/5 hover:text-white">
@@ -46,9 +46,9 @@ export default function Home() {
         </span>
 
         <h1 className="max-w-3xl text-balance text-5xl font-semibold leading-[1.05] tracking-tight sm:text-7xl">
-          Turn a link into an{" "}
+          Your app, one{" "}
           <span className="bg-gradient-to-r from-indigo-300 via-fuchsia-300 to-pink-300 bg-clip-text text-transparent">
-            installable app
+            tap from launch
           </span>
           .
         </h1>
@@ -89,7 +89,7 @@ export default function Home() {
       </main>
 
       <footer className="relative z-10 px-6 py-6 text-center text-xs text-neutral-500">
-        © {new Date().getFullYear()} LinkLaunch
+        © {new Date().getFullYear()} TapAndLaunch
       </footer>
     </div>
   );
