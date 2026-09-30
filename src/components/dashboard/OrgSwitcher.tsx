@@ -39,7 +39,7 @@ export function OrgSwitcher({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-semibold hover:bg-muted">
+      <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-semibold transition hover:bg-white/5">
         {logoUrl && (
           // eslint-disable-next-line @next/next/no-img-element -- arbitrary tenant-provided storage URL
           <img src={logoUrl} alt="" className="h-5 w-5 rounded object-cover" />

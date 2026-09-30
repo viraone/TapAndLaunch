@@ -48,7 +48,10 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
+/* `.light` re-declares the default tokens so a light surface (the phone
+   preview) can sit inside a `.dark` shell (the builder). */
+:root,
+.light {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

@@ -9,6 +9,7 @@ import { CanvaEmbedBlockEditor } from "@/components/builder/blocks/CanvaEmbedBlo
 import { ListingDirectoryBlockEditor } from "@/components/builder/blocks/ListingDirectoryBlockEditor";
 import { GasDirectoryBlockEditor } from "@/components/builder/blocks/GasDirectoryBlockEditor";
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
+import { MousePointerClick, SlidersHorizontal } from "lucide-react";
 import { BLOCK_TYPE_LABELS } from "@/lib/builder/block-defaults";
 import type { BlockConfig } from "@/types/database";
 import type { BuilderBlock } from "@/components/builder/types";
@@ -28,18 +29,28 @@ export function Inspector({
 }) {
   if (!block) {
     return (
-      <div className="p-4 text-sm text-muted-foreground">
-        Select a block on the canvas to edit it.
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+        <span className="grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-white/5 text-neutral-400">
+          <MousePointerClick className="h-5 w-5" />
+        </span>
+        <p className="text-sm font-medium text-neutral-200">Nothing selected</p>
+        <p className="text-xs leading-relaxed text-neutral-500">
+          Click a block on the phone to edit its content, or add one from the left.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 p-4">
-      <div>
-        <p className="text-xs font-medium uppercase text-muted-foreground">
-          {BLOCK_TYPE_LABELS[block.type]}
-        </p>
+    <div className="space-y-5 p-4">
+      <div className="flex items-center gap-2 border-b border-white/[0.06] pb-3">
+        <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-indigo-400 to-pink-400 text-neutral-950">
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+        </span>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Editing</p>
+          <p className="text-sm font-medium text-neutral-100">{BLOCK_TYPE_LABELS[block.type]}</p>
+        </div>
       </div>
       {block.type === "text" && (
         <TextBlockEditor config={block.config} onChange={onChange} />

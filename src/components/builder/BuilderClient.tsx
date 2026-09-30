@@ -12,9 +12,7 @@ import {
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { toast } from "sonner";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, ExternalLink, Rocket, Save } from "lucide-react";
 import { Palette } from "@/components/builder/Palette";
 import { Inspector } from "@/components/builder/Inspector";
 import { PageTabs } from "@/components/builder/PageTabs";
@@ -196,58 +194,92 @@ export function BuilderClient({
   const currentPagePath = pages.find((p) => p.id === currentPageId)?.path;
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
-      <header className="flex items-center justify-between border-b px-4 py-2">
-        <div className="flex items-center gap-2">
+    <div className="dark flex h-[calc(100dvh-3.5rem)] flex-col bg-neutral-950 text-neutral-50">
+      <header className="flex items-center justify-between border-b border-white/[0.06] px-4 py-2">
+        <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/dashboard"
-            className="mr-1 inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-neutral-300 transition hover:bg-white/10 hover:text-white"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> All apps
           </Link>
-          <h1 className="font-semibold">{currentApp.name}</h1>
-          <Badge variant={currentApp.status === "published" ? "default" : "secondary"}>
-            {currentApp.status}
-          </Badge>
+          <div className="flex min-w-0 items-center gap-2">
+            <h1 className="truncate text-base font-semibold tracking-tight">{currentApp.name}</h1>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                currentApp.status === "published"
+                  ? "bg-emerald-400/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/30"
+                  : "bg-white/5 text-neutral-400 ring-1 ring-inset ring-white/10"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${currentApp.status === "published" ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" : "bg-neutral-500"}`} />
+              {currentApp.status === "published" ? "Live" : "Draft"}
+            </span>
+          </div>
           {currentApp.status === "published" && (
             <a
               href={`//${currentApp.slug}.${rootDomain}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              className="hidden items-center gap-1 text-xs text-neutral-400 transition hover:text-white sm:inline-flex"
             >
-              View app <ExternalLink className="h-3.5 w-3.5" />
+              {currentApp.slug}.{rootDomain} <ExternalLink className="h-3 w-3" />
             </a>
           )}
         </div>
         <div className="flex items-center gap-2">
           <DeviceFrameSwitcher value={device} onChange={setDevice} />
           <AppSettingsDialog app={currentApp} pages={pages} onSaved={setCurrentApp} />
-          <Button type="button" variant="outline" onClick={save} disabled={isSaving}>
-            {isSaving ? "Saving…" : "Save"}
-          </Button>
-          <Button type="button" onClick={togglePublish} disabled={isPublishing}>
-            {currentApp.status === "published" ? "Unpublish" : "Publish"}
-          </Button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={isSaving}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 text-xs font-medium text-neutral-200 transition hover:bg-white/10 disabled:opacity-50"
+          >
+            <Save className="h-3.5 w-3.5" /> {isSaving ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={togglePublish}
+            disabled={isPublishing}
+            className={
+              currentApp.status === "published"
+                ? "inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 text-xs font-medium text-neutral-200 transition hover:bg-white/10 disabled:opacity-50"
+                : "inline-flex h-8 items-center gap-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 px-4 text-xs font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-110 disabled:opacity-50 disabled:hover:brightness-100"
+            }
+          >
+            {currentApp.status === "published" ? (
+              isPublishing ? "Unpublishing…" : "Unpublish"
+            ) : (
+              <>
+                <Rocket className="h-3.5 w-3.5" /> {isPublishing ? "Publishing…" : "Publish"}
+              </>
+            )}
+          </button>
         </div>
       </header>
 
       <PageTabs pages={pages} currentPageId={currentPageId} onSelect={switchPage} onCreate={createPage} />
 
-      <div className="grid flex-1 grid-cols-[220px_1fr_280px] overflow-hidden">
-        <aside className="overflow-y-auto border-r">
+      <div className="grid flex-1 grid-cols-[236px_1fr_300px] overflow-hidden">
+        <aside className="overflow-y-auto border-r border-white/[0.06] bg-neutral-950">
           <Palette onAdd={addBlock} />
         </aside>
 
-        <div className="overflow-y-auto bg-muted/20 py-8">
-          <MobilePreviewFrame device={device}>
+        <div className="relative overflow-y-auto py-10">
+          {/* Workspace backdrop: faint grid + glow, same language as the landing page. */}
+          <div aria-hidden className="pointer-events-none absolute inset-0">
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_75%)]" />
+          </div>
+          <MobilePreviewFrame device={device} theme={currentApp.theme}>
             <div className="flex-1 overflow-y-auto">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
                   {blocks.length === 0 ? (
-                    <p className="p-6 text-center text-sm text-muted-foreground">
-                      Add a block from the left to get started.
-                    </p>
+                    <div className="m-4 rounded-2xl border border-dashed border-border p-6 text-center">
+                      <p className="text-sm font-medium">This page is empty</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Pick a block on the left to start building.</p>
+                    </div>
                   ) : (
                     blocks.map((block) => (
                       <SortableBlockItem
@@ -276,7 +308,7 @@ export function BuilderClient({
           </MobilePreviewFrame>
         </div>
 
-        <aside className="overflow-y-auto border-l">
+        <aside className="overflow-y-auto border-l border-white/[0.06] bg-neutral-950">
           <Inspector
             block={selectedBlock}
             appId={currentApp.id}

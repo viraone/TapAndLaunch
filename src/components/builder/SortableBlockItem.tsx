@@ -30,8 +30,10 @@ export function SortableBlockItem({
       ref={setNodeRef}
       style={style}
       onClick={onSelect}
-      className={`group relative border-b last:border-b-0 ${
-        selected ? "ring-2 ring-primary ring-inset" : ""
+      className={`group relative cursor-pointer border-b border-border/60 transition last:border-b-0 ${
+        selected
+          ? "ring-2 ring-inset ring-indigo-500 shadow-[inset_0_0_0_9999px_rgba(99,102,241,0.04)]"
+          : "hover:shadow-[inset_0_0_0_9999px_rgba(99,102,241,0.05)] hover:ring-1 hover:ring-inset hover:ring-indigo-400/50"
       } ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="pointer-events-none">
@@ -46,12 +48,12 @@ export function SortableBlockItem({
           {block.minTier === "*" ? "Members" : block.minTier}
         </div>
       )}
-      <div className="absolute right-1 top-1 flex gap-1 opacity-0 group-hover:opacity-100">
+      <div className={`absolute right-1.5 top-1.5 flex gap-1 transition ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
         <button
           type="button"
           {...attributes}
           {...listeners}
-          className="rounded bg-background/90 p-1 shadow-sm"
+          className="grid h-6 w-6 cursor-grab place-items-center rounded-md bg-neutral-950 text-neutral-200 shadow-md active:cursor-grabbing"
           aria-label="Drag to reorder"
         >
           <GripVertical className="h-3.5 w-3.5" />
@@ -60,7 +62,7 @@ export function SortableBlockItem({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-6 w-6 bg-background/90 shadow-sm"
+          className="h-6 w-6 rounded-md bg-neutral-950 text-neutral-200 shadow-md hover:bg-red-600 hover:text-white"
           onClick={(e) => {
             e.stopPropagation();
             onRemove();
