@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
@@ -23,6 +25,12 @@ export default async function OrgSettingsPage() {
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 p-6">
+      <Link
+        href="/dashboard"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" /> All apps
+      </Link>
       <Card>
         <CardHeader>
           <CardTitle>Organization settings</CardTitle>
