@@ -11,7 +11,8 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { toast } from "sonner";
-import { ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Palette } from "@/components/builder/Palette";
@@ -198,6 +199,12 @@ export function BuilderClient({
     <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
       <header className="flex items-center justify-between border-b px-4 py-2">
         <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard"
+            className="mr-1 inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> All apps
+          </Link>
           <h1 className="font-semibold">{currentApp.name}</h1>
           <Badge variant={currentApp.status === "published" ? "default" : "secondary"}>
             {currentApp.status}
