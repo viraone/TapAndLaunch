@@ -11,6 +11,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { toast } from "sonner";
+import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Palette } from "@/components/builder/Palette";
@@ -38,11 +39,13 @@ function toBuilderBlock(row: BlockRow): BuilderBlock {
 
 export function BuilderClient({
   app,
+  rootDomain,
   initialPages,
   initialPageId,
   initialBlocks,
 }: {
   app: AppRow;
+  rootDomain: string;
   initialPages: PageRow[];
   initialPageId: string;
   initialBlocks: BlockRow[];
@@ -188,6 +191,16 @@ export function BuilderClient({
           <Badge variant={currentApp.status === "published" ? "default" : "secondary"}>
             {currentApp.status}
           </Badge>
+          {currentApp.status === "published" && (
+            <a
+              href={`//${currentApp.slug}.${rootDomain}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              View app <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <DeviceFrameSwitcher value={device} onChange={setDevice} />
