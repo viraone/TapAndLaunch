@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Bell, Globe, LayoutTemplate, ShoppingBag, Sparkles, Users } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 
 const FEATURES = [
   { icon: LayoutTemplate, title: "Drag-and-drop builder", body: "Text, media, forms, shops, events — arrange it all on a live phone preview." },
@@ -10,7 +11,15 @@ const FEATURES = [
   { icon: Sparkles, title: "Your domain", body: "Publish to a subdomain in one click, or connect a custom domain." },
 ];
 
-export default function Home() {
+export default async function Home() {
+  // A returning user with a live session gets "Dashboard" links instead of
+  // being asked to log in again.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const signedIn = !!user;
+
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-neutral-950 text-neutral-50">
       {/* Backdrop: a soft radial glow + a faint grid, both purely decorative. */}
@@ -27,15 +36,26 @@ export default function Home() {
           TapAndLaunch
         </Link>
         <nav className="flex items-center gap-2 text-sm">
-          <Link href="/login" className="rounded-full px-4 py-2 text-neutral-300 transition hover:bg-white/5 hover:text-white">
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-full bg-white px-4 py-2 font-medium text-neutral-950 transition hover:bg-neutral-200"
-          >
-            Get started
-          </Link>
+          {signedIn ? (
+            <Link
+              href="/dashboard"
+              className="rounded-full bg-white px-4 py-2 font-medium text-neutral-950 transition hover:bg-neutral-200"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="rounded-full px-4 py-2 text-neutral-300 transition hover:bg-white/5 hover:text-white">
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-full bg-white px-4 py-2 font-medium text-neutral-950 transition hover:bg-neutral-200"
+              >
+                Get started
+              </Link>
+            </>
+          )}
         </nav>
       </header>
 
@@ -60,18 +80,20 @@ export default function Home() {
 
         <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
           <Link
-            href="/signup"
+            href={signedIn ? "/dashboard" : "/signup"}
             className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:shadow-pink-500/30 hover:brightness-110"
           >
-            Launch your first app
+            {signedIn ? "Go to your dashboard" : "Launch your first app"}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
-          <Link
-            href="/login"
-            className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-medium text-neutral-200 backdrop-blur transition hover:border-white/30 hover:bg-white/10"
-          >
-            I already have an account
-          </Link>
+          {!signedIn && (
+            <Link
+              href="/login"
+              className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-medium text-neutral-200 backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+            >
+              I already have an account
+            </Link>
+          )}
         </div>
 
         <ul className="mt-24 grid w-full max-w-5xl grid-cols-1 gap-3 text-left sm:grid-cols-2 lg:grid-cols-3">

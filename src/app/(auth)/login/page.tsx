@@ -1,19 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { createClient } from "@/lib/supabase/client";
 
+/** localStorage key for the "Remember me" email. Only the email is stored —
+ * the password stays with the browser's own password manager (the inputs
+ * carry the `autoComplete` hints it needs), and the session itself lives in
+ * the Supabase cookie, which already outlives a browser restart. */
+const REMEMBERED_EMAIL_KEY = "tapandlaunch.login-email";
+
+function readRememberedEmail(): string {
+  try {
+    return window.localStorage.getItem(REMEMBERED_EMAIL_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+// The stored email never changes while this page is mounted, so there is
+// nothing to subscribe to; `useSyncExternalStore` is used purely so the
+// server render ("") and the first client render agree, then the remembered
+// value appears without a setState-in-effect.
+const noopSubscribe = () => () => {};
+
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [email, setEmail] = useState("");
+  const rememberedEmail = useSyncExternalStore(noopSubscribe, readRememberedEmail, () => "");
+  const [typedEmail, setTypedEmail] = useState<string | null>(null);
+  const email = typedEmail ?? rememberedEmail;
+  const [remember, setRemember] = useState(true);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,6 +53,14 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
       return;
+    }
+
+    try {
+      if (remember) window.localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+      else window.localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+    } catch {
+      // Private mode / blocked storage: logging in still works, we just
+      // won't prefill next time.
     }
 
     router.push("/dashboard");
@@ -59,7 +91,7 @@ export default function LoginPage() {
             placeholder="you@example.com"
             className="h-10"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setTypedEmail(e.target.value)}
           />
         </div>
         <div className="space-y-1.5">
@@ -72,6 +104,10 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-neutral-300">
+          <Checkbox checked={remember} onCheckedChange={(checked) => setRemember(checked === true)} />
+          Remember me on this device
+        </label>
         {error && (
           <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
             {error}
