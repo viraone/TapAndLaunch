@@ -42,7 +42,10 @@ export function defaultConfigFor(type: BlockType): BlockConfig {
         fallback_label: "Capitol Hill, Seattle",
         fallback_latitude: 47.6249,
         fallback_longitude: -122.3223,
-        cuisines: ["ramen", "thai", "korean", "vietnamese", "japanese"],
+        cuisines: [
+          "ramen", "vietnamese", "thai", "korean", "japanese",
+          "mexican", "pizza", "burgers", "mediterranean", "ethiopian", "indian", "bars", "dessert",
+        ],
         default_sort: "open",
       };
   }

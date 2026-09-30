@@ -171,7 +171,20 @@ export interface GasDirectoryBlockConfig {
 
 /** Cuisine quick-filter keys; the catalog (labels, Google types, name
  * keywords) lives in lib/food/cuisines.ts. */
-export type CuisineKey = "ramen" | "thai" | "korean" | "vietnamese" | "japanese";
+export type CuisineKey =
+  | "ramen"
+  | "vietnamese"
+  | "thai"
+  | "korean"
+  | "japanese"
+  | "mexican"
+  | "pizza"
+  | "burgers"
+  | "mediterranean"
+  | "ethiopian"
+  | "indian"
+  | "bars"
+  | "dessert";
 
 /** Google's opening-hours period shape, stored verbatim. `close` is absent
  * for a place that is open 24 hours. */
@@ -568,9 +581,9 @@ export interface Database {
         Relationships: [];
       };
       food_fetch_cells: {
-        Row: { app_id: string; cell_key: string; fetched_at: string };
-        Insert: { app_id: string; cell_key: string; fetched_at?: string };
-        Update: Partial<{ app_id: string; cell_key: string; fetched_at: string }>;
+        Row: { app_id: string; cell_key: string; fetch_group: string; fetched_at: string };
+        Insert: { app_id: string; cell_key: string; fetch_group?: string; fetched_at?: string };
+        Update: Partial<{ app_id: string; cell_key: string; fetch_group: string; fetched_at: string }>;
         Relationships: [];
       };
       food_fetch_budget: {

@@ -56,6 +56,9 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  /** Cuisines whose own Google search is confirmed for the current position. */
+  const [fetchedCuisines, setFetchedCuisines] = useState<Set<CuisineKey>>(() => new Set());
+  const [loadingCuisine, setLoadingCuisine] = useState<CuisineKey | null>(null);
   const [sort, setSort] = useState<"distance" | "open">(config.default_sort ?? "open");
   const [now, setNow] = useState(() => new Date());
   const [reporting, setReporting] = useState<NearbyPlace | null>(null);
@@ -107,22 +110,24 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
     return () => window.clearInterval(id);
   }, []);
 
-  async function fetchNearby(pos: Position): Promise<NearbyPlace[]> {
+  async function fetchNearby(pos: Position, cuisine?: CuisineKey): Promise<{ places: NearbyPlace[]; fetchedCuisines: CuisineKey[] }> {
     const res = await fetch("/food/nearby", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ latitude: pos.latitude, longitude: pos.longitude, radiusMiles: radius }),
+      body: JSON.stringify({ latitude: pos.latitude, longitude: pos.longitude, radiusMiles: radius, ...(cuisine ? { cuisine } : {}) }),
     });
     const body = await res.json();
     if (!res.ok) throw new Error(body.error ?? "Couldn't load restaurants");
-    return body.places as NearbyPlace[];
+    return { places: body.places as NearbyPlace[], fetchedCuisines: (body.fetchedCuisines ?? []) as CuisineKey[] };
   }
 
-  async function load(pos: Position) {
+  async function load(pos: Position, cuisine?: CuisineKey) {
     setRefreshing(true);
     setError(null);
     try {
-      setPlaces(await fetchNearby(pos));
+      const { places: list, fetchedCuisines: done } = await fetchNearby(pos, cuisine);
+      setPlaces(list);
+      setFetchedCuisines(new Set(done));
       setNow(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't load restaurants");
@@ -135,11 +140,34 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
     if (!position) return;
     let cancelled = false;
     fetchNearby(position)
-      .then((list) => { if (!cancelled) { setPlaces(list); setError(null); } })
+      .then(({ places: list, fetchedCuisines: done }) => {
+        if (!cancelled) {
+          setPlaces(list);
+          setFetchedCuisines(new Set(done));
+          setError(null);
+        }
+      })
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : "Couldn't load restaurants"); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position?.latitude, position?.longitude]);
+
+  /** Tapping a pill filters what's already loaded immediately, and the
+   * first tap on a cuisine in this area also runs its own search. */
+  async function chooseCuisine(key: Filter) {
+    setFilter(key);
+    if (key === "all" || !position || fetchedCuisines.has(key) || loadingCuisine) return;
+    setLoadingCuisine(key);
+    try {
+      const { places: list, fetchedCuisines: done } = await fetchNearby(position, key);
+      setPlaces(list);
+      setFetchedCuisines(new Set(done));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't load restaurants");
+    } finally {
+      setLoadingCuisine(null);
+    }
+  }
 
   const loading = refreshing || (position !== null && places === null && error === null);
 
@@ -243,10 +271,11 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
       <div className="sticky top-0 z-10 border-b border-border/60 bg-background/90 px-4 py-2.5 backdrop-blur-xl">
         <div className="flex items-center gap-2">
           <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto rounded-full bg-muted p-1 [scrollbar-width:none]">
-            <FilterPill active={filter === "all"} onClick={() => setFilter("all")}>All</FilterPill>
+            <FilterPill active={filter === "all"} onClick={() => chooseCuisine("all")}>All</FilterPill>
             {cuisines.map((c) => (
-              <FilterPill key={c.key} active={filter === c.key} onClick={() => setFilter(c.key)}>
+              <FilterPill key={c.key} active={filter === c.key} onClick={() => chooseCuisine(c.key)}>
                 <span aria-hidden className="mr-1">{c.emoji}</span>{c.label}
+                {loadingCuisine === c.key && <RefreshCw className="ml-1 inline h-3 w-3 animate-spin" />}
               </FilterPill>
             ))}
           </div>
@@ -294,7 +323,11 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
 
         {places && ranked.length === 0 && !loading && (
           <div className="mt-4 rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-            {filter === "all" ? `No restaurants within ${radius} miles.` : `No ${CUISINE_BY_KEY[filter].label} spots within ${radius} miles.`}
+            {filter === "all"
+              ? `No restaurants within ${radius} miles.`
+              : loadingCuisine === filter
+                ? `Finding ${CUISINE_BY_KEY[filter].label} spots…`
+                : `No ${CUISINE_BY_KEY[filter].label} spots within ${radius} miles.`}
           </div>
         )}
 

@@ -230,17 +230,21 @@ directory (first tenant: LiveBites).
   published app re-evaluates every 30 s, so countdowns tick with zero
   network traffic. Covered by `hours.test.ts` (after-midnight closes,
   week wrap, 24/7, unknown hours).
-- **Cuisine quick-filters** (Ramen, Thai, Korean, Vietnamese/Pho,
-  Japanese — `lib/food/cuisines.ts`): one Nearby Search per cuisine per
-  grid cell plus a general sweep, so every pill has real coverage. A
-  fetched cell is trusted for 24 h (`food_fetch_cells`); a daily budget
-  (`food_fetch_budget`, 200 calls) caps spend. Enterprise SKU, 1,000 free
-  calls/month, `GOOGLE_MAPS_API_KEY` server-only.
+- **Cuisine quick-filters** (Ramen, Pho/Vietnamese, Thai, Korean,
+  Japanese, Mexican/Tacos, Pizza, Burgers, Mediterranean, Ethiopian,
+  Indian, Bars & Pub Grub, Dessert/Coffee — `lib/food/cuisines.ts`, each
+  a set of Google types plus name keywords). Searches are lazy: an area
+  costs one Nearby Search (the general sweep) and each cuisine's own
+  search runs the first time a viewer taps its pill (`?cuisine=` on
+  `/food/nearby`). Freshness is per (cell, group) in `food_fetch_cells`
+  and trusted for a week; a daily budget (`food_fetch_budget`, 200
+  calls) caps spend. Enterprise SKU, 1,000 free calls/month,
+  `GOOGLE_MAPS_API_KEY` server-only.
 - **Wait times are crowd-sourced** — there is no public live-busyness
   feed. "Report wait" posts to `/food/wait` (`food_wait_reports`, append-
   only); the newest report per place is shown for 90 minutes.
 - Directions open Google Maps with the place id. Schema:
-  `0014_food_places.sql`.
+  `0014_food_places.sql`, `0015_food_fetch_groups.sql`.
 
 ## Scope — what's deferred
 

@@ -39,7 +39,7 @@ describe("block defaults", () => {
     });
   });
 
-  it("defaults food_directory to the LiveBites copy, five cuisines, open-first", () => {
+  it("defaults food_directory to the LiveBites copy, every cuisine, open-first", () => {
     expect(defaultConfigFor("food_directory")).toEqual({
       title: "Real-time food near me",
       subtitle: "Live restaurant status, open hours, and wait times within 2 miles of your location.",
@@ -47,7 +47,10 @@ describe("block defaults", () => {
       fallback_label: "Capitol Hill, Seattle",
       fallback_latitude: 47.6249,
       fallback_longitude: -122.3223,
-      cuisines: ["ramen", "thai", "korean", "vietnamese", "japanese"],
+      cuisines: [
+        "ramen", "vietnamese", "thai", "korean", "japanese",
+        "mexican", "pizza", "burgers", "mediterranean", "ethiopian", "indian", "bars", "dessert",
+      ],
       default_sort: "open",
     });
   });

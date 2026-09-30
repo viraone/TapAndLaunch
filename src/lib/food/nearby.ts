@@ -2,7 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calculateHaversineMiles } from "@/lib/listings/travel";
 import { fetchGooglePlaces, isGoogleConfigured, type GooglePlace } from "@/lib/food/google";
-import { CUISINES, cuisineLabelFor, cuisineOf } from "@/lib/food/cuisines";
+import { CUISINE_BY_KEY, cuisineLabelFor, cuisineOf } from "@/lib/food/cuisines";
 import type { CuisineKey, Database, OpeningPeriod } from "@/types/database";
 
 type PlaceRow = Database["public"]["Tables"]["food_places"]["Row"];
@@ -31,11 +31,13 @@ export interface NearbyPlace {
 }
 
 /** Opening hours change rarely, and status is computed live from them, so
- * a fetched cell is trusted for a day. */
-const CELL_TTL_MS = 24 * 60 * 60 * 1000;
-/** Hard ceiling on Google calls per app per day. One cell costs
- * CUISINES.length + 1 calls (one per cuisine plus a general sweep). */
+ * a fetched (cell, group) is trusted for a week. */
+const CELL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/** Hard ceiling on Google calls per app per day. A new cell costs one call
+ * (the general sweep) plus one per cuisine pill someone actually taps. */
 const DAILY_CALL_BUDGET = 200;
+/** The general "any restaurant" sweep's group key in food_fetch_cells. */
+const ALL_GROUP = "all";
 /** ~1 mile at Seattle's latitude; the grid Google results are cached on. */
 const CELL_SIZE_DEG = 0.015;
 /** A wait-time report is shown for this long, then the card just says Open. */
@@ -47,50 +49,68 @@ export function cellKeyFor(latitude: number, longitude: number): string {
   return `${row}:${col}`;
 }
 
+export interface NearbyResult {
+  places: NearbyPlace[];
+  source: "google" | "cache" | "none";
+  /** Cuisine pills whose Google search is fresh for this cell — the client
+   * can skip re-asking for those. */
+  fetchedCuisines: CuisineKey[];
+}
+
+/**
+ * Restaurants near a point for an app. The viewer's position is rounded to
+ * a ~1 mile grid cell. The general sweep (20 nearest restaurants) is
+ * fetched once per cell per week; a cuisine's own search (its Google
+ * types, 20 nearest) is fetched only when `cuisine` is asked for, so an
+ * area costs one Google call until someone taps a pill. Everything ever
+ * fetched for the area is returned regardless of `cuisine`; the client
+ * filters.
+ */
 export async function getNearbyPlaces(
   appId: string,
   latitude: number,
   longitude: number,
-  radiusMiles: number
-): Promise<{ places: NearbyPlace[]; source: "google" | "cache" | "none" }> {
+  radiusMiles: number,
+  cuisine: CuisineKey | null = null
+): Promise<NearbyResult> {
   const admin = createAdminClient();
   const cellKey = cellKeyFor(latitude, longitude);
 
-  const { data: cell } = await admin
+  const { data: cells } = await admin
     .from("food_fetch_cells")
-    .select("fetched_at")
+    .select("fetch_group, fetched_at")
     .eq("app_id", appId)
-    .eq("cell_key", cellKey)
-    .maybeSingle();
+    .eq("cell_key", cellKey);
+  const freshGroups = new Set(
+    (cells ?? []).filter((c) => Date.now() - new Date(c.fetched_at).getTime() < CELL_TTL_MS).map((c) => c.fetch_group)
+  );
 
-  const fresh = cell && Date.now() - new Date(cell.fetched_at).getTime() < CELL_TTL_MS;
-  let source: "google" | "cache" | "none" = fresh ? "cache" : "none";
+  let source: NearbyResult["source"] = "cache";
+  const wanted: Array<{ group: string; types: string[] }> = [];
+  if (!freshGroups.has(ALL_GROUP)) wanted.push({ group: ALL_GROUP, types: ["restaurant"] });
+  if (cuisine && !freshGroups.has(cuisine)) wanted.push({ group: cuisine, types: CUISINE_BY_KEY[cuisine].types });
 
-  if (!fresh && isGoogleConfigured()) {
+  if (wanted.length > 0 && isGoogleConfigured()) {
     const fetchRadiusMeters = Math.max(radiusMiles * 1609.34 * 1.25, 2000);
-    // One search per cuisine so each quick-filter has real coverage, then
-    // a general sweep for everything else. Each is one budget unit.
-    const searches: string[][] = [...CUISINES.map((c) => c.types), ["restaurant"]];
-    const found = new Map<string, GooglePlace>();
-    let anyCall = false;
-    for (const includedTypes of searches) {
-      if (!(await consumeBudget(appId))) break;
-      anyCall = true;
+    for (const { group, types } of wanted) {
+      if (!(await consumeBudget(appId))) {
+        source = freshGroups.size ? "cache" : "none";
+        break;
+      }
       try {
-        for (const p of await fetchGooglePlaces(latitude, longitude, fetchRadiusMeters, includedTypes)) {
-          found.set(p.placeId, p);
-        }
+        const found = await fetchGooglePlaces(latitude, longitude, fetchRadiusMeters, types);
+        await upsertGooglePlaces(appId, found);
+        await admin
+          .from("food_fetch_cells")
+          .upsert({ app_id: appId, cell_key: cellKey, fetch_group: group, fetched_at: new Date().toISOString() });
+        freshGroups.add(group);
+        source = "google";
       } catch (error) {
-        console.error("Google place fetch failed:", error);
+        console.error(`Google place fetch failed (${group}):`, error);
       }
     }
-    if (anyCall) {
-      await upsertGooglePlaces(appId, [...found.values()]);
-      await admin
-        .from("food_fetch_cells")
-        .upsert({ app_id: appId, cell_key: cellKey, fetched_at: new Date().toISOString() });
-      source = "google";
-    }
+  } else if (wanted.length > 0) {
+    source = freshGroups.size ? "cache" : "none";
   }
 
   const latPad = radiusMiles / 69;
@@ -112,7 +132,8 @@ export async function getNearbyPlaces(
   const waits = await latestWaits(appId, inRange.map((x) => x.row.id));
 
   const places = inRange.map(({ row, distanceMiles }) => toNearby(row, distanceMiles, waits.get(row.id) ?? null));
-  return { places, source };
+  const fetchedCuisines = [...freshGroups].filter((g): g is CuisineKey => g !== ALL_GROUP && g in CUISINE_BY_KEY);
+  return { places, source, fetchedCuisines };
 }
 
 function toNearby(row: PlaceRow, distanceMiles: number, wait: NearbyPlace["wait"]): NearbyPlace {
