@@ -34,10 +34,18 @@ export interface NearbyPlace {
  * a fetched (cell, group) is trusted for a week. */
 const CELL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /** Hard ceiling on Google calls per app per day. A new cell costs one call
- * (the general sweep) plus one per cuisine pill someone actually taps. */
+ * (the general sweep), five more in a busy area (POPULAR_GROUPS), and one
+ * per other cuisine someone actually taps. */
 const DAILY_CALL_BUDGET = 200;
 /** The general "any restaurant" sweep's group key in food_fetch_cells. */
 const ALL_GROUP = "all";
+/** Searched alongside the general sweep where an area is busy (see
+ * POPULAR_FANOUT_AT): the cuisines people tap most. */
+const POPULAR_GROUPS: CuisineKey[] = ["burgers", "pizza", "mexican", "vietnamese", "dessert"];
+/** A general sweep returns at most 20 places. An area with about that many
+ * in range has more than one search can show, so the first visit there
+ * also runs POPULAR_GROUPS; a quieter area is complete after one call. */
+const POPULAR_FANOUT_AT = 18;
 /** ~1 mile at Seattle's latitude; the grid Google results are cached on. */
 const CELL_SIZE_DEG = 0.015;
 /** A wait-time report is shown for this long, then the card just says Open. */
@@ -60,11 +68,12 @@ export interface NearbyResult {
 /**
  * Restaurants near a point for an app. The viewer's position is rounded to
  * a ~1 mile grid cell. The general sweep (20 nearest restaurants) is
- * fetched once per cell per week; a cuisine's own search (its Google
- * types, 20 nearest) is fetched only when `cuisine` is asked for, so an
- * area costs one Google call until someone taps a pill. Everything ever
- * fetched for the area is returned regardless of `cuisine`; the client
- * filters.
+ * fetched once per cell per week. Where that comes back full the area is
+ * busier than one search shows, so the popular cuisines are searched too,
+ * once; a quiet area costs one call. Any other cuisine's own search (its
+ * Google types, 20 nearest) runs only when `cuisine` is asked for.
+ * Everything ever fetched for the area is returned regardless of
+ * `cuisine`; the client filters.
  */
 export async function getNearbyPlaces(
   appId: string,
@@ -86,48 +95,72 @@ export async function getNearbyPlaces(
   );
 
   let source: NearbyResult["source"] = "cache";
-  const wanted: Array<{ group: string; types: string[] }> = [];
-  if (!freshGroups.has(ALL_GROUP)) wanted.push({ group: ALL_GROUP, types: ["restaurant"] });
-  if (cuisine && !freshGroups.has(cuisine)) wanted.push({ group: cuisine, types: CUISINE_BY_KEY[cuisine].types });
+  const fetchRadiusMeters = Math.max(radiusMiles * 1609.34 * 1.25, 2000);
 
-  if (wanted.length > 0 && isGoogleConfigured()) {
-    const fetchRadiusMeters = Math.max(radiusMiles * 1609.34 * 1.25, 2000);
-    for (const { group, types } of wanted) {
-      if (!(await consumeBudget(appId))) {
-        source = freshGroups.size ? "cache" : "none";
-        break;
-      }
-      try {
-        const found = await fetchGooglePlaces(latitude, longitude, fetchRadiusMeters, types);
-        await upsertGooglePlaces(appId, found);
-        await admin
-          .from("food_fetch_cells")
-          .upsert({ app_id: appId, cell_key: cellKey, fetch_group: group, fetched_at: new Date().toISOString() });
-        freshGroups.add(group);
-        source = "google";
-      } catch (error) {
-        console.error(`Google place fetch failed (${group}):`, error);
-      }
+  /** Runs the searches for `groups` that aren't fresh yet, in parallel, as far as the budget allows. */
+  async function fetchGroups(groups: Array<{ group: string; types: string[] }>) {
+    const todo = groups.filter((g) => !freshGroups.has(g.group));
+    if (todo.length === 0) return;
+    if (!isGoogleConfigured()) {
+      if (!freshGroups.size) source = "none";
+      return;
     }
-  } else if (wanted.length > 0) {
-    source = freshGroups.size ? "cache" : "none";
+    // Budget is taken one call at a time (a read-then-write counter), then the searches run together.
+    const allowed: typeof todo = [];
+    for (const g of todo) {
+      if (!(await consumeBudget(appId))) break;
+      allowed.push(g);
+    }
+    if (allowed.length === 0) {
+      if (!freshGroups.size) source = "none";
+      return;
+    }
+    await Promise.all(
+      allowed.map(async ({ group, types }) => {
+        try {
+          const found = await fetchGooglePlaces(latitude, longitude, fetchRadiusMeters, types);
+          await upsertGooglePlaces(appId, found);
+          await admin
+            .from("food_fetch_cells")
+            .upsert({ app_id: appId, cell_key: cellKey, fetch_group: group, fetched_at: new Date().toISOString() });
+          freshGroups.add(group);
+          source = "google";
+        } catch (error) {
+          console.error(`Google place fetch failed (${group}):`, error);
+        }
+      })
+    );
   }
 
-  const latPad = radiusMiles / 69;
-  const lngPad = radiusMiles / (69 * Math.cos((latitude * Math.PI) / 180));
-  const { data: rows } = await admin
-    .from("food_places")
-    .select("*")
-    .eq("app_id", appId)
-    .gte("latitude", latitude - latPad)
-    .lte("latitude", latitude + latPad)
-    .gte("longitude", longitude - lngPad)
-    .lte("longitude", longitude + lngPad);
+  async function placesInRange() {
+    const latPad = radiusMiles / 69;
+    const lngPad = radiusMiles / (69 * Math.cos((latitude * Math.PI) / 180));
+    const { data: rows } = await admin
+      .from("food_places")
+      .select("*")
+      .eq("app_id", appId)
+      .gte("latitude", latitude - latPad)
+      .lte("latitude", latitude + latPad)
+      .gte("longitude", longitude - lngPad)
+      .lte("longitude", longitude + lngPad);
+    return (rows ?? [])
+      .filter((r) => r.business_status === null || r.business_status === "OPERATIONAL")
+      .map((row) => ({ row, distanceMiles: calculateHaversineMiles(latitude, longitude, row.latitude, row.longitude) }))
+      .filter((x) => x.distanceMiles <= radiusMiles);
+  }
 
-  const inRange = (rows ?? [])
-    .filter((r) => r.business_status === null || r.business_status === "OPERATIONAL")
-    .map((row) => ({ row, distanceMiles: calculateHaversineMiles(latitude, longitude, row.latitude, row.longitude) }))
-    .filter((x) => x.distanceMiles <= radiusMiles);
+  await fetchGroups([
+    { group: ALL_GROUP, types: ["restaurant"] },
+    ...(cuisine ? [{ group: cuisine, types: CUISINE_BY_KEY[cuisine].types }] : []),
+  ]);
+  let inRange = await placesInRange();
+
+  // A busy area: one search can't show it all, so fill in the popular cuisines once.
+  const missingPopular = POPULAR_GROUPS.filter((g) => !freshGroups.has(g));
+  if (inRange.length >= POPULAR_FANOUT_AT && missingPopular.length > 0) {
+    await fetchGroups(missingPopular.map((g) => ({ group: g, types: CUISINE_BY_KEY[g].types })));
+    inRange = await placesInRange();
+  }
 
   const waits = await latestWaits(appId, inRange.map((x) => x.row.id));
 
