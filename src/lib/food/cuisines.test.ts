@@ -7,7 +7,7 @@ describe("cuisines", () => {
       "ramen", "vietnamese", "thai", "korean", "japanese",
       "mexican", "pizza", "burgers", "mediterranean", "ethiopian", "indian", "bars", "dessert",
     ]);
-    expect(new Set(CUISINES.map((c) => c.emoji)).size).toBe(CUISINES.length - 1); // Thai and Indian share 🍛
+    expect(new Set(CUISINES.map((c) => c.emoji)).size).toBe(CUISINES.length);
   });
 
   it("classifies by Google type, most specific first", () => {

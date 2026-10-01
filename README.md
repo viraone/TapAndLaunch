@@ -240,10 +240,11 @@ directory (first tenant: LiveBites).
   and trusted for a week; a daily budget (`food_fetch_budget`, 200
   calls) caps spend. Enterprise SKU, 1,000 free calls/month,
   `GOOGLE_MAPS_API_KEY` server-only.
-- **Wait times are crowd-sourced** — there is no public live-busyness
-  feed. "Report wait" posts to `/food/wait` (`food_wait_reports`, append-
-  only); the newest report per place is shown for 90 minutes.
-- Directions open Google Maps with the place id. Schema:
+- The runtime no longer offers wait reporting (dropped from the UI on
+  2026-09-30); `/food/wait` and `food_wait_reports` remain but are unused.
+- Cuisines show as a grid of tiles ("What are you craving?", six plus a
+  More tile), with a name search and Open / Nearest sort in a sticky bar.
+  Tapping a place opens Google Maps directions with the place id. Schema:
   `0014_food_places.sql`, `0015_food_fetch_groups.sql`.
 
 ## Scope — what's deferred

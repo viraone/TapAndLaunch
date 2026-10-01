@@ -84,7 +84,7 @@ export default async function PublishedAppLayout({
 
   return (
     <div
-      className={`mx-auto flex min-h-dvh max-w-md flex-col bg-background ${dark ? "dark text-foreground" : ""} ${tabs ? "pb-20" : ""}`}
+      className={`mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background ${dark ? "dark text-foreground" : ""} ${tabs ? "pb-20" : ""}`}
       style={style}
     >
       {/* A dark app is dark edge to edge, including what shows past the

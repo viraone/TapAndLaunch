@@ -302,7 +302,7 @@ function FoodDirectoryBlockView({ config, live }: { config: FoodDirectoryBlockCo
         {config.title && <h2 className="text-lg font-semibold">{config.title}</h2>}
         {config.subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{config.subtitle}</p>}
         <p className="mt-2 rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Live open / closing-soon / closed status and wait times for restaurants around each viewer
+          Live open / closing-soon / closed status for restaurants around each viewer
           when published (within {config.radius_miles ?? 2} mi).
         </p>
       </div>

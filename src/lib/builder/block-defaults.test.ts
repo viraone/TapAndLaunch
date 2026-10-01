@@ -42,7 +42,7 @@ describe("block defaults", () => {
   it("defaults food_directory to the LiveBites copy, every cuisine, open-first", () => {
     expect(defaultConfigFor("food_directory")).toEqual({
       title: "Real-time food near me",
-      subtitle: "Live restaurant status, open hours, and wait times within 2 miles of your location.",
+      subtitle: "See what is open right now within 2 miles, and how long until it closes.",
       radius_miles: 2,
       fallback_label: "Capitol Hill, Seattle",
       fallback_latitude: 47.6249,
