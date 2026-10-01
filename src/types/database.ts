@@ -23,7 +23,8 @@ export type BlockType =
   | "canva_embed"
   | "listing_directory"
   | "gas_directory"
-  | "food_directory";
+  | "food_directory"
+  | "open_mic_signup";
 export type AnalyticsEventType =
   | "view"
   | "install"
@@ -97,7 +98,8 @@ export type BlockConfig =
   | CanvaEmbedBlockConfig
   | ListingDirectoryBlockConfig
   | GasDirectoryBlockConfig
-  | FoodDirectoryBlockConfig;
+  | FoodDirectoryBlockConfig
+  | OpenMicSignupBlockConfig;
 
 export interface TextBlockConfig {
   heading?: string;
@@ -206,6 +208,26 @@ export interface FoodDirectoryBlockConfig {
   /** Which cuisine pills to show, in order. "All" is always first. */
   cuisines?: CuisineKey[];
   default_sort?: "distance" | "open";
+}
+
+/** StageTime PNW's weekly showcase sign-up. Comedians sign in with an email
+ * code and request a spot; the request list itself lives in the show's own
+ * Supabase project (`supabase_url`, public `anon_key`), shared with the
+ * StageTime iOS app and the Google Sheet sync there. Requests open
+ * `opens_*` and close `closes_*`, in `time_zone`. */
+export interface OpenMicSignupBlockConfig {
+  title?: string;
+  show_name?: string;
+  venue?: string;
+  show_time?: string;
+  supabase_url?: string;
+  anon_key?: string;
+  time_zone?: string;
+  /** 0 = Sunday … 6 = Saturday; minutes after local midnight. */
+  opens_weekday?: number;
+  opens_minutes?: number;
+  closes_weekday?: number;
+  closes_minutes?: number;
 }
 
 // `Relationships`/`Views`/`Functions` below are required by supabase-js's

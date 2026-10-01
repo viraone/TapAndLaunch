@@ -9,6 +9,7 @@ import { CanvaEmbedBlockEditor } from "@/components/builder/blocks/CanvaEmbedBlo
 import { ListingDirectoryBlockEditor } from "@/components/builder/blocks/ListingDirectoryBlockEditor";
 import { GasDirectoryBlockEditor } from "@/components/builder/blocks/GasDirectoryBlockEditor";
 import { FoodDirectoryBlockEditor } from "@/components/builder/blocks/FoodDirectoryBlockEditor";
+import { OpenMicSignupBlockEditor } from "@/components/builder/blocks/OpenMicSignupBlockEditor";
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
 import { MousePointerClick, SlidersHorizontal } from "lucide-react";
 import { BLOCK_TYPE_LABELS } from "@/lib/builder/block-defaults";
@@ -85,6 +86,9 @@ export function Inspector({
       )}
       {block.type === "food_directory" && (
         <FoodDirectoryBlockEditor config={block.config} onChange={onChange} />
+      )}
+      {block.type === "open_mic_signup" && (
+        <OpenMicSignupBlockEditor config={block.config} onChange={onChange} />
       )}
       <BlockAccessControl key={block.id} minTier={block.minTier} onChange={onMinTierChange} />
     </div>

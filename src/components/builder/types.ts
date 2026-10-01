@@ -6,6 +6,7 @@ import type {
   GasDirectoryBlockConfig,
   ImageBlockConfig,
   ListingDirectoryBlockConfig,
+  OpenMicSignupBlockConfig,
   ProductListBlockConfig,
   TextBlockConfig,
   VideoBlockConfig,
@@ -33,4 +34,5 @@ export type BuilderBlock =
   | { id: string; type: "canva_embed"; config: CanvaEmbedBlockConfig; minTier: string | null }
   | { id: string; type: "listing_directory"; config: ListingDirectoryBlockConfig; minTier: string | null }
   | { id: string; type: "gas_directory"; config: GasDirectoryBlockConfig; minTier: string | null }
-  | { id: string; type: "food_directory"; config: FoodDirectoryBlockConfig; minTier: string | null };
+  | { id: string; type: "food_directory"; config: FoodDirectoryBlockConfig; minTier: string | null }
+  | { id: string; type: "open_mic_signup"; config: OpenMicSignupBlockConfig; minTier: string | null };

@@ -1,5 +1,5 @@
 import { BLOCK_TYPES, BLOCK_TYPE_LABELS } from "@/lib/builder/block-defaults";
-import { Type, Image as ImageIcon, Video, ClipboardList, ShoppingBag, CalendarDays, Video as ZoomIcon, Palette as CanvaIcon, Mic, Fuel, Plus, UtensilsCrossed } from "lucide-react";
+import { Type, Image as ImageIcon, Video, ClipboardList, ShoppingBag, CalendarDays, Video as ZoomIcon, Palette as CanvaIcon, Mic, Fuel, Plus, UtensilsCrossed, Ticket } from "lucide-react";
 import type { BlockType } from "@/types/database";
 
 const ICONS: Record<BlockType, React.ComponentType<{ className?: string }>> = {
@@ -14,6 +14,7 @@ const ICONS: Record<BlockType, React.ComponentType<{ className?: string }>> = {
   gas_directory: Fuel,
   food_directory: UtensilsCrossed,
   listing_directory: Mic,
+  open_mic_signup: Ticket,
 };
 
 /** Each block gets its own accent so the palette reads as a set of tools,
@@ -30,6 +31,7 @@ const ACCENTS: Record<BlockType, string> = {
   gas_directory: "from-teal-400 to-emerald-500 text-teal-950",
   food_directory: "from-orange-400 to-red-500 text-white",
   listing_directory: "from-orange-400 to-rose-500 text-white",
+  open_mic_signup: "from-red-500 to-rose-600 text-white",
 };
 
 /**

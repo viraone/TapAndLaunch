@@ -48,6 +48,20 @@ export function defaultConfigFor(type: BlockType): BlockConfig {
         ],
         default_sort: "open",
       };
+    case "open_mic_signup":
+      return {
+        title: "Open Mic Sign-Up",
+        show_name: "Read The Room",
+        venue: "Rickshaw Restaurant & Lounge",
+        show_time: "Fridays 7–9 PM",
+        supabase_url: "",
+        anon_key: "",
+        time_zone: "America/Los_Angeles",
+        opens_weekday: 5,
+        opens_minutes: 21 * 60 + 40,
+        closes_weekday: 4,
+        closes_minutes: 22 * 60,
+      };
   }
 }
 
@@ -63,6 +77,7 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   listing_directory: "Listing directory",
   gas_directory: "Gas prices",
   food_directory: "Live food",
+  open_mic_signup: "Open mic sign-up",
 };
 
 export const BLOCK_TYPES: BlockType[] = [
@@ -77,4 +92,5 @@ export const BLOCK_TYPES: BlockType[] = [
   "listing_directory",
   "gas_directory",
   "food_directory",
+  "open_mic_signup",
 ];
