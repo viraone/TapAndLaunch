@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { isReservedPagePath } from "@/lib/pwa/reserved-paths";
 
 const CreatePageSchema = z.object({
   name: z.string().min(1).max(120),
@@ -7,7 +8,8 @@ const CreatePageSchema = z.object({
     .string()
     .min(1)
     .max(63)
-    .regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/, "Use lowercase letters, numbers, and hyphens only"),
+    .regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/, "Use lowercase letters, numbers, and hyphens only")
+    .refine((path) => !isReservedPagePath(path), "That path is used by the app itself — pick another (e.g. add-mic)"),
 });
 
 export async function POST(request: Request, context: { params: Promise<{ appId: string }> }) {
