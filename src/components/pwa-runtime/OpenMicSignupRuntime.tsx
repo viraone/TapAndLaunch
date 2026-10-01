@@ -232,7 +232,7 @@ function EmailStep({
 
   return (
     <form onSubmit={send} className="rounded-2xl border bg-muted/60 p-5">
-      <h2 className="text-lg font-bold">{open ? "Sign in to request your spot" : "Sign in"}</h2>
+      <h2 className="text-lg font-bold">{open ? "Request your spot" : "Sign in"}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Enter your email. We&apos;ll send a 6-digit code — no password needed.
       </p>
@@ -259,7 +259,7 @@ function EmailStep({
         {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mail className="h-5 w-5" />}
         Send my code
       </button>
-      <p className="mt-3 text-center text-xs text-muted-foreground">New here? This creates your account.</p>
+      <p className="mt-3 text-center text-xs text-muted-foreground">First time or returning, it&apos;s the same. Just your email.</p>
     </form>
   );
 }
