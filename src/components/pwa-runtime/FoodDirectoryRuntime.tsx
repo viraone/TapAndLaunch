@@ -165,7 +165,8 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
     }
   }
 
-  const loading = refreshing || (position !== null && places === null && error === null);
+  // Waiting for the location answer counts as loading: nothing has been searched yet.
+  const loading = refreshing || (locState === "asking" && places === null) || (position !== null && places === null && error === null);
 
   /** Every place with its live status, filtered and sorted. */
   const ranked = useMemo(() => {
