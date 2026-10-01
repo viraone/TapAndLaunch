@@ -7,7 +7,7 @@ import { ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AuthShell } from "@/components/auth/AuthShell";
+import { AUTH_BUTTON, AuthShell } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { createClient } from "@/lib/supabase/client";
 
@@ -89,7 +89,7 @@ export default function LoginPage() {
             autoComplete="email"
             required
             placeholder="you@example.com"
-            className="h-10"
+            className="h-11"
             value={email}
             onChange={(e) => setTypedEmail(e.target.value)}
           />
@@ -116,7 +116,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="group mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-110 disabled:opacity-60 disabled:hover:brightness-100"
+          className={AUTH_BUTTON}
         >
           {loading ? "Logging in…" : "Log in"}
           {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
