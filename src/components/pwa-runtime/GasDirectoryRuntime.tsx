@@ -460,7 +460,7 @@ function StationCard({
   return (
     <li
       className={`relative rounded-2xl border bg-card transition ${
-        isLowest ? "border-emerald-500/50 shadow-[0_0_0_1px_rgba(16,185,129,0.2),0_10px_28px_-14px_rgba(16,185,129,0.6)]" : p ? "shadow-sm" : "opacity-80"
+        isLowest ? "border-emerald-500/60 bg-emerald-500/[0.04] ring-1 ring-emerald-500/30" : p ? "shadow-sm" : "opacity-80"
       }`}
     >
       <a href={directionsUrl(s)} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 pr-[6.5rem] active:opacity-80">
