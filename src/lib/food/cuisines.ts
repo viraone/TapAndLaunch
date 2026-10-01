@@ -61,7 +61,10 @@ export const CUISINE_BY_KEY: Record<CuisineKey, CuisineDef> = Object.fromEntries
  * (see the ordering note above); the more specific cuisine is listed first
  * in CUISINES, so it wins. */
 export function cuisineOf(place: { types: string[]; primaryType?: string | null; name: string }): CuisineKey | null {
-  const types = new Set([...(place.types ?? []), ...(place.primaryType ? [place.primaryType] : [])]);
+  // Google's primary type is its own call on what the place is; a fusion
+  // spot also tagged with a second cuisine keeps its primary one.
+  if (place.primaryType) for (const c of CUISINES) if (c.types.includes(place.primaryType)) return c.key;
+  const types = new Set(place.types ?? []);
   for (const c of CUISINES) if (c.types.some((t) => types.has(t))) return c.key;
   const lower = ` ${place.name.toLowerCase()} `;
   for (const c of CUISINES) if (c.keywords.some((k) => lower.includes(k))) return c.key;

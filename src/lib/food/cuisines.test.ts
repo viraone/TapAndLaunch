@@ -20,6 +20,13 @@ describe("cuisines", () => {
     expect(cuisineOf({ types: ["greek_restaurant"], name: "The Golden Olive" })).toBe("mediterranean");
   });
 
+  it("trusts Google's primary type over its other tags", () => {
+    // An Indian street-food spot Google also tags mexican_restaurant (Desi Adda, Redmond).
+    expect(cuisineOf({ types: ["mexican_restaurant", "indian_restaurant", "restaurant"], primaryType: "indian_restaurant", name: "Desi Adda" })).toBe("indian");
+    // A primary type that isn't a quick-filter falls through to the other tags.
+    expect(cuisineOf({ types: ["thai_restaurant", "restaurant"], primaryType: "restaurant", name: "Kin Dee" })).toBe("thai");
+  });
+
   it("falls back to name keywords when Google has no matching type", () => {
     expect(cuisineOf({ types: ["restaurant"], name: "Habesha Restaurant" })).toBe("ethiopian");
     expect(cuisineOf({ types: ["restaurant"], name: "Tacos Chukis" })).toBe("mexican");
