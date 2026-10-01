@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpDown, Fuel, LocateFixed, MapPin, Navigation, Plus, RefreshCw, Sparkles, X } from "lucide-react";
+import { Fuel, LocateFixed, Navigation, Pencil, Plus, RefreshCw, Sparkles, X } from "lucide-react";
 import type { FuelGrade, GasDirectoryBlockConfig } from "@/types/database";
 import type { NearbyStation } from "@/lib/gas/nearby";
 
@@ -159,62 +159,61 @@ export function GasDirectoryRuntime({ config }: { config: GasDirectoryBlockConfi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position?.latitude, position?.longitude]);
 
-  const loading = refreshing || (position !== null && stations === null && error === null);
+  // Waiting for the location answer counts as loading: nothing has been searched yet.
+  const loading = refreshing || (locState === "asking" && stations === null) || (position !== null && stations === null && error === null);
 
-  const ranked = useMemo(() => {
+  /** Google often lists a station's shop separately at the same address
+   * (ARCO + "ampm", 76 + "Red Retail Store"), and the shop never has a
+   * price: drop an unpriced listing that shares an address with a priced one. */
+  const visible = useMemo(() => {
     if (!stations) return [];
-    const list = [...stations];
-    if (sort === "distance") {
-      list.sort((a, b) => a.distanceMiles - b.distanceMiles);
-    } else {
-      // Priced stations first, cheapest first; unpriced trail, nearest first.
-      list.sort((a, b) => {
-        const pa = a.prices[grade]?.price;
-        const pb = b.prices[grade]?.price;
-        if (pa === undefined && pb === undefined) return a.distanceMiles - b.distanceMiles;
-        if (pa === undefined) return 1;
-        if (pb === undefined) return -1;
-        return pa - pb || a.distanceMiles - b.distanceMiles;
-      });
-    }
-    return list;
-  }, [stations, sort, grade]);
+    const street = (a: string | null) => (a ?? "").split(",")[0].trim().toLowerCase();
+    const pricedStreets = new Set(stations.filter((s) => Object.keys(s.prices).length > 0 && s.address).map((s) => street(s.address)));
+    return stations.filter((s) => Object.keys(s.prices).length > 0 || !s.address || !pricedStreets.has(street(s.address)));
+  }, [stations]);
+
+  /** Stations with a price for this grade, ranked; the rest after, nearest first. */
+  const { priced, unpriced } = useMemo(() => {
+    const withPrice = visible.filter((s) => s.prices[grade] !== undefined);
+    const without = visible.filter((s) => s.prices[grade] === undefined).sort((a, b) => a.distanceMiles - b.distanceMiles);
+    withPrice.sort((a, b) =>
+      sort === "distance"
+        ? a.distanceMiles - b.distanceMiles
+        : a.prices[grade]!.price - b.prices[grade]!.price || a.distanceMiles - b.distanceMiles
+    );
+    return { priced: withPrice, unpriced: without };
+  }, [visible, sort, grade]);
 
   const stats = useMemo(() => {
-    const priced = ranked
-      .map((s) => ({ station: s, price: s.prices[grade]?.price }))
-      .filter((x): x is { station: NearbyStation; price: number } => x.price !== undefined);
     if (priced.length === 0) return null;
-    const lowest = priced.reduce((min, x) => (x.price < min.price ? x : min), priced[0]);
-    const average = priced.reduce((sum, x) => sum + x.price, 0) / priced.length;
-    return { lowest: lowest.price, cheapestStation: lowest.station, average, count: priced.length };
-  }, [ranked, grade]);
+    const cheapest = priced.reduce((min, s) => (s.prices[grade]!.price < min.prices[grade]!.price ? s : min), priced[0]);
+    const lowest = cheapest.prices[grade]!.price;
+    const average = priced.reduce((sum, s) => sum + s.prices[grade]!.price, 0) / priced.length;
+    return { lowest, cheapestStation: cheapest, average, count: priced.length };
+  }, [priced, grade]);
 
   const locationLabel =
     locState === "asking" ? "Locating you…" : locState === "live" ? "Near you" : `Near ${position?.label ?? "…"}`;
+  const saving = stats ? stats.average - stats.lowest : 0;
 
   return (
-    <div className="pb-6">
+    <div className="pb-8">
       {/* ── Hero ────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-neutral-950 px-4 pb-5 pt-4 text-neutral-50">
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-1/4 -top-1/2 h-[140%] w-[90%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.35),transparent_65%)] blur-2xl" />
-          <div className="absolute -right-1/4 -top-1/3 h-[120%] w-[80%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.35),transparent_65%)] blur-2xl" />
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:28px_28px] [mask-image:radial-gradient(ellipse_at_top,black_30%,transparent_80%)]" />
+          <div className="absolute -left-1/4 -top-1/2 h-[140%] w-[90%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.32),transparent_65%)] blur-2xl" />
+          <div className="absolute -right-1/4 -top-1/3 h-[120%] w-[80%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(56,189,248,0.25),transparent_65%)] blur-2xl" />
         </div>
 
         <div className="relative">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="flex min-w-0 items-center gap-2 text-lg font-semibold tracking-tight">
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 text-emerald-950 shadow-lg shadow-emerald-500/30">
-                <Fuel className="h-4 w-4" strokeWidth={2.5} />
-              </span>
-              <span className="truncate">{config.title || "Cheapest gas near me"}</span>
-            </h2>
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-emerald-950 shadow-lg shadow-emerald-500/30">
+              <Fuel className="h-[18px] w-[18px]" strokeWidth={2.5} />
+            </span>
             <button
               type="button"
               onClick={locate}
-              className="inline-flex max-w-[50%] shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-neutral-200 backdrop-blur transition hover:bg-white/10"
+              className="inline-flex max-w-[60%] shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-medium text-neutral-100 backdrop-blur transition active:scale-95"
             >
               {locState === "live" ? (
                 <span className="relative flex h-2 w-2">
@@ -228,38 +227,51 @@ export function GasDirectoryRuntime({ config }: { config: GasDirectoryBlockConfi
             </button>
           </div>
 
+          <h2 className="mt-4 text-[26px] font-bold leading-[1.1] tracking-tight">{config.title || "Cheapest gas near me"}</h2>
+
           {/* Best-price spotlight */}
-          <div className="mt-4 min-h-[5.5rem]">
+          <div className="mt-4 min-h-[8.5rem]">
             {stats && !loading ? (
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wider text-emerald-300/90">
-                    Best {GRADE_LABELS[grade]} within {radius} mi
-                  </p>
-                  <p className="mt-0.5 text-5xl font-semibold leading-none tracking-tight tabular-nums">
-                    <span className="align-top text-2xl text-emerald-300">$</span>
-                    {stats.lowest.toFixed(2)}
-                  </p>
-                  <p className="mt-1.5 truncate text-sm text-neutral-300">
-                    {stats.cheapestStation.name}
-                    <span className="text-neutral-500"> · {stats.cheapestStation.distanceMiles.toFixed(1)} mi</span>
-                  </p>
-                </div>
-                {stats.average - stats.lowest >= 0.01 && (
-                  <div className="shrink-0 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-right backdrop-blur">
-                    <p className="text-[10px] uppercase tracking-wider text-emerald-300/80">vs. average</p>
-                    <p className="text-base font-semibold text-emerald-300 tabular-nums">
-                      −${(stats.average - stats.lowest).toFixed(2)}
+              <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300/90">
+                      Cheapest {GRADE_LABELS[grade]} · {radius} mi
+                    </p>
+                    <p className="mt-1 text-[52px] font-bold leading-none tracking-tight tabular-nums">
+                      <span className="mr-0.5 align-top text-2xl text-emerald-300">$</span>
+                      {stats.lowest.toFixed(2)}
+                    </p>
+                    <p className="mt-2 truncate text-sm text-neutral-300">
+                      <span className="font-medium text-white">{stats.cheapestStation.brand || stats.cheapestStation.name}</span>
+                      <span className="text-neutral-400"> · {stats.cheapestStation.distanceMiles.toFixed(1)} mi</span>
+                      {stats.cheapestStation.prices[grade]?.updatedAt && (
+                        <span className="text-neutral-500"> · {timeAgo(stats.cheapestStation.prices[grade]!.updatedAt)}</span>
+                      )}
                     </p>
                   </div>
+                  <a
+                    href={directionsUrl(stats.cheapestStation)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex shrink-0 flex-col items-center gap-1 rounded-2xl bg-emerald-400 px-3.5 py-2.5 text-emerald-950 shadow-lg shadow-emerald-500/30 transition active:scale-95"
+                  >
+                    <Navigation className="h-5 w-5" strokeWidth={2.5} />
+                    <span className="text-xs font-bold">Go</span>
+                  </a>
+                </div>
+                {saving >= 0.01 && (
+                  <p className="mt-3 flex items-center gap-1.5 border-t border-white/10 pt-3 text-xs text-neutral-300">
+                    <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-300" />
+                    <span>
+                      <span className="font-semibold text-emerald-300">${saving.toFixed(2)}/gal</span> under the average · about{" "}
+                      <span className="font-semibold text-white">${(saving * 15).toFixed(2)}</span> on a 15-gallon fill
+                    </span>
+                  </p>
                 )}
               </div>
             ) : loading ? (
-              <div className="animate-pulse space-y-2">
-                <div className="h-3 w-40 rounded bg-white/10" />
-                <div className="h-11 w-36 rounded-lg bg-white/10" />
-                <div className="h-3 w-48 rounded bg-white/10" />
-              </div>
+              <div className="h-[8.5rem] animate-pulse rounded-3xl bg-white/10" />
             ) : (
               <p className="text-sm text-neutral-400">
                 {locState === "none" ? "Turn on location to see prices around you." : `No ${GRADE_LABELS[grade].toLowerCase()} prices nearby yet.`}
@@ -271,32 +283,37 @@ export function GasDirectoryRuntime({ config }: { config: GasDirectoryBlockConfi
 
       {/* ── Sticky controls ─────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 border-b border-border/60 bg-background/90 px-4 py-2.5 backdrop-blur-xl">
-        <div className="flex items-center gap-2">
-          <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto rounded-full bg-muted p-1 [scrollbar-width:none]">
-            {GRADES.map((g) => (
+        <div className="grid grid-cols-4 gap-1 rounded-full bg-muted p-1">
+          {GRADES.map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => setGrade(g)}
+              aria-pressed={grade === g}
+              className={`rounded-full py-1.5 text-xs font-semibold transition ${
+                grade === g ? "bg-foreground text-background shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              {GRADE_LABELS[g]}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <p className="truncate text-xs text-muted-foreground">
+            {stats ? `${stats.count} with prices · avg $${stats.average.toFixed(2)}` : loading ? "Finding stations…" : ""}
+          </p>
+          <div className="flex shrink-0 rounded-full bg-muted p-0.5 text-xs font-medium">
+            {(["price", "distance"] as const).map((s) => (
               <button
-                key={g}
+                key={s}
                 type="button"
-                onClick={() => setGrade(g)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                  grade === g
-                    ? "bg-foreground text-background shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                onClick={() => setSort(s)}
+                className={`rounded-full px-3 py-1 transition ${sort === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
               >
-                {GRADE_LABELS[g]}
+                {s === "price" ? "Cheapest" : "Nearest"}
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={() => setSort(sort === "price" ? "distance" : "price")}
-            aria-label={`Sorted by ${sort === "price" ? "price" : "distance"}; tap to switch`}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm transition hover:bg-muted"
-          >
-            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-            {sort === "price" ? "Price" : "Nearest"}
-          </button>
         </div>
       </div>
 
@@ -320,112 +337,61 @@ export function GasDirectoryRuntime({ config }: { config: GasDirectoryBlockConfi
         )}
 
         {loading && !stations && (
-          <ul className="mt-3 space-y-2.5" aria-hidden>
+          <ul className="mt-3 space-y-2" aria-hidden>
             {[0, 1, 2, 3].map((i) => (
-              <li key={i} className="flex animate-pulse items-center gap-3 rounded-2xl border p-3.5">
-                <div className="h-11 w-11 rounded-xl bg-muted" />
+              <li key={i} className="flex animate-pulse items-center gap-3 rounded-2xl border p-3">
+                <div className="h-12 w-12 rounded-2xl bg-muted" />
                 <div className="flex-1 space-y-2">
                   <div className="h-3.5 w-1/3 rounded bg-muted" />
                   <div className="h-3 w-2/3 rounded bg-muted" />
                 </div>
-                <div className="h-7 w-16 rounded bg-muted" />
+                <div className="h-8 w-16 rounded bg-muted" />
               </li>
             ))}
           </ul>
         )}
 
-        {stations && ranked.length === 0 && !loading && (
+        {stations && visible.length === 0 && !loading && (
           <div className="mt-4 rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
             No stations within {radius} miles.
           </div>
         )}
 
         {/* ── Station list ──────────────────────────────────────────── */}
-        <ul className="mt-3 space-y-2.5">
-          {ranked.map((s, index) => {
-            const p = s.prices[grade];
-            const isLowest = p !== undefined && stats !== null && p.price === stats.lowest;
-            const delta = p !== undefined && stats !== null ? p.price - stats.lowest : null;
-            const displayName = s.brand && s.brand !== s.name ? `${s.brand} · ${s.name}` : s.name;
-            return (
-              <li
-                key={s.id}
-                className={`relative overflow-hidden rounded-2xl border bg-card p-3.5 transition-shadow ${
-                  isLowest
-                    ? "border-emerald-500/40 shadow-[0_0_0_1px_rgba(16,185,129,0.25),0_8px_24px_-12px_rgba(16,185,129,0.45)]"
-                    : "shadow-sm"
-                }`}
-              >
-                {isLowest && (
-                  <span className="absolute right-0 top-0 inline-flex items-center gap-1 rounded-bl-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-                    <Sparkles className="h-3 w-3" /> Cheapest
-                  </span>
-                )}
-                <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
-                    <div
-                      className={`grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br text-sm font-bold shadow-inner ${brandStyle(s.brand || s.name)}`}
-                    >
-                      {brandInitials(s.brand || s.name)}
-                    </div>
-                    {sort === "price" && p && (
-                      <span className="absolute -bottom-1 -left-1 grid h-5 min-w-5 place-items-center rounded-full border-2 border-card bg-foreground px-1 text-[10px] font-semibold text-background tabular-nums">
-                        {index + 1}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold leading-tight">{displayName}</p>
-                    {s.address && (
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{s.address.replace(/, USA$/, "")}</p>
-                    )}
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                        <MapPin className="h-3 w-3" /> {s.distanceMiles.toFixed(1)} mi
-                      </span>
-                      {p?.updatedAt && (
-                        <span className="text-[11px] text-muted-foreground">{timeAgo(p.updatedAt)}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="shrink-0 pt-3 text-right">
-                    {p ? (
-                      <>
-                        <p className={`text-2xl font-bold leading-none tracking-tight tabular-nums ${isLowest ? "text-emerald-500" : ""}`}>
-                          <span className="text-sm font-semibold align-top">$</span>
-                          {p.price.toFixed(2)}
-                        </p>
-                        {delta !== null && delta >= 0.01 && (
-                          <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">+${delta.toFixed(2)}</p>
-                        )}
-                      </>
-                    ) : (
-                      <p className="max-w-[6rem] text-xs leading-tight text-muted-foreground">No {GRADE_LABELS[grade].toLowerCase()} price</p>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setEditing(s)}
-                      className="mt-1.5 text-[11px] font-medium text-primary underline-offset-2 hover:underline"
-                    >
-                      Update
-                    </button>
-                  </div>
-                </div>
-              </li>
-            );
-          })}
+        <ul className="mt-3 space-y-2">
+          {priced.map((s, index) => (
+            <StationCard
+              key={s.id}
+              station={s}
+              grade={grade}
+              rank={sort === "price" ? index + 1 : null}
+              lowest={stats?.lowest ?? null}
+              onEdit={() => setEditing(s)}
+            />
+          ))}
         </ul>
+
+        {unpriced.length > 0 && (
+          <>
+            <p className="mb-2 mt-6 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              No {GRADE_LABELS[grade].toLowerCase()} price yet
+            </p>
+            <ul className="space-y-2">
+              {unpriced.map((s) => (
+                <StationCard key={s.id} station={s} grade={grade} rank={null} lowest={null} onEdit={() => setEditing(s)} />
+              ))}
+            </ul>
+          </>
+        )}
 
         {/* ── Footer actions ────────────────────────────────────────── */}
         {(stations || error) && (
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mt-6 flex items-center gap-2">
             <button
               type="button"
               onClick={() => position && load(position)}
               disabled={loading}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border bg-background px-4 py-2.5 text-sm font-medium shadow-sm transition hover:bg-muted disabled:opacity-50"
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border bg-background px-4 py-2.5 text-sm font-medium shadow-sm transition active:scale-95 disabled:opacity-50"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
             </button>
@@ -433,16 +399,14 @@ export function GasDirectoryRuntime({ config }: { config: GasDirectoryBlockConfi
               type="button"
               onClick={() => setAdding(true)}
               disabled={!position}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-sm transition hover:opacity-90 disabled:opacity-50"
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-sm transition active:scale-95 disabled:opacity-50"
             >
               <Plus className="h-4 w-4" /> Add station
             </button>
           </div>
         )}
-        {stats && (
-          <p className="mt-3 text-center text-[11px] text-muted-foreground">
-            {stats.count} priced station{stats.count === 1 ? "" : "s"} · avg ${stats.average.toFixed(2)} · prices from Google &amp; drivers like you
-          </p>
+        {(stations || error) && (
+          <p className="mt-3 text-center text-[11px] text-muted-foreground">Prices from Google and drivers like you · tap a station for directions</p>
         )}
       </div>
 
@@ -461,6 +425,103 @@ export function GasDirectoryRuntime({ config }: { config: GasDirectoryBlockConfi
         />
       )}
     </div>
+  );
+}
+
+function directionsUrl(s: NearbyStation): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`;
+}
+
+/** A price older than this is shown in amber: it may have moved since. */
+const STALE_MS = 3 * 24 * 60 * 60 * 1000;
+function isStale(iso: string | null): boolean {
+  return iso !== null && Date.now() - new Date(iso).getTime() > STALE_MS;
+}
+
+function StationCard({
+  station: s,
+  grade,
+  rank,
+  lowest,
+  onEdit,
+}: {
+  station: NearbyStation;
+  grade: FuelGrade;
+  rank: number | null;
+  lowest: number | null;
+  onEdit: () => void;
+}) {
+  const p = s.prices[grade];
+  const isLowest = p !== undefined && lowest !== null && p.price === lowest;
+  const delta = p !== undefined && lowest !== null ? p.price - lowest : null;
+  const brand = s.brand || s.name;
+  const street = s.address ? s.address.split(",")[0] : null;
+  const stale = isStale(p?.updatedAt ?? null);
+  return (
+    <li
+      className={`relative rounded-2xl border bg-card transition ${
+        isLowest ? "border-emerald-500/50 shadow-[0_0_0_1px_rgba(16,185,129,0.2),0_10px_28px_-14px_rgba(16,185,129,0.6)]" : p ? "shadow-sm" : "opacity-80"
+      }`}
+    >
+      <a href={directionsUrl(s)} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 pr-[6.5rem] active:opacity-80">
+        <div className="relative shrink-0">
+          <div className={`grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br text-sm font-bold shadow-inner ${brandStyle(brand)}`}>
+            {brandInitials(brand)}
+          </div>
+          {rank !== null && (
+            <span className="absolute -bottom-1 -left-1 grid h-5 min-w-5 place-items-center rounded-full border-2 border-card bg-foreground px-1 text-[10px] font-semibold text-background tabular-nums">
+              {rank}
+            </span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="flex min-w-0 items-center gap-1.5">
+            <span className="min-w-0 truncate text-[15px] font-semibold leading-tight">{s.name}</span>
+            {isLowest && (
+              <span className="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                Cheapest
+              </span>
+            )}
+          </p>
+          {street && <p className="mt-0.5 truncate text-xs text-muted-foreground">{street}</p>}
+          <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Navigation className="h-3 w-3" /> {s.distanceMiles.toFixed(1)} mi
+            {p?.updatedAt && (
+              <span className={stale ? "font-medium text-amber-600 dark:text-amber-400" : ""}>· {timeAgo(p.updatedAt)}</span>
+            )}
+          </p>
+        </div>
+      </a>
+      <div className="absolute inset-y-0 right-3 flex flex-col items-end justify-center gap-1">
+        {p ? (
+          <>
+            <p className={`text-[26px] font-bold leading-none tracking-tight tabular-nums ${isLowest ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
+              <span className="align-top text-sm font-semibold">$</span>
+              {p.price.toFixed(2)}
+            </p>
+            <div className="flex items-center gap-1.5">
+              {delta !== null && delta >= 0.01 && <span className="text-[11px] text-muted-foreground tabular-nums">+${delta.toFixed(2)}</span>}
+              <button
+                type="button"
+                onClick={onEdit}
+                aria-label={`Update prices at ${s.name}`}
+                className="grid h-6 w-6 place-items-center rounded-full bg-muted text-muted-foreground transition active:scale-90"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            </div>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1.5 text-[11px] font-semibold text-foreground transition active:scale-95"
+          >
+            <Plus className="h-3 w-3" /> Add price
+          </button>
+        )}
+      </div>
+    </li>
   );
 }
 
