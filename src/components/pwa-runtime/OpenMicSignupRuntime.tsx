@@ -259,7 +259,7 @@ function EmailStep({
         {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mail className="h-5 w-5" />}
         Send my code
       </button>
-      <p className="mt-3 text-center text-xs text-muted-foreground">First time or returning, it&apos;s the same. Just your email.</p>
+      <p className="mt-4 text-center text-lg font-bold leading-snug">First time or returning, it&apos;s the same. Just your email.</p>
     </form>
   );
 }
