@@ -220,6 +220,8 @@ export interface OpenMicSignupBlockConfig {
   show_name?: string;
   venue?: string;
   show_time?: string;
+  /** Square logo shown beside the show name. */
+  logo_url?: string;
   supabase_url?: string;
   anon_key?: string;
   time_zone?: string;

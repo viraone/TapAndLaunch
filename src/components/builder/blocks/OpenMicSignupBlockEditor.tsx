@@ -12,7 +12,7 @@ export function OpenMicSignupBlockEditor({
   config: OpenMicSignupBlockConfig;
   onChange: (config: OpenMicSignupBlockConfig) => void;
 }) {
-  const text = (key: "title" | "show_name" | "venue" | "show_time" | "supabase_url" | "anon_key", label: string) => (
+  const text = (key: "title" | "show_name" | "venue" | "show_time" | "logo_url" | "supabase_url" | "anon_key", label: string) => (
     <div className="space-y-1">
       <Label htmlFor={`open-mic-${key}`}>{label}</Label>
       <Input
@@ -29,6 +29,7 @@ export function OpenMicSignupBlockEditor({
       {text("show_name", "Show name")}
       {text("venue", "Venue")}
       {text("show_time", "Show time")}
+      {text("logo_url", "Logo image URL")}
       {text("supabase_url", "Supabase project URL")}
       {text("anon_key", "Supabase public key")}
       <p className="text-xs text-muted-foreground">

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { Check, Loader2, Mail } from "lucide-react";
+import { Check, CircleCheck, Loader2, Mail } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isWindowOpen, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 
@@ -36,6 +36,11 @@ interface RequestRow {
 type Phase = "loading" | "email" | "code" | "ready" | "requested";
 
 const CODE_LENGTH = 6;
+
+/** The main buttons: solid red with white text, so they read as tappable
+ * even before anything is typed (the theme's light coral with dark text
+ * looked disabled). */
+const CTA = "bg-[#dc2626] text-white hover:bg-[#b91c1c] active:bg-[#991b1b]";
 
 export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockConfig }) {
   const url = config.supabase_url ?? "";
@@ -124,22 +129,36 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
   }
 
   return (
-    <div className="mx-auto w-full max-w-md px-4 pb-10 pt-6">
-      <header className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">{config.show_name ?? "Read The Room"}</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight">{showDate}</h1>
+    <div className="mx-auto w-full max-w-md px-4 pb-12 pt-8">
+      <header>
+        <div className="flex items-center gap-3.5">
+          {config.logo_url && (
+            // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
+            <img
+              src={config.logo_url}
+              alt={config.venue ?? ""}
+              className="h-16 w-16 shrink-0 rounded-2xl bg-white object-cover ring-1 ring-white/10"
+            />
+          )}
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">{config.show_name ?? "Read The Room"}</p>
+            <h1 className="mt-1 text-3xl font-black tracking-tight">{showDate}</h1>
+          </div>
         </div>
-        <p
+        <div
           role="status"
-          className={`mt-1 shrink-0 text-right text-sm font-semibold leading-5 ${open ? "text-emerald-400" : "text-amber-400"}`}
+          className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold ${
+            open ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-300"
+          }`}
         >
-          {open ? "Open · closes" : "Closed · reopens"}
-          <br />
+          <span className="relative flex h-2.5 w-2.5">
+            {open && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+            <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${open ? "bg-emerald-400" : "bg-amber-400"}`} />
+          </span>
           {open
-            ? formatWeekTime(window_.closesWeekday, window_.closesMinutes)
-            : formatWeekTime(window_.opensWeekday, window_.opensMinutes)}
-        </p>
+            ? `Open · closes ${formatWeekTime(window_.closesWeekday, window_.closesMinutes)}`
+            : `Closed · reopens ${formatWeekTime(window_.opensWeekday, window_.opensMinutes)}`}
+        </div>
       </header>
 
       {user && phase !== "loading" && phase !== "code" && (
@@ -153,7 +172,7 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
         </div>
       )}
 
-      <div className="mt-4">
+      <div className="mt-6">
         {phase === "loading" && (
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -219,6 +238,7 @@ function EmailStep({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invalid, setInvalid] = useState(false);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -246,20 +266,30 @@ function EmailStep({
         autoComplete="email"
         inputMode="email"
         value={email}
-        onChange={(e) => setEmail(e.target.value.trim())}
+        onChange={(e) => {
+          setEmail(e.target.value.trim());
+          setInvalid(false);
+        }}
+        onInvalid={() => setInvalid(true)}
+        aria-invalid={invalid}
         placeholder="you@example.com"
-        className="mt-1.5 h-12 w-full rounded-xl border bg-background px-4 text-base outline-none focus:border-primary"
+        className={`mt-1.5 h-14 w-full rounded-xl border bg-background px-4 text-lg outline-none focus:border-primary ${
+          invalid ? "border-red-500 ring-2 ring-red-500/30" : ""
+        }`}
       />
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <button
         type="submit"
-        disabled={busy || !email}
-        className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-60"
+        disabled={busy}
+        className={`mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-xl ${CTA} text-lg font-bold disabled:opacity-60`}
       >
         {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mail className="h-5 w-5" />}
         Send my code
       </button>
-      <p className="mt-4 text-center text-lg font-bold leading-snug">First time or returning, all we need is your email.</p>
+      <div className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
+        <CircleCheck className="h-6 w-6 shrink-0 text-emerald-400" aria-hidden="true" />
+        <p className="text-lg font-bold leading-snug">First time or returning, all we need is your email.</p>
+      </div>
     </form>
   );
 }
@@ -344,7 +374,7 @@ function CodeStep({
       <button
         type="submit"
         disabled={busy || code.length !== CODE_LENGTH}
-        className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-60"
+        className={`mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-xl ${CTA} text-lg font-bold disabled:opacity-60`}
       >
         {busy && <Loader2 className="h-5 w-5 animate-spin" />}
         Continue
@@ -518,7 +548,7 @@ function RequestForm({
       <button
         type="submit"
         disabled={busy || !ready}
-        className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary text-lg font-bold text-primary-foreground disabled:opacity-50"
+        className={`flex h-14 w-full items-center justify-center gap-2 rounded-xl ${CTA} text-lg font-bold disabled:opacity-50`}
       >
         {busy && <Loader2 className="h-5 w-5 animate-spin" />}
         Request my spot
