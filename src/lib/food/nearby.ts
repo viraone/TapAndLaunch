@@ -46,6 +46,20 @@ const POPULAR_GROUPS: CuisineKey[] = ["burgers", "pizza", "mexican", "vietnamese
  * in range has more than one search can show, so the first visit there
  * also runs POPULAR_GROUPS; a quieter area is complete after one call. */
 const POPULAR_FANOUT_AT = 18;
+/** Google's cuisine searches also return shops that sell food (a 7-Eleven
+ * comes back from the pizza search). Not what "food near me" means. */
+const NOT_A_RESTAURANT = new Set([
+  "convenience_store",
+  "gas_station",
+  "grocery_store",
+  "supermarket",
+  "liquor_store",
+  "drugstore",
+  "pharmacy",
+  "department_store",
+  "discount_store",
+  "warehouse_store",
+]);
 /** ~1 mile at Seattle's latitude; the grid Google results are cached on. */
 const CELL_SIZE_DEG = 0.015;
 /** A wait-time report is shown for this long, then the card just says Open. */
@@ -145,6 +159,7 @@ export async function getNearbyPlaces(
       .lte("longitude", longitude + lngPad);
     return (rows ?? [])
       .filter((r) => r.business_status === null || r.business_status === "OPERATIONAL")
+      .filter((r) => !r.primary_type || !NOT_A_RESTAURANT.has(r.primary_type))
       .map((row) => ({ row, distanceMiles: calculateHaversineMiles(latitude, longitude, row.latitude, row.longitude) }))
       .filter((x) => x.distanceMiles <= radiusMiles);
   }
