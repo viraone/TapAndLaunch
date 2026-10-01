@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { Check, Loader2, Mail, Pencil } from "lucide-react";
+import { Check, Loader2, Mail } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isWindowOpen, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 
@@ -33,7 +33,7 @@ interface RequestRow {
   created_at: string;
 }
 
-type Phase = "loading" | "email" | "code" | "profile" | "ready" | "requested";
+type Phase = "loading" | "email" | "code" | "ready" | "requested";
 
 const CODE_LENGTH = 6;
 
@@ -70,7 +70,6 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
   const [user, setUser] = useState<User | null>(null);
   const [request, setRequest] = useState<RequestRow | null>(null);
   const [email, setEmail] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   const profile = profileOf(user);
 
@@ -90,9 +89,7 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
         .limit(1);
       const row = (data?.[0] as RequestRow | undefined) ?? null;
       setRequest(row);
-      if (row) setPhase("requested");
-      else if (!profileOf(u).stage_name || profileOf(u).performed_before === null) setPhase("profile");
-      else setPhase("ready");
+      setPhase(row ? "requested" : "ready");
     },
     [client]
   );
@@ -124,31 +121,39 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
   async function signOut() {
     await client!.auth.signOut();
     setEmail("");
-    setError(null);
   }
 
   return (
     <div className="mx-auto w-full max-w-md px-4 pb-10 pt-6">
-      <header className="text-center">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">{config.title ?? "Open Mic Sign-Up"}</p>
-        <h1 className="mt-1 text-3xl font-black tracking-tight">{config.show_name ?? "Read The Room"}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {[config.venue, config.show_time].filter(Boolean).join(" · ")}
-        </p>
-        <div
-          role="status"
-          className={`mx-auto mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
-            open ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-300"
-          }`}
-        >
-          <span className={`h-2 w-2 rounded-full ${open ? "bg-emerald-400" : "bg-amber-400"}`} />
-          {open
-            ? `Requests open · closes ${formatWeekTime(window_.closesWeekday, window_.closesMinutes)}`
-            : `Requests closed · reopens ${formatWeekTime(window_.opensWeekday, window_.opensMinutes)}`}
+      <header className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">{config.show_name ?? "Read The Room"}</p>
+          <h1 className="mt-1 text-3xl font-black tracking-tight">{showDate}</h1>
         </div>
+        <p
+          role="status"
+          className={`mt-1 shrink-0 text-right text-sm font-semibold leading-5 ${open ? "text-emerald-400" : "text-amber-400"}`}
+        >
+          {open ? "Open · closes" : "Closed · reopens"}
+          <br />
+          {open
+            ? formatWeekTime(window_.closesWeekday, window_.closesMinutes)
+            : formatWeekTime(window_.opensWeekday, window_.opensMinutes)}
+        </p>
       </header>
 
-      <div className="mt-6">
+      {user && phase !== "loading" && phase !== "code" && (
+        <div className="mt-5 flex items-center justify-between gap-3 rounded-xl bg-muted/70 px-4 py-3 text-sm">
+          <span className="min-w-0 truncate text-muted-foreground">
+            Signed in as <span className="font-semibold text-foreground">{profile.stage_name || user.email}</span>
+          </span>
+          <button type="button" onClick={signOut} className="shrink-0 font-medium text-primary underline underline-offset-2">
+            Not you?
+          </button>
+        </div>
+      )}
+
+      <div className="mt-4">
         {phase === "loading" && (
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -161,11 +166,7 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
             email={email}
             setEmail={setEmail}
             open={open}
-            showDate={showDate}
-            onSent={() => {
-              setError(null);
-              setPhase("code");
-            }}
+            onSent={() => setPhase("code")}
           />
         )}
 
@@ -178,29 +179,16 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
           />
         )}
 
-        {phase === "profile" && user && (
-          <ProfileStep
-            client={client}
-            initial={profile}
-            onSaved={(u) => void load(u)}
-            onCancel={profile.stage_name && profile.performed_before !== null ? () => setPhase("ready") : undefined}
-          />
-        )}
-
         {phase === "ready" && user && (
           open ? (
-            <RequestStep
+            <RequestForm
               client={client}
               user={user}
               profile={profile}
-              showDate={showDate}
-              onEdit={() => setPhase("profile")}
               onRequested={(row) => {
                 setRequest(row);
                 setPhase("requested");
               }}
-              error={error}
-              setError={setError}
             />
           ) : (
             <ClosedCard opensAt={formatWeekTime(window_.opensWeekday, window_.opensMinutes)} name={profile.stage_name} />
@@ -211,14 +199,6 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
           <RequestedCard request={request} showDate={showDate} config={config} timeZone={window_.timeZone} />
         )}
 
-        {user && phase !== "loading" && phase !== "code" && (
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Signed in as <span className="text-foreground">{user.email}</span> ·{" "}
-            <button type="button" onClick={signOut} className="underline underline-offset-2 hover:text-foreground">
-              Not you?
-            </button>
-          </p>
-        )}
       </div>
     </div>
   );
@@ -229,14 +209,12 @@ function EmailStep({
   email,
   setEmail,
   open,
-  showDate,
   onSent,
 }: {
   client: SupabaseClient;
   email: string;
   setEmail: (v: string) => void;
   open: boolean;
-  showDate: string;
   onSent: () => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -254,7 +232,7 @@ function EmailStep({
 
   return (
     <form onSubmit={send} className="rounded-2xl border bg-muted/60 p-5">
-      <h2 className="text-lg font-bold">{open ? `Request your spot for ${showDate}` : "Sign in"}</h2>
+      <h2 className="text-lg font-bold">{open ? "Sign in to request your spot" : "Sign in"}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Enter your email. We&apos;ll send a 6-digit code — no password needed.
       </p>
@@ -388,137 +366,49 @@ function CodeStep({
   );
 }
 
-function ProfileStep({
-  client,
-  initial,
-  onSaved,
-  onCancel,
-}: {
-  client: SupabaseClient;
-  initial: Profile;
-  onSaved: (user: User) => void;
-  onCancel?: () => void;
-}) {
-  const [stageName, setStageName] = useState(initial.stage_name);
-  const [instagram, setInstagram] = useState(initial.instagram);
-  const [performed, setPerformed] = useState<boolean | null>(initial.performed_before);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    if (performed === null) return;
-    setBusy(true);
-    setError(null);
-    const { data, error } = await client.auth.updateUser({
-      data: { stage_name: stageName.trim(), instagram: normalizeInstagram(instagram), performed_before: performed },
-    });
-    setBusy(false);
-    if (error || !data.user) setError("Couldn't save your details. Try again.");
-    else onSaved(data.user);
-  }
-
-  return (
-    <form onSubmit={save} className="space-y-4 rounded-2xl border bg-muted/60 p-5">
-      <div>
-        <h2 className="text-lg font-bold">{onCancel ? "Edit your details" : "About you"}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Saved to your account, so next week is one tap.</p>
-      </div>
-      <div>
-        <label htmlFor="openmic-name" className="block text-sm font-medium">
-          Stage name <span className="text-primary">*</span>
-        </label>
-        <input
-          id="openmic-name"
-          required
-          maxLength={100}
-          autoComplete="name"
-          value={stageName}
-          onChange={(e) => setStageName(e.target.value)}
-          placeholder="Your name"
-          className="mt-1.5 h-12 w-full rounded-xl border bg-background px-4 text-base outline-none focus:border-primary"
-        />
-      </div>
-      <div>
-        <label htmlFor="openmic-ig" className="block text-sm font-medium">
-          Instagram <span className="font-normal text-muted-foreground">(optional)</span>
-        </label>
-        <input
-          id="openmic-ig"
-          maxLength={100}
-          autoComplete="off"
-          autoCapitalize="none"
-          value={instagram}
-          onChange={(e) => setInstagram(e.target.value)}
-          placeholder="@handle"
-          className="mt-1.5 h-12 w-full rounded-xl border bg-background px-4 text-base outline-none focus:border-primary"
-        />
-        <p className="mt-1.5 text-xs text-muted-foreground">So the host can tag you. It also helps us verify you.</p>
-      </div>
-      <fieldset>
-        <legend className="text-sm font-medium">
-          Performed at this show before? <span className="text-primary">*</span>
-        </legend>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {[true, false].map((v) => (
-            <button
-              key={String(v)}
-              type="button"
-              aria-pressed={performed === v}
-              onClick={() => setPerformed(v)}
-              className={`h-11 rounded-xl border text-sm font-semibold ${
-                performed === v ? "border-primary bg-primary/15 text-foreground" : "bg-background text-muted-foreground"
-              }`}
-            >
-              {v ? "Yes" : "No"}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      <button
-        type="submit"
-        disabled={busy || !stageName.trim() || performed === null}
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-60"
-      >
-        {busy && <Loader2 className="h-5 w-5 animate-spin" />}
-        Save
-      </button>
-      {onCancel && (
-        <button type="button" onClick={onCancel} className="w-full text-sm text-muted-foreground hover:underline">
-          Cancel
-        </button>
-      )}
-    </form>
-  );
-}
-
-function RequestStep({
+/** One screen, as in the mockup: details (pre-filled from the account after
+ * the first time), both agreements and the button. Changed details are saved
+ * back to the account in the same tap. */
+function RequestForm({
   client,
   user,
   profile,
-  showDate,
-  onEdit,
   onRequested,
-  error,
-  setError,
 }: {
   client: SupabaseClient;
   user: User;
   profile: Profile;
-  showDate: string;
-  onEdit: () => void;
   onRequested: (row: RequestRow) => void;
-  error: string | null;
-  setError: (e: string | null) => void;
 }) {
+  const [stageName, setStageName] = useState(profile.stage_name);
+  const [instagram, setInstagram] = useState(profile.instagram);
+  const [performed, setPerformed] = useState<boolean | null>(profile.performed_before);
   const [noShow, setNoShow] = useState(false);
   const [guarantee, setGuarantee] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function request() {
+  const ready = stageName.trim() !== "" && performed !== null && noShow && guarantee;
+
+  async function request(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ready) return;
     setBusy(true);
     setError(null);
+    const next: Profile = {
+      stage_name: stageName.trim(),
+      instagram: normalizeInstagram(instagram),
+      performed_before: performed,
+    };
+    if (
+      next.stage_name !== profile.stage_name ||
+      next.instagram !== profile.instagram ||
+      next.performed_before !== profile.performed_before
+    ) {
+      // Not fatal: the request below still carries the details.
+      await client.auth.updateUser({ data: next });
+    }
+
     const email = (user.email ?? "").toLowerCase();
     // A request made by the same email elsewhere (the iOS app, or the old
     // stagetimepnw.com form) counts too.
@@ -537,11 +427,11 @@ function RequestStep({
     const { data, error } = await client
       .from("signups")
       .insert({
-        name: profile.stage_name,
+        name: next.stage_name,
         email,
         phone: "N/A",
-        instagram: profile.instagram || "@n/a",
-        performed_before: profile.performed_before ?? false,
+        instagram: next.instagram || "@n/a",
+        performed_before: next.performed_before ?? false,
         no_show_agreement: true,
         guarantee_agreement: true,
         slot_type: "First Available",
@@ -555,45 +445,90 @@ function RequestStep({
     else onRequested(data as RequestRow);
   }
 
-  const first = profile.stage_name.split(/\s+/)[0];
-
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border bg-muted/60 p-5">
-        <p className="text-sm text-muted-foreground">Hi, {first}</p>
-        <h2 className="mt-0.5 text-xl font-bold">Request your spot for {showDate}</h2>
-        <dl className="mt-4 space-y-2 rounded-xl border bg-background p-4 text-sm">
-          <Row label="Stage name" value={profile.stage_name} />
-          <Row label="Instagram" value={profile.instagram || "—"} />
-          <Row label="Performed before" value={profile.performed_before ? "Yes" : "No"} />
-        </dl>
-        <button type="button" onClick={onEdit} className="mt-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-          <Pencil className="h-3.5 w-3.5" /> Edit details
-        </button>
+    <form onSubmit={request} className="space-y-5 rounded-2xl border bg-muted/60 p-5">
+      <div>
+        <label htmlFor="openmic-name" className="block text-sm font-semibold">
+          Stage name <span className="text-primary">*</span>
+        </label>
+        <input
+          id="openmic-name"
+          required
+          maxLength={100}
+          autoComplete="name"
+          value={stageName}
+          onChange={(e) => setStageName(e.target.value)}
+          placeholder="Your name"
+          className="mt-1.5 h-12 w-full rounded-xl border bg-background px-4 text-base outline-none focus:border-primary"
+        />
       </div>
-
-      <div className="space-y-2">
+      <div>
+        <label htmlFor="openmic-ig" className="block text-sm font-semibold">
+          Instagram <span className="font-normal text-muted-foreground">(optional)</span>
+        </label>
+        <input
+          id="openmic-ig"
+          maxLength={100}
+          autoComplete="off"
+          autoCapitalize="none"
+          value={instagram}
+          onChange={(e) => setInstagram(e.target.value)}
+          placeholder="@handle"
+          className="mt-1.5 h-12 w-full rounded-xl border bg-background px-4 text-base outline-none focus:border-primary"
+        />
+      </div>
+      <fieldset>
+        <legend className="text-sm font-semibold">
+          Performed at this show before? <span className="text-primary">*</span>
+        </legend>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {[true, false].map((v) => (
+            <button
+              key={String(v)}
+              type="button"
+              role="radio"
+              aria-checked={performed === v}
+              onClick={() => setPerformed(v)}
+              className={`flex h-12 items-center gap-3 rounded-xl border px-4 text-base font-medium ${
+                performed === v ? "border-primary bg-primary/10" : "bg-background"
+              }`}
+            >
+              <span
+                className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
+                  performed === v ? "border-primary" : "border-muted-foreground/60"
+                }`}
+              >
+                {performed === v && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+              </span>
+              {v ? "Yes" : "No"}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      <div className="space-y-3">
         <Agreement checked={noShow} onChange={setNoShow}>
-          I&apos;ll tell the host if I can&apos;t make my spot. Missing it without notice may affect future bookings.
+          If I miss my spot without telling the host, it may affect future bookings.
         </Agreement>
         <Agreement checked={guarantee} onChange={setGuarantee}>
-          A request doesn&apos;t guarantee a spot. Picks go out Thursday; if I&apos;m not picked I can join the standby list at
-          the show.
+          A request doesn&apos;t guarantee a spot. Notifications go out Thursday; if I&apos;m not picked, I can join the
+          standby list at the show.
         </Agreement>
       </div>
-
       {error && <p className="text-sm text-red-400">{error}</p>}
       <button
-        type="button"
-        onClick={request}
-        disabled={busy || !noShow || !guarantee}
+        type="submit"
+        disabled={busy || !ready}
         className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary text-lg font-bold text-primary-foreground disabled:opacity-50"
       >
         {busy && <Loader2 className="h-5 w-5 animate-spin" />}
         Request my spot
       </button>
-      {(!noShow || !guarantee) && <p className="text-center text-xs text-muted-foreground">Tick both boxes to continue</p>}
-    </div>
+      {!ready && !busy && (
+        <p className="-mt-2 text-center text-xs text-muted-foreground">
+          {stageName.trim() === "" || performed === null ? "Fill in the starred fields" : "Tick both boxes to continue"}
+        </p>
+      )}
+    </form>
   );
 }
 
@@ -650,15 +585,6 @@ function ClosedCard({ opensAt, name }: { opensAt: string; name: string }) {
         {name ? `${name.split(/\s+/)[0]}, the` : "The"} list reopens {opensAt}, right after the show. You&apos;re signed in, so it&apos;ll
         be one tap.
       </p>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="truncate font-medium">{value}</dd>
     </div>
   );
 }
