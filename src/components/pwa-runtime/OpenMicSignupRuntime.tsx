@@ -102,8 +102,19 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
   useEffect(() => {
     if (!client) return;
     let cancelled = false;
-    void client.auth.getSession().then(({ data }) => {
-      if (!cancelled) void load(data.session?.user ?? null);
+    // There's no sign-out button on the page; `?signout` is the way to
+    // switch accounts (used for testing).
+    const params = new URLSearchParams(window.location.search);
+    const start = params.has("signout")
+      ? client.auth.signOut().then(() => {
+          params.delete("signout");
+          const rest = params.toString();
+          window.history.replaceState(null, "", window.location.pathname + (rest ? `?${rest}` : "") + window.location.hash);
+          return null;
+        })
+      : client.auth.getSession().then(({ data }) => data.session?.user ?? null);
+    void start.then((u) => {
+      if (!cancelled) void load(u);
     });
     // Catches a sign-in from the emailed link (tokens in the URL hash).
     const { data: sub } = client.auth.onAuthStateChange((event, session) => {
@@ -121,11 +132,6 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
         Sign-up isn&apos;t connected yet.
       </p>
     );
-  }
-
-  async function signOut() {
-    await client!.auth.signOut();
-    setEmail("");
   }
 
   return (
@@ -162,13 +168,10 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
       </header>
 
       {user && phase !== "loading" && phase !== "code" && (
-        <div className="mt-5 flex items-center justify-between gap-3 rounded-xl bg-muted/70 px-4 py-3 text-sm">
-          <span className="min-w-0 truncate text-muted-foreground">
+        <div className="mt-5 rounded-xl bg-muted/70 px-4 py-3 text-sm">
+          <p className="truncate text-muted-foreground">
             Signed in as <span className="font-semibold text-foreground">{profile.stage_name || user.email}</span>
-          </span>
-          <button type="button" onClick={signOut} className="shrink-0 font-medium text-primary underline underline-offset-2">
-            Not you?
-          </button>
+          </p>
         </div>
       )}
 
