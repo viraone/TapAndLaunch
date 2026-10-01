@@ -43,8 +43,9 @@ const ALL_GROUP = "all";
  * POPULAR_FANOUT_AT): the cuisines people tap most. */
 const POPULAR_GROUPS: CuisineKey[] = ["burgers", "pizza", "mexican", "vietnamese", "dessert"];
 /** A general sweep returns at most 20 places. An area with about that many
- * in range has more than one search can show, so the first visit there
- * also runs POPULAR_GROUPS; a quieter area is complete after one call. */
+ * stored in range (counted before closed places and shops are filtered
+ * out) has more than one search can show, so the first visit there also
+ * runs POPULAR_GROUPS; a quieter area is complete after one call. */
 const POPULAR_FANOUT_AT = 18;
 /** Google's cuisine searches also return shops that sell food (a 7-Eleven
  * comes back from the pizza search). Not what "food near me" means. */
@@ -146,6 +147,7 @@ export async function getNearbyPlaces(
     );
   }
 
+  let stored = 0;
   async function placesInRange() {
     const latPad = radiusMiles / 69;
     const lngPad = radiusMiles / (69 * Math.cos((latitude * Math.PI) / 180));
@@ -157,6 +159,8 @@ export async function getNearbyPlaces(
       .lte("latitude", latitude + latPad)
       .gte("longitude", longitude - lngPad)
       .lte("longitude", longitude + lngPad);
+    // Everything stored for the area, before the filters: what tells a busy area from a quiet one.
+    stored = (rows ?? []).filter((r) => calculateHaversineMiles(latitude, longitude, r.latitude, r.longitude) <= radiusMiles).length;
     return (rows ?? [])
       .filter((r) => r.business_status === null || r.business_status === "OPERATIONAL")
       .filter((r) => !r.primary_type || !NOT_A_RESTAURANT.has(r.primary_type))
@@ -172,7 +176,7 @@ export async function getNearbyPlaces(
 
   // A busy area: one search can't show it all, so fill in the popular cuisines once.
   const missingPopular = POPULAR_GROUPS.filter((g) => !freshGroups.has(g));
-  if (inRange.length >= POPULAR_FANOUT_AT && missingPopular.length > 0) {
+  if (stored >= POPULAR_FANOUT_AT && missingPopular.length > 0) {
     await fetchGroups(missingPopular.map((g) => ({ group: g, types: CUISINE_BY_KEY[g].types })));
     inRange = await placesInRange();
   }
