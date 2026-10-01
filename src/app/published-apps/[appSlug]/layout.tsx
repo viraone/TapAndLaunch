@@ -38,6 +38,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     // Root-relative so it resolves the same from any page in the app, not
     // just its home page.
     manifest: "/manifest.webmanifest",
+    // Home Screen icon on iPhone, which ignores the manifest's icons.
+    icons: { apple: manifest.icon_url ?? "/app-icon?size=180" },
   };
 }
 

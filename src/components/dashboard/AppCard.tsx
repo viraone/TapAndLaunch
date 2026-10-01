@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ArrowUpRight, ChevronDown, Pencil } from "lucide-react";
 import type { Database } from "@/types/database";
+import { tileGradient, tileInitial } from "@/lib/apps/tile";
 
 type AppRow = Database["public"]["Tables"]["apps"]["Row"];
 
@@ -22,22 +23,6 @@ const MANAGE_LINKS = [
   { path: "gas-stations", label: "Gas stations" },
 ];
 
-/** A stable gradient per app so the grid reads as distinct tiles even
- * before an icon is uploaded. */
-const TILE_GRADIENTS = [
-  "from-indigo-500 to-violet-500",
-  "from-pink-500 to-rose-500",
-  "from-emerald-500 to-teal-500",
-  "from-amber-400 to-orange-500",
-  "from-sky-500 to-blue-600",
-  "from-fuchsia-500 to-purple-600",
-];
-function tileGradient(id: string): string {
-  let h = 0;
-  for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return TILE_GRADIENTS[h % TILE_GRADIENTS.length];
-}
-
 export function AppCard({ app, rootDomain }: { app: AppRow; rootDomain: string }) {
   const previewUrl = `//${app.slug}.${rootDomain}`;
   const published = app.status === "published";
@@ -51,9 +36,9 @@ export function AppCard({ app, rootDomain }: { app: AppRow; rootDomain: string }
           <img src={iconUrl} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover shadow-md" />
         ) : (
           <span
-            className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-lg font-bold text-white shadow-md ${tileGradient(app.id)}`}
+            className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-lg font-bold text-white shadow-md ${tileGradient(app.id).classes}`}
           >
-            {app.name.trim().charAt(0).toUpperCase() || "A"}
+            {tileInitial(app.name)}
           </span>
         )}
         <div className="min-w-0 flex-1">

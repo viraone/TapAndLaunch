@@ -25,12 +25,18 @@ export async function GET(_request: Request, context: { params: Promise<{ appSlu
     display: manifest.display ?? "standalone",
     background_color: manifest.background_color ?? "#ffffff",
     theme_color: manifest.theme_color ?? "#ffffff",
+    // No uploaded icon: the generated letter tile (app-icon/route.tsx), so
+    // an install prompt never shows the browser's blank placeholder.
     icons: manifest.icon_url
       ? [
           { src: manifest.icon_url, sizes: "192x192", type: "image/png" },
           { src: manifest.icon_url, sizes: "512x512", type: "image/png" },
         ]
-      : [],
+      : [
+          { src: "/app-icon?size=192", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/app-icon?size=512", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "/app-icon?size=512", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
   };
 
   return Response.json(body, {
