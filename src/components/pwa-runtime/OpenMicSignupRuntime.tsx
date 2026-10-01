@@ -233,7 +233,7 @@ function EmailStep({
   return (
     <form onSubmit={send} className="rounded-2xl border bg-muted/60 p-5">
       <h2 className="text-lg font-bold">{open ? "Request your spot" : "Sign in"}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-1.5 text-lg leading-snug text-muted-foreground">
         Enter your email. We&apos;ll send a 6-digit code — no password needed.
       </p>
       <label htmlFor="openmic-email" className="mt-4 block text-sm font-medium">
