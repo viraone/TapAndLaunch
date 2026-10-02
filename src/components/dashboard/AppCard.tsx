@@ -9,6 +9,7 @@ import {
 import { ArrowUpRight, Eye, MoreHorizontal, Pencil } from "lucide-react";
 import type { Database } from "@/types/database";
 import { tileGradient, tileInitial } from "@/lib/apps/tile";
+import type { Checklist } from "@/lib/apps/checklist";
 
 type AppRow = Database["public"]["Tables"]["apps"]["Row"];
 
@@ -31,8 +32,8 @@ export type DailyViews = number[];
  * One app on the dashboard: a cover in the app's own brand colour with its
  * last-7-days views drawn across it, then name, address and actions.
  */
-export function AppCard({ app, rootDomain, views }: { app: AppRow; rootDomain: string; views: DailyViews }) {
-  const previewUrl = `https://${app.slug}.${rootDomain}`;
+export function AppCard({ app, rootDomain, views, checklist }: { app: AppRow; rootDomain: string; views: DailyViews; checklist?: Checklist }) {
+  const previewUrl = `//${app.slug}.${rootDomain}`;
   const published = app.status === "published";
   const iconUrl = app.manifest.icon_url;
   const tile = tileGradient(app.id);
@@ -93,6 +94,29 @@ export function AppCard({ app, rootDomain, views }: { app: AppRow; rootDomain: s
           </span>
           <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
         </a>
+
+        {checklist && !checklist.complete && checklist.next && (
+          <Link
+            href={`/dashboard/apps/${app.id}/builder`}
+            className="mt-4 block rounded-2xl bg-neutral-50 p-3 ring-1 ring-black/5 transition hover:bg-neutral-100"
+          >
+            <span className="flex items-center justify-between gap-2 text-xs">
+              <span className="font-semibold text-neutral-950">Get live</span>
+              <span className="tabular-nums text-neutral-500">
+                {checklist.doneCount} of {checklist.total}
+              </span>
+            </span>
+            <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-neutral-200">
+              <span
+                className="block h-full rounded-full bg-gradient-to-r from-indigo-500 to-pink-500"
+                style={{ width: `${(checklist.doneCount / checklist.total) * 100}%` }}
+              />
+            </span>
+            <span className="mt-2 block truncate text-xs text-neutral-500">
+              Next: <span className="font-medium text-neutral-800">{checklist.next.title}</span>
+            </span>
+          </Link>
+        )}
 
         <div className="mt-5 flex items-center gap-2">
           <Link

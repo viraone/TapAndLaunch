@@ -5,6 +5,7 @@ import { AppCard, type DailyViews } from "@/components/dashboard/AppCard";
 import { createClient } from "@/lib/supabase/server";
 import { getRootDomain } from "@/lib/tenant";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
+import { getChecklists } from "@/lib/apps/signals";
 
 const DAYS = 7;
 
@@ -23,7 +24,10 @@ export default async function DashboardPage() {
 
   const orgName = memberships.find((m) => m.organization_id === organizationId)?.name;
   const rootDomain = getRootDomain();
-  const { perApp, views, installs } = await weeklyActivity(supabase, (apps ?? []).map((a) => a.id));
+  const [{ perApp, views, installs }, checklists] = await Promise.all([
+    weeklyActivity(supabase, (apps ?? []).map((a) => a.id)),
+    getChecklists(supabase, apps ?? []),
+  ]);
   const live = (apps ?? []).filter((a) => a.status === "published").length;
 
   return (
@@ -80,7 +84,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {apps.map((app) => (
-              <AppCard key={app.id} app={app} rootDomain={rootDomain} views={perApp.get(app.id) ?? new Array(DAYS).fill(0)} />
+              <AppCard key={app.id} app={app} rootDomain={rootDomain} views={perApp.get(app.id) ?? new Array(DAYS).fill(0)} checklist={checklists.get(app.id)} />
             ))}
             <Link
               href="/dashboard/apps/new"

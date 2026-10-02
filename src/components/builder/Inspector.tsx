@@ -11,6 +11,8 @@ import { GasDirectoryBlockEditor } from "@/components/builder/blocks/GasDirector
 import { FoodDirectoryBlockEditor } from "@/components/builder/blocks/FoodDirectoryBlockEditor";
 import { OpenMicSignupBlockEditor } from "@/components/builder/blocks/OpenMicSignupBlockEditor";
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
+import { GetLiveChecklist } from "@/components/builder/GetLiveChecklist";
+import type { Checklist, ChecklistStepId } from "@/lib/apps/checklist";
 import { GripVertical, MousePointerClick, X } from "lucide-react";
 import { BLOCK_ACCENTS, BLOCK_ICONS } from "@/components/builder/blockMeta";
 import { BLOCK_TYPE_LABELS } from "@/lib/builder/block-defaults";
@@ -27,6 +29,10 @@ export function Inspector({
   blocks,
   onSelect,
   onClose,
+  checklist,
+  liveUrl,
+  publishing,
+  onChecklistAction,
 }: {
   block: BuilderBlock | null;
   pageName: string;
@@ -34,6 +40,10 @@ export function Inspector({
   blocks: BuilderBlock[];
   onSelect: (blockId: string) => void;
   onClose: () => void;
+  checklist: Checklist;
+  liveUrl: string | null;
+  publishing: boolean;
+  onChecklistAction: (step: ChecklistStepId) => void;
   appId: string;
   organizationId: string;
   onChange: (config: BlockConfig) => void;
@@ -41,7 +51,8 @@ export function Inspector({
 }) {
   if (!block) {
     return (
-      <div className="flex flex-col gap-4 p-4">
+      <div className="flex flex-col gap-5 p-4">
+        <GetLiveChecklist checklist={checklist} liveUrl={liveUrl} busy={publishing} onAction={onChecklistAction} />
         <div>
           <p className="text-sm font-semibold text-neutral-100">{pageName}</p>
           <p className="mt-0.5 text-xs text-neutral-500">

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ListingDirectoryBlockEditor } from "@/components/builder/blocks/ListingDirectoryBlockEditor";
+import { buildChecklist } from "@/lib/apps/checklist";
 import { Inspector } from "@/components/builder/Inspector";
 
 describe("ListingDirectoryBlockEditor", () => {
@@ -40,6 +41,10 @@ describe("ListingDirectoryBlockEditor", () => {
         blocks: [],
         onSelect: () => {},
         onClose: () => {},
+        checklist: buildChecklist({ hasContent: true, hasIcon: false, published: false, hasVisit: false }),
+        liveUrl: null,
+        publishing: false,
+        onChecklistAction: () => {},
       })
     );
     expect(html).toContain("Listing directory");

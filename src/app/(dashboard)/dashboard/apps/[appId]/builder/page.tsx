@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BuilderClient } from "@/components/builder/BuilderClient";
 import { getRootDomain } from "@/lib/tenant";
+import { appHasVisit } from "@/lib/apps/signals";
 
 // See the note in `published-apps/[appSlug]/layout.tsx` on why `params` is typed by
 // hand instead of via the generated `PageProps<...>` helper.
@@ -34,6 +35,12 @@ export default async function BuilderPage({ params }: { params: Params }) {
     .eq("page_id", homePage.id)
     .order("position", { ascending: true });
 
+  const otherPageIds = pages.filter((p) => p.id !== homePage.id).map((p) => p.id);
+  const [hasVisit, otherBlocks] = await Promise.all([
+    app.status === "published" ? appHasVisit(supabase, appId) : Promise.resolve(false),
+    otherPageIds.length ? supabase.from("blocks").select("id").in("page_id", otherPageIds).limit(1) : Promise.resolve({ data: [] }),
+  ]);
+
   return (
     <BuilderClient
       app={app}
@@ -41,6 +48,8 @@ export default async function BuilderPage({ params }: { params: Params }) {
       initialPages={pages}
       initialPageId={homePage.id}
       initialBlocks={blocks ?? []}
+      hasVisit={hasVisit}
+      contentOnOtherPages={!!otherBlocks.data?.length}
     />
   );
 }

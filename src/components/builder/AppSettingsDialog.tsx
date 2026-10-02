@@ -89,7 +89,7 @@ export function AppSettingsDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button type="button" variant="ghost" size="icon" className="rounded-full text-neutral-400 hover:bg-white/10 hover:text-white" aria-label="App settings">
+          <Button type="button" variant="ghost" size="icon" className="rounded-full text-neutral-400 hover:bg-white/10 hover:text-white" aria-label="App settings" data-app-settings>
             <Settings className="h-4 w-4" />
           </Button>
         }

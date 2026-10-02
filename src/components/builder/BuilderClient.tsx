@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Rocket, Save } from "lucide-react";
 import { tileGradient, tileInitial } from "@/lib/apps/tile";
+import { buildChecklist, type ChecklistStepId } from "@/lib/apps/checklist";
 import { Palette } from "@/components/builder/Palette";
 import { Inspector } from "@/components/builder/Inspector";
 import { PageTabs } from "@/components/builder/PageTabs";
@@ -43,12 +44,18 @@ export function BuilderClient({
   initialPages,
   initialPageId,
   initialBlocks,
+  hasVisit,
+  contentOnOtherPages,
 }: {
   app: AppRow;
   rootDomain: string;
   initialPages: PageRow[];
   initialPageId: string;
   initialBlocks: BlockRow[];
+  /** Someone has already opened the published app. */
+  hasVisit: boolean;
+  /** Blocks exist on pages other than the one opened first. */
+  contentOnOtherPages: boolean;
 }) {
   const supabase = createClient();
 
@@ -58,6 +65,7 @@ export function BuilderClient({
   const [blocks, setBlocks] = useState<BuilderBlock[]>(initialBlocks.map(toBuilderBlock));
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [device, setDevice] = useState<DeviceFrame>("ios");
+  const [visited, setVisited] = useState(hasVisit);
   const [isSaving, startSaving] = useTransition();
   const [isPublishing, startPublishing] = useTransition();
 
@@ -195,6 +203,29 @@ export function BuilderClient({
   const currentPage = pages.find((p) => p.id === currentPageId);
   const currentPagePath = currentPage?.path;
   const live = currentApp.status === "published";
+  // Protocol-relative, like the other links to the published app, so it also works on localhost.
+  const liveUrl = live ? `//${currentApp.slug}.${rootDomain}` : null;
+  const checklist = buildChecklist({
+    hasContent: blocks.length > 0 || contentOnOtherPages,
+    hasIcon: !!currentApp.manifest.icon_url,
+    published: live,
+    hasVisit: visited,
+  });
+
+  function runChecklistStep(step: ChecklistStepId) {
+    if (step === "content") {
+      const search = document.getElementById("block-search");
+      search?.scrollIntoView({ block: "center" });
+      search?.focus();
+    } else if (step === "icon") {
+      document.querySelector<HTMLElement>("[data-app-settings]")?.click();
+    } else if (step === "publish") {
+      togglePublish();
+    } else if (step === "visit" && liveUrl) {
+      window.open(liveUrl, "_blank", "noopener");
+      setVisited(true); // opening it records a view; no need to wait for that
+    }
+  }
 
   return (
     <div className="dark flex h-[calc(100dvh-3.5rem)] flex-col bg-neutral-950 text-neutral-50">
@@ -235,6 +266,19 @@ export function BuilderClient({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {!checklist.complete && (
+            <button
+              type="button"
+              onClick={() => setSelectedBlockId(null)}
+              title="Show the Get live checklist"
+              className="hidden items-center gap-2 rounded-full bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-200 ring-1 ring-white/10 transition hover:bg-white/10 md:inline-flex"
+            >
+              <span className="h-1.5 w-12 overflow-hidden rounded-full bg-white/15">
+                <span className="block h-full rounded-full bg-gradient-to-r from-indigo-400 to-pink-400" style={{ width: `${(checklist.doneCount / checklist.total) * 100}%` }} />
+              </span>
+              Get live · {checklist.doneCount}/{checklist.total}
+            </button>
+          )}
           <DeviceFrameSwitcher value={device} onChange={setDevice} />
           <AppSettingsDialog app={currentApp} pages={pages} onSaved={setCurrentApp} />
           <span className="mx-1 h-6 w-px bg-white/10" aria-hidden />
@@ -340,6 +384,10 @@ export function BuilderClient({
             blocks={blocks}
             onSelect={setSelectedBlockId}
             onClose={() => setSelectedBlockId(null)}
+            checklist={checklist}
+            liveUrl={liveUrl}
+            publishing={isPublishing}
+            onChecklistAction={runChecklistStep}
             appId={currentApp.id}
             organizationId={currentApp.organization_id}
             onChange={updateSelectedBlockConfig}
