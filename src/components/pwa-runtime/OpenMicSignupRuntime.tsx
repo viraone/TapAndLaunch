@@ -981,13 +981,28 @@ export function ShowDay({
               {feed.lineup.length} {feed.lineup.length === 1 ? "comic" : "comics"}
             </span>
           </div>
-          <ol className="overflow-hidden rounded-xl bg-muted">
+          {/* overflow-clip, not hidden: hidden would make the card its own scroller and break
+              the sticky "you" row below. */}
+          <ol className="overflow-clip rounded-xl bg-muted">
             {feed.lineup.map((entry, i) => (
               <li
                 key={`${entry.name}-${i}`}
-                className="relative flex min-h-11 items-center gap-3 px-4 py-2.5 after:absolute after:bottom-0 after:left-4 after:right-0 after:h-px after:bg-foreground/10 last:after:hidden"
+                aria-current={entry.mine ? "true" : undefined}
+                className={
+                  "relative flex min-h-11 items-center gap-3 px-4 py-2.5 after:absolute after:bottom-0 after:left-4 after:right-0 after:h-px after:bg-foreground/10 last:after:hidden" +
+                  // The comic's own row: tinted (opaque, so rows don't show through) and pinned
+                  // under the header when scrolled above, or to the bottom edge when below.
+                  (entry.mine ? " sticky top-[3.5rem] bottom-0 z-[5] bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))]" : "")
+                }
               >
-                <span className="min-w-0 flex-1 break-words text-[17px] font-medium leading-snug text-foreground dark:text-white">{entry.name}</span>
+                <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (entry.mine ? "font-semibold" : "font-medium")}>
+                  {entry.name}
+                  {entry.mine && (
+                    <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[12px] font-bold uppercase leading-none tracking-wide text-primary-foreground">
+                      You
+                    </span>
+                  )}
+                </span>
                 <span className="w-[4.5rem] shrink-0 text-right text-[19px] tabular-nums text-muted-foreground">{entry.set_length}</span>
                 <span className="w-[5.25rem] shrink-0 text-right text-[17px] font-medium tabular-nums text-primary">{entry.start_time}</span>
               </li>

@@ -6,6 +6,8 @@ export interface LineupEntry {
   name: string;
   set_length: string;
   start_time: string;
+  /** Set by the feed on the signed-in comic's own row. */
+  mine?: boolean;
 }
 
 export interface LineupFeed {

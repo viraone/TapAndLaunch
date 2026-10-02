@@ -71,7 +71,12 @@ export default function OpenMicPreview({ kind, config }: { kind: string; config:
   const feed: LineupFeed | null = real
     ? valid === "pending"
       ? { ...real, posted: false, lineup: [], me: { selected: false, set_length: "", start_time: "" } }
-      : { ...real, me: { selected: valid === "selected", set_length: "", start_time: "" } }
+      : {
+          ...real,
+          // Like the real feed: only the asking comic's own row is marked (Lori, by name here).
+          lineup: valid === "selected" ? real.lineup.map((e) => (e.name === "Lori Peck" ? { ...e, mine: true } : e)) : real.lineup,
+          me: { selected: valid === "selected", set_length: "", start_time: "" },
+        }
     : null;
 
   const state: ShowDayState =
