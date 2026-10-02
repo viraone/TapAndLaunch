@@ -44,7 +44,9 @@ const CODE_LENGTH = 6;
  * looked disabled). */
 /** Pinned show-day layout: the viewport minus the app's header bar and tab bar, as a column. */
 export const PINNED_PAGE = "mx-auto flex h-[calc(100dvh-11rem)] w-full max-w-md flex-col px-4 pt-6";
-export const PINNED_SCROLL = "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6";
+// clip-path hard-clips everything painted inside to the scroller's box. iOS Safari can paint a
+// scrolled-under row a few px past the scroller's top edge (above the pinned lineup header).
+export const PINNED_SCROLL = "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6 [clip-path:inset(0)]";
 
 const CTA = "bg-[#dc2626] text-white hover:bg-[#b91c1c] active:bg-[#991b1b]";
 
@@ -973,8 +975,10 @@ export function ShowDay({
         <section aria-label="Lineup">
           {/* Like an iOS inset grouped list: the section header sits outside the card and stays
               pinned while the rows slide under it. Solid, not translucent: a blurred header let
-              the edge of a row show above it on iOS Safari. */}
-          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))] px-4 pb-3 pt-3.5">
+              the edge of a row show above it on iOS Safari. The 8px strip above it (before:) covers
+              the gap if Safari paints the sticky header late; the list has no overflow-hidden mask
+              (rows round their own corners) because that mask can escape the scroller's clip. */}
+          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))] px-4 pb-3 pt-3.5 before:absolute before:inset-x-0 before:bottom-full before:h-2 before:bg-inherit">
             <h2 className="text-[16px] font-bold uppercase tracking-wide text-primary">
               {today ? "Tonight's lineup" : `${weekday}'s lineup`}
             </h2>
@@ -982,13 +986,13 @@ export function ShowDay({
               {feed.lineup.length} {feed.lineup.length === 1 ? "comic" : "comics"}
             </span>
           </div>
-          <ol className="overflow-hidden rounded-xl bg-muted">
+          <ol className="rounded-xl bg-muted">
             {feed.lineup.map((entry, i) => (
               <li
                 key={`${entry.name}-${i}`}
                 aria-current={entry.mine ? "true" : undefined}
                 className={
-                  "relative flex min-h-11 items-center gap-3 px-4 py-2.5 after:absolute after:bottom-0 after:left-4 after:right-0 after:h-px after:bg-foreground/10 last:after:hidden" +
+                  "relative flex min-h-11 items-center gap-3 px-4 py-2.5 first:rounded-t-xl last:rounded-b-xl after:absolute after:bottom-0 after:left-4 after:right-0 after:h-px after:bg-foreground/10 last:after:hidden" +
                   // The comic's own row is tinted; it scrolls like every other row.
                   (entry.mine ? " bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))]" : "")
                 }
