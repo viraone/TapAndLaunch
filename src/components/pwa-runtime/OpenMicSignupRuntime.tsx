@@ -167,7 +167,7 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
         {!hidePill && (
         <div
           role="status"
-          className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold ${
+          className={`mt-4 inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold min-[375px]:text-xs ${
             open ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-300"
           }`}
         >
