@@ -959,7 +959,7 @@ export function ShowDay({
         <div className="rounded-2xl border bg-muted/60 p-6">
           <h2 className="text-xl font-bold">Requests are closed for this week</h2>
           <p className="mt-2 text-base leading-relaxed text-muted-foreground">
-            Requests open {reopenPhrase(today)}. You&apos;re signed in, so it&apos;ll be one tap.
+            Requests open {reopenPhrase(today)}.
           </p>
         </div>
       )}
