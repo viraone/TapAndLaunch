@@ -98,6 +98,31 @@ export function SignupHeader({
   );
 }
 
+/**
+ * "Signed in as …", like the account row at the top of iOS Settings: a rounded card with a
+ * circular avatar holding the initials, a small grey caption, and the name in larger text.
+ */
+export function SignedInBar({ name }: { name: string }) {
+  const initials =
+    name
+      .split(/[\s@.]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]!.toUpperCase())
+      .join("") || "?";
+  return (
+    <div className="mt-5 flex min-h-14 items-center gap-3 rounded-xl bg-muted px-4 py-2.5">
+      <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-foreground/15 text-[15px] font-semibold text-foreground/80">
+        {initials}
+      </span>
+      <p className="min-w-0 leading-tight">
+        <span className="block text-[13px] text-muted-foreground">Signed in as</span>
+        <span className="block truncate text-[17px] font-medium text-foreground">{name}</span>
+      </p>
+    </div>
+  );
+}
+
 /** The request window from the block's settings. */
 export function windowOf(config: OpenMicSignupBlockConfig): WeeklyWindow {
   return {
@@ -230,13 +255,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
       <div className={pinned ? "shrink-0" : undefined}>
       <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
 
-      {user && phase !== "loading" && phase !== "code" && (
-        <div className="mt-5 rounded-xl bg-muted/70 px-4 py-3 text-sm">
-          <p className="truncate text-muted-foreground">
-            Signed in as <span className="font-semibold text-foreground">{profile.stage_name || user.email}</span>
-          </p>
-        </div>
-      )}
+      {user && phase !== "loading" && phase !== "code" && <SignedInBar name={profile.stage_name || user.email || ""} />}
       </div>
 
       <div className={pinned ? PINNED_SCROLL : "mt-6"}>
