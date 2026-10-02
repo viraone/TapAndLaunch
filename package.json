@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "dev:phone": "IP=$(ipconfig getifaddr en0); NEXT_PUBLIC_ROOT_DOMAIN=$IP.nip.io:3101 DEV_ORIGINS=$IP,*.$IP.nip.io NEXT_DIST_DIR=.next-phone next dev -p 3101"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
