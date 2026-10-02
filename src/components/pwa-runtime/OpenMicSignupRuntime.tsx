@@ -258,14 +258,14 @@ function ClosedSignedOut({ today, onSignIn }: { today: boolean; onSignIn: () => 
       <p className="mt-3 text-xl font-semibold leading-snug text-foreground">
         They will reopen {today ? "after tonight's show" : "after tomorrow's show"}.
       </p>
-      <p className="mt-7 text-base font-medium text-foreground">Did you already request a spot for this week?</p>
+      <p className="mt-8 text-xl font-bold leading-snug text-foreground">Did you already request a spot for this week?</p>
       <button
         type="button"
         onClick={onSignIn}
-        className="mt-3 flex h-12 w-full items-center justify-between gap-2 rounded-xl border-2 border-foreground/30 bg-background px-4 text-base font-semibold text-foreground transition hover:border-foreground/60 hover:bg-foreground/5"
+        className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-foreground px-4 text-lg font-bold text-background shadow-lg transition hover:opacity-90 active:scale-[0.99]"
       >
         Sign in to see your status
-        <ArrowRight className="h-5 w-5 shrink-0" aria-hidden="true" />
+        <ArrowRight className="h-5 w-5 shrink-0" strokeWidth={2.5} aria-hidden="true" />
       </button>
     </div>
   );
