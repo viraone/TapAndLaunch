@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import type { LineupFeed, ShowDayState } from "@/lib/openmic/selection";
 import { formatShowDate, formatWeekTime, isShowDay, reopenLabel, showDateFor } from "@/lib/openmic/window";
-import { ClosedSignedOut, ShowDay, SignupHeader, windowOf } from "./OpenMicSignupRuntime";
+import { ClosedSignedOut, PINNED_PAGE, PINNED_SCROLL, ShowDay, SignupHeader, windowOf } from "./OpenMicSignupRuntime";
 
 /**
  * Local development only (see the PREVIEW_ENABLED switch in OpenMicSignupRuntime):
@@ -96,9 +96,11 @@ export default function OpenMicPreview({ kind, config }: { kind: string; config:
     window.location.reload();
   }
 
-  return (
-    <div className="mx-auto w-full max-w-md px-4 pb-12 pt-8">
-      <div className="mb-6 rounded-2xl border-2 border-dashed border-sky-400/60 bg-sky-400/10 p-4 text-sm">
+  // Same pinned layout as the real page for the screens that show the lineup.
+  const pinned = valid === "selected" || valid === "not-selected" || valid === "no-request" || valid === "pending";
+
+  const banner = (
+    <div className="mb-6 rounded-2xl border-2 border-dashed border-sky-400/60 bg-sky-400/10 p-4 text-sm">
         <p className="font-bold text-sky-300">PREVIEW · local only</p>
         <p className="mt-1 text-muted-foreground">Made-up comic and status, real lineup from this week&apos;s sheet. Nothing is saved or sent.</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -120,10 +122,15 @@ export default function OpenMicPreview({ kind, config }: { kind: string; config:
           </button>
         )}
         {!valid && <p className="mt-3 font-semibold text-foreground">Pick one of the screens above.</p>}
-      </div>
+    </div>
+  );
 
+  return (
+    <div className={pinned ? PINNED_PAGE : "mx-auto w-full max-w-md px-4 pb-12 pt-8"}>
+      {!pinned && banner}
       {valid && (
         <>
+          <div className={pinned ? "shrink-0" : undefined}>
           <SignupHeader
             config={config}
             showDate={formatShowDate(showDateFor(window_, now))}
@@ -139,7 +146,9 @@ export default function OpenMicPreview({ kind, config }: { kind: string; config:
               </p>
             </div>
           )}
-          <div className="mt-6">
+          </div>
+          <div className={pinned ? PINNED_SCROLL : "mt-6"}>
+            {pinned && banner}
             {valid === "signed-out" ? (
               <ClosedSignedOut today={isShowDay(window_, now)} onSignIn={() => undefined} />
             ) : (

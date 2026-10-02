@@ -42,6 +42,11 @@ const CODE_LENGTH = 6;
 /** The main buttons: solid red with white text, so they read as tappable
  * even before anything is typed (the theme's light coral with dark text
  * looked disabled). */
+/** Pinned show-day layout: the viewport minus the app's header bar and tab bar, as a column. */
+export const PINNED_PAGE = "mx-auto flex h-[calc(100dvh-11rem)] w-full max-w-md flex-col px-4 pt-6";
+export const PINNED_SCROLL =
+  "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6 [mask-image:linear-gradient(to_bottom,transparent,black_14px,black_calc(100%-18px),transparent)]";
+
 const CTA = "bg-[#dc2626] text-white hover:bg-[#b91c1c] active:bg-[#991b1b]";
 
 /** The show, its date, and the Open/Closed pill. Shared by the page and the local preview. */
@@ -209,6 +214,10 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   // so it doesn't flash for returning comics.
   const hidePill = showDayOn && isLineupTime(window_, now) && (phase === "loading" || !!user);
 
+  // Show day with the lineup showing: the header stays pinned and only the area below it
+  // scrolls (the page itself doesn't scroll, so there's no scroll-inside-scroll).
+  const pinned = showDayOn && isLineupTime(window_, now) && !!user && (phase === "requested" || phase === "ready");
+
   if (!client) {
     return (
       <p className="mx-4 my-6 rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -218,7 +227,8 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-md px-4 pb-12 pt-8">
+    <div className={pinned ? PINNED_PAGE : "mx-auto w-full max-w-md px-4 pb-12 pt-8"}>
+      <div className={pinned ? "shrink-0" : undefined}>
       <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
 
       {user && phase !== "loading" && phase !== "code" && (
@@ -228,8 +238,9 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
           </p>
         </div>
       )}
+      </div>
 
-      <div className="mt-6">
+      <div className={pinned ? PINNED_SCROLL : "mt-6"}>
         {phase === "loading" && (
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
