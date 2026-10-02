@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, slotLine, type LineupFeed } from "./selection";
+import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupFeed } from "./selection";
 
 const feed = (over: Partial<LineupFeed> = {}): LineupFeed => ({
   show_date: "2026-10-02",
@@ -58,9 +58,5 @@ describe("copy", () => {
   it("the Thursday-night note points to Friday morning", () => {
     expect(CLOSED_NIGHT_COPY.body).toBe("If you're selected, we'll email you. Check this page Friday morning.");
     expect(JSON.stringify(CLOSED_NIGHT_COPY)).not.toMatch(/standby|pick/i);
-  });
-  it("slot line skips blanks", () => {
-    expect(slotLine({ start_time: "7:00 PM", set_length: "5 min" })).toBe("7:00 PM · 5 min");
-    expect(slotLine({ start_time: "", set_length: "" })).toBe("");
   });
 });

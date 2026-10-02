@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { Check, CircleCheck, Loader2, Mail } from "lucide-react";
-import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, slotLine, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
+import { Check, CircleCheck, Loader2, Mail, X } from "lucide-react";
+import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 
@@ -757,7 +757,7 @@ function ShowDayScreen({
   const lineupTime = isLineupTime(window, now);
   const { feed, failed } = useLineup(config.lineup_url, client, userId, lineupTime);
   const state = showDayState({ signedIn, requested, feed, failed, lineupTime });
-  return <ShowDay state={state} feed={feed} failed={failed} config={config} dateLabel={dateLabel} today={isShowDay(window, now)} lineupTime={lineupTime} />;
+  return <ShowDay state={state} feed={feed} failed={failed} config={config} dateLabel={dateLabel} today={isShowDay(window, now)} lineupTime={lineupTime} dismissKey={`openmic-in-dismissed:${userId ?? "anon"}:${dateLabel}`} />;
 }
 
 /** Show day (Thu 10 PM to Fri 9:40 PM): the comic's own status, then the lineup. */
@@ -769,6 +769,7 @@ function ShowDay({
   dateLabel,
   today,
   lineupTime,
+  dismissKey,
 }: {
   state: ShowDayState;
   feed: LineupFeed | null;
@@ -777,7 +778,14 @@ function ShowDay({
   dateLabel: string;
   today: boolean;
   lineupTime: boolean;
+  /** Where the "You're in!" card remembers it was dismissed (per person, per show day). */
+  dismissKey: string;
 }) {
+  const [dismissed, setDismissed] = useState(() => readFlag(dismissKey));
+  function dismiss() {
+    setDismissed(true);
+    writeFlag(dismissKey);
+  }
   if (lineupTime && !feed && !failed) {
     return (
       <div className="flex justify-center py-12" role="status" aria-label="Loading the lineup">
@@ -798,8 +806,17 @@ function ShowDay({
         </div>
       )}
 
-      {state === "selected" && mine && (
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
+      {state === "selected" && mine && !dismissed && (
+        <div className="relative rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
+          <button
+            type="button"
+            onClick={dismiss}
+            aria-label="Dismiss"
+            title="Dismiss"
+            className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition hover:bg-foreground/10 hover:text-foreground"
+          >
+            <X className="h-5 w-5" />
+          </button>
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white">
             <Check className="h-7 w-7" strokeWidth={3} />
           </div>
@@ -848,9 +865,10 @@ function ShowDay({
           <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">{today ? "Tonight's lineup" : `${weekday}'s lineup`}</h2>
           <ol className="mt-3 divide-y divide-border/70">
             {feed.lineup.map((entry, i) => (
-              <li key={`${entry.name}-${i}`} className="flex items-baseline justify-between gap-4 py-2.5">
-                <span className="min-w-0 truncate text-base font-semibold">{entry.name}</span>
-                {slotLine(entry) && <span className="shrink-0 text-sm tabular-nums text-muted-foreground">{slotLine(entry)}</span>}
+              <li key={`${entry.name}-${i}`} className="flex items-baseline gap-3 py-2.5">
+                <span className="min-w-0 flex-1 truncate text-base font-semibold">{entry.name}</span>
+                <span className="w-14 shrink-0 text-right text-sm tabular-nums text-muted-foreground">{entry.set_length}</span>
+                <span className="w-[4.5rem] shrink-0 text-right text-sm tabular-nums text-muted-foreground">{entry.start_time}</span>
               </li>
             ))}
           </ol>
@@ -858,4 +876,20 @@ function ShowDay({
       )}
     </div>
   );
+}
+
+// Per-viewer convenience only: if storage is blocked the card simply stays.
+function readFlag(key: string): boolean {
+  try {
+    return window.localStorage.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+}
+function writeFlag(key: string) {
+  try {
+    window.localStorage.setItem(key, "1");
+  } catch {
+    // ignore
+  }
 }

@@ -63,7 +63,3 @@ export function notSelectedCopy(isShowDay: boolean): { title: string; body: stri
   };
 }
 
-/** "7:00 PM · 5 min", leaving out whatever the host hasn't filled in. */
-export function slotLine(entry: { start_time: string; set_length: string }): string {
-  return [entry.start_time, entry.set_length].filter(Boolean).join(" · ");
-}
