@@ -45,7 +45,7 @@ const CODE_LENGTH = 6;
 /** Pinned show-day layout: the viewport minus the app's header bar and tab bar, as a column. */
 export const PINNED_PAGE = "mx-auto flex h-[calc(100dvh-11rem)] w-full max-w-md flex-col px-4 pt-6";
 export const PINNED_SCROLL =
-  "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6 [mask-image:linear-gradient(to_bottom,transparent,black_14px,black_calc(100%-18px),transparent)]";
+  "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6 [mask-image:linear-gradient(to_bottom,black_calc(100%-18px),transparent)]";
 
 const CTA = "bg-[#dc2626] text-white hover:bg-[#b91c1c] active:bg-[#991b1b]";
 
@@ -949,9 +949,13 @@ export function ShowDay({
       )}
 
       {lineupTime && config.show_lineup !== false && feed?.posted && feed.lineup.length > 0 && (
-        <section aria-label="Lineup" className="rounded-2xl border bg-muted/40 p-5">
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">{today ? "Tonight's lineup" : `${weekday}'s lineup`}</h2>
-          <ol className="mt-3 divide-y divide-border/70">
+        <section aria-label="Lineup" className="rounded-2xl border bg-muted/40">
+          {/* The title stays pinned at the top of the scrolling area while the names go by. Its
+              background is the card's own colour, but opaque, so rows don't show through. */}
+          <div className="sticky top-0 z-10 rounded-t-2xl border-b border-border/70 bg-[color-mix(in_oklab,var(--muted)_40%,var(--background))] px-5 py-3.5">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">{today ? "Tonight's lineup" : `${weekday}'s lineup`}</h2>
+          </div>
+          <ol className="divide-y divide-border/70 px-5 pb-2">
             {feed.lineup.map((entry, i) => (
               <li key={`${entry.name}-${i}`} className="flex items-baseline gap-3 py-2.5">
                 <span className="min-w-0 flex-1 truncate text-base font-semibold">{entry.name}</span>
