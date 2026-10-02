@@ -970,11 +970,11 @@ export function ShowDay({
         <section aria-label="Lineup">
           {/* Like an iOS inset grouped list: the section header sits outside the card, pinned
               and translucent, so rows blur as they slide under it. */}
-          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))]/85 px-4 pb-2.5 pt-3 backdrop-blur-xl">
-            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-primary">
+          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))]/85 px-4 pb-3 pt-3.5 backdrop-blur-xl">
+            <h2 className="text-[16px] font-bold uppercase tracking-wide text-primary">
               {today ? "Tonight's lineup" : `${weekday}'s lineup`}
             </h2>
-            <span className="rounded-full bg-primary/20 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-primary">
+            <span className="rounded-full bg-primary/20 px-3 py-1 text-[14px] font-semibold tabular-nums text-primary">
               {feed.lineup.length} {feed.lineup.length === 1 ? "comic" : "comics"}
             </span>
           </div>
