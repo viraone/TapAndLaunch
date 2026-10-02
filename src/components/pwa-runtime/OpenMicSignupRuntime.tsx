@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { Check, CircleCheck, Loader2, Mail, X } from "lucide-react";
+import { ArrowRight, Check, CircleCheck, Loader2, Mail, X } from "lucide-react";
 import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
@@ -258,12 +258,15 @@ function ClosedSignedOut({ today, onSignIn }: { today: boolean; onSignIn: () => 
       <p className="mt-3 text-xl font-semibold leading-snug text-foreground">
         They will reopen {today ? "after tonight's show" : "after tomorrow's show"}.
       </p>
-      <p className="mt-6 text-base text-muted-foreground">
-        Requested a spot this week?{" "}
-        <button type="button" onClick={onSignIn} className="font-semibold text-foreground underline underline-offset-4">
-          Sign in to see your status.
-        </button>
-      </p>
+      <p className="mt-7 text-base font-medium text-foreground">Did you already request a spot for this week?</p>
+      <button
+        type="button"
+        onClick={onSignIn}
+        className="mt-3 flex h-12 w-full items-center justify-between gap-2 rounded-xl border-2 border-foreground/30 bg-background px-4 text-base font-semibold text-foreground transition hover:border-foreground/60 hover:bg-foreground/5"
+      >
+        Sign in to see your status
+        <ArrowRight className="h-5 w-5 shrink-0" aria-hidden="true" />
+      </button>
     </div>
   );
 }
