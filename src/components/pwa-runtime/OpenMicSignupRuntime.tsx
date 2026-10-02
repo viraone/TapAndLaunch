@@ -521,7 +521,7 @@ function CodeStep({
       />
       {wrong ? (
         <div role="alert" className="mt-3 text-center">
-          <p className="text-lg font-bold text-red-400">Wrong code. Try again.</p>
+          <p className="text-[22px] font-bold leading-tight text-red-400">Wrong code. Try again.</p>
           <p className="mt-1 text-sm text-muted-foreground">Use the newest email, or send a new code.</p>
         </div>
       ) : (
