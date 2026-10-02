@@ -100,7 +100,7 @@ export function SignupHeader({
 
 /**
  * "Signed in as …", like the account row at the top of iOS Settings: a rounded card with a
- * circular avatar holding the initials, a small grey caption, and the name in larger text.
+ * large tinted avatar holding the initials, a grey caption, and the name in larger semibold text.
  */
 export function SignedInBar({ name }: { name: string }) {
   const initials =
@@ -111,13 +111,16 @@ export function SignedInBar({ name }: { name: string }) {
       .map((w) => w[0]!.toUpperCase())
       .join("") || "?";
   return (
-    <div className="mt-5 flex min-h-14 items-center gap-3 rounded-xl bg-muted px-4 py-2.5">
-      <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-foreground/15 text-[15px] font-semibold text-foreground/80">
+    <div className="mt-5 flex min-h-[4.5rem] items-center gap-4 rounded-xl bg-muted px-4 py-3">
+      <span
+        aria-hidden
+        className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-gradient-to-b from-primary/40 to-primary/15 text-[22px] font-semibold text-primary"
+      >
         {initials}
       </span>
       <p className="min-w-0 leading-tight">
-        <span className="block text-[13px] text-muted-foreground">Signed in as</span>
-        <span className="block truncate text-[17px] font-medium text-foreground">{name}</span>
+        <span className="block text-[15px] text-muted-foreground">Signed in as</span>
+        <span className="mt-0.5 block truncate text-[20px] font-semibold text-foreground">{name}</span>
       </p>
     </div>
   );
