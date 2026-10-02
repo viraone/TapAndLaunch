@@ -256,7 +256,7 @@ function ClosedSignedOut({ today, onSignIn }: { today: boolean; onSignIn: () => 
     <div className="rounded-2xl border bg-muted/60 p-6">
       <h2 className="text-2xl font-extrabold leading-tight">Sign ups for this Friday are closed</h2>
       <p className="mt-3 text-xl font-semibold leading-snug text-foreground">
-        Come back {today ? "after tonight's show" : "after tomorrow's show"} to request a spot for next Friday.
+        They will reopen {today ? "after tonight's show" : "after tomorrow's show"}.
       </p>
       <p className="mt-6 text-base text-muted-foreground">
         Requested a spot this week?{" "}
