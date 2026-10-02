@@ -92,6 +92,16 @@ export function formatShowDate(date: { year: number; month: number; day: number 
   );
 }
 
+/** Is it the show's own day (Friday)? Used while requests are closed. */
+export function isShowDay(w: WeeklyWindow, now: Date = new Date()): boolean {
+  return localTime(now, w.timeZone).weekday === w.showWeekday;
+}
+
+/** "after tonight's show" on show day, "after tomorrow's show" the night before. */
+export function reopenLabel(w: WeeklyWindow, now: Date = new Date()): string {
+  return isShowDay(w, now) ? "after tonight's show" : "after tomorrow's show";
+}
+
 /** "Fri 9:40 PM" */
 export function formatWeekTime(weekday: number, minutes: number): string {
   const h = Math.floor(minutes / 60);

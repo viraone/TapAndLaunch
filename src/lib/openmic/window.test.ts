@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatShowDate, formatWeekTime, isWindowOpen, showDateFor, type WeeklyWindow } from "./window";
+import { formatShowDate, formatWeekTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "./window";
 
 const RTR: WeeklyWindow = {
   timeZone: "America/Los_Angeles",
@@ -44,6 +44,13 @@ describe("Read The Room request window", () => {
     expect(isWindowOpen(RTR, new Date("2026-11-05T21:59-08:00"))).toBe(true);
     expect(isWindowOpen(RTR, new Date("2026-11-05T22:00-08:00"))).toBe(false);
     expect(formatShowDate(showDateFor(RTR, new Date("2026-11-01T12:00-08:00")))).toBe("Friday, Nov 6");
+  });
+
+  it("says when it reopens in words, depending on the day", () => {
+    expect(isShowDay(RTR, pdt("2026-10-02T12:00"))).toBe(true);
+    expect(reopenLabel(RTR, pdt("2026-10-02T12:00"))).toBe("after tonight's show");
+    expect(isShowDay(RTR, pdt("2026-10-01T22:30"))).toBe(false);
+    expect(reopenLabel(RTR, pdt("2026-10-01T22:30"))).toBe("after tomorrow's show");
   });
 
   it("formats the open/close times", () => {

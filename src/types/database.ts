@@ -225,6 +225,8 @@ export interface OpenMicSignupBlockConfig {
   show_time?: string;
   /** Square logo shown beside the show name. */
   logo_url?: string;
+  /** The show's lineup feed (name, set, time, and the viewer's own status). Without it the closed screen stays simple. */
+  lineup_url?: string;
   supabase_url?: string;
   anon_key?: string;
   time_zone?: string;

@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { Check, CircleCheck, Loader2, Mail } from "lucide-react";
+import { notSelectedCopy, reopenPhrase, showDayState, slotLine, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
-import { formatShowDate, formatWeekTime, isWindowOpen, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
+import { formatShowDate, formatWeekTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 
 /**
  * StageTime PNW's weekly showcase sign-up. Accounts and the request list live
@@ -78,7 +79,10 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
 
   const profile = profileOf(user);
 
+  // The React Compiler flags this memo (it only opts the component out of its own
+  // optimizing); the callback itself is correct, so the rule is skipped here.
   const load = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     async (u: User | null) => {
       setUser(u);
       if (!client || !u) {
@@ -126,6 +130,9 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
     };
   }, [client, load]);
 
+  // While requests are closed, the screen shows the lineup and each comic's own status.
+  const showDayOn = !open && !!config.lineup_url;
+
   if (!client) {
     return (
       <p className="mx-4 my-6 rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -163,7 +170,7 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
           </span>
           {open
             ? `Open · closes ${formatWeekTime(window_.closesWeekday, window_.closesMinutes)}`
-            : `Closed · reopens ${formatWeekTime(window_.opensWeekday, window_.opensMinutes)}`}
+            : `Closed · reopens ${reopenLabel(window_, now)}`}
         </div>
       </header>
 
@@ -180,6 +187,10 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
+        )}
+
+        {phase === "email" && showDayOn && (
+          <ShowDayScreen client={client} userId={undefined} signedIn={false} requested={false} config={config} dateLabel={showDate} window={window_} now={now} />
         )}
 
         {phase === "email" && (
@@ -212,14 +223,18 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
                 setPhase("requested");
               }}
             />
+          ) : showDayOn ? (
+            <ShowDayScreen client={client} userId={user.id} signedIn requested={false} config={config} dateLabel={showDate} window={window_} now={now} />
           ) : (
-            <ClosedCard opensAt={formatWeekTime(window_.opensWeekday, window_.opensMinutes)} name={profile.stage_name} />
+            <ClosedCard name={profile.stage_name} />
           )
         )}
 
-        {phase === "requested" && request && (
+        {phase === "requested" && request && (showDayOn ? (
+          <ShowDayScreen client={client} userId={user?.id} signedIn requested config={config} dateLabel={showDate} window={window_} now={now} />
+        ) : (
           <RequestedCard request={request} showDate={showDate} config={config} timeZone={window_.timeZone} />
-        )}
+        ))}
 
       </div>
     </div>
@@ -255,7 +270,7 @@ function EmailStep({
 
   return (
     <form onSubmit={send} className="rounded-2xl border bg-muted/60 p-5">
-      <h2 className="text-lg font-bold">{open ? "Request your spot" : "Sign in"}</h2>
+      <h2 className="text-lg font-bold">{open ? "Request your spot" : "Sign in to see your status"}</h2>
       <p className="mt-1.5 text-lg leading-snug text-muted-foreground">
         Enter your email. We&apos;ll send a 6-digit code — no password needed.
       </p>
@@ -543,8 +558,8 @@ function RequestForm({
           If I miss my spot without telling the host, it may affect future bookings.
         </Agreement>
         <Agreement checked={guarantee} onChange={setGuarantee}>
-          A request doesn&apos;t guarantee a spot. Notifications go out Thursday; if I&apos;m not picked, I can join the
-          standby list at the show.
+          A request doesn&apos;t guarantee a spot. If you&apos;re selected, we&apos;ll email you on Thursday. If you don&apos;t
+          hear from us, check this page.
         </Agreement>
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
@@ -596,13 +611,13 @@ function RequestedCard({
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">What happens next</p>
         <ol className="mt-3 space-y-3 text-sm">
           <li>
-            <span className="font-semibold">Thursday</span> — picks go out by email.
+            <span className="font-semibold">Thursday</span> — if you&apos;re selected, we&apos;ll email you.
           </li>
           <li>
             <span className="font-semibold">{showDate.split(",")[0]}</span> — {config.show_name ?? "the show"}
             {config.venue ? ` at ${config.venue}` : ""}
-            {config.show_time ? `, ${config.show_time.replace(/^Fridays\s*/i, "")}` : ""}. Not picked? Come by and join
-            the standby list.
+            {config.show_time ? `, ${config.show_time.replace(/^Fridays\s*/i, "")}` : ""}. Not selected? You can request
+            again next week.
           </li>
         </ol>
       </div>
@@ -610,13 +625,13 @@ function RequestedCard({
   );
 }
 
-function ClosedCard({ opensAt, name }: { opensAt: string; name: string }) {
+function ClosedCard({ name }: { name: string }) {
   return (
     <div className="rounded-2xl border bg-muted/60 p-6 text-center">
       <h2 className="text-lg font-bold">Requests are closed for this week</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        {name ? `${name.split(/\s+/)[0]}, the` : "The"} list reopens {opensAt}, right after the show. You&apos;re signed in, so it&apos;ll
-        be one tap.
+        {name ? `${name.split(/\s+/)[0]}, the` : "The"} list reopens right after the show. You&apos;re signed in, so it&apos;ll be one
+        tap.
       </p>
     </div>
   );
@@ -688,4 +703,153 @@ function useNow(): Date {
     return () => clearInterval(t);
   }, []);
   return now;
+}
+
+/** The lineup feed, refreshed every minute while the screen is showing. */
+function useLineup(url: string | undefined, client: SupabaseClient, userId: string | undefined) {
+  const [feed, setFeed] = useState<LineupFeed | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    if (!url) return;
+    let cancelled = false;
+    async function load() {
+      try {
+        const { data } = await client.auth.getSession();
+        const token = data.session?.access_token;
+        const res = await fetch(url!, { headers: token ? { authorization: `Bearer ${token}` } : {} });
+        if (!res.ok) throw new Error(String(res.status));
+        const json = (await res.json()) as LineupFeed;
+        if (!cancelled) {
+          setFeed(json);
+          setFailed(false);
+        }
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    }
+    void load();
+    const timer = setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [url, client, userId]);
+  return { feed, failed };
+}
+
+/** Loads the feed and works out which message this visitor sees. */
+function ShowDayScreen({
+  client,
+  userId,
+  signedIn,
+  requested,
+  config,
+  dateLabel,
+  window,
+  now,
+}: {
+  client: SupabaseClient;
+  userId: string | undefined;
+  signedIn: boolean;
+  requested: boolean;
+  config: OpenMicSignupBlockConfig;
+  dateLabel: string;
+  window: WeeklyWindow;
+  now: Date;
+}) {
+  const { feed, failed } = useLineup(config.lineup_url, client, userId);
+  const state = showDayState({ signedIn, requested, feed, failed });
+  return <ShowDay state={state} feed={feed} failed={failed} config={config} dateLabel={dateLabel} today={isShowDay(window, now)} />;
+}
+
+/** Show day (Thu 10 PM to Fri 9:40 PM): the comic's own status, then the lineup. */
+function ShowDay({
+  state,
+  feed,
+  failed,
+  config,
+  dateLabel,
+  today,
+}: {
+  state: ShowDayState;
+  feed: LineupFeed | null;
+  failed: boolean;
+  config: OpenMicSignupBlockConfig;
+  dateLabel: string;
+  today: boolean;
+}) {
+  if (!feed && !failed) {
+    return (
+      <div className="flex justify-center py-12" role="status" aria-label="Loading the lineup">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  const notSelected = notSelectedCopy(today);
+  const weekday = dateLabel.split(",")[0];
+  const mine = feed?.me;
+
+  return (
+    <div className="space-y-4">
+      {state === "selected" && mine && (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white">
+            <Check className="h-7 w-7" strokeWidth={3} />
+          </div>
+          <h2 className="mt-4 text-2xl font-extrabold">You&apos;re in!</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {config.show_name ?? "The show"}
+            {config.venue ? ` at ${config.venue}` : ""} · {dateLabel}
+          </p>
+          {slotLine(mine) && <p className="mt-4 rounded-xl border bg-background px-4 py-3 text-2xl font-extrabold tabular-nums">{slotLine(mine)}</p>}
+        </div>
+      )}
+
+      {state === "not-selected" && (
+        <div className="rounded-2xl border bg-muted/60 p-6">
+          <h2 className="text-xl font-bold">{notSelected.title}</h2>
+          <p className="mt-2 text-base leading-relaxed text-muted-foreground">{notSelected.body}</p>
+        </div>
+      )}
+
+      {state === "selections-pending" && (
+        <div className="rounded-2xl border bg-muted/60 p-6">
+          <h2 className="text-xl font-bold">We&apos;re putting the lineup together</h2>
+          <p className="mt-2 text-base leading-relaxed text-muted-foreground">
+            If you&apos;re selected, we&apos;ll email you and your spot will show up here. Check back soon.
+          </p>
+        </div>
+      )}
+
+      {state === "no-request" && (
+        <div className="rounded-2xl border bg-muted/60 p-6">
+          <h2 className="text-xl font-bold">Requests are closed for this week</h2>
+          <p className="mt-2 text-base leading-relaxed text-muted-foreground">
+            Requests open {reopenPhrase(today)}. You&apos;re signed in, so it&apos;ll be one tap.
+          </p>
+        </div>
+      )}
+
+      {state === "unavailable" && (
+        <div className="rounded-2xl border bg-muted/60 p-6">
+          <h2 className="text-xl font-bold">We couldn&apos;t load the lineup</h2>
+          <p className="mt-2 text-base leading-relaxed text-muted-foreground">Try again in a minute.</p>
+        </div>
+      )}
+
+      {feed?.posted && feed.lineup.length > 0 && (
+        <section aria-label="Lineup" className="rounded-2xl border bg-muted/40 p-5">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">{today ? "Tonight's lineup" : `${weekday}'s lineup`}</h2>
+          <ol className="mt-3 divide-y divide-border/70">
+            {feed.lineup.map((entry, i) => (
+              <li key={`${entry.name}-${i}`} className="flex items-baseline justify-between gap-4 py-2.5">
+                <span className="min-w-0 truncate text-base font-semibold">{entry.name}</span>
+                {slotLine(entry) && <span className="shrink-0 text-sm tabular-nums text-muted-foreground">{slotLine(entry)}</span>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+    </div>
+  );
 }
