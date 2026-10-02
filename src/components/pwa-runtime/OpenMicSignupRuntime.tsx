@@ -970,10 +970,13 @@ export function ShowDay({
         <section aria-label="Lineup">
           {/* Like an iOS inset grouped list: the section header sits outside the card, pinned
               and translucent, so rows blur as they slide under it. */}
-          <div className="sticky top-0 z-10 bg-background/75 px-4 pb-2 pt-3 backdrop-blur-xl">
-            <h2 className="text-[13px] font-normal uppercase tracking-wide text-muted-foreground">
+          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))]/85 px-4 pb-2.5 pt-3 backdrop-blur-xl">
+            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-primary">
               {today ? "Tonight's lineup" : `${weekday}'s lineup`}
             </h2>
+            <span className="rounded-full bg-primary/20 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-primary">
+              {feed.lineup.length} {feed.lineup.length === 1 ? "comic" : "comics"}
+            </span>
           </div>
           <ol className="overflow-hidden rounded-xl bg-muted">
             {feed.lineup.map((entry, i) => (
@@ -983,7 +986,7 @@ export function ShowDay({
               >
                 <span className="min-w-0 flex-1 break-words text-[17px] leading-snug">{entry.name}</span>
                 <span className="w-16 shrink-0 text-right text-[17px] tabular-nums text-muted-foreground">{entry.set_length}</span>
-                <span className="w-[5.25rem] shrink-0 text-right text-[17px] tabular-nums text-muted-foreground">{entry.start_time}</span>
+                <span className="w-[5.25rem] shrink-0 text-right text-[17px] font-medium tabular-nums text-primary">{entry.start_time}</span>
               </li>
             ))}
           </ol>
