@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import dynamic from "next/dynamic";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { Check, ChevronRight, CircleCheck, Loader2, Mail, X } from "lucide-react";
 import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
@@ -43,7 +44,83 @@ const CODE_LENGTH = 6;
  * looked disabled). */
 const CTA = "bg-[#dc2626] text-white hover:bg-[#b91c1c] active:bg-[#991b1b]";
 
+/** The show, its date, and the Open/Closed pill. Shared by the page and the local preview. */
+export function SignupHeader({
+  config,
+  showDate,
+  open,
+  hidePill,
+  reopenText,
+  closesAt,
+}: {
+  config: OpenMicSignupBlockConfig;
+  showDate: string;
+  open: boolean;
+  hidePill: boolean;
+  reopenText: string;
+  closesAt: string;
+}) {
+  return (
+    <header>
+      <div className="flex items-center gap-3.5">
+        {config.logo_url && (
+          // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
+          <img
+            src={config.logo_url}
+            alt={config.venue ?? ""}
+            className="h-16 w-16 shrink-0 rounded-2xl bg-white object-cover ring-1 ring-white/10"
+          />
+        )}
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">{config.show_name ?? "Read The Room"}</p>
+          <h1 className="mt-1 text-3xl font-black tracking-tight">{showDate}</h1>
+        </div>
+      </div>
+      {!hidePill && (
+        <div
+          role="status"
+          className={`mt-4 inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold min-[375px]:text-xs ${
+            open ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-300"
+          }`}
+        >
+          <span className="relative flex h-2.5 w-2.5">
+            {open && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+            <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${open ? "bg-emerald-400" : "bg-amber-400"}`} />
+          </span>
+          {open ? `Open · closes ${closesAt}` : `Sign ups are closed - reopens ${reopenText}`}
+        </div>
+      )}
+    </header>
+  );
+}
+
+/** The request window from the block's settings. */
+export function windowOf(config: OpenMicSignupBlockConfig): WeeklyWindow {
+  return {
+    timeZone: config.time_zone ?? "America/Los_Angeles",
+    opensWeekday: config.opens_weekday ?? 5,
+    opensMinutes: config.opens_minutes ?? 21 * 60 + 40,
+    closesWeekday: config.closes_weekday ?? 4,
+    closesMinutes: config.closes_minutes ?? 22 * 60,
+    showWeekday: config.opens_weekday ?? 5,
+  };
+}
+
+// Local development only: /signup?preview=selected (and friends) shows a show-day
+// screen with made-up status and the real lineup. The check is a build-time constant,
+// so production builds drop the preview screen entirely.
+const PREVIEW_ENABLED = process.env.NODE_ENV !== "production";
+const PreviewScreen = PREVIEW_ENABLED ? dynamic(() => import("./OpenMicPreview"), { ssr: false }) : null;
+const noopSubscribe = () => () => {};
+const readPreview = () => (PREVIEW_ENABLED ? new URLSearchParams(window.location.search).get("preview") : null);
+
 export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockConfig }) {
+  const preview = useSyncExternalStore(noopSubscribe, readPreview, () => null);
+  if (PreviewScreen && preview) return <PreviewScreen kind={preview} config={config} />;
+  return <OpenMicSignupLive config={config} />;
+}
+
+function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   const url = config.supabase_url ?? "";
   const key = config.anon_key ?? "";
 
@@ -60,14 +137,7 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
     });
   }, [url, key]);
 
-  const window_: WeeklyWindow = {
-    timeZone: config.time_zone ?? "America/Los_Angeles",
-    opensWeekday: config.opens_weekday ?? 5,
-    opensMinutes: config.opens_minutes ?? 21 * 60 + 40,
-    closesWeekday: config.closes_weekday ?? 4,
-    closesMinutes: config.closes_minutes ?? 22 * 60,
-    showWeekday: config.opens_weekday ?? 5,
-  };
+  const window_ = windowOf(config);
   const now = useNow();
   const open = isWindowOpen(window_, now);
   const showDate = formatShowDate(showDateFor(window_, now));
@@ -149,38 +219,7 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
 
   return (
     <div className="mx-auto w-full max-w-md px-4 pb-12 pt-8">
-      <header>
-        <div className="flex items-center gap-3.5">
-          {config.logo_url && (
-            // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
-            <img
-              src={config.logo_url}
-              alt={config.venue ?? ""}
-              className="h-16 w-16 shrink-0 rounded-2xl bg-white object-cover ring-1 ring-white/10"
-            />
-          )}
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">{config.show_name ?? "Read The Room"}</p>
-            <h1 className="mt-1 text-3xl font-black tracking-tight">{showDate}</h1>
-          </div>
-        </div>
-        {!hidePill && (
-        <div
-          role="status"
-          className={`mt-4 inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold min-[375px]:text-xs ${
-            open ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-300"
-          }`}
-        >
-          <span className="relative flex h-2.5 w-2.5">
-            {open && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
-            <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${open ? "bg-emerald-400" : "bg-amber-400"}`} />
-          </span>
-          {open
-            ? `Open · closes ${formatWeekTime(window_.closesWeekday, window_.closesMinutes)}`
-            : `Sign ups are closed - reopens ${reopenLabel(window_, now)}`}
-        </div>
-        )}
-      </header>
+      <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
 
       {user && phase !== "loading" && phase !== "code" && (
         <div className="mt-5 rounded-xl bg-muted/70 px-4 py-3 text-sm">
@@ -251,7 +290,7 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
 
 /** Signed out while sign-ups are closed: say so plainly. Sign-in is only for
  * people who already requested, so it's a small link, not a form. */
-function ClosedSignedOut({ today, onSignIn }: { today: boolean; onSignIn: () => void }) {
+export function ClosedSignedOut({ today, onSignIn }: { today: boolean; onSignIn: () => void }) {
   return (
     <div className="rounded-2xl border bg-muted/60 p-6">
       <h2 className="text-2xl font-extrabold leading-tight">Sign ups for this Friday are closed</h2>
@@ -797,7 +836,7 @@ function ShowDayScreen({
 }
 
 /** Show day (Thu 10 PM to Fri 9:40 PM): the comic's own status, then the lineup. */
-function ShowDay({
+export function ShowDay({
   state,
   feed,
   failed,
