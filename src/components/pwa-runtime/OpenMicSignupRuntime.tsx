@@ -971,9 +971,10 @@ export function ShowDay({
 
       {lineupTime && config.show_lineup !== false && feed?.posted && feed.lineup.length > 0 && (
         <section aria-label="Lineup">
-          {/* Like an iOS inset grouped list: the section header sits outside the card, pinned
-              and translucent, so rows blur as they slide under it. */}
-          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))]/85 px-4 pb-3 pt-3.5 backdrop-blur-xl">
+          {/* Like an iOS inset grouped list: the section header sits outside the card and stays
+              pinned while the rows slide under it. Solid, not translucent: a blurred header let
+              the edge of a row show above it on iOS Safari. */}
+          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))] px-4 pb-3 pt-3.5">
             <h2 className="text-[16px] font-bold uppercase tracking-wide text-primary">
               {today ? "Tonight's lineup" : `${weekday}'s lineup`}
             </h2>
