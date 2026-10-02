@@ -17,6 +17,12 @@ export function getRootDomain(): string {
 export function extractAppSlug(host: string | null): string | null {
   if (!host) return null;
 
+  // Local development only (`npm run dev:phone`): open one app from a phone by the Mac's
+  // plain IP address, because some routers refuse to resolve names that point to a
+  // private address. Never active in a production build.
+  const devSlug = process.env.NODE_ENV !== "production" ? process.env.DEV_APP_SLUG : undefined;
+  if (devSlug && /^\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(host)) return devSlug;
+
   const rootDomain = getRootDomain();
   const normalizedHost = host.toLowerCase();
   const normalizedRoot = rootDomain.toLowerCase();
