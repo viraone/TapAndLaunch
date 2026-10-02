@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { ArrowRight, Check, CircleCheck, Loader2, Mail, X } from "lucide-react";
+import { Check, ChevronRight, CircleCheck, Loader2, Mail, X } from "lucide-react";
 import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
@@ -262,10 +262,10 @@ function ClosedSignedOut({ today, onSignIn }: { today: boolean; onSignIn: () => 
       <button
         type="button"
         onClick={onSignIn}
-        className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-foreground px-4 text-lg font-bold text-background shadow-lg transition hover:opacity-90 active:scale-[0.99]"
+        className="mt-4 flex h-14 w-full items-center justify-center gap-1.5 rounded-xl bg-primary/15 px-4 text-lg font-bold text-primary transition hover:bg-primary/25 active:scale-[0.99]"
       >
         Sign in to see your status
-        <ArrowRight className="h-5 w-5 shrink-0" strokeWidth={2.5} aria-hidden="true" />
+        <ChevronRight className="h-6 w-6 shrink-0" strokeWidth={2.5} aria-hidden="true" />
       </button>
     </div>
   );
