@@ -42,10 +42,10 @@ describe("show-day state", () => {
 });
 
 describe("copy", () => {
-  it("not-selected message is the approved text on show day", () => {
+  it("not-selected message on show day", () => {
     expect(notSelectedCopy(true)).toEqual({
       title: "Thanks for requesting a spot!",
-      body: "We got a lot of requests for this Friday's show and couldn't fit everyone in. You're not on for this week, but we'd love to see you try again. Requests open tonight right after the show.",
+      body: "We couldn't fit everyone in, so you're not on this week. We'd love to see you try again! Requests open tonight right after the show.",
     });
   });
   it("on Thursday night it says tomorrow's show, not tonight", () => {

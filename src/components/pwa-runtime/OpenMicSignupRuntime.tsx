@@ -942,7 +942,7 @@ export function ShowDay({
       {state === "not-selected" && (
         <div className="rounded-2xl border bg-muted/60 p-6">
           <h2 className="text-xl font-bold">{notSelected.title}</h2>
-          <p className="mt-2 text-base leading-relaxed text-muted-foreground">{notSelected.body}</p>
+          <p className="mt-2 text-base leading-relaxed text-foreground/85">{notSelected.body}</p>
         </div>
       )}
 

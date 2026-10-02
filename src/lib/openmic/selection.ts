@@ -57,11 +57,11 @@ export const CLOSED_NIGHT_COPY = {
   body: "If you're selected, we'll email you. Check this page Friday morning.",
 };
 
-/** The approved message for someone who requested but wasn't selected. */
+/** The message for someone who requested but wasn't selected. */
 export function notSelectedCopy(isShowDay: boolean): { title: string; body: string } {
   return {
     title: "Thanks for requesting a spot!",
-    body: `We got a lot of requests for this Friday's show and couldn't fit everyone in. You're not on for this week, but we'd love to see you try again. Requests open ${reopenPhrase(isShowDay)}.`,
+    body: `We couldn't fit everyone in, so you're not on this week. We'd love to see you try again! Requests open ${reopenPhrase(isShowDay)}.`,
   };
 }
 
