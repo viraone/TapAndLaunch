@@ -18,15 +18,15 @@ export function AppHeader({ theme }: { theme: ThemeConfig }) {
   const logo = theme.header_logo_url?.trim();
 
   return (
-    <header className="flex items-center gap-3 border-b border-border/70 bg-background px-4 py-3">
+    <header className="flex items-center gap-4 border-b border-border/70 bg-background px-4 py-4">
       {logo && (
         // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
-        <img src={logo} alt="" className="h-11 w-11 shrink-0 rounded-xl bg-white object-cover shadow-sm ring-1 ring-black/10" />
+        <img src={logo} alt="" className="h-16 w-16 shrink-0 rounded-2xl bg-white object-cover shadow-sm ring-1 ring-black/10" />
       )}
       {(title || tagline) && (
         <div className="min-w-0">
-          {title && <p className="truncate text-[15px] font-bold leading-tight tracking-tight">{title}</p>}
-          {tagline && <p className="truncate text-xs leading-snug text-muted-foreground">{tagline}</p>}
+          {title && <p className="truncate text-2xl font-extrabold leading-tight tracking-tight">{title}</p>}
+          {tagline && <p className="mt-0.5 line-clamp-2 text-[15px] font-medium leading-snug text-muted-foreground">{tagline}</p>}
         </div>
       )}
     </header>
