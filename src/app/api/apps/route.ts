@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_TEMPLATE_ID, STARTER_TEMPLATES, buildStarter } from "@/lib/apps/templates";
+import { orgHasMaps } from "@/lib/platform/maps";
+import { MAPS_LOCKED_MESSAGE, isMapsBlock } from "@/lib/platform/maps-shared";
 
 const CreateAppSchema = z.object({
   organization_id: z.string().uuid(),
@@ -41,6 +43,9 @@ export async function POST(request: Request) {
   }
 
   const starter = buildStarter(parsed.data.template, parsed.data.name);
+  if (starter.pages.some((p) => p.blocks.some((b) => isMapsBlock(b.type))) && !(await orgHasMaps(parsed.data.organization_id))) {
+    return Response.json({ error: MAPS_LOCKED_MESSAGE }, { status: 403 });
+  }
 
   let app = null;
   let appError: { code?: string; message: string } | null = null;

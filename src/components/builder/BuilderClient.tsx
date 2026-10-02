@@ -46,6 +46,7 @@ export function BuilderClient({
   initialBlocks,
   hasVisit,
   contentOnOtherPages,
+  mapsEnabled,
 }: {
   app: AppRow;
   rootDomain: string;
@@ -56,6 +57,8 @@ export function BuilderClient({
   hasVisit: boolean;
   /** Blocks exist on pages other than the one opened first. */
   contentOnOtherPages: boolean;
+  /** Live food / Gas prices (Google Maps) are switched on for this organization. */
+  mapsEnabled: boolean;
 }) {
   const supabase = createClient();
 
@@ -318,7 +321,7 @@ export function BuilderClient({
 
       <div className="grid flex-1 grid-cols-[260px_1fr_320px] overflow-hidden">
         <aside className="overflow-y-auto border-r border-white/[0.06] bg-neutral-950">
-          <Palette onAdd={addBlock} />
+          <Palette onAdd={addBlock} mapsEnabled={mapsEnabled} />
         </aside>
 
         <div className="relative overflow-y-auto pb-14 pt-6">

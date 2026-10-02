@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isReservedPagePath } from "@/lib/pwa/reserved-paths";
 import { BLOCK_TYPES } from "@/lib/builder/block-defaults";
-import { STARTER_TEMPLATES, buildStarter, isTemplateId } from "./templates";
+import { STARTER_TEMPLATES, buildStarter, isTemplateId, templateNeedsMaps } from "./templates";
 
 describe("starter templates", () => {
   it("offers a template for everything, ending with a blank one", () => {
@@ -27,6 +27,10 @@ describe("starter templates", () => {
   it("fills the app's name into the welcome text", () => {
     const home = buildStarter("business", "Maple Street Bakery").pages[0];
     expect(home.blocks[0].config).toMatchObject({ heading: "Welcome to Maple Street Bakery" });
+  });
+
+  it("knows which starters use Google Maps", () => {
+    expect(STARTER_TEMPLATES.filter((t) => templateNeedsMaps(t.id)).map((t) => t.id)).toEqual(["food", "gas"]);
   });
 
   it("starts the blank template with an empty Home page", () => {

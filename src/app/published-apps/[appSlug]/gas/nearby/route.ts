@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { getPublishedApp } from "@/lib/pwa/data";
+import { orgHasMaps } from "@/lib/platform/maps";
+import { MAPS_LOCKED_MESSAGE } from "@/lib/platform/maps-shared";
 import { getNearbyStations } from "@/lib/gas/nearby";
 
 const NearbySchema = z.object({
@@ -19,6 +21,11 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
   const published = await getPublishedApp(appSlug);
   if (!published) {
     return Response.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Before anything that could reach Google.
+  if (!(await orgHasMaps(published.app.organization_id))) {
+    return Response.json({ error: MAPS_LOCKED_MESSAGE }, { status: 403 });
   }
 
   const parsed = NearbySchema.safeParse(await request.json());

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, LayoutGrid, Settings } from "lucide-react";
+import { ArrowRight, LayoutGrid, Settings, ShieldCheck } from "lucide-react";
+import { isPlatformAdmin } from "@/lib/platform/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
@@ -19,6 +20,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const activeOrganizationId = await getActiveOrganizationId(supabase, memberships);
   if (!activeOrganizationId) redirect("/onboarding");
+
+  const platformAdmin = await isPlatformAdmin(supabase);
 
   const { data: activeOrg } = await supabase
     .from("organizations")
@@ -54,6 +57,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
           >
             <LayoutGrid className="h-4 w-4" /> Apps
           </Link>
+          {platformAdmin && (
+            <Link
+              href="/dashboard/admin"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-indigo-300 transition hover:bg-white/5 hover:text-indigo-200"
+            >
+              <ShieldCheck className="h-4 w-4" /> Admin
+            </Link>
+          )}
           <Link
             href="/dashboard/settings"
             className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-neutral-400 transition hover:bg-white/5 hover:text-white"

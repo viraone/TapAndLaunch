@@ -248,6 +248,8 @@ export interface Database {
           name: string;
           slug: string;
           plan: string;
+          /** Google Maps features (Live food, Gas prices); a platform admin switches them on. */
+          maps_enabled: boolean;
           branding: OrganizationBranding;
           created_at: string;
           updated_at: string;
@@ -622,6 +624,10 @@ export interface Database {
       create_organization: {
         Args: { p_name: string; p_slug: string };
         Returns: Database["public"]["Tables"]["organizations"]["Row"];
+      };
+      is_platform_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
       };
     };
   };

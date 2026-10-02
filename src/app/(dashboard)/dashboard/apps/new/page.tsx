@@ -11,6 +11,8 @@ export default async function NewAppPage() {
   const organizationId = await getActiveOrganizationId(supabase, memberships);
   if (!organizationId) redirect("/onboarding");
 
+  const { data: org } = await supabase.from("organizations").select("maps_enabled").eq("id", organizationId).maybeSingle();
+
   return (
     <main className="flex-1 bg-neutral-100/70">
       <section className="relative overflow-hidden bg-neutral-950 text-white">
@@ -25,7 +27,7 @@ export default async function NewAppPage() {
         </div>
       </section>
       <div className="relative mx-auto -mt-10 w-full max-w-6xl px-6 pb-16">
-        <NewAppForm organizationId={organizationId} rootDomain={getRootDomain()} />
+        <NewAppForm organizationId={organizationId} rootDomain={getRootDomain()} mapsEnabled={org?.maps_enabled === true} />
       </div>
     </main>
   );

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { activeOrgCookieHeader } from "@/lib/org";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isPlatformAdmin } from "@/lib/platform/admin";
 import type { Database } from "@/types/database";
 
 type OrganizationRow = Database["public"]["Tables"]["organizations"]["Row"];
@@ -48,6 +50,13 @@ export async function POST(request: Request) {
   if (error || !org) {
     const message = error?.code === "23505" ? "That URL slug is already taken" : (error?.message ?? "Failed to create organization");
     return Response.json({ error: message }, { status: 400 });
+  }
+
+  // Google Maps features are off for new customers; a platform admin's own
+  // organizations get them (their apps are the ones that use them).
+  if (await isPlatformAdmin(supabase)) {
+    await createAdminClient().from("organizations").update({ maps_enabled: true }).eq("id", org.id);
+    org.maps_enabled = true;
   }
 
   // A newly created org becomes the active one immediately — otherwise it

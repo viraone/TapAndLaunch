@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { Lock, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
+import { MAPS_LOCKED_MESSAGE, isMapsBlock } from "@/lib/platform/maps-shared";
 import { BLOCK_TYPE_LABELS } from "@/lib/builder/block-defaults";
 import { BLOCK_ACCENTS, BLOCK_DESCRIPTIONS, BLOCK_GROUPS, BLOCK_ICONS } from "@/components/builder/blockMeta";
 import type { BlockType } from "@/types/database";
@@ -12,7 +14,7 @@ import type { BlockType } from "@/types/database";
  * cross-container drag source here would roughly double the dnd-kit wiring
  * for a rarer action (you add a block once, then reorder it many times).
  */
-export function Palette({ onAdd }: { onAdd: (type: BlockType) => void }) {
+export function Palette({ onAdd, mapsEnabled = true }: { onAdd: (type: BlockType) => void; mapsEnabled?: boolean }) {
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
   const matches = (type: BlockType) =>
@@ -42,23 +44,29 @@ export function Palette({ onAdd }: { onAdd: (type: BlockType) => void }) {
           <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{group.label}</p>
           {group.types.map((type) => {
             const Icon = BLOCK_ICONS[type];
+            const locked = !mapsEnabled && isMapsBlock(type);
             return (
               <button
                 key={type}
                 type="button"
-                onClick={() => onAdd(type)}
-                className="group flex w-full items-center gap-3 rounded-2xl border border-transparent p-2 text-left transition hover:border-white/10 hover:bg-white/[0.05] focus-visible:border-white/20 focus-visible:outline-none"
+                aria-disabled={locked}
+                onClick={() => (locked ? toast.error(MAPS_LOCKED_MESSAGE) : onAdd(type))}
+                className={`group flex w-full items-center gap-3 rounded-2xl border border-transparent p-2 text-left transition ${locked ? "opacity-50" : ""}  hover:border-white/10 hover:bg-white/[0.05] focus-visible:border-white/20 focus-visible:outline-none`}
               >
                 <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br shadow-md ${BLOCK_ACCENTS[type]}`}>
                   <Icon className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] font-medium text-neutral-100">{BLOCK_TYPE_LABELS[type]}</span>
-                  <span className="block text-[11px] leading-snug text-neutral-500">{BLOCK_DESCRIPTIONS[type]}</span>
+                  <span className="block text-[11px] leading-snug text-neutral-500">{locked ? "Not switched on for your account" : BLOCK_DESCRIPTIONS[type]}</span>
                 </span>
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white text-neutral-950 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
-                  <Plus className="h-3.5 w-3.5" />
-                </span>
+                {locked ? (
+                  <Lock className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden />
+                ) : (
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white text-neutral-950 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
+                    <Plus className="h-3.5 w-3.5" />
+                  </span>
+                )}
               </button>
             );
           })}

@@ -1,4 +1,5 @@
 import { defaultConfigFor } from "@/lib/builder/block-defaults";
+import { isMapsBlock } from "@/lib/platform/maps-shared";
 import type { BlockConfig, BlockType, ManifestConfig, ThemeConfig } from "@/types/database";
 
 /**
@@ -81,6 +82,11 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
 ];
 
 export const DEFAULT_TEMPLATE_ID = "blank";
+
+/** Does this starter use Google Maps (Live food, Gas prices)? */
+export function templateNeedsMaps(id: string): boolean {
+  return buildStarter(id, "x").pages.some((p) => p.blocks.some((b) => isMapsBlock(b.type)));
+}
 
 export function isTemplateId(id: string): boolean {
   return STARTER_TEMPLATES.some((t) => t.id === id);

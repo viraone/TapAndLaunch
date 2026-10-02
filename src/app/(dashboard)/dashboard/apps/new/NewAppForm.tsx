@@ -9,13 +9,14 @@ import {
   CalendarDays,
   Fuel,
   Loader2,
+  Lock,
   Mic,
   Plus,
   ShoppingBag,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
-import { STARTER_TEMPLATES, type StarterTemplate, type TemplateIcon } from "@/lib/apps/templates";
+import { STARTER_TEMPLATES, templateNeedsMaps, type StarterTemplate, type TemplateIcon } from "@/lib/apps/templates";
 
 const ICONS: Record<TemplateIcon, LucideIcon> = {
   briefcase: Briefcase,
@@ -46,7 +47,7 @@ function slugify(value: string): string {
     .slice(0, 63);
 }
 
-export function NewAppForm({ organizationId, rootDomain }: { organizationId: string; rootDomain: string }) {
+export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organizationId: string; rootDomain: string; mapsEnabled: boolean }) {
   const router = useRouter();
   const [selected, setSelected] = useState<StarterTemplate | null>(null);
   const [name, setName] = useState("");
@@ -154,13 +155,20 @@ export function NewAppForm({ organizationId, rootDomain }: { organizationId: str
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {STARTER_TEMPLATES.map((t) => {
         const Icon = ICONS[t.icon];
+        const locked = !mapsEnabled && templateNeedsMaps(t.id);
         return (
           <button
             key={t.id}
             type="button"
+            disabled={locked}
             onClick={() => setSelected(t)}
-            className="group flex flex-col rounded-3xl bg-white p-6 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_24px_48px_-16px_rgba(0,0,0,0.28)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950"
+            className="group relative flex flex-col rounded-3xl bg-white p-6 text-left disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 transition duration-300 enabled:hover:-translate-y-1 enabled:hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_24px_48px_-16px_rgba(0,0,0,0.28)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950"
           >
+            {locked && (
+              <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-neutral-950 px-2.5 py-1 text-[11px] font-semibold text-white">
+                <Lock className="h-3 w-3" /> Not on yet
+              </span>
+            )}
             <span
               className="grid h-12 w-12 place-items-center rounded-2xl text-white shadow-lg transition group-hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${t.color}, color-mix(in oklab, ${t.color} 55%, #0a0a0a))` }}
@@ -168,7 +176,9 @@ export function NewAppForm({ organizationId, rootDomain }: { organizationId: str
               <Icon className="h-5 w-5" />
             </span>
             <h2 className="mt-5 text-lg font-semibold tracking-tight">{t.name}</h2>
-            <p className="mt-1 flex-1 text-sm leading-relaxed text-neutral-500">{t.tagline}</p>
+            <p className="mt-1 flex-1 text-sm leading-relaxed text-neutral-500">
+              {locked ? "Uses live maps data, so it's switched on per account. Contact us to turn it on." : t.tagline}
+            </p>
             <div className="mt-4 flex min-h-6 flex-wrap gap-1.5">
               {t.includes.length ? (
                 t.includes.map((chip) => (

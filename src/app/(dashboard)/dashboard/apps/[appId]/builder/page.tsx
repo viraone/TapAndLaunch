@@ -35,6 +35,8 @@ export default async function BuilderPage({ params }: { params: Params }) {
     .eq("page_id", homePage.id)
     .order("position", { ascending: true });
 
+  const { data: org } = await supabase.from("organizations").select("maps_enabled").eq("id", app.organization_id).maybeSingle();
+
   const otherPageIds = pages.filter((p) => p.id !== homePage.id).map((p) => p.id);
   const [hasVisit, otherBlocks] = await Promise.all([
     app.status === "published" ? appHasVisit(supabase, appId) : Promise.resolve(false),
@@ -48,6 +50,7 @@ export default async function BuilderPage({ params }: { params: Params }) {
       initialPages={pages}
       initialPageId={homePage.id}
       initialBlocks={blocks ?? []}
+      mapsEnabled={org?.maps_enabled === true}
       hasVisit={hasVisit}
       contentOnOtherPages={!!otherBlocks.data?.length}
     />

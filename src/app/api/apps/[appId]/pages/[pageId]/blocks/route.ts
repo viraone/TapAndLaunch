@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { orgHasMaps } from "@/lib/platform/maps";
+import { MAPS_LOCKED_MESSAGE, isMapsBlock } from "@/lib/platform/maps-shared";
 
 const BlockSchema = z.object({
   type: z.enum([
@@ -36,7 +38,7 @@ const SaveBlocksSchema = z.object({
  * accepted limitation, not an oversight.
  */
 export async function PUT(request: Request, context: { params: Promise<{ appId: string; pageId: string }> }) {
-  const { pageId } = await context.params;
+  const { appId, pageId } = await context.params;
   const supabase = await createClient();
 
   const {
@@ -49,6 +51,15 @@ export async function PUT(request: Request, context: { params: Promise<{ appId: 
   const parsed = SaveBlocksSchema.safeParse(await request.json());
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
+  }
+
+  // Live food / Gas prices cost Google money: only organizations a platform
+  // admin has switched on may save them. Checked before anything is deleted.
+  if (parsed.data.blocks.some((b) => isMapsBlock(b.type))) {
+    const { data: app } = await supabase.from("apps").select("organization_id").eq("id", appId).maybeSingle();
+    if (!app || !(await orgHasMaps(app.organization_id))) {
+      return Response.json({ error: MAPS_LOCKED_MESSAGE }, { status: 403 });
+    }
   }
 
   const { error: deleteError } = await supabase.from("blocks").delete().eq("page_id", pageId);
