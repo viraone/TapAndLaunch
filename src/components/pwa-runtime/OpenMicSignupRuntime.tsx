@@ -981,18 +981,15 @@ export function ShowDay({
               {feed.lineup.length} {feed.lineup.length === 1 ? "comic" : "comics"}
             </span>
           </div>
-          {/* overflow-clip, not hidden: hidden would make the card its own scroller and break
-              the sticky "you" row below. */}
-          <ol className="overflow-clip rounded-xl bg-muted">
+          <ol className="overflow-hidden rounded-xl bg-muted">
             {feed.lineup.map((entry, i) => (
               <li
                 key={`${entry.name}-${i}`}
                 aria-current={entry.mine ? "true" : undefined}
                 className={
                   "relative flex min-h-11 items-center gap-3 px-4 py-2.5 after:absolute after:bottom-0 after:left-4 after:right-0 after:h-px after:bg-foreground/10 last:after:hidden" +
-                  // The comic's own row: tinted (opaque, so rows don't show through) and pinned
-                  // under the header when scrolled above, or to the bottom edge when below.
-                  (entry.mine ? " sticky top-[3.5rem] bottom-0 z-[5] bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))]" : "")
+                  // The comic's own row is tinted; it scrolls like every other row.
+                  (entry.mine ? " bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))]" : "")
                 }
               >
                 <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (entry.mine ? "font-semibold" : "font-medium")}>
