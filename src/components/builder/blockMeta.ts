@@ -1,0 +1,71 @@
+import {
+  Type,
+  Image as ImageIcon,
+  Video,
+  ClipboardList,
+  ShoppingBag,
+  CalendarDays,
+  Video as ZoomIcon,
+  Palette as CanvaIcon,
+  Mic,
+  Fuel,
+  UtensilsCrossed,
+  Ticket,
+  type LucideIcon,
+} from "lucide-react";
+import type { BlockType } from "@/types/database";
+
+/** How each block looks in the builder's library, inspector and outline. */
+export const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
+  text: Type,
+  image: ImageIcon,
+  video: Video,
+  contact_form: ClipboardList,
+  product_list: ShoppingBag,
+  event_calendar: CalendarDays,
+  zoom_meeting: ZoomIcon,
+  canva_embed: CanvaIcon,
+  gas_directory: Fuel,
+  food_directory: UtensilsCrossed,
+  listing_directory: Mic,
+  open_mic_signup: Ticket,
+};
+
+/** Each block gets its own accent so the library reads as a set of tools,
+ * not a list of identical buttons. */
+export const BLOCK_ACCENTS: Record<BlockType, string> = {
+  text: "from-neutral-300 to-neutral-500 text-neutral-950",
+  image: "from-sky-400 to-blue-500 text-white",
+  video: "from-rose-400 to-red-500 text-white",
+  contact_form: "from-amber-400 to-orange-500 text-amber-950",
+  product_list: "from-emerald-400 to-green-500 text-emerald-950",
+  event_calendar: "from-violet-400 to-purple-500 text-white",
+  zoom_meeting: "from-blue-400 to-indigo-500 text-white",
+  canva_embed: "from-fuchsia-400 to-pink-500 text-white",
+  gas_directory: "from-teal-400 to-emerald-500 text-teal-950",
+  food_directory: "from-orange-400 to-red-500 text-white",
+  listing_directory: "from-orange-400 to-rose-500 text-white",
+  open_mic_signup: "from-red-500 to-rose-600 text-white",
+};
+
+export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
+  text: "A heading and a paragraph",
+  image: "A photo or graphic",
+  video: "YouTube, Vimeo or a link",
+  contact_form: "Collect messages and sign-ups",
+  product_list: "Sell your products",
+  event_calendar: "Upcoming events to book",
+  zoom_meeting: "A join-the-meeting button",
+  canva_embed: "Show a Canva design",
+  listing_directory: "Open mics happening today",
+  gas_directory: "Cheapest gas near the viewer",
+  food_directory: "What's open to eat right now",
+  open_mic_signup: "Request a spot with a code",
+};
+
+export const BLOCK_GROUPS: Array<{ label: string; types: BlockType[] }> = [
+  { label: "Content", types: ["text", "image", "video"] },
+  { label: "Engage", types: ["contact_form", "zoom_meeting", "canva_embed"] },
+  { label: "Sell & book", types: ["product_list", "event_calendar"] },
+  { label: "Live data", types: ["listing_directory", "gas_directory", "food_directory", "open_mic_signup"] },
+];

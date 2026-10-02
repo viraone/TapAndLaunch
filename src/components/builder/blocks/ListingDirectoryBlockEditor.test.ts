@@ -36,6 +36,10 @@ describe("ListingDirectoryBlockEditor", () => {
         organizationId: "o",
         onChange: () => {},
         onMinTierChange: () => {},
+        pageName: "Home",
+        blocks: [],
+        onSelect: () => {},
+        onClose: () => {},
       })
     );
     expect(html).toContain("Listing directory");

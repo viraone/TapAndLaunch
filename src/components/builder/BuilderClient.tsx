@@ -12,7 +12,8 @@ import {
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { toast } from "sonner";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Rocket, Save } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Rocket, Save } from "lucide-react";
+import { tileGradient, tileInitial } from "@/lib/apps/tile";
 import { Palette } from "@/components/builder/Palette";
 import { Inspector } from "@/components/builder/Inspector";
 import { PageTabs } from "@/components/builder/PageTabs";
@@ -191,85 +192,109 @@ export function BuilderClient({
     });
   }
 
-  const currentPagePath = pages.find((p) => p.id === currentPageId)?.path;
+  const currentPage = pages.find((p) => p.id === currentPageId);
+  const currentPagePath = currentPage?.path;
+  const live = currentApp.status === "published";
 
   return (
     <div className="dark flex h-[calc(100dvh-3.5rem)] flex-col bg-neutral-950 text-neutral-50">
-      <header className="flex items-center justify-between border-b border-white/[0.06] px-4 py-2">
+      <header className="flex items-center justify-between gap-4 border-b border-white/[0.06] px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-neutral-300 transition hover:bg-white/10 hover:text-white"
+            aria-label="All apps"
+            title="All apps"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-neutral-300 transition hover:bg-white/10 hover:text-white"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> All apps
+            <ArrowLeft className="h-4 w-4" />
           </Link>
-          <div className="flex min-w-0 items-center gap-2">
-            <h1 className="truncate text-base font-semibold tracking-tight">{currentApp.name}</h1>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                currentApp.status === "published"
-                  ? "bg-emerald-400/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/30"
-                  : "bg-white/5 text-neutral-400 ring-1 ring-inset ring-white/10"
-              }`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${currentApp.status === "published" ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" : "bg-neutral-500"}`} />
-              {currentApp.status === "published" ? "Live" : "Draft"}
-            </span>
-          </div>
-          {currentApp.status === "published" && (
+          <AppMark app={currentApp} />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="truncate text-[15px] font-semibold tracking-tight">{currentApp.name}</h1>
+              <span
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                  live ? "bg-emerald-400/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/30" : "bg-white/5 text-neutral-400 ring-1 ring-inset ring-white/10"
+                }`}
+              >
+                <span className="relative flex h-1.5 w-1.5">
+                  {live && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+                  <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${live ? "bg-emerald-400" : "bg-neutral-500"}`} />
+                </span>
+                {live ? "Live" : "Draft"}
+              </span>
+            </div>
             <a
               href={`//${currentApp.slug}.${rootDomain}`}
               target="_blank"
               rel="noreferrer"
-              className="hidden items-center gap-1 text-xs text-neutral-400 transition hover:text-white sm:inline-flex"
+              className="hidden items-center gap-1 truncate text-xs text-neutral-500 transition hover:text-white sm:inline-flex"
             >
-              {currentApp.slug}.{rootDomain} <ExternalLink className="h-3 w-3" />
+              {currentApp.slug}.{rootDomain} <ArrowUpRight className="h-3 w-3" />
             </a>
-          )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <DeviceFrameSwitcher value={device} onChange={setDevice} />
           <AppSettingsDialog app={currentApp} pages={pages} onSaved={setCurrentApp} />
-          <button
-            type="button"
-            onClick={save}
-            disabled={isSaving}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 text-xs font-medium text-neutral-200 transition hover:bg-white/10 disabled:opacity-50"
-          >
-            <Save className="h-3.5 w-3.5" /> {isSaving ? "Saving…" : "Save"}
-          </button>
-          <button
-            type="button"
-            onClick={togglePublish}
-            disabled={isPublishing}
-            className={
-              currentApp.status === "published"
-                ? "inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 text-xs font-medium text-neutral-200 transition hover:bg-white/10 disabled:opacity-50"
-                : "inline-flex h-8 items-center gap-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 px-4 text-xs font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-110 disabled:opacity-50 disabled:hover:brightness-100"
-            }
-          >
-            {currentApp.status === "published" ? (
-              isPublishing ? "Unpublishing…" : "Unpublish"
-            ) : (
-              <>
-                <Rocket className="h-3.5 w-3.5" /> {isPublishing ? "Publishing…" : "Publish"}
-              </>
-            )}
-          </button>
+          <span className="mx-1 h-6 w-px bg-white/10" aria-hidden />
+          {live ? (
+            <>
+              <button
+                type="button"
+                onClick={togglePublish}
+                disabled={isPublishing}
+                className="inline-flex h-9 items-center rounded-full px-3 text-xs font-medium text-neutral-400 transition hover:bg-white/5 hover:text-white disabled:opacity-50"
+              >
+                {isPublishing ? "Unpublishing…" : "Unpublish"}
+              </button>
+              <button type="button" onClick={save} disabled={isSaving} className={PRIMARY}>
+                <Save className="h-4 w-4" /> {isSaving ? "Saving…" : "Save changes"}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={save}
+                disabled={isSaving}
+                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-4 text-xs font-medium text-neutral-200 transition hover:bg-white/10 disabled:opacity-50"
+              >
+                <Save className="h-3.5 w-3.5" /> {isSaving ? "Saving…" : "Save draft"}
+              </button>
+              <button type="button" onClick={togglePublish} disabled={isPublishing} className={PRIMARY}>
+                <Rocket className="h-4 w-4" /> {isPublishing ? "Publishing…" : "Publish"}
+              </button>
+            </>
+          )}
         </div>
       </header>
 
       <PageTabs pages={pages} currentPageId={currentPageId} onSelect={switchPage} onCreate={createPage} />
 
-      <div className="grid flex-1 grid-cols-[236px_1fr_300px] overflow-hidden">
+      <div className="grid flex-1 grid-cols-[260px_1fr_320px] overflow-hidden">
         <aside className="overflow-y-auto border-r border-white/[0.06] bg-neutral-950">
           <Palette onAdd={addBlock} />
         </aside>
 
-        <div className="relative overflow-y-auto py-10">
-          {/* Workspace backdrop: faint grid + glow, same language as the landing page. */}
-          <div aria-hidden className="pointer-events-none absolute inset-0">
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_75%)]" />
+        <div className="relative overflow-y-auto pb-14 pt-6">
+          {/* Workspace backdrop: the dashboard hero's two glows and dot texture. */}
+          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -left-40 -top-40 h-[30rem] w-[30rem] rounded-full bg-indigo-600/20 blur-3xl" />
+            <div className="absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-pink-500/15 blur-3xl" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.06)_1px,transparent_0)] [background-size:22px_22px] [mask-image:radial-gradient(ellipse_at_center,black_25%,transparent_75%)]" />
+          </div>
+          <div className="relative mb-5 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-neutral-900/70 px-3.5 py-1.5 text-xs text-neutral-400 backdrop-blur">
+              <span className="font-semibold text-neutral-100">{currentPage?.name ?? "Page"}</span>
+              <span aria-hidden>·</span>
+              {blocks.length} block{blocks.length === 1 ? "" : "s"}
+              {blocks.length > 1 && (
+                <>
+                  <span aria-hidden>·</span> drag to reorder
+                </>
+              )}
+            </span>
           </div>
           <MobilePreviewFrame device={device} theme={currentApp.theme}>
             <div className="flex-1 overflow-y-auto">
@@ -311,6 +336,10 @@ export function BuilderClient({
         <aside className="overflow-y-auto border-l border-white/[0.06] bg-neutral-950">
           <Inspector
             block={selectedBlock}
+            pageName={currentPage?.name ?? "This page"}
+            blocks={blocks}
+            onSelect={setSelectedBlockId}
+            onClose={() => setSelectedBlockId(null)}
             appId={currentApp.id}
             organizationId={currentApp.organization_id}
             onChange={updateSelectedBlockConfig}
@@ -319,5 +348,26 @@ export function BuilderClient({
         </aside>
       </div>
     </div>
+  );
+}
+
+const PRIMARY =
+  "inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-4 text-xs font-semibold text-neutral-950 shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_8px_24px_-8px_rgba(129,140,248,0.8)] transition hover:bg-indigo-50 disabled:opacity-60";
+
+/** The app's icon, or its letter tile in the app's own colour. */
+function AppMark({ app }: { app: AppRow }) {
+  const tile = tileGradient(app.id);
+  const brand = app.theme.primary_color;
+  if (app.manifest.icon_url) {
+    // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
+    return <img src={app.manifest.icon_url} alt="" className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-md" />;
+  }
+  return (
+    <span
+      className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-sm font-bold text-white shadow-md ${brand ? "" : tile.classes}`}
+      style={brand ? { background: `linear-gradient(135deg, ${brand} 0%, color-mix(in oklab, ${brand} 45%, #0a0a0a) 100%)` } : undefined}
+    >
+      {tileInitial(app.name)}
+    </span>
   );
 }

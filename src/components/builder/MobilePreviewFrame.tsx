@@ -54,13 +54,15 @@ export function MobilePreviewFrame({
   return (
     <div className="relative mx-auto w-fit">
       {/* Glow behind the device */}
+      {/* Floor shadow */}
+      <div aria-hidden className="pointer-events-none absolute -bottom-8 left-1/2 h-10 w-72 -translate-x-1/2 rounded-[50%] bg-black/70 blur-xl" />
       <div
         aria-hidden
         className="pointer-events-none absolute -inset-10 rounded-[4rem] bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.25),rgba(236,72,153,0.12)_45%,transparent_70%)] blur-2xl"
       />
       <div
         className={cn(
-          "relative flex h-[720px] w-[360px] flex-col overflow-hidden bg-neutral-950 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.08)]",
+          "relative flex h-[720px] w-[360px] flex-col overflow-hidden bg-gradient-to-b from-neutral-800 via-neutral-900 to-neutral-950 shadow-[0_40px_90px_-24px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]",
           device === "ios" ? "rounded-[3rem] p-2.5" : "rounded-[1.75rem] p-2"
         )}
       >
@@ -72,7 +74,7 @@ export function MobilePreviewFrame({
         <div
           style={style}
           className={cn(
-            "relative flex flex-1 flex-col overflow-hidden bg-background text-foreground",
+            "relative flex flex-1 flex-col overflow-hidden bg-background text-foreground ring-1 ring-black/60",
             appDark ? "dark" : "light",
             device === "ios" ? "rounded-[2.4rem]" : "rounded-[1.25rem]"
           )}
