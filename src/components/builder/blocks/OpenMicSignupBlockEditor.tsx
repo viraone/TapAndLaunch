@@ -31,6 +31,14 @@ export function OpenMicSignupBlockEditor({
       {text("show_time", "Show time")}
       {text("logo_url", "Logo image URL")}
       {text("lineup_url", "Lineup feed URL")}
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={config.show_lineup === true}
+          onChange={(e) => onChange({ ...config, show_lineup: e.target.checked })}
+        />
+        Show the lineup list on the closed screen
+      </label>
       {text("supabase_url", "Supabase project URL")}
       {text("anon_key", "Supabase public key")}
       <p className="text-xs text-muted-foreground">

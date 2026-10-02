@@ -189,10 +189,6 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
           </div>
         )}
 
-        {phase === "email" && showDayOn && (
-          <ShowDayScreen client={client} userId={undefined} signedIn={false} requested={false} config={config} dateLabel={showDate} window={window_} now={now} />
-        )}
-
         {phase === "email" && (
           <EmailStep
             client={client}
@@ -837,7 +833,7 @@ function ShowDay({
         </div>
       )}
 
-      {feed?.posted && feed.lineup.length > 0 && (
+      {config.show_lineup === true && feed?.posted && feed.lineup.length > 0 && (
         <section aria-label="Lineup" className="rounded-2xl border bg-muted/40 p-5">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">{today ? "Tonight's lineup" : `${weekday}'s lineup`}</h2>
           <ol className="mt-3 divide-y divide-border/70">
