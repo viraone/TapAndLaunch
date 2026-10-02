@@ -258,7 +258,7 @@ function ClosedSignedOut({ today, onSignIn }: { today: boolean; onSignIn: () => 
       <p className="mt-3 text-xl font-semibold leading-snug text-foreground">
         They will reopen {today ? "after tonight's show" : "after tomorrow's show"}.
       </p>
-      <p className="mt-8 text-xl font-bold leading-snug text-foreground">Did you already request a spot for this week?</p>
+      <p className="mt-5 text-xl font-bold leading-snug text-foreground">Did you already request a spot for this week?</p>
       <button
         type="button"
         onClick={onSignIn}
