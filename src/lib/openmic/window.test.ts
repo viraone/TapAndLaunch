@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatShowDate, formatWeekTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "./window";
+import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "./window";
 
 const RTR: WeeklyWindow = {
   timeZone: "America/Los_Angeles",
@@ -51,6 +51,16 @@ describe("Read The Room request window", () => {
     expect(reopenLabel(RTR, pdt("2026-10-02T12:00"))).toBe("after tonight's show");
     expect(isShowDay(RTR, pdt("2026-10-01T22:30"))).toBe(false);
     expect(reopenLabel(RTR, pdt("2026-10-01T22:30"))).toBe("after tomorrow's show");
+  });
+
+  it("shows the lineup from Friday 6:00 AM until requests reopen, not before", () => {
+    expect(isLineupTime(RTR, pdt("2026-10-01T22:30"))).toBe(false); // Thursday night
+    expect(isLineupTime(RTR, pdt("2026-10-02T00:00"))).toBe(false); // midnight
+    expect(isLineupTime(RTR, pdt("2026-10-02T05:59"))).toBe(false);
+    expect(isLineupTime(RTR, pdt("2026-10-02T06:00"))).toBe(true);
+    expect(isLineupTime(RTR, pdt("2026-10-02T21:39"))).toBe(true);
+    expect(isLineupTime(RTR, pdt("2026-10-02T21:40"))).toBe(false); // requests are open again
+    expect(isLineupTime(RTR, pdt("2026-10-04T10:00"))).toBe(false); // an ordinary open day
   });
 
   it("formats the open/close times", () => {

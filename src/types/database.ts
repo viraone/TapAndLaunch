@@ -227,7 +227,7 @@ export interface OpenMicSignupBlockConfig {
   logo_url?: string;
   /** The show's lineup feed (name, set, time, and the viewer's own status). Without it the closed screen stays simple. */
   lineup_url?: string;
-  /** Also list everyone on the lineup (names, set, time) on the closed screen. Off by default. */
+  /** List everyone on the lineup (names, set, time) for signed-in comics from show day 6 AM. On unless set to false. */
   show_lineup?: boolean;
   supabase_url?: string;
   anon_key?: string;

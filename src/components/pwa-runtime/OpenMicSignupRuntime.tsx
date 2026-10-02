@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { Check, CircleCheck, Loader2, Mail } from "lucide-react";
-import { notSelectedCopy, reopenPhrase, showDayState, slotLine, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
+import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, slotLine, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
-import { formatShowDate, formatWeekTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
+import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 
 /**
  * StageTime PNW's weekly showcase sign-up. Accounts and the request list live
@@ -555,7 +555,7 @@ function RequestForm({
         </Agreement>
         <Agreement checked={guarantee} onChange={setGuarantee}>
           A request doesn&apos;t guarantee a spot. If you&apos;re selected, we&apos;ll email you on Thursday. If you don&apos;t
-          hear from us, check this page.
+          hear from us, check this page Friday morning.
         </Agreement>
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
@@ -702,11 +702,11 @@ function useNow(): Date {
 }
 
 /** The lineup feed, refreshed every minute while the screen is showing. */
-function useLineup(url: string | undefined, client: SupabaseClient, userId: string | undefined) {
+function useLineup(url: string | undefined, client: SupabaseClient, userId: string | undefined, enabled: boolean) {
   const [feed, setFeed] = useState<LineupFeed | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
-    if (!url) return;
+    if (!url || !enabled) return;
     let cancelled = false;
     async function load() {
       try {
@@ -729,7 +729,7 @@ function useLineup(url: string | undefined, client: SupabaseClient, userId: stri
       cancelled = true;
       clearInterval(timer);
     };
-  }, [url, client, userId]);
+  }, [url, client, userId, enabled]);
   return { feed, failed };
 }
 
@@ -753,9 +753,11 @@ function ShowDayScreen({
   window: WeeklyWindow;
   now: Date;
 }) {
-  const { feed, failed } = useLineup(config.lineup_url, client, userId);
-  const state = showDayState({ signedIn, requested, feed, failed });
-  return <ShowDay state={state} feed={feed} failed={failed} config={config} dateLabel={dateLabel} today={isShowDay(window, now)} />;
+  // Thursday 10 PM to Friday 6 AM nothing about selections or the lineup is shown, so nothing is fetched.
+  const lineupTime = isLineupTime(window, now);
+  const { feed, failed } = useLineup(config.lineup_url, client, userId, lineupTime);
+  const state = showDayState({ signedIn, requested, feed, failed, lineupTime });
+  return <ShowDay state={state} feed={feed} failed={failed} config={config} dateLabel={dateLabel} today={isShowDay(window, now)} lineupTime={lineupTime} />;
 }
 
 /** Show day (Thu 10 PM to Fri 9:40 PM): the comic's own status, then the lineup. */
@@ -766,6 +768,7 @@ function ShowDay({
   config,
   dateLabel,
   today,
+  lineupTime,
 }: {
   state: ShowDayState;
   feed: LineupFeed | null;
@@ -773,8 +776,9 @@ function ShowDay({
   config: OpenMicSignupBlockConfig;
   dateLabel: string;
   today: boolean;
+  lineupTime: boolean;
 }) {
-  if (!feed && !failed) {
+  if (lineupTime && !feed && !failed) {
     return (
       <div className="flex justify-center py-12" role="status" aria-label="Loading the lineup">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -787,6 +791,13 @@ function ShowDay({
 
   return (
     <div className="space-y-4">
+      {state === "closed-night" && (
+        <div className="rounded-2xl border bg-muted/60 p-6">
+          <h2 className="text-xl font-bold">{CLOSED_NIGHT_COPY.title}</h2>
+          <p className="mt-2 text-base leading-relaxed text-muted-foreground">{CLOSED_NIGHT_COPY.body}</p>
+        </div>
+      )}
+
       {state === "selected" && mine && (
         <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white">
@@ -833,7 +844,7 @@ function ShowDay({
         </div>
       )}
 
-      {config.show_lineup === true && feed?.posted && feed.lineup.length > 0 && (
+      {lineupTime && config.show_lineup !== false && feed?.posted && feed.lineup.length > 0 && (
         <section aria-label="Lineup" className="rounded-2xl border bg-muted/40 p-5">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">{today ? "Tonight's lineup" : `${weekday}'s lineup`}</h2>
           <ol className="mt-3 divide-y divide-border/70">

@@ -97,6 +97,17 @@ export function isShowDay(w: WeeklyWindow, now: Date = new Date()): boolean {
   return localTime(now, w.timeZone).weekday === w.showWeekday;
 }
 
+/** The lineup is shown from this time on show day (6:00 AM, like the old site). */
+export const LINEUP_FROM_MINUTES = 6 * 60;
+
+/** Show day, from 6:00 AM until requests reopen: the lineup (and each comic's
+ * own status) may be shown. Before that, closed means closed. */
+export function isLineupTime(w: WeeklyWindow, now: Date = new Date()): boolean {
+  if (isWindowOpen(w, now)) return false;
+  const t = localTime(now, w.timeZone);
+  return t.weekday === w.showWeekday && t.minutes >= LINEUP_FROM_MINUTES;
+}
+
 /** "after tonight's show" on show day, "after tomorrow's show" the night before. */
 export function reopenLabel(w: WeeklyWindow, now: Date = new Date()): string {
   return isShowDay(w, now) ? "after tonight's show" : "after tomorrow's show";

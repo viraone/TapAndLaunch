@@ -34,10 +34,10 @@ export function OpenMicSignupBlockEditor({
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"
-          checked={config.show_lineup === true}
+          checked={config.show_lineup !== false}
           onChange={(e) => onChange({ ...config, show_lineup: e.target.checked })}
         />
-        Show the lineup list on the closed screen
+        Show the lineup to signed-in comics on show day (from 6 AM)
       </label>
       {text("supabase_url", "Supabase project URL")}
       {text("anon_key", "Supabase public key")}
