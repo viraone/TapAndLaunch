@@ -76,6 +76,8 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
   const [user, setUser] = useState<User | null>(null);
   const [request, setRequest] = useState<RequestRow | null>(null);
   const [email, setEmail] = useState("");
+  // While sign-ups are closed, the email box stays tucked behind a small link.
+  const [showSignIn, setShowSignIn] = useState(false);
 
   const profile = profileOf(user);
 
@@ -195,7 +197,11 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
           </div>
         )}
 
-        {phase === "email" && (
+        {phase === "email" && !open && !showSignIn && (
+          <ClosedSignedOut today={isShowDay(window_, now)} onSignIn={() => setShowSignIn(true)} />
+        )}
+
+        {phase === "email" && (open || showSignIn) && (
           <EmailStep
             client={client}
             email={email}
@@ -239,6 +245,28 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
         ))}
 
       </div>
+    </div>
+  );
+}
+
+/** Signed out while sign-ups are closed: say so plainly. Sign-in is only for
+ * people who already requested, so it's a small link, not a form. */
+function ClosedSignedOut({ today, onSignIn }: { today: boolean; onSignIn: () => void }) {
+  return (
+    <div className="rounded-2xl border bg-muted/60 p-6">
+      <h2 className="text-xl font-bold">Sign ups for this Friday are closed</h2>
+      <p className="mt-2 text-base leading-relaxed text-muted-foreground">
+        {today
+          ? "Requests for next Friday's show open tonight, right after this one."
+          : "Requests for next Friday's show open right after tomorrow's show."}{" "}
+        Come back then to request a spot.
+      </p>
+      <p className="mt-5 text-sm text-muted-foreground">
+        Requested a spot this week?{" "}
+        <button type="button" onClick={onSignIn} className="font-semibold text-foreground underline underline-offset-4">
+          Sign in to see your status.
+        </button>
+      </p>
     </div>
   );
 }
@@ -306,10 +334,12 @@ function EmailStep({
         {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mail className="h-5 w-5" />}
         Send my code
       </button>
-      <div className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
-        <CircleCheck className="h-6 w-6 shrink-0 text-emerald-400" aria-hidden="true" />
-        <p className="text-lg font-bold leading-snug">First time or returning, all we need is your email.</p>
-      </div>
+      {open && (
+        <div className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
+          <CircleCheck className="h-6 w-6 shrink-0 text-emerald-400" aria-hidden="true" />
+          <p className="text-lg font-bold leading-snug">First time or returning, all we need is your email.</p>
+        </div>
+      )}
     </form>
   );
 }
