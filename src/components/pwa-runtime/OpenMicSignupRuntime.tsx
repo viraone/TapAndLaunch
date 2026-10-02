@@ -888,9 +888,11 @@ export function ShowDay({
             onClick={dismiss}
             aria-label="Dismiss"
             title="Dismiss"
-            className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition hover:bg-foreground/10 hover:text-foreground"
+            className="group absolute right-1 top-1 grid h-12 w-12 place-items-center"
           >
-            <X className="h-5 w-5" />
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-foreground/15 text-foreground/80 transition group-hover:bg-foreground/25 group-active:bg-foreground/30">
+              <X className="h-5 w-5" strokeWidth={2.75} />
+            </span>
           </button>
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white">
             <Check className="h-7 w-7" strokeWidth={3} />
