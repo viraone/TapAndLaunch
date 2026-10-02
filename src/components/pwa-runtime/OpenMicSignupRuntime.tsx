@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { Check, ChevronRight, CircleCheck, Loader2, Mail, X } from "lucide-react";
@@ -433,6 +433,9 @@ function CodeStep({
   const [error, setError] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
   const [cooldown, setCooldown] = useState(60);
+  // A rejected code behaves like a wrong iPhone passcode: the box shakes, turns red and empties.
+  const [wrong, setWrong] = useState(false);
+  const codeInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -448,6 +451,24 @@ function CodeStep({
     if (error || !data.user) {
       setError(friendlyAuthError(error?.message));
       setCode("");
+      if (isBadCode(error?.message)) {
+        setWrong(true);
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          codeInput.current?.animate(
+            [
+              { transform: "translateX(0)" },
+              { transform: "translateX(-12px)" },
+              { transform: "translateX(10px)" },
+              { transform: "translateX(-8px)" },
+              { transform: "translateX(6px)" },
+              { transform: "translateX(-3px)" },
+              { transform: "translateX(0)" },
+            ],
+            { duration: 420, easing: "ease-in-out" }
+          );
+        }
+      }
+      codeInput.current?.focus();
       return;
     }
     onVerified(data.user);
@@ -477,7 +498,9 @@ function CodeStep({
         check spam if you don&apos;t see it.
       </p>
       <input
+        ref={codeInput}
         aria-label="6-digit code"
+        aria-invalid={wrong}
         autoFocus
         inputMode="numeric"
         autoComplete="one-time-code"
@@ -487,12 +510,23 @@ function CodeStep({
         onChange={(e) => {
           const next = e.target.value.replace(/\D/g, "").slice(0, CODE_LENGTH);
           setCode(next);
+          setWrong(false);
           if (next.length === CODE_LENGTH && !busy) void verify(next);
         }}
         placeholder="••••••"
-        className="mt-4 h-16 w-full rounded-xl border bg-background text-center font-mono text-3xl tracking-[0.5em] outline-none focus:border-primary"
+        className={
+          "mt-4 h-16 w-full rounded-xl border bg-background text-center font-mono text-3xl tracking-[0.5em] outline-none " +
+          (wrong ? "border-red-500 ring-2 ring-red-500/30" : "focus:border-primary")
+        }
       />
-      {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+      {wrong ? (
+        <div role="alert" className="mt-3 text-center">
+          <p className="text-lg font-bold text-red-400">Wrong code. Try again.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Use the newest email, or send a new code.</p>
+        </div>
+      ) : (
+        error && <p className="mt-3 text-sm text-red-400">{error}</p>
+      )}
       {resent && !error && <p className="mt-3 text-sm text-emerald-300">New code sent.</p>}
       <button
         type="submit"
@@ -790,9 +824,15 @@ async function sendCode(client: SupabaseClient, email: string): Promise<{ error:
   return { error: error ? friendlyAuthError(error.message) : null };
 }
 
+/** The code was wrong or too old (as opposed to rate limits or network trouble). */
+function isBadCode(message: string | undefined): boolean {
+  const m = (message ?? "").toLowerCase();
+  return m.includes("expired") || m.includes("invalid");
+}
+
 function friendlyAuthError(message: string | undefined): string {
   const m = (message ?? "").toLowerCase();
-  if (m.includes("expired") || m.includes("invalid")) return "That code didn't work. Use the newest email, or send a new code.";
+  if (isBadCode(message)) return "That code didn't work. Use the newest email, or send a new code.";
   if (m.includes("rate limit")) return "Too many emails right now. Try again in a few minutes.";
   const wait = m.match(/after (\d+) seconds?/);
   if (wait) return `Wait ${wait[1]} seconds, then try again.`;
