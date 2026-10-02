@@ -175,7 +175,7 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
           </span>
           {open
             ? `Open · closes ${formatWeekTime(window_.closesWeekday, window_.closesMinutes)}`
-            : `Closed · reopens ${reopenLabel(window_, now)}`}
+            : `Sign ups are closed - reopens ${reopenLabel(window_, now)}`}
         </div>
         )}
       </header>
