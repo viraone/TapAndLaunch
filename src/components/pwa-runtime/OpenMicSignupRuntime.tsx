@@ -132,6 +132,10 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
 
   // While requests are closed, the screen shows the lineup and each comic's own status.
   const showDayOn = !open && !!config.lineup_url;
+  // Show day (Fri 6 AM until requests reopen): a signed-in comic's card already says what
+  // they need, so the Open/Closed pill is left out. Also hidden while we find out who's signed in,
+  // so it doesn't flash for returning comics.
+  const hidePill = showDayOn && isLineupTime(window_, now) && (phase === "loading" || !!user);
 
   if (!client) {
     return (
@@ -158,6 +162,7 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
             <h1 className="mt-1 text-3xl font-black tracking-tight">{showDate}</h1>
           </div>
         </div>
+        {!hidePill && (
         <div
           role="status"
           className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold ${
@@ -172,6 +177,7 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
             ? `Open · closes ${formatWeekTime(window_.closesWeekday, window_.closesMinutes)}`
             : `Closed · reopens ${reopenLabel(window_, now)}`}
         </div>
+        )}
       </header>
 
       {user && phase !== "loading" && phase !== "code" && (
