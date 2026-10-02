@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,18 @@ export function AppSettingsDialog({
   onSaved: (app: AppRow) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState("theme");
+
+  // Lets the "Get live" checklist open this dialog straight on a tab
+  // (e.g. the icon), without reaching into it from outside.
+  useEffect(() => {
+    function onOpen(e: Event) {
+      setTab((e as CustomEvent<{ tab?: string }>).detail?.tab ?? "theme");
+      setOpen(true);
+    }
+    window.addEventListener("open-app-settings", onOpen);
+    return () => window.removeEventListener("open-app-settings", onOpen);
+  }, []);
   const [theme, setTheme] = useState<ThemeConfig>(app.theme);
   const [manifest, setManifest] = useState<ManifestConfig>(app.manifest);
   const [saving, setSaving] = useState(false);
@@ -99,7 +111,7 @@ export function AppSettingsDialog({
           <DialogTitle>App settings</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="theme">
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="w-full">
             <TabsTrigger value="theme" className="flex-1">
               Theme

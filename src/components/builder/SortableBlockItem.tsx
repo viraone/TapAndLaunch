@@ -62,6 +62,7 @@ export function SortableBlockItem({
           type="button"
           variant="ghost"
           size="icon"
+          aria-label="Remove block"
           className="h-6 w-6 rounded-md bg-neutral-950 text-neutral-200 shadow-md hover:bg-red-600 hover:text-white"
           onClick={(e) => {
             e.stopPropagation();

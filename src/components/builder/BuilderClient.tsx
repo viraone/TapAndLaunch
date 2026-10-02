@@ -221,7 +221,7 @@ export function BuilderClient({
       search?.scrollIntoView({ block: "center" });
       search?.focus();
     } else if (step === "icon") {
-      document.querySelector<HTMLElement>("[data-app-settings]")?.click();
+      window.dispatchEvent(new CustomEvent("open-app-settings", { detail: { tab: "manifest" } }));
     } else if (step === "publish") {
       togglePublish();
     } else if (step === "visit" && liveUrl) {
@@ -345,7 +345,7 @@ export function BuilderClient({
           </div>
           <MobilePreviewFrame device={device} theme={currentApp.theme}>
             <div className="flex-1 overflow-y-auto">
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <DndContext id="builder-blocks" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
                   {blocks.length === 0 ? (
                     <div className="m-4 rounded-2xl border border-dashed border-border p-6 text-center">
