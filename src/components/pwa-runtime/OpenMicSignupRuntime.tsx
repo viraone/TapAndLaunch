@@ -808,7 +808,6 @@ function ShowDay({
             {config.show_name ?? "The show"}
             {config.venue ? ` at ${config.venue}` : ""} · {dateLabel}
           </p>
-          {slotLine(mine) && <p className="mt-4 rounded-xl border bg-background px-4 py-3 text-2xl font-extrabold tabular-nums">{slotLine(mine)}</p>}
         </div>
       )}
 
