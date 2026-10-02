@@ -44,8 +44,7 @@ const CODE_LENGTH = 6;
  * looked disabled). */
 /** Pinned show-day layout: the viewport minus the app's header bar and tab bar, as a column. */
 export const PINNED_PAGE = "mx-auto flex h-[calc(100dvh-11rem)] w-full max-w-md flex-col px-4 pt-6";
-export const PINNED_SCROLL =
-  "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6 [mask-image:linear-gradient(to_bottom,black_calc(100%-18px),transparent)]";
+export const PINNED_SCROLL = "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6";
 
 const CTA = "bg-[#dc2626] text-white hover:bg-[#b91c1c] active:bg-[#991b1b]";
 
@@ -949,18 +948,23 @@ export function ShowDay({
       )}
 
       {lineupTime && config.show_lineup !== false && feed?.posted && feed.lineup.length > 0 && (
-        <section aria-label="Lineup" className="rounded-2xl border bg-muted/40">
-          {/* The title stays pinned at the top of the scrolling area while the names go by. Its
-              background is the card's own colour, but opaque, so rows don't show through. */}
-          <div className="sticky top-0 z-10 rounded-t-2xl border-b border-border/70 bg-[color-mix(in_oklab,var(--muted)_40%,var(--background))] px-5 py-3.5">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">{today ? "Tonight's lineup" : `${weekday}'s lineup`}</h2>
+        <section aria-label="Lineup">
+          {/* Like an iOS inset grouped list: the section header sits outside the card, pinned
+              and translucent, so rows blur as they slide under it. */}
+          <div className="sticky top-0 z-10 bg-background/75 px-4 pb-2 pt-3 backdrop-blur-xl">
+            <h2 className="text-[13px] font-normal uppercase tracking-wide text-muted-foreground">
+              {today ? "Tonight's lineup" : `${weekday}'s lineup`}
+            </h2>
           </div>
-          <ol className="divide-y divide-border/70 px-5 pb-2">
+          <ol className="overflow-hidden rounded-xl bg-muted">
             {feed.lineup.map((entry, i) => (
-              <li key={`${entry.name}-${i}`} className="flex items-baseline gap-3 py-2.5">
-                <span className="min-w-0 flex-1 truncate text-base font-semibold">{entry.name}</span>
-                <span className="w-14 shrink-0 text-right text-sm tabular-nums text-muted-foreground">{entry.set_length}</span>
-                <span className="w-[4.5rem] shrink-0 text-right text-sm tabular-nums text-muted-foreground">{entry.start_time}</span>
+              <li
+                key={`${entry.name}-${i}`}
+                className="relative flex min-h-11 items-center gap-3 px-4 py-2.5 after:absolute after:bottom-0 after:left-4 after:right-0 after:h-px after:bg-foreground/10 last:after:hidden"
+              >
+                <span className="min-w-0 flex-1 break-words text-[17px] leading-snug">{entry.name}</span>
+                <span className="w-16 shrink-0 text-right text-[17px] tabular-nums text-muted-foreground">{entry.set_length}</span>
+                <span className="w-[5.25rem] shrink-0 text-right text-[17px] tabular-nums text-muted-foreground">{entry.start_time}</span>
               </li>
             ))}
           </ol>
