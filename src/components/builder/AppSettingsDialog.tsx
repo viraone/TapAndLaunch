@@ -34,10 +34,15 @@ export function AppSettingsDialog({
   app,
   pages,
   onSaved,
+  domainsEnabled,
+  rootDomain,
 }: {
   app: AppRow;
   pages: PageRow[];
   onSaved: (app: AppRow) => void;
+  /** False until the server has its Vercel keys; the tab then says "coming soon". */
+  domainsEnabled: boolean;
+  rootDomain: string;
 }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("theme");
@@ -261,7 +266,20 @@ export function AppSettingsDialog({
           </TabsContent>
 
           <TabsContent value="domain">
-            <DomainSettings app={app} onUpdated={onSaved} />
+            {domainsEnabled ? (
+              <DomainSettings app={app} onUpdated={onSaved} />
+            ) : (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm">
+                <p className="font-semibold text-neutral-100">Custom domains are coming soon</p>
+                <p className="mt-1.5 leading-relaxed text-neutral-400">
+                  For now your app lives at{" "}
+                  <span className="font-medium text-neutral-200">
+                    {app.slug}.{rootDomain}
+                  </span>
+                  . Want your own address, like yourbusiness.com? Contact us and we&apos;ll set it up.
+                </p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 

@@ -15,6 +15,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Rocket, Save } from "lucide-react";
 import { tileGradient, tileInitial } from "@/lib/apps/tile";
 import { buildChecklist, type ChecklistStepId } from "@/lib/apps/checklist";
+import { BuilderPhoneNotice } from "@/components/builder/BuilderPhoneNotice";
 import { Palette } from "@/components/builder/Palette";
 import { Inspector } from "@/components/builder/Inspector";
 import { PageTabs } from "@/components/builder/PageTabs";
@@ -47,6 +48,7 @@ export function BuilderClient({
   hasVisit,
   contentOnOtherPages,
   mapsEnabled,
+  domainsEnabled,
 }: {
   app: AppRow;
   rootDomain: string;
@@ -59,6 +61,8 @@ export function BuilderClient({
   contentOnOtherPages: boolean;
   /** Live food / Gas prices (Google Maps) are switched on for this organization. */
   mapsEnabled: boolean;
+  /** Custom domains are set up on this server (Vercel keys present). */
+  domainsEnabled: boolean;
 }) {
   const supabase = createClient();
 
@@ -231,7 +235,9 @@ export function BuilderClient({
   }
 
   return (
-    <div className="dark flex h-[calc(100dvh-3.5rem)] flex-col bg-neutral-950 text-neutral-50">
+    <>
+    <BuilderPhoneNotice name={currentApp.name} live={live} liveUrl={liveUrl} />
+    <div className="dark hidden h-[calc(100dvh-3.5rem)] flex-col bg-neutral-950 text-neutral-50 lg:flex">
       <header className="flex items-center justify-between gap-4 border-b border-white/[0.06] px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-3">
           <Link
@@ -283,7 +289,7 @@ export function BuilderClient({
             </button>
           )}
           <DeviceFrameSwitcher value={device} onChange={setDevice} />
-          <AppSettingsDialog app={currentApp} pages={pages} onSaved={setCurrentApp} />
+          <AppSettingsDialog app={currentApp} pages={pages} onSaved={setCurrentApp} domainsEnabled={domainsEnabled} rootDomain={rootDomain} />
           <span className="mx-1 h-6 w-px bg-white/10" aria-hidden />
           {live ? (
             <>
@@ -399,6 +405,7 @@ export function BuilderClient({
         </aside>
       </div>
     </div>
+    </>
   );
 }
 

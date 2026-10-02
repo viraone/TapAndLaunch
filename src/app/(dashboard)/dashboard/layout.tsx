@@ -50,26 +50,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
             logoUrl={activeOrg?.branding.logo_url}
           />
         </div>
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="flex items-center gap-0.5 text-sm sm:gap-1">
           <Link
+            aria-label="Apps"
             href="/dashboard"
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-neutral-400 transition hover:bg-white/5 hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 sm:px-3 text-neutral-400 transition hover:bg-white/5 hover:text-white"
           >
-            <LayoutGrid className="h-4 w-4" /> Apps
+            <LayoutGrid className="h-4 w-4" /> <span className="hidden sm:inline">Apps</span>
           </Link>
           {platformAdmin && (
             <Link
+              aria-label="Admin"
               href="/dashboard/admin"
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-indigo-300 transition hover:bg-white/5 hover:text-indigo-200"
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 sm:px-3 text-indigo-300 transition hover:bg-white/5 hover:text-indigo-200"
             >
-              <ShieldCheck className="h-4 w-4" /> Admin
+              <ShieldCheck className="h-4 w-4" /> <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
           <Link
+            aria-label="Settings"
             href="/dashboard/settings"
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-neutral-400 transition hover:bg-white/5 hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 sm:px-3 text-neutral-400 transition hover:bg-white/5 hover:text-white"
           >
-            <Settings className="h-4 w-4" /> Settings
+            <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Settings</span>
           </Link>
           <SignOutButton />
         </nav>

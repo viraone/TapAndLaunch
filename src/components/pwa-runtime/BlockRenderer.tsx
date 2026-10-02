@@ -65,7 +65,7 @@ export function BlockRenderer({
     case "text":
       return <TextBlockView config={block.config as TextBlockConfig} />;
     case "image":
-      return <ImageBlockView config={block.config as ImageBlockConfig} />;
+      return <ImageBlockView config={block.config as ImageBlockConfig} live={live} />;
     case "video":
       return <VideoBlockView config={block.config as VideoBlockConfig} />;
     case "contact_form":
@@ -107,8 +107,11 @@ function TextBlockView({ config }: { config: TextBlockConfig }) {
   );
 }
 
-function ImageBlockView({ config }: { config: ImageBlockConfig }) {
+function ImageBlockView({ config, live }: { config: ImageBlockConfig; live: boolean }) {
   if (!config.src) {
+    // Visitors of the live app see nothing for an image that was never set;
+    // the placeholder is for the builder only.
+    if (live) return null;
     return (
       <div className="mx-4 flex h-32 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
         No image set

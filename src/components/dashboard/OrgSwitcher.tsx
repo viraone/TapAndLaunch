@@ -39,12 +39,12 @@ export function OrgSwitcher({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-semibold transition hover:bg-white/5">
+      <DropdownMenuTrigger className="flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-semibold transition hover:bg-white/5">
         {logoUrl && (
           // eslint-disable-next-line @next/next/no-img-element -- arbitrary tenant-provided storage URL
           <img src={logoUrl} alt="" className="h-5 w-5 rounded object-cover" />
         )}
-        {active?.name ?? "Select organization"}
+        <span className="max-w-[6.5rem] truncate sm:max-w-none">{active?.name ?? "Select organization"}</span>
         <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
