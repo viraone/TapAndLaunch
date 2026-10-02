@@ -4,6 +4,7 @@ import { getPublishedApp } from "@/lib/pwa/data";
 import { ServiceWorkerRegister } from "@/components/pwa-runtime/ServiceWorkerRegister";
 import { PublishedBottomNav } from "@/components/pwa-runtime/PublishedBottomNav";
 import { MemberAccountBar } from "@/components/pwa-runtime/MemberAccountBar";
+import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { getCurrentMember } from "@/lib/pwa/get-current-member";
 
 // `params` is typed manually (Promise<{...}>) rather than via the generated
@@ -96,6 +97,7 @@ export default async function PublishedAppLayout({
       )}
       <ServiceWorkerRegister />
       {theme.show_member_bar !== false && <MemberAccountBar member={member} />}
+      <AppHeader theme={theme} />
       <div className="flex-1 overflow-y-auto">{children}</div>
       <PublishedBottomNav
         items={theme.bottom_nav ?? []}

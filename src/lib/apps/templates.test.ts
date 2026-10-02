@@ -33,6 +33,10 @@ describe("starter templates", () => {
     expect(STARTER_TEMPLATES.filter((t) => templateNeedsMaps(t.id)).map((t) => t.id)).toEqual(["food", "gas"]);
   });
 
+  it("puts the app's name in the header bar of every starter", () => {
+    for (const t of STARTER_TEMPLATES) expect(buildStarter(t.id, "Maple Street Bakery").theme.header_title).toBe("Maple Street Bakery");
+  });
+
   it("starts the blank template with an empty Home page", () => {
     const starter = buildStarter("blank", "X");
     expect(starter.pages).toEqual([{ name: "Home", path: "home", isHome: true, blocks: [] }]);

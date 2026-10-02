@@ -5,7 +5,9 @@ const ThemeSchema = z.object({
   primary_color: z.string().optional(),
   background_color: z.string().optional(),
   font_family: z.string().optional(),
-  header_title: z.string().optional(),
+  header_title: z.string().max(80).optional(),
+  header_tagline: z.string().max(120).optional(),
+  header_logo_url: z.string().optional(),
   bottom_nav: z
     .array(z.object({ label: z.string(), icon: z.string(), page_path: z.string() }))
     .optional(),

@@ -159,13 +159,37 @@ export function AppSettingsDialog({
                 onChange={(e) => setTheme({ ...theme, font_family: e.target.value })}
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="theme-header">Header title</Label>
-              <Input
-                id="theme-header"
-                value={theme.header_title ?? ""}
-                onChange={(e) => setTheme({ ...theme, header_title: e.target.value })}
+            <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+              <div>
+                <p className="text-sm font-semibold">Header bar</p>
+                <p className="text-xs text-muted-foreground">Shown at the top of every page. Leave all three empty for no header.</p>
+              </div>
+              <ImageUploadField
+                id="theme-header-logo"
+                label="Logo"
+                organizationId={app.organization_id}
+                value={theme.header_logo_url ?? ""}
+                onChange={(header_logo_url) => setTheme({ ...theme, header_logo_url })}
               />
+              <div className="space-y-1">
+                <Label htmlFor="theme-header">Name</Label>
+                <Input
+                  id="theme-header"
+                  maxLength={80}
+                  value={theme.header_title ?? ""}
+                  onChange={(e) => setTheme({ ...theme, header_title: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="theme-tagline">Tagline</Label>
+                <Input
+                  id="theme-tagline"
+                  maxLength={120}
+                  placeholder="Every Friday · 7–9 PM"
+                  value={theme.header_tagline ?? ""}
+                  onChange={(e) => setTheme({ ...theme, header_tagline: e.target.value })}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

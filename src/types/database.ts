@@ -65,7 +65,10 @@ export interface ThemeConfig {
   primary_color?: string;
   background_color?: string;
   font_family?: string;
+  /** The bar at the top of every page: a logo, a name and a one-line tagline. */
   header_title?: string;
+  header_tagline?: string;
+  header_logo_url?: string;
   bottom_nav?: Array<{ label: string; icon: string; page_path: string }>;
   /** "dark" puts the published app on a dark zinc palette, the whole page
    * (not just the column) in `background_color`. Unset keeps the light look. */

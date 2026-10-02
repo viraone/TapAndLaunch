@@ -23,6 +23,7 @@ import { SortableBlockItem } from "@/components/builder/SortableBlockItem";
 import { MobilePreviewFrame, DeviceFrameSwitcher, type DeviceFrame } from "@/components/builder/MobilePreviewFrame";
 import { AppSettingsDialog } from "@/components/builder/AppSettingsDialog";
 import { BottomNav } from "@/components/pwa-runtime/BottomNav";
+import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { createClient } from "@/lib/supabase/client";
 import { defaultConfigFor } from "@/lib/builder/block-defaults";
 import type { BuilderBlock } from "@/components/builder/types";
@@ -350,6 +351,7 @@ export function BuilderClient({
             </span>
           </div>
           <MobilePreviewFrame device={device} theme={currentApp.theme}>
+            <AppHeader theme={currentApp.theme} />
             <div className="flex-1 overflow-y-auto">
               <DndContext id="builder-blocks" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>

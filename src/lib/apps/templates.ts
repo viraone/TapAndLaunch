@@ -119,8 +119,14 @@ const CONTACT_FIELDS = [
   { name: "message", label: "Message", type: "textarea" },
 ];
 
-/** The rows for a new app of this template, named `appName`. */
+/** The rows for a new app of this template, named `appName`. Every starter
+ * begins with the app's name in the header bar. */
 export function buildStarter(templateId: string, appName: string): Starter {
+  const starter = buildStarterBody(templateId, appName);
+  return { ...starter, theme: { ...starter.theme, header_title: appName } };
+}
+
+function buildStarterBody(templateId: string, appName: string): Starter {
   const template = STARTER_TEMPLATES.find((t) => t.id === templateId) ?? STARTER_TEMPLATES[STARTER_TEMPLATES.length - 1];
   const manifest: ManifestConfig = {
     name: appName,
