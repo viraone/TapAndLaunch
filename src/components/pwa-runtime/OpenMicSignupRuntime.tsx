@@ -985,7 +985,7 @@ export function ShowDay({
                 className="relative flex min-h-11 items-center gap-3 px-4 py-2.5 after:absolute after:bottom-0 after:left-4 after:right-0 after:h-px after:bg-foreground/10 last:after:hidden"
               >
                 <span className="min-w-0 flex-1 break-words text-[17px] font-medium leading-snug text-foreground dark:text-white">{entry.name}</span>
-                <span className="w-16 shrink-0 text-right text-[17px] tabular-nums text-muted-foreground">{entry.set_length}</span>
+                <span className="w-[4.5rem] shrink-0 text-right text-[19px] tabular-nums text-muted-foreground">{entry.set_length}</span>
                 <span className="w-[5.25rem] shrink-0 text-right text-[17px] font-medium tabular-nums text-primary">{entry.start_time}</span>
               </li>
             ))}
