@@ -254,14 +254,11 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
 function ClosedSignedOut({ today, onSignIn }: { today: boolean; onSignIn: () => void }) {
   return (
     <div className="rounded-2xl border bg-muted/60 p-6">
-      <h2 className="text-xl font-bold">Sign ups for this Friday are closed</h2>
-      <p className="mt-2 text-base leading-relaxed text-muted-foreground">
-        {today
-          ? "Requests for next Friday's show open tonight, right after this one."
-          : "Requests for next Friday's show open right after tomorrow's show."}{" "}
-        Come back then to request a spot.
+      <h2 className="text-2xl font-extrabold leading-tight">Sign ups for this Friday are closed</h2>
+      <p className="mt-3 text-xl font-semibold leading-snug text-foreground">
+        Come back {today ? "after tonight's show" : "after tomorrow's show"} to request a spot for next Friday.
       </p>
-      <p className="mt-5 text-sm text-muted-foreground">
+      <p className="mt-6 text-base text-muted-foreground">
         Requested a spot this week?{" "}
         <button type="button" onClick={onSignIn} className="font-semibold text-foreground underline underline-offset-4">
           Sign in to see your status.
