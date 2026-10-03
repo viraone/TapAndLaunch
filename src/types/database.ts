@@ -618,6 +618,8 @@ export interface Database {
           phone_national: string | null;
           phone_international: string | null;
           website: string | null;
+          popular_dishes: { name: string; emoji: string; mentions: number }[] | null;
+          dishes_synced_at: string | null;
           google_synced_at: string;
           created_at: string;
           updated_at: string;
@@ -642,6 +644,12 @@ export interface Database {
         Row: { app_id: string; cell_key: string; fetch_group: string; fetched_at: string };
         Insert: { app_id: string; cell_key: string; fetch_group?: string; fetched_at?: string };
         Update: Partial<{ app_id: string; cell_key: string; fetch_group: string; fetched_at: string }>;
+        Relationships: [];
+      };
+      food_dish_budget: {
+        Row: { app_id: string; month: string; calls: number };
+        Insert: { app_id: string; month: string; calls?: number };
+        Update: Partial<{ app_id: string; month: string; calls: number }>;
         Relationships: [];
       };
       food_fetch_budget: {

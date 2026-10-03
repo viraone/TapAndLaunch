@@ -8,6 +8,7 @@ import { CUISINES, CUISINE_BY_KEY } from "@/lib/food/cuisines";
 import { computeOpenStatus, type OpenStatus } from "@/lib/food/hours";
 import { driveMinutes, travelEstimate, walkLabel, walkMinutes, type TravelMode } from "@/lib/food/walk";
 import { hoursRows, mapsPlaceUrl, safeWebsite, telHref } from "@/lib/food/placeSheet";
+import type { PopularDish } from "@/lib/food/dishes";
 
 type Position = { latitude: number; longitude: number; label: string; live: boolean };
 type Filter = "all" | CuisineKey;
@@ -453,6 +454,9 @@ function CuisineTile({ emoji, label, active, loading, onClick }: { emoji: string
   );
 }
 
+/** Dishes already fetched this visit, so reopening a sheet doesn't ask again. */
+const dishCache = new Map<string, PopularDish[]>();
+
 const actionButton =
   "flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-foreground/10 px-2 text-[15px] font-semibold transition active:scale-[0.98] active:bg-foreground/20";
 
@@ -530,6 +534,8 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
   const [shown, setShown] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [copied, setCopied] = useState(false);
+  /** undefined = still loading; [] = nothing to show (no data, cap reached, or an error): the section is left out. */
+  const [dishes, setDishes] = useState<PopularDish[] | undefined>(() => dishCache.get(place.id));
   const startY = useRef<number | null>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const closing = useRef(false);
@@ -560,6 +566,28 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (dishCache.has(place.id)) return;
+    const ctrl = new AbortController();
+    fetch("/food/dishes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ placeId: place.id }),
+      signal: ctrl.signal,
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: { status?: string; dishes?: PopularDish[] } | null) => {
+        const list = body?.status === "ok" && Array.isArray(body.dishes) ? body.dishes : [];
+        if (body?.status === "ok") dishCache.set(place.id, list); // don't remember a miss: try again next time
+        setDishes(list);
+      })
+      .catch((e) => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setDishes([]);
+      });
+    return () => ctrl.abort();
+  }, [place.id]);
 
   async function copyAddress() {
     if (!place.address) return;
@@ -687,6 +715,40 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
               <MapPin className="h-4 w-4" aria-hidden /> Maps
             </a>
           </div>
+
+          {/* Dishes reviewers mention. Skeleton while it loads; the whole section goes away if there's nothing to show. */}
+          {dishes === undefined && (
+            <section className="mt-6" aria-hidden>
+              <div className="h-3 w-40 animate-pulse rounded bg-foreground/10" />
+              <div className="mt-2 divide-y rounded-2xl border bg-card">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3">
+                    <div className="h-8 w-8 animate-pulse rounded-xl bg-foreground/10" />
+                    <div className="h-3.5 w-32 animate-pulse rounded bg-foreground/10" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+          {dishes && dishes.length > 0 && (
+            <section className="mt-6">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Popular with diners</h3>
+              <ul className="mt-2 divide-y rounded-2xl border bg-card">
+                {dishes.map((dish) => (
+                  <li key={dish.name} className="flex items-center gap-3 px-4 py-2.5">
+                    <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-orange-500/10 text-xl">
+                      {dish.emoji}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{dish.name}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {dish.mentions} {dish.mentions === 1 ? "review" : "reviews"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-xs text-muted-foreground">Mentioned in recent 4★ and 5★ Google reviews</p>
+            </section>
+          )}
 
           {rows.length > 0 && (
             <section className="mt-6">

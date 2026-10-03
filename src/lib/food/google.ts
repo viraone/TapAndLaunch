@@ -137,3 +137,27 @@ export async function fetchGooglePlaces(
       website: p.websiteUri ?? null,
     }));
 }
+
+/**
+ * A place's recent reviews (Google returns up to 5), for the "Popular with diners" list.
+ * Cost: `reviews` is the "Place Details Enterprise + Atmosphere" tier (1,000 free a month), so
+ * popularDishes.ts only calls this on demand, remembers the result for 30 days, and caps it per month.
+ * Returns only what the dish matcher needs; the review text is never stored.
+ */
+export async function fetchPlaceReviews(googlePlaceId: string): Promise<{ rating: number | null; text: string }[]> {
+  const key = process.env.GOOGLE_MAPS_API_KEY;
+  if (!key) throw new Error("GOOGLE_MAPS_API_KEY is not set");
+
+  const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(googlePlaceId)}`, {
+    headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": "id,reviews" },
+  });
+  const body = await res.json();
+  if (!res.ok) {
+    throw new Error(`Google Places error (${res.status}): ${body?.error?.message ?? "unknown"}`);
+  }
+  type Review = { rating?: number; text?: { text?: string }; originalText?: { text?: string } };
+  return ((body.reviews ?? []) as Review[]).map((r) => ({
+    rating: r.rating ?? null,
+    text: r.originalText?.text ?? r.text?.text ?? "",
+  }));
+}
