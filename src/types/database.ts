@@ -620,6 +620,9 @@ export interface Database {
           website: string | null;
           popular_dishes: { name: string; emoji: string; mentions: number }[] | null;
           dishes_synced_at: string | null;
+          menu_url: string | null;
+          menu_embeddable: boolean | null;
+          menu_checked_at: string | null;
           google_synced_at: string;
           created_at: string;
           updated_at: string;

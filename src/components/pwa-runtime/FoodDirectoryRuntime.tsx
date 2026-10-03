@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Check, ChevronDown, Clock, Copy, Globe, LocateFixed, MapPin, Phone, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ChevronLeft, Clock, Copy, ExternalLink, Globe, LocateFixed, Loader2, MapPin, Phone, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
 import type { CuisineKey, FoodDirectoryBlockConfig } from "@/types/database";
 import type { NearbyPlace } from "@/lib/food/nearby";
 import { CUISINES, CUISINE_BY_KEY } from "@/lib/food/cuisines";
@@ -457,6 +457,10 @@ function CuisineTile({ emoji, label, active, loading, onClick }: { emoji: string
 /** Dishes already fetched this visit, so reopening a sheet doesn't ask again. */
 const dishCache = new Map<string, PopularDish[]>();
 
+type MenuInfo = { status: "ok"; embeddable: true; url: string; host: string; kind: "menu" | "site" } | { status: "ok"; embeddable: false };
+/** Menu lookups already done this visit. */
+const menuCache = new Map<string, MenuInfo>();
+
 // Apple Maps-style tile: icon over a short label, so up to four fit across any phone.
 const actionTile =
   "flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl bg-foreground/10 px-1 py-2 text-xs font-semibold transition active:scale-[0.97] active:bg-foreground/20";
@@ -535,6 +539,11 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
   const [shown, setShown] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuOpenRef = useRef(false);
+  useEffect(() => {
+    menuOpenRef.current = menuOpen;
+  }, [menuOpen]);
   /** undefined = still loading; [] = nothing to show (no data, cap reached, or an error): the section is left out. */
   const [dishes, setDishes] = useState<PopularDish[] | undefined>(() => dishCache.get(place.id));
   const startY = useRef<number | null>(null);
@@ -556,7 +565,9 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
     document.body.style.overflow = "hidden";
     closeButton.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key !== "Escape") return;
+      if (menuOpenRef.current) setMenuOpen(false); // Escape backs out of the menu first
+      else close();
     };
     window.addEventListener("keydown", onKey);
     return () => {
@@ -700,7 +711,7 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
             {distanceLabel(place.distanceMiles)} away · times are estimates, Google Maps shows the exact route
           </p>
 
-          {/* Call and Website appear when Google has them. Menu and Maps are plain Google links (a menu search, and the Maps place page with phone, website, menu, photos and reviews), always there and free. */}
+          {/* Call and Website appear when Google has them. Menu opens the restaurant's own menu inside the app (MenuPanel); Maps is a plain Google link to the place page (phone, website, menu, photos and reviews). Both are always there and free. */}
           <div className="mt-4 flex gap-2.5">
             {tel && (
               <a href={tel} className={actionTile}>
@@ -712,9 +723,9 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
                 <Globe className="h-5 w-5" aria-hidden /> Website
               </a>
             )}
-            <a href={menuSearchUrl(place.name, place.address)} target="_blank" rel="noreferrer" className={actionTile}>
+            <button type="button" onClick={() => setMenuOpen(true)} className={actionTile}>
               <BookOpen className="h-5 w-5" aria-hidden /> Menu
-            </a>
+            </button>
             <a href={mapsPlaceUrl(place.name, place.googlePlaceId)} target="_blank" rel="noreferrer" className={actionTile}>
               <MapPin className="h-5 w-5" aria-hidden /> Maps
             </a>
@@ -787,6 +798,131 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
           )}
         </div>
       </div>
+      {/* Outside the sliding sheet on purpose: a fixed panel inside a transformed element would be clipped to it. */}
+      {menuOpen && <MenuPanel place={place} dishes={dishes} onBack={() => setMenuOpen(false)} />}
+    </div>
+  );
+}
+
+/**
+ * The restaurant's own menu, shown inside the app. Google has no menu data, so the server finds the menu page
+ * on the restaurant's website and checks that the site allows being shown here (lib/food/menuLookup.ts).
+ * About half of restaurants do. For the rest we say so plainly, show the dishes we have, and offer the ways out
+ * clearly labelled as opening your browser.
+ */
+function MenuPanel({ place, dishes, onBack }: { place: NearbyPlace; dishes: PopularDish[] | undefined; onBack: () => void }) {
+  const [info, setInfo] = useState<MenuInfo | null | undefined>(() => menuCache.get(place.id)); // undefined = loading, null = failed
+  const website = safeWebsite(place.website);
+
+  useEffect(() => {
+    if (menuCache.has(place.id)) return;
+    const ctrl = new AbortController();
+    fetch("/food/menu", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ placeId: place.id }),
+      signal: ctrl.signal,
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: MenuInfo | null) => {
+        if (body?.status === "ok") menuCache.set(place.id, body);
+        setInfo(body?.status === "ok" ? body : null);
+      })
+      .catch((e) => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setInfo(null);
+      });
+    return () => ctrl.abort();
+  }, [place.id]);
+
+  const embedded = info?.embeddable ? info : null;
+  return (
+    <div className="absolute inset-0 z-10 mx-auto flex w-full max-w-md flex-col bg-background" role="region" aria-label={`${place.name} menu`}>
+      <div className="flex shrink-0 items-center gap-1 border-b px-2 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
+        <button type="button" onClick={onBack} className="inline-flex h-11 items-center gap-0.5 rounded-full pl-1 pr-3 text-[16px] font-semibold text-orange-600 active:bg-foreground/10 dark:text-orange-400">
+          <ChevronLeft className="h-6 w-6" aria-hidden /> Back
+        </button>
+        <div className="min-w-0 flex-1 text-center">
+          <p className="text-[15px] font-bold leading-tight">Menu</p>
+          <p className="truncate text-xs text-muted-foreground">{place.name}</p>
+        </div>
+        {embedded ? (
+          <a
+            href={embedded.url}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open this page in your browser"
+            className="grid h-11 w-14 place-items-center rounded-full text-foreground/70 active:bg-foreground/10"
+          >
+            <ExternalLink className="h-5 w-5" aria-hidden />
+          </a>
+        ) : (
+          <span className="w-14" aria-hidden />
+        )}
+      </div>
+
+      {info === undefined && (
+        <div className="grid flex-1 place-items-center" role="status">
+          <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
+            Finding the menu…
+          </div>
+        </div>
+      )}
+
+      {embedded && (
+        <>
+          <p className="shrink-0 bg-foreground/5 px-4 py-2 text-xs text-muted-foreground">
+            {embedded.kind === "menu" ? `Menu from ${embedded.host}` : `We couldn't find a menu page, so this is ${embedded.host}. Look for their menu link.`}
+          </p>
+          {/* sandbox: the page can run and use forms, but cannot navigate our app away or reach our data. */}
+          <iframe
+            src={embedded.url}
+            title={`${place.name} menu`}
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+            referrerPolicy="no-referrer"
+            className="min-h-0 w-full flex-1 border-0 bg-white"
+          />
+        </>
+      )}
+
+      {info !== undefined && !embedded && (
+        <div className="flex-1 overflow-y-auto px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-8">
+          <div className="text-center">
+            <div aria-hidden className="text-4xl">📖</div>
+            <h2 className="mt-3 text-lg font-bold">This menu can&apos;t be shown here</h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {place.website ? `${place.name}'s website doesn't allow its menu to be shown inside other apps.` : `${place.name} hasn't listed a website.`}
+            </p>
+          </div>
+
+          {dishes && dishes.length > 0 && (
+            <section className="mt-6">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Popular with diners</h3>
+              <ul className="mt-2 divide-y rounded-2xl border bg-card">
+                {dishes.map((dish) => (
+                  <li key={dish.name} className="flex items-center gap-3 px-4 py-2.5">
+                    <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-orange-500/10 text-xl">{dish.emoji}</span>
+                    <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{dish.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <p className="mt-6 text-center text-xs text-muted-foreground">These open in your browser, outside this app:</p>
+          <div className="mt-2 flex gap-2.5">
+            <a href={menuSearchUrl(place.name, place.address)} target="_blank" rel="noreferrer" className={actionTile}>
+              <ExternalLink className="h-5 w-5" aria-hidden /> Search for the menu
+            </a>
+            {website && (
+              <a href={website} target="_blank" rel="noreferrer" className={actionTile}>
+                <Globe className="h-5 w-5" aria-hidden /> Restaurant website
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
