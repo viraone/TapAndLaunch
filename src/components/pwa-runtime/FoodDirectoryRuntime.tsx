@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Clock, LocateFixed, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
+import { ChevronDown, Clock, Footprints, LocateFixed, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
 import type { CuisineKey, FoodDirectoryBlockConfig } from "@/types/database";
 import type { NearbyPlace } from "@/lib/food/nearby";
 import { CUISINES, CUISINE_BY_KEY } from "@/lib/food/cuisines";
 import { computeOpenStatus, type OpenStatus } from "@/lib/food/hours";
+import { walkLabel } from "@/lib/food/walk";
 
 type Position = { latitude: number; longitude: number; label: string; live: boolean };
 type Filter = "all" | CuisineKey;
@@ -448,7 +449,8 @@ function CuisineTile({ emoji, label, active, loading, onClick }: { emoji: string
 function PlaceCard({ place, status }: { place: NearbyPlace; status: OpenStatus }) {
   const closed = status.state === "closed";
   const emoji = place.cuisine ? CUISINE_BY_KEY[place.cuisine].emoji : "🍽️";
-  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&destination_place_id=${encodeURIComponent(place.googlePlaceId)}`;
+  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&destination_place_id=${encodeURIComponent(place.googlePlaceId)}&travelmode=walking`;
+  const walk = walkLabel(place.distanceMiles);
   return (
     <a
       href={mapsUrl}
@@ -485,8 +487,14 @@ function PlaceCard({ place, status }: { place: NearbyPlace; status: OpenStatus }
         </p>
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <StatusLine status={status} />
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-foreground">
-            <Navigation className="h-3 w-3" /> Go
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-foreground">
+            <span className="inline-flex items-center gap-1 tabular-nums" aria-label={`About ${walk} on foot`}>
+              <Footprints className="h-3 w-3" aria-hidden /> {walk}
+            </span>
+            <span aria-hidden className="h-3 w-px bg-foreground/20" />
+            <span className="inline-flex items-center gap-1">
+              <Navigation className="h-3 w-3" /> Go
+            </span>
           </span>
         </div>
       </div>
