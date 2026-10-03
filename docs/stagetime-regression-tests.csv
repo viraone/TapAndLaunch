@@ -38,7 +38,7 @@ AUTH-VC-002,SU-010,Authentication & sign-in,Verification code (6-digit),Mobile b
 8. Type the code from the newer email.","After step 4: the link counts down from 60s, then reads ""Resend code"" and can be tapped.
 After step 5: a green line reads ""New code sent."" and the countdown starts again at 60s.
 After step 7: the code box shakes, turns red and clears, and a red line reads ""Wrong code. Try again.""
-After step 8: The ""Signed in as"" row appears at the top and the Request form is shown.",Matched. User reported PASS. Steps and expected result rewritten Oct 3 in the new style; the earlier pass was against the previous wording.,Pass,iPhone 16 Pro Max / Safari,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,Oct 3,,,Y
+After step 8: the ""Signed in as"" row appears at the top and the Request form is shown.",Matched. User reported PASS. Steps and expected result rewritten Oct 3 in the new style; the earlier pass was against the previous wording.,Pass,iPhone 16 Pro Max / Safari,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,Oct 3,,,Y
 AUTH-VC-003,SU-011,Authentication & sign-in,Verification code (6-digit),Mobile browser,Pass 1.0 · Mobile,Mobile · iPhone Safari,"Change email: new address gets the code, old code is rejected",Functional / Negative,P1,"- Requests are open (the Sign-Up page shows the green ""Open"" pill).
 - You are signed out. If the Sign-Up page shows a ""Signed in as"" row, tap Sign Out first.
 - Access to the Gmail inbox for vxayananh@gmail.com.
@@ -52,7 +52,7 @@ AUTH-VC-003,SU-011,Authentication & sign-in,Verification code (6-digit),Mobile b
 8. Type the code from the email sent for +changeB.","After step 4: you return to the Email screen.
 After step 6: the Code screen reads ""We sent a 6-digit code to vxayananh+changeB@gmail.com"" and a new ""Resend code in 60s"" countdown starts.
 After step 7: the code box shakes, turns red and clears, and a red line reads ""Wrong code. Try again.""
-After step 8: The ""Signed in as"" row appears at the top and the Request form is shown.",Matched. User reported 'PASS FOR ALL!'. (Not asked back: whether the old address stays filled in the box.) Steps and expected result rewritten Oct 3 in the new style; the earlier pass was against the previous wording.,Pass,iPhone 16 Pro Max / Safari,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,Oct 3,,,Y
+After step 8: the ""Signed in as"" row appears at the top and the Request form is shown.",Matched. User reported 'PASS FOR ALL!'. (Not asked back: whether the old address stays filled in the box.) Steps and expected result rewritten Oct 3 in the new style; the earlier pass was against the previous wording.,Pass,iPhone 16 Pro Max / Safari,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,Oct 3,,,Y
 AUTH-VC-004,SU-020,Authentication & sign-in,Verification code (6-digit),Mobile browser,Pass 1.0 · Mobile,Mobile · iPhone Safari,Change email and Resend code links are white and easy to tap,UI,P2,"- Requests are open (the Sign-Up page shows the green ""Open"" pill).
 - You are signed out. If the Sign-Up page shows a ""Signed in as"" row, tap Sign Out first.
 - Use an address that has never signed up: vxayananh+links1@gmail.com. The part after the ""+"" is only a label; the email still arrives in the vxayananh@gmail.com inbox.","1. Go to https://stagetimepnw.tapandlaunch.com/signup
@@ -106,7 +106,7 @@ REQ-SUB-001,SU-001,Request submission & window,Submitting a request,Mobile brows
 6. Under ""Performed at this show before?"", tap Yes.
 7. Tick both agreement boxes.
 8. Tap the Request my spot button.","After step 3: the Code screen appears and the code email arrives.
-After step 4: The ""Signed in as"" row appears at the top and the Request form is shown.
+After step 4: the ""Signed in as"" row appears at the top and the Request form is shown.
 After step 8: the Requested card appears, headed ""You're on the request list for Friday, …"", with the time you requested.
 The card has a ""What happens next"" box: ""Thursday — if you're selected, we'll email you.""",Completed end to end. User reported 'it worked!' and later 'I love the flow!' after reaching the last screen. Steps and expected result rewritten Oct 3 in the new style; the earlier pass was against the previous wording.,Pass,iPhone 16 Pro Max / Safari,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,Oct 1,pre-/push (live block),,Y
 REQ-SUB-002,SU-002,Request submission & window,Submitting a request,Mobile browser,Pass 1.0 · Mobile,Mobile · iPhone Safari,Request form is one screen,UI / Usability,P2,"- Requests are open (the Sign-Up page shows the green ""Open"" pill).
@@ -284,7 +284,7 @@ CMP-MOB-001,SU-023,Compatibility & entry points,Mobile browsers,Mobile browser,P
 6. Under ""Performed at this show before?"", tap Yes.
 7. Tick both agreement boxes.
 8. Tap the Request my spot button.","After step 3: the Code screen appears and the code email arrives.
-After step 4: The ""Signed in as"" row appears at the top and the Request form is shown.
+After step 4: the ""Signed in as"" row appears at the top and the Request form is shown.
 After step 8: the Requested card appears, headed ""You're on the request list for Friday, …"".",Not yet run. Added to complete the platform matrix.,Not run,Android / iPhone,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,,,Planned for the Oct 22 final round,Y
 CMP-MOB-002,SU-024,Compatibility & entry points,Mobile browsers,Mobile browser,Pass 1.0 · Mobile,Mobile · iPhone (installed app),Installed app from Add to Home Screen opens and keeps you signed in,Compatibility,P2,"- Requests are open (the Sign-Up page shows the green ""Open"" pill).
 - You are signed out. If the Sign-Up page shows a ""Signed in as"" row, tap Sign Out first.
@@ -296,7 +296,7 @@ CMP-MOB-002,SU-024,Compatibility & entry points,Mobile browsers,Mobile browser,P
 5. Tap the Send my code button.
 6. On the Code screen, type the code from the email (In Gmail, open the newest email titled ""… is your StageTime PNW code"" and read the 6-digit code.)
 7. Swipe up to close the app, then tap its icon on the Home Screen again.","After step 3: the app opens full screen, without Safari's address bar, and shows the Sign-Up page.
-After step 6: The ""Signed in as"" row appears at the top and the Request form is shown.
+After step 6: the ""Signed in as"" row appears at the top and the Request form is shown.
 After step 7: you are still signed in.",Not yet run. Added to complete the platform matrix.,Not run,Android / iPhone,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,,,Planned for the Oct 22 final round,Y
 CMP-SOC-001,SU-004,Compatibility & entry points,Social in-app links (Instagram),In-app / social link,Pass 1.0 · Mobile,Mobile · iPhone via Instagram,Link tapped in Instagram opens the Sign-Up page and sign-up works,Compatibility,P1,"- Requests are open (the Sign-Up page shows the green ""Open"" pill).
 - You are signed out. If the Sign-Up page shows a ""Signed in as"" row, tap Sign Out first.
@@ -336,7 +336,7 @@ CMP-SOC-003,SU-006,Compatibility & entry points,Social in-app links (Instagram),
 4. Tap the Send my code button.
 5. Switch to Gmail and read the code, then switch back to Instagram.
 6. On the Code screen, type the code.","After step 4: the Code screen appears.
-After step 6: The ""Signed in as"" row appears at the top and the Request form is shown.","Not run separately. Covered indirectly by the Instagram link cases, which opened in Safari. Not yet run. The expected result is written from the code and the screen texts, not yet seen on screen.",Not run,iPhone 16 Pro Max / Safari (Instagram in-app),Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,,,,Y
+After step 6: the ""Signed in as"" row appears at the top and the Request form is shown.","Not run separately. Covered indirectly by the Instagram link cases, which opened in Safari. Not yet run. The expected result is written from the code and the screen texts, not yet seen on screen.",Not run,iPhone 16 Pro Max / Safari (Instagram in-app),Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,,,,Y
 CMP-DSK-001,SU-025,Compatibility & entry points,Desktop browsers,Desktop browser,Desktop pass (next),Desktop · Chrome,Full sign-up works in desktop Chrome,Compatibility,P1,"- A Mac with the Chrome browser (window at normal full width).
 - Requests are open (the Sign-Up page shows the green ""Open"" pill).
 - You are signed out. If the Sign-Up page shows a ""Signed in as"" row, tap Sign Out first.
@@ -349,7 +349,7 @@ CMP-DSK-001,SU-025,Compatibility & entry points,Desktop browsers,Desktop browser
 6. Under ""Performed at this show before?"", click Yes.
 7. Tick both agreement boxes.
 8. Click the Request my spot button.","After step 3: the Code screen appears and the code email arrives.
-After step 4: The ""Signed in as"" row appears at the top and the Request form is shown.
+After step 4: the ""Signed in as"" row appears at the top and the Request form is shown.
 After step 8: the Requested card appears, headed ""You're on the request list for Friday, …"".
 The page is a centered, narrow column that is easy to read on a wide screen.",Not yet run. Added to complete the platform matrix.,Not run,Desktop,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,,,Planned for the Oct 22 final round,Y
 CMP-DSK-002,SU-026,Compatibility & entry points,Desktop browsers,Desktop browser,Desktop pass (next),Desktop · Firefox,Full sign-up works in desktop Firefox,Compatibility,P2,"- A Mac with the Firefox browser (window at normal full width).
@@ -364,7 +364,7 @@ CMP-DSK-002,SU-026,Compatibility & entry points,Desktop browsers,Desktop browser
 6. Under ""Performed at this show before?"", click Yes.
 7. Tick both agreement boxes.
 8. Click the Request my spot button.","After step 3: the Code screen appears and the code email arrives.
-After step 4: The ""Signed in as"" row appears at the top and the Request form is shown.
+After step 4: the ""Signed in as"" row appears at the top and the Request form is shown.
 After step 8: the Requested card appears, headed ""You're on the request list for Friday, …"".
 The page is a centered, narrow column that is easy to read on a wide screen.",Not yet run. Added to complete the platform matrix.,Not run,Desktop,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,,,Planned for the Oct 22 final round,Y
 CMP-DSK-003,SU-027,Compatibility & entry points,Desktop browsers,Desktop browser,Desktop pass (next),Desktop · Safari (Mac),Full sign-up works in desktop Safari,Compatibility,P2,"- A Mac with the Safari browser (window at normal full width).
@@ -379,7 +379,7 @@ CMP-DSK-003,SU-027,Compatibility & entry points,Desktop browsers,Desktop browser
 6. Under ""Performed at this show before?"", click Yes.
 7. Tick both agreement boxes.
 8. Click the Request my spot button.","After step 3: the Code screen appears and the code email arrives.
-After step 4: The ""Signed in as"" row appears at the top and the Request form is shown.
+After step 4: the ""Signed in as"" row appears at the top and the Request form is shown.
 After step 8: the Requested card appears, headed ""You're on the request list for Friday, …"".
 The page is a centered, narrow column that is easy to read on a wide screen.",Not yet run. Added to complete the platform matrix.,Not run,Desktop,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,,,Planned for the Oct 22 final round,Y
 PLT-APP-001,TL-001,TapAndLaunch platform,Published app shell,Desktop browser,Outside StageTime,Desktop · Chrome,Sign-Up tab shows in the bottom bar,Functional / UI,P2,"- Outside StageTime: this case is about the TapAndLaunch product, not the sign-up.
