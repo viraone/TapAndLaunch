@@ -1,4 +1,5 @@
 import { getPublishedApp } from "@/lib/pwa/data";
+import { NOTIFICATION_CLICK_HANDLER } from "@/lib/pwa/notification-click";
 
 /**
  * Generates a per-tenant service worker: offline caching (cache-first for
@@ -93,23 +94,7 @@ self.addEventListener("push", (event) => {
   );
 });
 
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-  const targetUrl = event.notification.data && event.notification.data.url ? event.notification.data.url : "/";
-
-  event.waitUntil(
-    Promise.all([
-      fetch("/push/opened", { method: "POST" }).catch(() => {}),
-      self.clients
-        .matchAll({ type: "window", includeUncontrolled: true })
-        .then((clients) => {
-          const existing = clients.find((client) => client.url.endsWith(targetUrl));
-          if (existing) return existing.focus();
-          return self.clients.openWindow(targetUrl);
-        }),
-    ])
-  );
-});
+${NOTIFICATION_CLICK_HANDLER}
 
 // TODO (later phase): a "sync" event listener for background sync (e.g.
 // retrying a queued offline form submission) -- unrelated to push, and not
