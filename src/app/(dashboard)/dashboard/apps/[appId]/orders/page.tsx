@@ -66,7 +66,7 @@ export default async function OrdersPage({ params }: { params: Params }) {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="font-semibold">{formatMoney(order.total_cents, order.currency)}</span>
-                  <OrderStatusSelect appId={appId} orderId={order.id} status={order.status} />
+                  <OrderStatusSelect appId={appId} orderId={order.id} status={order.status} paymentMethod={order.payment_method} />
                 </div>
               </div>
               <ul className="space-y-0.5 text-xs text-muted-foreground">
@@ -76,7 +76,10 @@ export default async function OrdersPage({ params }: { params: Params }) {
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-xs text-muted-foreground">{new Date(order.created_at).toLocaleString()}</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {new Date(order.created_at).toLocaleString()}
+                {order.payment_method === "stripe" ? " · Card payment" : " · Order request"}
+              </p>
             </div>
           ))}
         </div>

@@ -35,7 +35,8 @@ export type AnalyticsEventType =
   | "sms_sent"
   | "order_placed"
   | "booking_created";
-export type OrderStatus = "pending" | "fulfilled" | "cancelled";
+export type OrderStatus = "pending" | "paid" | "fulfilled" | "cancelled" | "refunded";
+export type PaymentMethod = "request" | "stripe";
 
 export type CustomDomainStatus = "pending" | "verified" | "error";
 
@@ -268,6 +269,22 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["organizations"]["Row"]>;
         Relationships: [];
       };
+      stripe_accounts: {
+        Row: {
+          organization_id: string;
+          stripe_account_id: string;
+          charges_enabled: boolean;
+          details_submitted: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["stripe_accounts"]["Row"]> & {
+          organization_id: string;
+          stripe_account_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["stripe_accounts"]["Row"]>;
+        Relationships: [];
+      };
       memberships: {
         Row: {
           id: string;
@@ -446,6 +463,11 @@ export interface Database {
           status: OrderStatus;
           total_cents: number;
           currency: string;
+          /** 'request' = the merchant follows up by hand; 'stripe' = paid on Stripe's checkout page. */
+          payment_method: PaymentMethod;
+          stripe_checkout_session_id: string | null;
+          stripe_payment_intent_id: string | null;
+          paid_at: string | null;
           created_at: string;
           updated_at: string;
         };

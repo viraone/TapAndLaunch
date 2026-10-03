@@ -41,3 +41,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .next-phone/
+
+# Throwaway dev build used by payment-flow tests
+.next-test/

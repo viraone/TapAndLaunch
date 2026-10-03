@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 export interface RuntimeProduct {
   id: string;
@@ -17,12 +17,18 @@ function formatMoney(cents: number, currency: string): string {
   );
 }
 
+const noopSubscribe = () => () => {};
+function readPaidProduct(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("payment") === "success" ? params.get("product") : null;
+}
+
 /**
  * One product card with an inline order form — not a multi-item cart.
  * "Buy" on a product creates one order with one line item; there's no
- * cross-product basket to check out with at once. See the migration
- * comment on `orders` on why this is a purchase *request*, not a paid
- * transaction (no payment processor is wired up yet).
+ * cross-product basket to check out with at once. If the merchant has
+ * connected Stripe, "Order" sends the shopper to Stripe's checkout page;
+ * otherwise it records a purchase *request* (see migration 0018).
  */
 export function ProductBuyRuntime({ product }: { product: RuntimeProduct }) {
   const [open, setOpen] = useState(false);
@@ -30,6 +36,8 @@ export function ProductBuyRuntime({ product }: { product: RuntimeProduct }) {
   const [email, setEmail] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [status, setStatus] = useState<"idle" | "submitting" | "submitted" | "error">("idle");
+  // Coming back from Stripe's checkout page: `?payment=success&product=<id>` is in the address.
+  const paidJustNow = useSyncExternalStore(noopSubscribe, () => readPaidProduct() === product.id, () => false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,12 +51,31 @@ export function ProductBuyRuntime({ product }: { product: RuntimeProduct }) {
           quantity,
           customerName: name,
           customerEmail: email,
+          returnPath: window.location.pathname,
         }),
       });
-      setStatus(res.ok ? "submitted" : "error");
+      if (!res.ok) {
+        setStatus("error");
+        return;
+      }
+      const { checkoutUrl } = (await res.json()) as { checkoutUrl?: string | null };
+      // With Stripe connected the shopper pays on Stripe's page; otherwise it's a request.
+      if (checkoutUrl) {
+        window.location.assign(checkoutUrl);
+        return;
+      }
+      setStatus("submitted");
     } catch {
       setStatus("error");
     }
+  }
+
+  if (paidJustNow && status === "idle") {
+    return (
+      <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-4 text-center text-sm">
+        Payment received. Thank you! A receipt is on its way to your email.
+      </div>
+    );
   }
 
   if (status === "submitted") {
