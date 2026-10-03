@@ -36,6 +36,18 @@ export function PaymentsCard({
               .
             </p>
           </>
+        ) : account?.details_submitted ? (
+          <>
+            <p className="font-medium">Stripe is checking your details</p>
+            <p className="text-muted-foreground">
+              You&rsquo;ve sent everything Stripe asked for. This usually takes under a minute, and sometimes longer for a
+              real business.{" "}
+              <a href="/dashboard/settings?stripe=return" className="underline">
+                Check again
+              </a>
+              . Until it&rsquo;s done, customers can only send order requests.
+            </p>
+          </>
         ) : account ? (
           <>
             <p className="font-medium">Finish setting up Stripe</p>

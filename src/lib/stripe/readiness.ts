@@ -10,13 +10,15 @@ export interface AccountReadiness {
 
 /**
  * Reads a v2 account fetched with `include: ["configuration.merchant", "requirements"]`.
- * Card payments are on when that capability is `active`; the merchant has finished their part
- * when Stripe lists no deadline for anything still due.
+ * Card payments are on when that capability is `active`. The merchant has done their part when
+ * nothing is listed as waiting on *them*; items waiting on Stripe (its checks after they submit)
+ * don't count, so the dashboard can say "Stripe is checking your details" instead of asking again.
  */
 export function accountReadiness(account: Stripe.V2.Core.Account): AccountReadiness {
   const card = account.configuration?.merchant?.capabilities?.card_payments;
-  return {
-    chargesEnabled: card?.status === "active",
-    detailsSubmitted: !account.requirements?.summary?.minimum_deadline,
-  };
+  const entries = account.requirements?.entries;
+  const detailsSubmitted = entries
+    ? !entries.some((e) => e.awaiting_action_from === "user")
+    : !account.requirements?.summary?.minimum_deadline;
+  return { chargesEnabled: card?.status === "active", detailsSubmitted };
 }
