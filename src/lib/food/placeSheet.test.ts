@@ -33,3 +33,26 @@ describe("hoursRows", () => {
     expect(hoursRows(WEEK, new Date(), null).some((r) => r.today)).toBe(false);
   });
 });
+
+import { mapsPlaceUrl, safeWebsite, telHref } from "@/lib/food/placeSheet";
+
+describe("contact links", () => {
+  it("builds a tel: link from Google's international number", () => {
+    expect(telHref("+1 206-555-0100")).toBe("tel:+12065550100");
+    expect(telHref("+44 20 7946 0958")).toBe("tel:+442079460958");
+  });
+  it("gives no tel: link when the number is missing or not usable", () => {
+    expect(telHref(null)).toBeNull();
+    expect(telHref("206-555-0100")).toBeNull(); // no country code
+    expect(telHref("call us")).toBeNull();
+  });
+  it("only allows http(s) websites", () => {
+    expect(safeWebsite("https://phoan.example.com/menu")).toBe("https://phoan.example.com/menu");
+    expect(safeWebsite("javascript:alert(1)")).toBeNull();
+    expect(safeWebsite("not a url")).toBeNull();
+    expect(safeWebsite(null)).toBeNull();
+  });
+  it("links the Maps place page by name and place id, encoded", () => {
+    expect(mapsPlaceUrl("Pho & Co", "ChIJabc")).toBe("https://www.google.com/maps/search/?api=1&query=Pho%20%26%20Co&query_place_id=ChIJabc");
+  });
+});

@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Clock, Copy, LocateFixed, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
+import { Check, ChevronDown, Clock, Copy, Globe, LocateFixed, MapPin, Phone, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
 import type { CuisineKey, FoodDirectoryBlockConfig } from "@/types/database";
 import type { NearbyPlace } from "@/lib/food/nearby";
 import { CUISINES, CUISINE_BY_KEY } from "@/lib/food/cuisines";
 import { computeOpenStatus, type OpenStatus } from "@/lib/food/hours";
 import { driveMinutes, travelEstimate, walkLabel, walkMinutes, type TravelMode } from "@/lib/food/walk";
-import { hoursRows } from "@/lib/food/placeSheet";
+import { hoursRows, mapsPlaceUrl, safeWebsite, telHref } from "@/lib/food/placeSheet";
 
 type Position = { latitude: number; longitude: number; label: string; live: boolean };
 type Filter = "all" | CuisineKey;
@@ -453,6 +453,9 @@ function CuisineTile({ emoji, label, active, loading, onClick }: { emoji: string
   );
 }
 
+const actionButton =
+  "flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-foreground/10 px-2 text-[15px] font-semibold transition active:scale-[0.98] active:bg-foreground/20";
+
 /** Google Maps directions to a place in the given travel mode. */
 function directionsUrl(place: NearbyPlace, mode: TravelMode): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&destination_place_id=${encodeURIComponent(place.googlePlaceId)}&travelmode=${mode}`;
@@ -522,6 +525,8 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
   const emoji = place.cuisine ? CUISINE_BY_KEY[place.cuisine].emoji : "🍽️";
   const rows = hoursRows(place.weekdayDescriptions, now, place.utcOffsetMinutes);
   const best = travelEstimate(place.distanceMiles).mode;
+  const tel = telHref(place.phoneInternational);
+  const website = safeWebsite(place.website);
   const [shown, setShown] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -665,6 +670,23 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
           <p className="mt-2 text-center text-xs text-muted-foreground">
             {distanceLabel(place.distanceMiles)} away · times are estimates, Google Maps shows the exact route
           </p>
+
+          {/* Call and Website appear when Google has them; the Maps page (phone, website, menu, photos, reviews) is a free plain link, always there. */}
+          <div className="mt-4 flex gap-3">
+            {tel && (
+              <a href={tel} className={actionButton}>
+                <Phone className="h-4 w-4" aria-hidden /> Call
+              </a>
+            )}
+            {website && (
+              <a href={website} target="_blank" rel="noreferrer" className={actionButton}>
+                <Globe className="h-4 w-4" aria-hidden /> Website
+              </a>
+            )}
+            <a href={mapsPlaceUrl(place.name, place.googlePlaceId)} target="_blank" rel="noreferrer" className={actionButton}>
+              <MapPin className="h-4 w-4" aria-hidden /> Maps
+            </a>
+          </div>
 
           {rows.length > 0 && (
             <section className="mt-6">

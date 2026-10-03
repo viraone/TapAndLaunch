@@ -615,6 +615,9 @@ export interface Database {
           weekday_descriptions: string[];
           utc_offset_minutes: number | null;
           business_status: string | null;
+          phone_national: string | null;
+          phone_international: string | null;
+          website: string | null;
           google_synced_at: string;
           created_at: string;
           updated_at: string;

@@ -23,3 +23,26 @@ export function hoursRows(weekdayDescriptions: string[], now: Date, utcOffsetMin
     };
   });
 }
+
+/** A tel: link from Google's international number ("+1 206-555-0100" → "tel:+12065550100"), or null. */
+export function telHref(phoneInternational: string | null): string | null {
+  if (!phoneInternational) return null;
+  const digits = phoneInternational.replace(/[^\d+]/g, "");
+  return /^\+\d{7,15}$/.test(digits) ? `tel:${digits}` : null;
+}
+
+/** The website only if it is a plain http(s) address (it comes from Google, but a link is a link). */
+export function safeWebsite(website: string | null): string | null {
+  if (!website) return null;
+  try {
+    const u = new URL(website);
+    return u.protocol === "https:" || u.protocol === "http:" ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The restaurant's full Google Maps page (phone, website, menu, photos, reviews). Free: a plain link, no API call. */
+export function mapsPlaceUrl(name: string, googlePlaceId: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}&query_place_id=${encodeURIComponent(googlePlaceId)}`;
+}

@@ -26,6 +26,9 @@ export interface NearbyPlace {
   openingPeriods: OpeningPeriod[];
   weekdayDescriptions: string[];
   utcOffsetMinutes: number | null;
+  phoneNational: string | null;
+  phoneInternational: string | null;
+  website: string | null;
   /** Most recent crowd-sourced wait report within WAIT_REPORT_TTL_MS. */
   wait: { minutes: number; reportedAt: string } | null;
 }
@@ -206,6 +209,9 @@ function toNearby(row: PlaceRow, distanceMiles: number, wait: NearbyPlace["wait"
     openingPeriods: row.opening_periods,
     weekdayDescriptions: row.weekday_descriptions,
     utcOffsetMinutes: row.utc_offset_minutes,
+    phoneNational: row.phone_national,
+    phoneInternational: row.phone_international,
+    website: row.website,
     wait,
   };
 }
@@ -268,6 +274,9 @@ async function upsertGooglePlaces(appId: string, found: GooglePlace[]): Promise<
     weekday_descriptions: p.weekdayDescriptions,
     utc_offset_minutes: p.utcOffsetMinutes,
     business_status: p.businessStatus,
+    phone_national: p.phoneNational,
+    phone_international: p.phoneInternational,
+    website: p.website,
     google_synced_at: now,
   }));
   const { error } = await admin.from("food_places").upsert(rows, { onConflict: "app_id,google_place_id" });
