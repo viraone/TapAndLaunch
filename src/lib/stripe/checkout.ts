@@ -63,7 +63,11 @@ export function buildCheckoutSessionParams(i: CheckoutInput): Stripe.Checkout.Se
     customer_email: i.customerEmail,
     client_reference_id: i.orderId,
     metadata: { order_id: i.orderId, app_id: i.appId },
-    ...(i.feeCents > 0 ? { payment_intent_data: { application_fee_amount: i.feeCents } } : {}),
+    // Stripe emails the receipt (live mode only) when the payment carries the shopper's address.
+    payment_intent_data: {
+      receipt_email: i.customerEmail,
+      ...(i.feeCents > 0 ? { application_fee_amount: i.feeCents } : {}),
+    },
     success_url: withParams(i.origin, i.returnPath, { payment: "success", order: i.orderId, product: i.productId }),
     cancel_url: withParams(i.origin, i.returnPath, { payment: "cancelled" }),
   };

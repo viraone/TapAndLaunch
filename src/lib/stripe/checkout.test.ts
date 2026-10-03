@@ -68,10 +68,13 @@ describe("buildCheckoutSessionParams", () => {
     expect(p.metadata).toEqual({ order_id: "o1", app_id: "a1" });
     expect(p.success_url).toBe("https://gym.tapandlaunch.com/shop?payment=success&order=o1&product=p1");
     expect(p.cancel_url).toBe("https://gym.tapandlaunch.com/shop?payment=cancelled");
-    expect(p.payment_intent_data).toBeUndefined();
+    expect(p.payment_intent_data).toEqual({ receipt_email: "fan@example.com" });
   });
 
-  it("adds the platform fee only when there is one", () => {
-    expect(buildCheckoutSessionParams({ ...base, feeCents: 150 }).payment_intent_data).toEqual({ application_fee_amount: 150 });
+  it("adds the platform fee only when there is one, and always asks Stripe to email the receipt", () => {
+    expect(buildCheckoutSessionParams({ ...base, feeCents: 150 }).payment_intent_data).toEqual({
+      receipt_email: "fan@example.com",
+      application_fee_amount: 150,
+    });
   });
 });
