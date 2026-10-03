@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AUTH_BUTTON } from "@/components/auth/AuthShell";
 
 function slugify(value: string): string {
   return value
@@ -45,21 +46,28 @@ export function OnboardingForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <Label htmlFor="org-name">Organization name</Label>
         <Input
           id="org-name"
           required
+          autoFocus
+          className="h-11"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Acme Agency"
         />
-        {name.trim() && <p className="text-xs text-muted-foreground">URL: {slugify(name)}</p>}
+        {name.trim() && <p className="text-xs text-neutral-500">URL: {slugify(name)}</p>}
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" className="w-full" disabled={loading || !name.trim()}>
+      {error && (
+        <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          {error}
+        </p>
+      )}
+      <button type="submit" disabled={loading || !name.trim()} className={AUTH_BUTTON}>
         {loading ? "Creating…" : "Create organization"}
-      </Button>
+        {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
+      </button>
     </form>
   );
 }

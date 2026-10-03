@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { createClient } from "@/lib/supabase/server";
 import { OnboardingForm } from "./OnboardingForm";
 
@@ -20,15 +20,8 @@ export default async function OnboardingPage() {
   if (existingMembership) redirect("/dashboard");
 
   return (
-    <div className="flex min-h-dvh items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Create your organization</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <OnboardingForm />
-        </CardContent>
-      </Card>
-    </div>
+    <AuthShell title="Create your organization" subtitle="Give your workspace a name to get started.">
+      <OnboardingForm />
+    </AuthShell>
   );
 }
