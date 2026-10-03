@@ -144,7 +144,7 @@ export default function OpenMicPreview({ kind, config }: { kind: string; config:
             reopenText={reopenLabel(window_, now)}
             closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)}
           />
-          {signedIn && <SignedInBar name="Lori Peck" />}
+          {signedIn && <SignedInBar name="Lori Peck" onSignOut={() => (window.location.search = "?preview=signed-out")} />}
           </div>
           <div className={pinned ? PINNED_SCROLL : "mt-6"}>
             {pinned && banner}

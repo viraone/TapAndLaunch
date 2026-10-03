@@ -102,9 +102,10 @@ export function SignupHeader({
 
 /**
  * "Signed in as …", like the account row at the top of iOS Settings: a rounded card with a
- * large tinted avatar holding the initials, a grey caption, and the name in larger semibold text.
+ * large tinted avatar holding the initials, a grey caption, and the name in larger semibold text,
+ * with a tinted "Sign Out" button at the trailing edge.
  */
-export function SignedInBar({ name }: { name: string }) {
+export function SignedInBar({ name, onSignOut }: { name: string; onSignOut: () => void }) {
   const initials =
     name
       .split(/[\s@.]+/)
@@ -113,17 +114,24 @@ export function SignedInBar({ name }: { name: string }) {
       .map((w) => w[0]!.toUpperCase())
       .join("") || "?";
   return (
-    <div className="mt-5 flex min-h-[4.5rem] items-center gap-4 rounded-xl bg-muted px-4 py-3">
+    <div className="mt-5 flex min-h-[4.5rem] items-center gap-3 rounded-xl bg-muted px-4 py-3 min-[375px]:gap-4">
       <span
         aria-hidden
-        className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-gradient-to-b from-primary/40 to-primary/15 text-[22px] font-semibold text-primary"
+        className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-b from-primary/40 to-primary/15 text-[19px] font-semibold text-primary min-[375px]:h-14 min-[375px]:w-14 min-[375px]:text-[22px]"
       >
         {initials}
       </span>
       <p className="min-w-0 leading-tight">
-        <span className="block text-[15px] text-muted-foreground">Signed in as</span>
+        <span className="block whitespace-nowrap text-[15px] text-muted-foreground">Signed in as</span>
         <span className="mt-0.5 block truncate text-[20px] font-semibold text-foreground">{name}</span>
       </p>
+      <button
+        type="button"
+        onClick={onSignOut}
+        className="ml-auto flex h-11 shrink-0 items-center rounded-full bg-primary/15 px-3 text-[15px] font-semibold text-primary active:bg-primary/25 min-[375px]:px-4"
+      >
+        Sign Out
+      </button>
     </div>
   );
 }
@@ -212,8 +220,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   useEffect(() => {
     if (!client) return;
     let cancelled = false;
-    // There's no sign-out button on the page; `?signout` is the way to
-    // switch accounts (used for testing).
+    // `?signout` signs out on load (handy for testing); the account row has a Sign Out button.
     const params = new URLSearchParams(window.location.search);
     const start = params.has("signout")
       ? client.auth.signOut().then(() => {
@@ -260,7 +267,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
       <div className={pinned ? "shrink-0" : undefined}>
       <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
 
-      {user && phase !== "loading" && phase !== "code" && <SignedInBar name={profile.stage_name || user.email || ""} />}
+      {user && phase !== "loading" && phase !== "code" && <SignedInBar name={profile.stage_name || user.email || ""} onSignOut={() => void client?.auth.signOut()} />}
       </div>
 
       <div className={pinned ? PINNED_SCROLL : "mt-6"}>
