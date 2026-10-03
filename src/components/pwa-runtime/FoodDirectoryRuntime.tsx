@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Clock, Footprints, LocateFixed, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
+import { ChevronDown, Clock, LocateFixed, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
 import type { CuisineKey, FoodDirectoryBlockConfig } from "@/types/database";
 import type { NearbyPlace } from "@/lib/food/nearby";
 import { CUISINES, CUISINE_BY_KEY } from "@/lib/food/cuisines";
@@ -485,16 +485,17 @@ function PlaceCard({ place, status }: { place: NearbyPlace; status: OpenStatus }
             </>
           )}
         </p>
-        <div className="mt-1.5 flex items-center justify-between gap-2">
+        <div className="mt-1.5 flex min-w-0">
           <StatusLine status={status} />
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-foreground">
-            <span className="inline-flex items-center gap-1 tabular-nums" aria-label={`About ${walk} on foot`}>
-              <Footprints className="h-3 w-3" aria-hidden /> {walk}
-            </span>
-            <span aria-hidden className="h-3 w-px bg-foreground/20" />
-            <span className="inline-flex items-center gap-1">
-              <Navigation className="h-3 w-3" /> Go
-            </span>
+        </div>
+        {/* Walking time in words (an icon alone wasn't clear), and the button that opens walking directions. */}
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <span className="inline-flex min-w-0 items-center gap-1.5 text-[14px] font-semibold text-foreground tabular-nums">
+            <span aria-hidden className="text-[16px] leading-none">🚶</span>
+            <span className="truncate">{walk} walk</span>
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-[13px] font-semibold text-background">
+            <Navigation className="h-3.5 w-3.5" aria-hidden /> Directions
           </span>
         </div>
       </div>
