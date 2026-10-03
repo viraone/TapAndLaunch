@@ -5,9 +5,28 @@ A red line appears under the box that reads ""Something went wrong. Try again.""
 No email arrives in your inbox.","Matches in an iPhone-sized browser run by the assistant on Oct 3: the page stayed on the email screen, the red line read ""Something went wrong. Try again."", no code screen appeared, and no account was created. Not yet confirmed on the iPhone.",Pass (assistant run; confirm on iPhone),iPhone 16 Pro Max / Safari,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,Oct 3,,"Wording note: ""Something went wrong"" is vague for a typo. A clearer line (""Check that your email address is right."") is possible later.",N
 AUTH-EML-002,SU-018,Authentication & sign-in,Email entry,Mobile browser,Pass 1.0 · Mobile,Mobile · iPhone Safari,Sign-in screen copy: 'Request your spot' and the green line,Copy / UI,P2,"Signed out, window open.",1. Read the heading and the green line under the button.,"Heading 'Request your spot'. Green line reads 'First time or returning, please enter in your email.'",Wording went through several rounds ('New here' to 'First time or returning' to the final line). Final text confirmed: user reported PASS.,Pass,iPhone 16 Pro Max / Safari,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,Oct 3,c6a1bed,String changed on the tester's request,N
 AUTH-EML-003,SU-019,Authentication & sign-in,Email entry,Mobile browser,Pass 1.0 · Mobile,Mobile · iPhone Safari,Sign-in screen visual redo,UI,P3,Signed out.,1. View the email and code screens.,"Clean, readable, consistent with the app.","Tester asked for UI suggestions, all were applied, user reported 'I love it. it is amazing'.",Pass,iPhone 16 Pro Max / Safari,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,Oct 1,,,N
-AUTH-VC-001,SU-009,Authentication & sign-in,Verification code (6-digit),Mobile browser,Pass 1.0 · Mobile,Mobile · iPhone Safari,Wrong code is rejected clearly,Negative,P1,On 'Check your email' with a valid code sent to a fresh +alias address.,"1. Type 000000.
-2. Observe.
-3. Type the real code.","Box shakes, turns red and empties. Red 'Wrong code. Try again.' with 'Use the newest email, or send a new code.' Correct code then signs in with no leftover error.",Matched. User reported PASS.,Pass,iPhone 16 Pro Max / Safari,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,Oct 3,"828107c, 336f91c",,Y
+AUTH-VC-001,SU-009,Authentication & sign-in,Verification code (6-digit),Mobile browser,Pass 1.0 · Mobile,Mobile · iPhone Safari,Wrong code shows error message,Negative,P1,"- Device: iPhone with the Safari app.
+- Access to the Gmail inbox for vxayananh@gmail.com (addresses like vxayananh+mistake1@gmail.com arrive in that same inbox).
+- Requests are open (any time from Friday 9:40 PM until Thursday 10:00 PM, Seattle time). If the page says ""Sign ups are closed"", this test can't be run yet.
+- Use an address that has never signed up, such as vxayananh+mistake1@gmail.com. The ""+mistake1"" part is only a label.","1. On the iPhone, open the Safari app.
+2. Tap the address bar, type https://stagetimepnw.tapandlaunch.com/signup and tap Go.
+3. Wait for the page to load. You should see the heading ""Request your spot"" and an Email box. If you see ""Signed in as…"" instead, tap Sign Out first and wait for the email screen.
+4. Tap the Email box and type vxayananh+mistake1@gmail.com.
+5. Tap the red Send my code button.
+6. Wait for the screen to change to ""Check your email"", with a box for a 6-digit code.
+7. Tap the code box and type 000000 (six zeros). Don't tap anything else: the code submits by itself after the sixth digit.
+8. Watch the code box and the text under it for about 3 seconds. (Compare with Expected result, after step 7.)
+9. Open the Gmail app. Find the newest email titled ""… is your StageTime PNW code"" and read the 6-digit code in it.
+10. Switch back to Safari without reloading the page. Tap the code box and type that 6-digit code.
+11. Look at the screen. (Compare with Expected result, after step 10.)
+12. Clean up: tap Sign Out.","After step 7:
+The code box shakes, turns red and clears.
+A red line appears under the box that reads ""Wrong code. Try again."", with ""Use the newest email, or send a new code."" in grey below it.
+The page stays on ""Check your email"". You are not signed in.
+
+After step 10:
+You are signed in. A ""Signed in as"" row appears at the top and the request form is shown.
+The red ""Wrong code. Try again."" message is gone.","Matched. You reported PASS on Oct 3, run on your iPhone. (The steps were rewritten on Oct 3 after the run, with the same flow.)",Pass,iPhone 16 Pro Max / Safari,Production: stagetimepnw.tapandlaunch.com/signup,Viradeth,Oct 3,"828107c, 336f91c",,Y
 AUTH-VC-002,SU-010,Authentication & sign-in,Verification code (6-digit),Mobile browser,Pass 1.0 · Mobile,Mobile · iPhone Safari,"Resend code: countdown, new code, old code invalid",Functional,P1,On 'Check your email'.,"1. Note 'Resend code in 60s' (greyed).
 2. Wait for it to become 'Resend code'; tap it.
 3. Look for 'New code sent.' and a restarted countdown.
