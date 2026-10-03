@@ -543,15 +543,15 @@ function CodeStep({
         {busy && <Loader2 className="h-5 w-5 animate-spin" />}
         Continue
       </button>
-      <div className="mt-4 flex justify-between text-sm">
-        <button type="button" onClick={onBack} className="text-muted-foreground underline-offset-2 hover:underline">
+      <div className="mt-2 flex justify-between text-[17px] text-foreground dark:text-white">
+        <button type="button" onClick={onBack} className="-ml-1 flex min-h-11 items-center px-1 underline-offset-2 hover:underline">
           Change email
         </button>
         <button
           type="button"
           onClick={resend}
           disabled={cooldown > 0}
-          className="text-muted-foreground underline-offset-2 hover:underline disabled:no-underline disabled:opacity-60"
+          className="-mr-1 flex min-h-11 items-center px-1 underline-offset-2 hover:underline disabled:no-underline"
         >
           {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
         </button>
