@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Clock, LocateFixed, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronDown, Clock, Copy, LocateFixed, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
 import type { CuisineKey, FoodDirectoryBlockConfig } from "@/types/database";
 import type { NearbyPlace } from "@/lib/food/nearby";
 import { CUISINES, CUISINE_BY_KEY } from "@/lib/food/cuisines";
 import { computeOpenStatus, type OpenStatus } from "@/lib/food/hours";
-import { travelEstimate } from "@/lib/food/walk";
+import { driveMinutes, travelEstimate, walkLabel, walkMinutes, type TravelMode } from "@/lib/food/walk";
+import { hoursRows } from "@/lib/food/placeSheet";
 
 type Position = { latitude: number; longitude: number; label: string; live: boolean };
 type Filter = "all" | CuisineKey;
@@ -52,6 +53,8 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  /** The place whose details sheet is open (looked up live so its status keeps ticking). */
+  const [openPlaceId, setOpenPlaceId] = useState<string | null>(null);
   const [showAllCuisines, setShowAllCuisines] = useState(false);
   /** Cuisines whose own Google search is confirmed for the current position. */
   const [fetchedCuisines, setFetchedCuisines] = useState<Set<CuisineKey>>(() => new Set());
@@ -187,6 +190,8 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
     });
     return withStatus;
   }, [places, filter, query, sort, now]);
+
+  const openPlace = openPlaceId ? (places ?? []).find((p) => p.id === openPlaceId) ?? null : null;
 
   /** Live status counts for the whole area, independent of the filter. */
   const counts = useMemo(() => {
@@ -391,11 +396,13 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
                 {showClosedHeader && (
                   <p className="mb-2 mt-5 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Closed now</p>
                 )}
-                <PlaceCard place={place} status={status} />
+                <PlaceCard place={place} status={status} onOpen={() => setOpenPlaceId(place.id)} />
               </li>
             );
           })}
         </ul>
+
+        {openPlace && <PlaceSheet place={openPlace} now={now} onClose={() => setOpenPlaceId(null)} />}
 
         {(places || error) && (
           <div className="mt-6 flex flex-col items-center gap-2">
@@ -446,26 +453,29 @@ function CuisineTile({ emoji, label, active, loading, onClick }: { emoji: string
   );
 }
 
-function PlaceCard({ place, status }: { place: NearbyPlace; status: OpenStatus }) {
+/** Google Maps directions to a place in the given travel mode. */
+function directionsUrl(place: NearbyPlace, mode: TravelMode): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&destination_place_id=${encodeURIComponent(place.googlePlaceId)}&travelmode=${mode}`;
+}
+
+function PlaceCard({ place, status, onOpen }: { place: NearbyPlace; status: OpenStatus; onOpen: () => void }) {
   const closed = status.state === "closed";
   const emoji = place.cuisine ? CUISINE_BY_KEY[place.cuisine].emoji : "🍽️";
   // Like Apple Maps' travel-time button: walk when it's short, otherwise drive. Both are estimates.
   const travel = travelEstimate(place.distanceMiles);
-  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&destination_place_id=${encodeURIComponent(place.googlePlaceId)}&travelmode=${travel.mode}`;
   return (
-    <a
-      href={mapsUrl}
-      target="_blank"
-      rel="noreferrer"
-      className={`flex items-center gap-3 rounded-2xl border bg-card p-3 transition active:scale-[0.99] ${
+    // Tapping the card opens the details sheet; the orange button goes straight to directions.
+    <div
+      className={`relative flex items-center gap-3 rounded-2xl border bg-card p-3 transition active:scale-[0.99] ${
         closed ? "opacity-55" : status.state === "closing_soon" ? "border-amber-400/60" : "shadow-sm"
       }`}
     >
-      <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br text-[28px] ${closed ? "grayscale" : ""} ${avatarColor(place.id)}`}>
+      <button type="button" onClick={onOpen} aria-label={`Details for ${place.name}`} className="absolute inset-0 rounded-2xl" />
+      <div className={`pointer-events-none grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br text-[28px] ${closed ? "grayscale" : ""} ${avatarColor(place.id)}`}>
         <span aria-hidden>{emoji}</span>
       </div>
 
-      <div className="min-w-0 flex-1">
+      <div className="pointer-events-none min-w-0 flex-1">
         <p className="min-w-0 truncate text-[15px] font-semibold leading-tight">{place.name}</p>
         <p className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-xs text-muted-foreground">
           <span className="min-w-0 truncate">{place.cuisineLabel}</span>
@@ -487,17 +497,209 @@ function PlaceCard({ place, status }: { place: NearbyPlace; status: OpenStatus }
         </p>
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <StatusLine status={status} />
-          {/* The directions button carries the travel time, as in Apple Maps. Tapping anywhere on the card opens the same directions. */}
-          <span
-            aria-label={`Directions, about ${travel.minutes} minutes ${travel.mode === "walking" ? "on foot" : "by car"}`}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-orange-500/12 px-3 py-1.5 text-[13px] font-semibold text-orange-700 tabular-nums dark:bg-orange-400/15 dark:text-orange-300"
+          <a
+            href={directionsUrl(place, travel.mode)}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`Directions to ${place.name}, about ${travel.minutes} minutes ${travel.mode === "walking" ? "on foot" : "by car"}`}
+            className="pointer-events-auto relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-orange-500/12 px-3 py-1.5 text-[13px] font-semibold text-orange-700 tabular-nums transition active:scale-95 dark:bg-orange-400/15 dark:text-orange-300"
           >
             <span aria-hidden className="text-[15px] leading-none">{travel.mode === "walking" ? "🚶" : "🚗"}</span>
             {travel.label}
-          </span>
+          </a>
         </div>
       </div>
-    </a>
+    </div>
+  );
+}
+
+/**
+ * The details sheet (Apple Maps style): slides up over the list, drag down / tap outside / Escape
+ * to close. Everything here comes from data we already have, so it opens instantly.
+ */
+function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; onClose: () => void }) {
+  const status = computeOpenStatus(place.openingPeriods, place.utcOffsetMinutes, now);
+  const emoji = place.cuisine ? CUISINE_BY_KEY[place.cuisine].emoji : "🍽️";
+  const rows = hoursRows(place.weekdayDescriptions, now, place.utcOffsetMinutes);
+  const best = travelEstimate(place.distanceMiles).mode;
+  const [shown, setShown] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const startY = useRef<number | null>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const closing = useRef(false);
+
+  function close() {
+    if (closing.current) return;
+    closing.current = true;
+    setShown(false);
+    setDragY(0);
+    window.setTimeout(onClose, 220);
+  }
+
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    const raf = window.requestAnimationFrame(() => setShown(true));
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButton.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+      opener?.focus?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function copyAddress() {
+    if (!place.address) return;
+    try {
+      await navigator.clipboard.writeText(place.address);
+    } catch {
+      // Clipboard blocked: the address is shown as text, so it can still be selected by hand.
+      return;
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }
+
+  const modeButton = (mode: TravelMode) => {
+    const isBest = mode === best;
+    const minutes = mode === "walking" ? walkMinutes(place.distanceMiles) : driveMinutes(place.distanceMiles);
+    const label = mode === "walking" ? `~${walkLabel(place.distanceMiles)}` : `~${minutes} min`;
+    return (
+      <a
+        href={directionsUrl(place, mode)}
+        target="_blank"
+        rel="noreferrer"
+        className={`flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-[15px] font-semibold tabular-nums transition active:scale-[0.98] ${
+          isBest ? "bg-orange-500 text-white" : "bg-orange-500/12 text-orange-700 dark:bg-orange-400/15 dark:text-orange-300"
+        }`}
+      >
+        <span aria-hidden className="text-lg leading-none">{mode === "walking" ? "🚶" : "🚗"}</span>
+        <span className="flex flex-col items-start leading-tight">
+          <span>{mode === "walking" ? "Walk" : "Drive"}</span>
+          <span className="text-[13px] font-medium opacity-90">{label}</span>
+        </span>
+      </a>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={`${place.name} details`}>
+      <button
+        type="button"
+        aria-label="Close details"
+        tabIndex={-1}
+        onClick={close}
+        className={`absolute inset-0 bg-black/45 transition-opacity duration-200 motion-reduce:transition-none ${shown ? "opacity-100" : "opacity-0"}`}
+      />
+      <div
+        className="absolute inset-x-0 bottom-0 mx-auto flex max-h-[88dvh] w-full max-w-md flex-col rounded-t-3xl bg-background shadow-2xl transition-transform duration-200 ease-out motion-reduce:transition-none"
+        style={{ transform: shown ? `translateY(${dragY}px)` : "translateY(100%)", transitionDuration: dragY ? "0ms" : undefined }}
+      >
+        {/* Grabber + title: dragging this part down closes the sheet. */}
+        <div
+          className="touch-none px-5 pt-2"
+          onTouchStart={(e) => (startY.current = e.touches[0].clientY)}
+          onTouchMove={(e) => {
+            if (startY.current !== null) setDragY(Math.max(0, e.touches[0].clientY - startY.current));
+          }}
+          onTouchEnd={() => {
+            if (dragY > 90) close();
+            else setDragY(0);
+            startY.current = null;
+          }}
+        >
+          <div className="mx-auto h-1.5 w-10 rounded-full bg-foreground/20" />
+          <div className="mt-3 flex items-start gap-3">
+            <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br text-[28px] ${avatarColor(place.id)}`}>
+              <span aria-hidden>{emoji}</span>
+            </div>
+            <div className="min-w-0 flex-1 pt-0.5">
+              <h2 className="text-[20px] font-bold leading-tight">{place.name}</h2>
+              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
+                <span>{place.cuisineLabel}</span>
+                {place.rating !== null && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    <span className="font-medium text-foreground/80">{place.rating.toFixed(1)}</span>
+                    {place.ratingCount !== null && <span>({place.ratingCount.toLocaleString()})</span>}
+                  </>
+                )}
+                {place.priceLevel !== null && place.priceLevel > 0 && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>{"$".repeat(place.priceLevel)}</span>
+                  </>
+                )}
+              </p>
+            </div>
+            <button
+              ref={closeButton}
+              type="button"
+              onClick={close}
+              aria-label="Close"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-foreground/10 text-foreground/70 active:bg-foreground/20"
+            >
+              <X className="h-5 w-5" strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto overscroll-contain px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
+          <div className="text-[15px]">
+            <StatusLine status={status} />
+          </div>
+
+          <div className="mt-4 flex gap-3">
+            {modeButton("walking")}
+            {modeButton("driving")}
+          </div>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            {distanceLabel(place.distanceMiles)} away · times are estimates, Google Maps shows the exact route
+          </p>
+
+          {rows.length > 0 && (
+            <section className="mt-6">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Hours</h3>
+              <ul className="mt-2 divide-y rounded-2xl border bg-card">
+                {rows.map((r) => (
+                  <li key={r.day} className={`flex items-center justify-between gap-3 px-4 py-2.5 text-[15px] tabular-nums ${r.today ? "bg-orange-500/10 font-semibold" : ""}`}>
+                    <span>{r.day}</span>
+                    <span className={r.today ? "" : "text-muted-foreground"}>{r.hours}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-xs text-muted-foreground">Hours from Google</p>
+            </section>
+          )}
+
+          {place.address && (
+            <section className="mt-6">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Address</h3>
+              <div className="mt-2 flex items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-3">
+                <p className="min-w-0 text-[15px] leading-snug">{place.address}</p>
+                <button
+                  type="button"
+                  onClick={copyAddress}
+                  className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-foreground/10 px-3.5 text-sm font-semibold active:bg-foreground/20"
+                >
+                  {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
