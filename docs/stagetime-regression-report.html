@@ -83,7 +83,7 @@ footer{margin-top:28px;color:var(--mute);font-size:13px}footer p{margin:6px 0;ma
 </style></head><body>
 <div class="shell">
 <nav class="side" aria-label="Test hierarchy"><div class="brand">StageTime PNW</div><div class="sidepass" id="sidepass"></div><h2>Test hierarchy</h2>
- <div class="seg" role="group" aria-label="Group by"><button id="vf" aria-pressed="true">By feature</button><button id="vp" aria-pressed="false">By device</button></div>
+ <div class="seg" role="group" aria-label="Group by"><button id="vf" aria-pressed="true">By feature</button><button id="vp" aria-pressed="false">By platform</button></div>
  <div class="tree" id="tree"></div></nav>
 <main>
 <div class="pbar" id="pbar"></div>
@@ -120,7 +120,7 @@ footer{margin-top:28px;color:var(--mute);font-size:13px}footer p{margin:6px 0;ma
  <p class="count" id="count"></p><div id="groups"></div><div class="empty" id="empty" hidden>No test cases match these filters.</div>
 </section>
 <footer>
- <p><b>How to read it.</b> Test IDs read SUITE-AREA-NNN (for example AUTH-VC-001 is Authentication, Verification code, case 1). Every case says what to <b>Run it on</b> (for example Mobile · iPhone Safari). Cases are grouped by feature, or switch to <b>By device</b> to group by where they run. The earlier flat IDs (SU-, CL-, SD-, TL-) are kept in each case's detail as <b>Legacy ID</b>.</p>
+ <p><b>How to read it.</b> Test IDs read SUITE-AREA-NNN (for example AUTH-VC-001 is Authentication, Verification code, case 1). Every case says what to <b>Run it on</b> (for example Mobile · iPhone Safari). Cases are grouped by feature, or switch to <b>By platform</b> to group by where they run. The earlier flat IDs (SU-, CL-, SD-, TL-) are kept in each case's detail as <b>Legacy ID</b>.</p>
  <p><b>Statuses.</b> <b>Pass</b>: the tester reported it passed. <b>Pass after fix</b>: a problem was found, fixed, and passed on retest. <b>Pass – to confirm</b>: passed per a report or batch result not itemised in the record. <b>Failed once</b>: failed at least once; see the follow-up note. <b>Verified (assistant)</b>: checked by the assistant, not the tester. <b>Not run</b>: not yet executed, or blocked by launch-day setup. <b>Not recorded</b>: run or implied, but no result was reported.</p>
  <p>Cases marked "Added to complete the platform matrix" are planned and have not been run. Automated checks (unit tests and browser-emulator suites) are tracked separately. Dates are Seattle time.</p>
 </footer></main></div>
