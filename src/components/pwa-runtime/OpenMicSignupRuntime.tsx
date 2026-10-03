@@ -417,7 +417,7 @@ function EmailStep({
       {open && (
         <div className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
           <CircleCheck className="h-6 w-6 shrink-0 text-emerald-400" aria-hidden="true" />
-          <p className="text-lg font-bold leading-snug">First time or returning, all we need is your email.</p>
+          <p className="text-lg font-bold leading-snug">First time or returning, please enter in your email.</p>
         </div>
       )}
     </form>
