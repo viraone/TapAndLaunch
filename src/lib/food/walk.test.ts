@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { walkLabel, walkMinutes } from "@/lib/food/walk";
+import { driveMinutes, travelEstimate, walkLabel, walkMinutes } from "@/lib/food/walk";
 
 describe("walk time", () => {
   it("is never under a minute, even next door", () => {
@@ -22,5 +22,21 @@ describe("walk time", () => {
 
   it("treats a negative distance as zero", () => {
     expect(walkMinutes(-3)).toBe(1);
+  });
+});
+
+describe("travel estimate on the card", () => {
+  it("walks when it's 20 minutes or less", () => {
+    expect(travelEstimate(0.5)).toEqual({ mode: "walking", minutes: 13, label: "~13 min" });
+    expect(travelEstimate(0.76).mode).toBe("walking"); // 19.76 → 20 min
+  });
+
+  it("drives when the walk would be longer", () => {
+    expect(travelEstimate(1.2)).toEqual({ mode: "driving", minutes: 7, label: "~7 min" });
+    expect(travelEstimate(2).minutes).toBe(11);
+  });
+
+  it("never estimates a drive under 2 minutes", () => {
+    expect(driveMinutes(0)).toBe(2);
   });
 });

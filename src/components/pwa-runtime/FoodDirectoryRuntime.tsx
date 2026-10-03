@@ -6,7 +6,7 @@ import type { CuisineKey, FoodDirectoryBlockConfig } from "@/types/database";
 import type { NearbyPlace } from "@/lib/food/nearby";
 import { CUISINES, CUISINE_BY_KEY } from "@/lib/food/cuisines";
 import { computeOpenStatus, type OpenStatus } from "@/lib/food/hours";
-import { walkLabel } from "@/lib/food/walk";
+import { travelEstimate } from "@/lib/food/walk";
 
 type Position = { latitude: number; longitude: number; label: string; live: boolean };
 type Filter = "all" | CuisineKey;
@@ -449,8 +449,9 @@ function CuisineTile({ emoji, label, active, loading, onClick }: { emoji: string
 function PlaceCard({ place, status }: { place: NearbyPlace; status: OpenStatus }) {
   const closed = status.state === "closed";
   const emoji = place.cuisine ? CUISINE_BY_KEY[place.cuisine].emoji : "🍽️";
-  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&destination_place_id=${encodeURIComponent(place.googlePlaceId)}&travelmode=walking`;
-  const walk = walkLabel(place.distanceMiles);
+  // Like Apple Maps' travel-time button: walk when it's short, otherwise drive. Both are estimates.
+  const travel = travelEstimate(place.distanceMiles);
+  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&destination_place_id=${encodeURIComponent(place.googlePlaceId)}&travelmode=${travel.mode}`;
   return (
     <a
       href={mapsUrl}
@@ -465,10 +466,7 @@ function PlaceCard({ place, status }: { place: NearbyPlace; status: OpenStatus }
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="min-w-0 truncate text-[15px] font-semibold leading-tight">{place.name}</p>
-          <span className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">{distanceLabel(place.distanceMiles)}</span>
-        </div>
+        <p className="min-w-0 truncate text-[15px] font-semibold leading-tight">{place.name}</p>
         <p className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-xs text-muted-foreground">
           <span className="min-w-0 truncate">{place.cuisineLabel}</span>
           {place.rating !== null && (
@@ -484,18 +482,18 @@ function PlaceCard({ place, status }: { place: NearbyPlace; status: OpenStatus }
               <span>{"$".repeat(place.priceLevel)}</span>
             </>
           )}
+          <span aria-hidden>·</span>
+          <span className="shrink-0 tabular-nums">{distanceLabel(place.distanceMiles)}</span>
         </p>
-        <div className="mt-1.5 flex min-w-0">
+        <div className="mt-1.5 flex items-center justify-between gap-2">
           <StatusLine status={status} />
-        </div>
-        {/* Walking time in words (an icon alone wasn't clear), and the button that opens walking directions. */}
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <span className="inline-flex min-w-0 items-center gap-1.5 text-[14px] font-semibold text-foreground tabular-nums">
-            <span aria-hidden className="text-[16px] leading-none">🚶</span>
-            <span className="truncate">{walk} walk</span>
-          </span>
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-[13px] font-semibold text-background">
-            <Navigation className="h-3.5 w-3.5" aria-hidden /> Directions
+          {/* The directions button carries the travel time, as in Apple Maps. Tapping anywhere on the card opens the same directions. */}
+          <span
+            aria-label={`Directions, about ${travel.minutes} minutes ${travel.mode === "walking" ? "on foot" : "by car"}`}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-orange-500/12 px-3 py-1.5 text-[13px] font-semibold text-orange-700 tabular-nums dark:bg-orange-400/15 dark:text-orange-300"
+          >
+            <span aria-hidden className="text-[15px] leading-none">{travel.mode === "walking" ? "🚶" : "🚗"}</span>
+            {travel.label}
           </span>
         </div>
       </div>
