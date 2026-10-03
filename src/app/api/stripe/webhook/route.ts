@@ -1,4 +1,5 @@
 import { actionFor } from "@/lib/stripe/events";
+import { markOrderPaid } from "@/lib/stripe/orders";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -29,14 +30,8 @@ export async function POST(request: Request) {
 
   switch (action.kind) {
     case "order_paid": {
-      // Keyed on both ids and on `pending`, so a repeated event can't change anything twice.
-      const { error } = await admin
-        .from("orders")
-        .update({ status: "paid", paid_at: new Date().toISOString(), stripe_payment_intent_id: action.paymentIntentId })
-        .eq("id", action.orderId)
-        .eq("stripe_checkout_session_id", action.sessionId)
-        .eq("status", "pending");
-      if (error) return Response.json({ error: error.message }, { status: 500 });
+      const { error } = await markOrderPaid(admin, action);
+      if (error) return Response.json({ error }, { status: 500 });
       break;
     }
     case "order_cancelled": {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 export interface RuntimeProduct {
   id: string;
@@ -38,6 +38,13 @@ export function ProductBuyRuntime({ product }: { product: RuntimeProduct }) {
   const [status, setStatus] = useState<"idle" | "submitting" | "submitted" | "error">("idle");
   // Coming back from Stripe's checkout page: `?payment=success&product=<id>` is in the address.
   const paidJustNow = useSyncExternalStore(noopSubscribe, () => readPaidProduct() === product.id, () => false);
+
+  // Back from Stripe: ask the server to confirm the payment now, rather than waiting for the webhook.
+  useEffect(() => {
+    if (!paidJustNow) return;
+    const orderId = new URLSearchParams(window.location.search).get("order");
+    if (orderId) void fetch("/orders/confirm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId }) });
+  }, [paidJustNow]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

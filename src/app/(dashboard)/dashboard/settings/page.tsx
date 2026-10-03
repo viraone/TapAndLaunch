@@ -34,8 +34,9 @@ export default async function OrgSettingsPage({ searchParams }: { searchParams: 
   if (showPayments) {
     const admin = createAdminClient();
     stripeAccount = await getStripeAccountRow(admin, organizationId);
-    // Back from Stripe's setup pages: ask Stripe for the latest, so this page is right before any webhook arrives.
-    if (stripeAccount && stripeReturn) {
+    // Setup not finished (or just back from Stripe's pages): ask Stripe for the latest, so this page
+    // is right without waiting for a webhook.
+    if (stripeAccount && (stripeReturn || !stripeAccount.charges_enabled)) {
       try {
         stripeAccount = (await syncStripeAccount(admin, organizationId, stripeAccount.stripe_account_id)) ?? stripeAccount;
       } catch (error) {

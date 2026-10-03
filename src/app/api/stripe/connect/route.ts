@@ -1,8 +1,12 @@
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 import { getStripeAccountRow } from "@/lib/stripe/accounts";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/server";
+
+/** Where the business is based; Stripe needs it before it can create the account. Defaults to the US. */
+const BodySchema = z.object({ country: z.string().regex(/^[A-Za-z]{2}$/).optional() });
 
 /**
  * Starts (or resumes) connecting the organization's Stripe account. Creates the Stripe account the
@@ -26,15 +30,26 @@ export async function POST(request: Request) {
     return Response.json({ error: "Only an organization admin can connect payments." }, { status: 403 });
   }
 
+  const body = BodySchema.safeParse(await request.json().catch(() => ({})));
+  if (!body.success) return Response.json({ error: "Choose a valid country." }, { status: 400 });
+  const country = (body.data.country ?? "us").toLowerCase();
+
   const admin = createAdminClient();
   const stripe = getStripe();
 
   try {
     let row = await getStripeAccountRow(admin, organizationId);
     if (!row) {
-      const account = await stripe.accounts.create({
-        type: "standard",
-        email: user.email ?? undefined,
+      // Stripe's current accounts API (v2). `dashboard: "full"` gives the merchant their own Stripe
+      // Dashboard for payouts and refunds, and with Stripe collecting fees and covering negative
+      // balances, TapAndLaunch carries no payment risk — the same arrangement as a "Standard" account.
+      const account = await stripe.v2.core.accounts.create({
+        contact_email: user.email ?? undefined,
+        display_name: membership.name,
+        identity: { country },
+        dashboard: "full",
+        defaults: { responsibilities: { fees_collector: "stripe", losses_collector: "stripe" } },
+        configuration: { merchant: { capabilities: { card_payments: { requested: true } } } },
         metadata: { organization_id: organizationId },
       });
       const { data, error } = await admin
@@ -47,11 +62,15 @@ export async function POST(request: Request) {
     }
 
     const origin = new URL(request.url).origin;
-    const link = await stripe.accountLinks.create({
+    const link = await stripe.v2.core.accountLinks.create({
       account: row.stripe_account_id,
-      type: "account_onboarding",
-      refresh_url: `${origin}/dashboard/settings?stripe=refresh`,
-      return_url: `${origin}/dashboard/settings?stripe=return`,
+      use_case: {
+        type: "account_onboarding",
+        account_onboarding: {
+          refresh_url: `${origin}/dashboard/settings?stripe=refresh`,
+          return_url: `${origin}/dashboard/settings?stripe=return`,
+        },
+      },
     });
     return Response.json({ url: link.url });
   } catch (error) {

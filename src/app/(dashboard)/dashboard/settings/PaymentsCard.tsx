@@ -53,7 +53,7 @@ export function PaymentsCard({
               Stripe&rsquo;s own pages, and the money goes straight to you. Until you connect, customers can only send
               order requests.
             </p>
-            <ConnectStripeButton label="Connect Stripe" />
+            <ConnectStripeButton label="Connect Stripe" askCountry />
           </>
         )}
       </CardContent>
