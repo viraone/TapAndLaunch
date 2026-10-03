@@ -40,6 +40,7 @@ h1{margin:6px 0 4px;font-size:30px;letter-spacing:-.02em}
 .attn .id{font-weight:700;font-variant-numeric:tabular-nums;min-width:104px;font-size:12.5px}.attn .why{color:var(--mute);font-size:12.5px}
 .scope{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.sc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}.sc h4{margin:0 0 4px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}.sc p{margin:0;font-size:14px;line-height:1.5}.seg2{display:inline-flex;background:var(--nrbg);border-radius:12px;padding:3px;margin-top:16px;flex-wrap:wrap}.seg2 button{border:0;background:transparent;color:var(--mute);font:inherit;font-weight:600;font-size:14px;padding:8px 14px;border-radius:9px;cursor:pointer}.seg2 button[aria-pressed=true]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}@media (max-width:980px){.scope{grid-template-columns:1fr}}
 .runon{display:inline-block;font-weight:700;font-size:12.5px;padding:3px 10px;border-radius:999px;white-space:nowrap}.ro-m{background:var(--fixbg);color:var(--fix)}.ro-d{background:var(--verbg);color:var(--ver)}.ro-n{background:var(--nrbg);color:var(--mute)}.runline{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card)}.runline h4{margin:0}.pbar{position:sticky;top:0;z-index:30;margin:0 -28px;padding:9px 28px;background:color-mix(in oklab,var(--accent) 10%,var(--card));border-bottom:1px solid var(--line);font-size:14px}.pbar b{font-weight:700}@media (max-width:720px){.pbar{margin:0 -14px;padding:8px 14px}}
+.sidepass{margin:8px 0 16px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card)}.sidepass .pn{font-weight:700;font-size:14px;line-height:1.3;margin-bottom:8px}.sidepass .lab{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:8px 0 4px}.sidepass .big{display:block;font-weight:800;font-size:15px;padding:7px 10px;border-radius:9px;line-height:1.25}.sidepass .big small{display:block;font-weight:600;font-size:12.5px;margin-top:2px;opacity:.9}.sidepass .nx{margin-top:8px;font-size:12.5px;color:var(--mute);line-height:1.4}
 .tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
 input[type=search],select{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;min-height:40px}
 input[type=search]{flex:1;min-width:220px}
@@ -81,7 +82,7 @@ footer{margin-top:28px;color:var(--mute);font-size:13px}footer p{margin:6px 0;ma
 @media print{nav.side,.tools,.btn,.attn{display:none}.shell{display:block}tr.detail{display:table-row!important}.suite.col .body,.area.col .tbl{display:block!important}}
 </style></head><body>
 <div class="shell">
-<nav class="side" aria-label="Test hierarchy"><div class="brand">StageTime PNW</div><h2>Test hierarchy</h2>
+<nav class="side" aria-label="Test hierarchy"><div class="brand">StageTime PNW</div><div class="sidepass" id="sidepass"></div><h2>Test hierarchy</h2>
  <div class="seg" role="group" aria-label="Group by"><button id="vf" aria-pressed="true">By feature</button><button id="vp" aria-pressed="false">By device</button></div>
  <div class="tree" id="tree"></div></nav>
 <main>
@@ -173,7 +174,11 @@ $("exp").addEventListener("click",()=>{allOpen=!allOpen;open.clear();if(allOpen)
 const PASSES={p1:["Pass 1.0 · Mobile",r=>r["Test Pass"]==="Pass 1.0 · Mobile"],d:["Desktop pass (next)",r=>r["Test Pass"]==="Desktop pass (next)"],all:["All cases",()=>true]};
 document.querySelectorAll(".seg2 button").forEach(b=>{b.textContent=PASSES[b.dataset.p][0]+" ("+ALL.filter(PASSES[b.dataset.p][1]).length+")"});
 const PBAR={p1:'<b>StageTime PNW · Open-mic sign-up - Pass 1.0</b> &nbsp;·&nbsp; Run on <b>MOBILE</b>: iPhone 16 Pro Max, Safari (unless a case says Android or Instagram)',d:'<b>Desktop pass</b> &nbsp;·&nbsp; Run on <b>DESKTOP</b>: your Mac, in Chrome, Firefox and Safari',all:'<b>All cases</b> &nbsp;·&nbsp; check each case\'s <b>Run on</b> label'};
-function setPass(k){$("pbar").innerHTML=PBAR[k];DATA=ALL.filter(PASSES[k][1]);tot=DATA.length;document.querySelectorAll(".seg2 button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===k));open.clear();closed.clear();buildSummary();render()}
+const SIDE={
+p1:'<div class="pn">StageTime PNW · Open-mic sign-up - Pass 1.0</div><div class="lab">Run on</div><span class="big ro-m">MOBILE<small>iPhone 16 Pro Max · Safari</small></span><div class="nx">Also in this pass: Android Chrome, Instagram in-app browser.<br>Desktop cases are in the Desktop pass.</div>',
+d:'<div class="pn">Desktop pass (next)</div><div class="lab">Run on</div><span class="big ro-d">DESKTOP<small>Your Mac · Chrome, Firefox, Safari</small></span><div class="nx">Not part of Pass 1.0 (mobile).</div>',
+all:'<div class="pn">All cases</div><div class="lab">Run on</div><span class="big ro-n">MIXED<small>Check each case\'s "Run on" chip</small></span>'};
+function setPass(k){$("sidepass").innerHTML=SIDE[k];$("pbar").innerHTML=PBAR[k];DATA=ALL.filter(PASSES[k][1]);tot=DATA.length;document.querySelectorAll(".seg2 button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===k));open.clear();closed.clear();buildSummary();render()}
 document.querySelectorAll(".seg2 button").forEach(b=>b.addEventListener("click",()=>setPass(b.dataset.p)));
 setPass('p1');
 </script></body></html>
