@@ -46,3 +46,23 @@ export function safeWebsite(website: string | null): string | null {
 export function mapsPlaceUrl(name: string, googlePlaceId: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}&query_place_id=${encodeURIComponent(googlePlaceId)}`;
 }
+
+/**
+ * The city from a Google formatted address ("1234 Broadway E, Seattle, WA 98102, USA" → "Seattle"):
+ * the part before the "ST 12345" state part. Null if the address isn't in that shape.
+ */
+export function cityOf(address: string | null): string | null {
+  if (!address) return null;
+  const parts = address.split(",").map((p) => p.trim());
+  const stateAt = parts.findIndex((p) => /^[A-Z]{2}(\s+\d{5}(-\d{4})?)?$/.test(p));
+  return stateAt > 0 && parts[stateAt - 1] ? parts[stateAt - 1] : null;
+}
+
+/**
+ * A Google search for "<name> <city> menu". Google shows the menu (or the restaurant's menu page)
+ * right at the top. Free: a plain link, no API. Google's place data has no menu field to read.
+ */
+export function menuSearchUrl(name: string, address: string | null): string {
+  const query = [name, cityOf(address), "menu"].filter(Boolean).join(" ");
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}

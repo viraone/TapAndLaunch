@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Clock, Copy, Globe, LocateFixed, MapPin, Phone, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
+import { BookOpen, Check, ChevronDown, Clock, Copy, Globe, LocateFixed, MapPin, Phone, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
 import type { CuisineKey, FoodDirectoryBlockConfig } from "@/types/database";
 import type { NearbyPlace } from "@/lib/food/nearby";
 import { CUISINES, CUISINE_BY_KEY } from "@/lib/food/cuisines";
 import { computeOpenStatus, type OpenStatus } from "@/lib/food/hours";
 import { driveMinutes, travelEstimate, walkLabel, walkMinutes, type TravelMode } from "@/lib/food/walk";
-import { hoursRows, mapsPlaceUrl, safeWebsite, telHref } from "@/lib/food/placeSheet";
+import { hoursRows, mapsPlaceUrl, menuSearchUrl, safeWebsite, telHref } from "@/lib/food/placeSheet";
 import type { PopularDish } from "@/lib/food/dishes";
 
 type Position = { latitude: number; longitude: number; label: string; live: boolean };
@@ -457,8 +457,9 @@ function CuisineTile({ emoji, label, active, loading, onClick }: { emoji: string
 /** Dishes already fetched this visit, so reopening a sheet doesn't ask again. */
 const dishCache = new Map<string, PopularDish[]>();
 
-const actionButton =
-  "flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-foreground/10 px-2 text-[15px] font-semibold transition active:scale-[0.98] active:bg-foreground/20";
+// Apple Maps-style tile: icon over a short label, so up to four fit across any phone.
+const actionTile =
+  "flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl bg-foreground/10 px-1 py-2 text-xs font-semibold transition active:scale-[0.97] active:bg-foreground/20";
 
 /** Google Maps directions to a place in the given travel mode. */
 function directionsUrl(place: NearbyPlace, mode: TravelMode): string {
@@ -699,20 +700,23 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
             {distanceLabel(place.distanceMiles)} away · times are estimates, Google Maps shows the exact route
           </p>
 
-          {/* Call and Website appear when Google has them; the Maps page (phone, website, menu, photos, reviews) is a free plain link, always there. */}
-          <div className="mt-4 flex gap-3">
+          {/* Call and Website appear when Google has them. Menu and Maps are plain Google links (a menu search, and the Maps place page with phone, website, menu, photos and reviews), always there and free. */}
+          <div className="mt-4 flex gap-2.5">
             {tel && (
-              <a href={tel} className={actionButton}>
-                <Phone className="h-4 w-4" aria-hidden /> Call
+              <a href={tel} className={actionTile}>
+                <Phone className="h-5 w-5" aria-hidden /> Call
               </a>
             )}
             {website && (
-              <a href={website} target="_blank" rel="noreferrer" className={actionButton}>
-                <Globe className="h-4 w-4" aria-hidden /> Website
+              <a href={website} target="_blank" rel="noreferrer" className={actionTile}>
+                <Globe className="h-5 w-5" aria-hidden /> Website
               </a>
             )}
-            <a href={mapsPlaceUrl(place.name, place.googlePlaceId)} target="_blank" rel="noreferrer" className={actionButton}>
-              <MapPin className="h-4 w-4" aria-hidden /> Maps
+            <a href={menuSearchUrl(place.name, place.address)} target="_blank" rel="noreferrer" className={actionTile}>
+              <BookOpen className="h-5 w-5" aria-hidden /> Menu
+            </a>
+            <a href={mapsPlaceUrl(place.name, place.googlePlaceId)} target="_blank" rel="noreferrer" className={actionTile}>
+              <MapPin className="h-5 w-5" aria-hidden /> Maps
             </a>
           </div>
 

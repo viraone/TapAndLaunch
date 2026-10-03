@@ -56,3 +56,24 @@ describe("contact links", () => {
     expect(mapsPlaceUrl("Pho & Co", "ChIJabc")).toBe("https://www.google.com/maps/search/?api=1&query=Pho%20%26%20Co&query_place_id=ChIJabc");
   });
 });
+
+import { cityOf, menuSearchUrl } from "@/lib/food/placeSheet";
+
+describe("menu search link", () => {
+  it("finds the city in a Google address", () => {
+    expect(cityOf("1234 Broadway E, Seattle, WA 98102, USA")).toBe("Seattle");
+    expect(cityOf("500 Pike St Suite 3, Bellevue, WA, USA")).toBe("Bellevue");
+    expect(cityOf("12 Main St, Springfield, IL 62704-1234, USA")).toBe("Springfield");
+  });
+  it("gives no city when the address isn't in that shape", () => {
+    expect(cityOf(null)).toBeNull();
+    expect(cityOf("Somewhere nice")).toBeNull();
+    expect(cityOf("WA 98102, USA")).toBeNull();
+  });
+  it("searches for the name, city and the word menu", () => {
+    expect(menuSearchUrl("ZENSHI Handcrafted Sushi", "99 Pine St, Seattle, WA 98101, USA")).toBe(
+      "https://www.google.com/search?q=ZENSHI%20Handcrafted%20Sushi%20Seattle%20menu"
+    );
+    expect(menuSearchUrl("Pho & Co", null)).toBe("https://www.google.com/search?q=Pho%20%26%20Co%20menu");
+  });
+});
