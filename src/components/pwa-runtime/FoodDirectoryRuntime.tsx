@@ -9,6 +9,7 @@ import { computeOpenStatus, type OpenStatus } from "@/lib/food/hours";
 import { driveMinutes, travelEstimate, walkLabel, walkMinutes, type TravelMode } from "@/lib/food/walk";
 import { hoursRows, mapsPlaceUrl, menuSearchUrl, safeWebsite, telHref } from "@/lib/food/placeSheet";
 import type { PopularDish } from "@/lib/food/dishes";
+import { filterMenu, type MenuSection } from "@/lib/food/menuItems";
 
 type Position = { latitude: number; longitude: number; label: string; live: boolean };
 type Filter = "all" | CuisineKey;
@@ -457,7 +458,10 @@ function CuisineTile({ emoji, label, active, loading, onClick }: { emoji: string
 /** Dishes already fetched this visit, so reopening a sheet doesn't ask again. */
 const dishCache = new Map<string, PopularDish[]>();
 
-type MenuInfo = { status: "ok"; embeddable: true; url: string; host: string; kind: "menu" | "site" } | { status: "ok"; embeddable: false };
+type MenuInfo =
+  | { status: "ok"; embeddable: true; url: string; host: string; kind: "menu" | "site" }
+  | { status: "ok"; embeddable: false; kind?: undefined }
+  | { status: "ok"; embeddable: false; kind: "items"; sections: MenuSection[]; sourceUrl: string | null; host: string | null; asOf: string | null };
 /** Menu lookups already done this visit. */
 const menuCache = new Map<string, MenuInfo>();
 
@@ -836,6 +840,7 @@ function MenuPanel({ place, dishes, onBack }: { place: NearbyPlace; dishes: Popu
   }, [place.id]);
 
   const embedded = info?.embeddable ? info : null;
+  const saved = info && info.kind === "items" ? info : null;
   return (
     <div className="absolute inset-0 z-10 mx-auto flex w-full max-w-md flex-col bg-background" role="region" aria-label={`${place.name} menu`}>
       <div className="flex shrink-0 items-center gap-1 border-b px-2 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
@@ -846,9 +851,9 @@ function MenuPanel({ place, dishes, onBack }: { place: NearbyPlace; dishes: Popu
           <p className="text-[15px] font-bold leading-tight">Menu</p>
           <p className="truncate text-xs text-muted-foreground">{place.name}</p>
         </div>
-        {embedded ? (
+        {embedded || saved?.sourceUrl ? (
           <a
-            href={embedded.url}
+            href={embedded ? embedded.url : saved!.sourceUrl!}
             target="_blank"
             rel="noreferrer"
             aria-label="Open this page in your browser"
@@ -886,7 +891,9 @@ function MenuPanel({ place, dishes, onBack }: { place: NearbyPlace; dishes: Popu
         </>
       )}
 
-      {info !== undefined && !embedded && (
+      {saved && <SavedMenu menu={saved} />}
+
+      {info !== undefined && !embedded && !saved && (
         <div className="flex-1 overflow-y-auto px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-8">
           <div className="text-center">
             <div aria-hidden className="text-4xl">📖</div>
@@ -924,6 +931,91 @@ function MenuPanel({ place, dishes, onBack }: { place: NearbyPlace; dishes: Popu
         </div>
       )}
     </div>
+  );
+}
+
+const asOfLabel = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
+
+/**
+ * The menu read from the restaurant's own page by the job on the owner's Mac (tools/menu-ingest), shown in our own
+ * screen: section shortcuts, a search box, then dishes with prices and descriptions. It says where it came from and
+ * when, because a menu read from a web page can be out of date.
+ */
+function SavedMenu({ menu }: { menu: Extract<MenuInfo, { kind: "items" }> }) {
+  const [query, setQuery] = useState("");
+  const scroller = useRef<HTMLDivElement>(null);
+  const sections = filterMenu(menu.sections, query);
+  const when = asOfLabel(menu.asOf);
+  const count = menu.sections.reduce((n, s) => n + s.items.length, 0);
+
+  function jump(index: number) {
+    const el = scroller.current?.querySelector<HTMLElement>(`[data-section="${index}"]`);
+    el?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+
+  return (
+    <>
+      <p className="shrink-0 bg-foreground/5 px-4 py-2 text-xs text-muted-foreground">
+        {menu.host ? `From ${menu.host}` : "From the restaurant's website"}
+        {when ? ` · saved ${when}` : ""}
+      </p>
+      <div className="shrink-0 px-4 pb-2 pt-3">
+        <label className="flex h-11 items-center gap-2 rounded-xl bg-foreground/10 px-3">
+          <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Search ${count} dishes`}
+            aria-label="Search this menu"
+            className="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-muted-foreground"
+          />
+          {query && (
+            <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground">
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          )}
+        </label>
+        {!query && menu.sections.length >= 3 && (
+          <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1" role="navigation" aria-label="Menu sections">
+            {menu.sections.map((s, i) => (
+              <button
+                key={`${s.name}-${i}`}
+                type="button"
+                onClick={() => jump(i)}
+                className="h-9 shrink-0 rounded-full bg-orange-500/12 px-3.5 text-[13px] font-semibold text-orange-700 active:bg-orange-500/25 dark:bg-orange-400/15 dark:text-orange-300"
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        {sections.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No dishes match &ldquo;{query}&rdquo;.</p>}
+        {sections.map((s, i) => (
+          <section key={`${s.name}-${i}`} data-section={i} className="pt-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{s.name}</h3>
+            <ul className="mt-2 divide-y rounded-2xl border bg-card">
+              {s.items.map((item, j) => (
+                <li key={`${item.name}-${j}`} className="px-4 py-3">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="min-w-0 text-[15px] font-semibold leading-snug">{item.name}</span>
+                    {item.price && <span className="shrink-0 text-[15px] font-medium tabular-nums">{item.price}</span>}
+                  </div>
+                  {item.description && <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{item.description}</p>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+        <p className="pt-5 text-center text-xs leading-relaxed text-muted-foreground">
+          Read from the restaurant&apos;s website{when ? ` on ${when}` : ""}. Dishes and prices may have changed, so check with the restaurant.
+        </p>
+      </div>
+    </>
   );
 }
 

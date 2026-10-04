@@ -623,6 +623,11 @@ export interface Database {
           menu_url: string | null;
           menu_embeddable: boolean | null;
           menu_checked_at: string | null;
+          menu_items: { sections: { name: string; items: { name: string; price: string | null; description: string | null }[] }[] } | null;
+          menu_items_source_url: string | null;
+          menu_items_at: string | null;
+          menu_items_status: string | null;
+          menu_items_model: string | null;
           google_synced_at: string;
           created_at: string;
           updated_at: string;

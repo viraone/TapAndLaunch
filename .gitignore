@@ -44,3 +44,8 @@ next-env.d.ts
 
 # Throwaway dev build used by payment-flow tests
 .next-test/
+
+# menu-ingest (runs on the owner's Mac): packages and saved review output
+/tools/menu-ingest/node_modules
+/tools/menu-ingest/out
+/tools/menu-ingest/.env

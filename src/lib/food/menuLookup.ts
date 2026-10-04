@@ -4,6 +4,8 @@ import http from "node:http";
 import https from "node:https";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { embeddableFromHeaders, findMenuLink, isPrivateAddress, normalizeWebUrl } from "@/lib/food/menuSite";
+import { parseMenu, type MenuSection } from "@/lib/food/menuItems";
+import { safeWebsite } from "@/lib/food/placeSheet";
 
 /** A restaurant's website is re-checked at most this often. */
 export const MENU_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -123,20 +125,29 @@ export async function inspectWebsite(website: string): Promise<MenuSite> {
 
 export type MenuInfoResult =
   | { status: "ok"; embeddable: true; url: string; host: string; kind: "menu" | "site" }
-  | { status: "ok"; embeddable: false };
+  | { status: "ok"; embeddable: false; kind?: undefined }
+  /** The menu as saved by the job on the owner's Mac (tools/menu-ingest): our own screen, not the restaurant's page. */
+  | { status: "ok"; embeddable: false; kind: "items"; sections: MenuSection[]; sourceUrl: string | null; host: string | null; asOf: string | null };
 
 /**
- * What to show when someone taps Menu on a stored restaurant. Served from the 30-day memory when fresh;
+ * What to show when someone taps Menu on a stored restaurant. A menu saved by the job on the owner's Mac comes first
+ * (our own screen). Otherwise served from the 30-day memory of the restaurant's own site when fresh;
  * otherwise one look at the restaurant's own website (free: not a Google call). No website means nothing to show.
  */
 export async function getMenuInfo(appId: string, placeRowId: string): Promise<MenuInfoResult> {
   const admin = createAdminClient();
   const { data: row } = await admin
     .from("food_places")
-    .select("id, website, menu_url, menu_embeddable, menu_checked_at")
+    .select("id, website, menu_url, menu_embeddable, menu_checked_at, menu_items, menu_items_source_url, menu_items_at, menu_items_status")
     .eq("app_id", appId)
     .eq("id", placeRowId)
     .maybeSingle();
+
+  const saved = row?.menu_items_status === "ok" ? parseMenu(row.menu_items) : null;
+  if (row && saved) {
+    const source = safeWebsite(row.menu_items_source_url);
+    return { status: "ok", embeddable: false, kind: "items", sections: saved, sourceUrl: source, host: source ? new URL(source).hostname.replace(/^www\./, "") : null, asOf: row.menu_items_at };
+  }
   if (!row?.website) return { status: "ok", embeddable: false };
 
   const fresh = row.menu_checked_at !== null && Date.now() - new Date(row.menu_checked_at).getTime() < MENU_TTL_MS;

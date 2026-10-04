@@ -1,0 +1,8 @@
+{
+  "name": "menu-ingest",
+  "private": true,
+  "type": "module",
+  "description": "Runs on the owner's Mac (not in the cloud): reads restaurant menus with a local model and saves them to the database.",
+  "scripts": { "start": "node run.mjs" },
+  "dependencies": { "playwright": "1.63.0", "robots-parser": "^3.0.1" }
+}
