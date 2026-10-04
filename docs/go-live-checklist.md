@@ -26,7 +26,7 @@ _Last updated: 2026-10-03._ Tick items as they are done and note the date.
 - [ ] Deploy the `lineup-feed` change that marks the signed-in comic's own row
 - [ ] Set `lineup_url` on the live sign-up block
 - [ ] Un-hide the tab and rename it "Sign-Up & Lineup"
-- [ ] Review the request list's access rules (details in `docs/private/security-notes.md`)
+- [x] Review the request list's access rules (2026-10-03; see `docs/private/security-notes.md`)
 - [ ] Point stagetimepnw.com's sign-up link and the Instagram bio link at the new page
 - [ ] Remove "standby" wording from the old form
 - [ ] Final test round Thu Oct 22 (test plan "Pass 1.0", plus the desktop pass)

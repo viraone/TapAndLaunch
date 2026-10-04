@@ -19,7 +19,7 @@ _Last checked: 2026-10-03._ The weekly open-mic sign-up for the Read The Room sh
 | Part | Where |
 |---|---|
 | The page (a block of type `open_mic_signup` on the StageTime app) | `src/components/pwa-runtime/OpenMicSignupRuntime.tsx`; window and show-day logic in `src/lib/openmic/` |
-| The request list, sign-in, settings | Supabase project **rickshaw-open-mic** (table `signups`). A database trigger rejects requests outside the window |
+| The request list, sign-in, settings | Supabase project **rickshaw-open-mic** (table `signups`). A database trigger rejects requests outside the window. Visitors can only read request ids; a signed-in comic reads only their own request (2026-10-03) |
 | Lineup (who is on, how long, what time) | The host fills in a Google Sheet. The `lineup-feed` edge function reads it with a service account and returns only names, set lengths and times |
 | Scheduled jobs (pg_cron in rickshaw-open-mic) | `rickshaw-weekly-signup-reset` (every 30 min, acts after Fri 9:40 PM), `sync-verified-signups` (every minute, copies verified requests to the sheet), `notify-selected-comics` (every 2 min; **kept switched off**, the host emails selections by hand) |
 | Edge functions and their migrations | The separate StageTime repo (`slotted-killer`), not this one |
