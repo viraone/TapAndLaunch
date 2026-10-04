@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Fuel, LocateFixed, Navigation, Pencil, Plus, RefreshCw, Sparkles, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Fuel, LocateFixed, Navigation, Plus, RefreshCw, Sparkles, X } from "lucide-react";
 import type { FuelGrade, GasDirectoryBlockConfig } from "@/types/database";
 import type { NearbyStation } from "@/lib/gas/nearby";
 
@@ -77,6 +77,7 @@ export function GasDirectoryRuntime({ config }: { config: GasDirectoryBlockConfi
   const [sort, setSort] = useState<"price" | "distance">(config.default_sort ?? "price");
   const [editing, setEditing] = useState<NearbyStation | null>(null);
   const [adding, setAdding] = useState(false);
+  const [selected, setSelected] = useState<NearbyStation | null>(null);
 
   function applyFallback() {
     if (config.fallback_latitude !== undefined && config.fallback_longitude !== undefined) {
@@ -196,220 +197,218 @@ export function GasDirectoryRuntime({ config }: { config: GasDirectoryBlockConfi
     locState === "asking" ? "Locating you…" : locState === "live" ? "Near you" : `Near ${position?.label ?? "…"}`;
   const saving = stats ? stats.average - stats.lowest : 0;
 
+  const subtitle = (
+    <button
+      type="button"
+      onClick={locate}
+      className="-ml-1 inline-flex min-h-11 items-center gap-2 rounded-lg px-1 text-[15px] text-muted-foreground transition active:opacity-60"
+    >
+      {locState === "live" ? (
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+      ) : (
+        <LocateFixed className={`h-4 w-4 shrink-0 ${locState === "asking" ? "animate-pulse" : ""}`} />
+      )}
+      <span>{locationLabel}</span>
+    </button>
+  );
+
   return (
-    <div className="pb-8">
-      {/* ── Hero ────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-neutral-950 px-4 pb-5 pt-4 text-neutral-50">
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-1/4 -top-1/2 h-[140%] w-[90%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.32),transparent_65%)] blur-2xl" />
-          <div className="absolute -right-1/4 -top-1/3 h-[120%] w-[80%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(56,189,248,0.25),transparent_65%)] blur-2xl" />
-        </div>
+    // iOS-style: a large title, a segmented control, a dark summary card, then inset grouped lists on a grey background.
+    <div className="bg-muted/40 pb-10 pt-2">
+      <header className="px-4 pt-2">
+        <h2 className="text-[34px] font-bold leading-tight tracking-tight">{config.title || "Gas"}</h2>
+        {subtitle}
+      </header>
 
-        <div className="relative">
-          <div className="flex items-center justify-between gap-2">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-emerald-950 shadow-lg shadow-emerald-500/30">
-              <Fuel className="h-[18px] w-[18px]" strokeWidth={2.5} />
-            </span>
-            <button
-              type="button"
-              onClick={locate}
-              className="inline-flex max-w-[60%] shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-medium text-neutral-100 backdrop-blur transition active:scale-95"
-            >
-              {locState === "live" ? (
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                </span>
-              ) : (
-                <LocateFixed className={`h-3.5 w-3.5 shrink-0 ${locState === "asking" ? "animate-pulse" : ""}`} />
-              )}
-              <span className="truncate">{locationLabel}</span>
-            </button>
-          </div>
-
-          <h2 className="mt-4 text-[26px] font-bold leading-[1.1] tracking-tight">{config.title || "Cheapest gas near me"}</h2>
-
-          {/* Best-price spotlight */}
-          <div className="mt-4 min-h-[8.5rem]">
-            {stats && !loading ? (
-              <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300/90">
-                      Cheapest {GRADE_LABELS[grade]} · {radius} mi
-                    </p>
-                    <p className="mt-1 text-[52px] font-bold leading-none tracking-tight tabular-nums">
-                      <span className="mr-0.5 align-top text-2xl text-emerald-300">$</span>
-                      {stats.lowest.toFixed(2)}
-                    </p>
-                    <p className="mt-2 truncate text-sm text-neutral-300">
-                      <span className="font-medium text-white">{stats.cheapestStation.brand || stats.cheapestStation.name}</span>
-                      <span className="text-neutral-400"> · {stats.cheapestStation.distanceMiles.toFixed(1)} mi</span>
-                      {stats.cheapestStation.prices[grade]?.updatedAt && (
-                        <span className="text-neutral-500"> · {timeAgo(stats.cheapestStation.prices[grade]!.updatedAt)}</span>
-                      )}
-                    </p>
-                  </div>
-                  <a
-                    href={directionsUrl(stats.cheapestStation)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex shrink-0 flex-col items-center gap-1 rounded-2xl bg-emerald-400 px-3.5 py-2.5 text-emerald-950 shadow-lg shadow-emerald-500/30 transition active:scale-95"
-                  >
-                    <Navigation className="h-5 w-5" strokeWidth={2.5} />
-                    <span className="text-xs font-bold">Go</span>
-                  </a>
-                </div>
-                {saving >= 0.01 && (
-                  <p className="mt-3 flex items-center gap-1.5 border-t border-white/10 pt-3 text-xs text-neutral-300">
-                    <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-300" />
-                    <span>
-                      <span className="font-semibold text-emerald-300">${saving.toFixed(2)}/gal</span> under the average · about{" "}
-                      <span className="font-semibold text-white">${(saving * 15).toFixed(2)}</span> on a 15-gallon fill
-                    </span>
-                  </p>
-                )}
-              </div>
-            ) : loading ? (
-              <div className="h-[8.5rem] animate-pulse rounded-3xl bg-white/10" />
-            ) : (
-              <p className="text-sm text-neutral-400">
-                {locState === "none" ? "Turn on location to see prices around you." : `No ${GRADE_LABELS[grade].toLowerCase()} prices nearby yet.`}
-              </p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Sticky controls ─────────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 border-b border-border/60 bg-background/90 px-4 py-2.5 backdrop-blur-xl">
-        <div className="grid grid-cols-4 gap-1 rounded-full bg-muted p-1">
+      {/* ── Fuel type: iOS segmented control, stays on screen while the list scrolls ───────── */}
+      <div className="sticky top-0 z-10 mt-1 bg-background/80 px-4 py-2 backdrop-blur-xl">
+        <div role="group" aria-label="Fuel type" className="grid grid-cols-4 rounded-[10px] bg-foreground/[0.08] p-0.5">
           {GRADES.map((g) => (
             <button
               key={g}
               type="button"
               onClick={() => setGrade(g)}
               aria-pressed={grade === g}
-              className={`rounded-full py-1.5 text-xs font-semibold transition ${
-                grade === g ? "bg-foreground text-background shadow-sm" : "text-muted-foreground"
+              className={`h-10 rounded-[8px] text-[14px] transition ${
+                grade === g
+                  ? "bg-background font-semibold shadow-[0_3px_8px_rgba(0,0,0,0.12),0_3px_1px_rgba(0,0,0,0.04)]"
+                  : "font-medium text-foreground/80"
               }`}
             >
               {GRADE_LABELS[g]}
             </button>
           ))}
         </div>
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="truncate text-xs text-muted-foreground">
-            {stats ? `${stats.count} with prices · avg $${stats.average.toFixed(2)}` : loading ? "Finding stations…" : ""}
-          </p>
-          <div className="flex shrink-0 rounded-full bg-muted p-0.5 text-xs font-medium">
-            {(["price", "distance"] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSort(s)}
-                className={`rounded-full px-3 py-1 transition ${sort === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+      </div>
+
+      {/* ── Cheapest right now ───────────────────────────────────────── */}
+      <section className="mx-4 mt-3 min-h-[8.5rem]">
+        {stats && !loading ? (
+          <div className="relative overflow-hidden rounded-[20px] bg-neutral-950 p-4 text-neutral-50">
+            <div aria-hidden className="pointer-events-none absolute inset-0">
+              <div className="absolute -left-1/4 -top-1/2 h-[140%] w-[90%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.30),transparent_65%)] blur-2xl" />
+              <div className="absolute -right-1/4 -top-1/3 h-[120%] w-[80%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(56,189,248,0.22),transparent_65%)] blur-2xl" />
+            </div>
+            <div className="relative flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-400">
+                  Cheapest {GRADE_LABELS[grade]} · {stats.cheapestStation.distanceMiles.toFixed(1)} mi
+                </p>
+                <p className="mt-0.5 text-[44px] font-bold leading-none tracking-tight tabular-nums">${stats.lowest.toFixed(2)}</p>
+                <p className="mt-1.5 truncate text-sm text-neutral-300">
+                  {stats.cheapestStation.brand || stats.cheapestStation.name}
+                  {stats.cheapestStation.address && <span className="text-neutral-400"> · {stats.cheapestStation.address.split(",")[0]}</span>}
+                  {stats.cheapestStation.prices[grade]?.updatedAt && (
+                    <span className="text-neutral-400"> · {timeAgo(stats.cheapestStation.prices[grade]!.updatedAt)}</span>
+                  )}
+                </p>
+              </div>
+              <a
+                href={directionsUrl(stats.cheapestStation)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-emerald-400 px-4 text-[15px] font-semibold text-emerald-950 transition active:scale-95"
               >
-                {s === "price" ? "Cheapest" : "Nearest"}
-              </button>
-            ))}
+                <Navigation className="h-4 w-4" strokeWidth={2.5} /> Go
+              </a>
+            </div>
+            {saving >= 0.01 && (
+              <p className="relative mt-3 flex items-center gap-1.5 border-t border-white/10 pt-3 text-xs text-neutral-300">
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                <span>
+                  <span className="font-semibold text-emerald-400">${saving.toFixed(2)}/gal</span> under the average · about{" "}
+                  <span className="font-semibold text-white">${(saving * 15).toFixed(2)}</span> on a 15-gallon fill
+                </span>
+              </p>
+            )}
           </div>
-        </div>
+        ) : loading ? (
+          <div className="h-[8.5rem] animate-pulse rounded-[20px] bg-foreground/10" />
+        ) : (
+          <p className="px-1 text-[15px] text-muted-foreground">
+            {locState === "none" ? "Turn on location to see prices around you." : `No ${GRADE_LABELS[grade].toLowerCase()} prices nearby yet.`}
+          </p>
+        )}
+      </section>
+
+      {/* ── List header: how many, and the sort menu (the phone's own picker) ──────────── */}
+      <div className="mt-4 flex items-center justify-between gap-3 px-8 text-[13px] uppercase tracking-wide text-muted-foreground">
+        <span className="truncate">
+          {stats ? `${stats.count} stations · avg $${stats.average.toFixed(2)}` : loading ? "Finding stations…" : ""}
+        </span>
+        <label className="relative flex min-h-11 shrink-0 items-center normal-case">
+          <span className="sr-only">Sort by</span>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as "price" | "distance")}
+            className="appearance-none bg-transparent py-2 pl-2 pr-5 text-[15px] text-[#007aff] outline-none dark:text-[#0a84ff]"
+          >
+            <option value="price">Cheapest</option>
+            <option value="distance">Nearest</option>
+          </select>
+          <ChevronDown aria-hidden className="pointer-events-none absolute right-0 h-4 w-4 text-[#007aff] dark:text-[#0a84ff]" />
+        </label>
       </div>
 
       {/* ── States ──────────────────────────────────────────────────── */}
-      <div className="px-4">
-        {locState === "none" && (
-          <div className="mt-4 rounded-2xl border border-dashed p-6 text-center">
-            <Navigation className="mx-auto h-6 w-6 text-muted-foreground" />
-            <p className="mt-2 text-sm text-muted-foreground">Location access is needed to find gas near you.</p>
-            <button
-              type="button"
-              onClick={locate}
-              className="mt-3 rounded-full bg-foreground px-4 py-1.5 text-xs font-medium text-background"
-            >
-              Try again
-            </button>
-          </div>
-        )}
-        {error && (
-          <p className="mt-3 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
-        )}
+      {locState === "none" && (
+        <div className="mx-4 mt-1 rounded-xl bg-card p-6 text-center">
+          <Navigation className="mx-auto h-6 w-6 text-muted-foreground" />
+          <p className="mt-2 text-[15px] text-muted-foreground">Location access is needed to find gas near you.</p>
+          <button
+            type="button"
+            onClick={locate}
+            className="mt-3 inline-flex min-h-11 items-center rounded-full bg-emerald-500/15 px-5 text-[15px] font-semibold text-emerald-700 dark:text-emerald-400"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+      {error && (
+        <p className="mx-4 mt-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
+      )}
 
-        {loading && !stations && (
-          <ul className="mt-3 space-y-2" aria-hidden>
-            {[0, 1, 2, 3].map((i) => (
-              <li key={i} className="flex animate-pulse items-center gap-3 rounded-2xl border p-3">
-                <div className="h-12 w-12 rounded-2xl bg-muted" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3.5 w-1/3 rounded bg-muted" />
-                  <div className="h-3 w-2/3 rounded bg-muted" />
-                </div>
-                <div className="h-8 w-16 rounded bg-muted" />
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {stations && visible.length === 0 && !loading && (
-          <div className="mt-4 rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-            No stations within {radius} miles.
-          </div>
-        )}
-
-        {/* ── Station list ──────────────────────────────────────────── */}
-        <ul className="mt-3 space-y-2">
-          {priced.map((s, index) => (
-            <StationCard
-              key={s.id}
-              station={s}
-              grade={grade}
-              rank={sort === "price" ? index + 1 : null}
-              lowest={stats?.lowest ?? null}
-              onEdit={() => setEditing(s)}
-            />
+      {loading && !stations && (
+        <ul className="mx-4 mt-1 overflow-hidden rounded-xl bg-card" aria-hidden>
+          {[0, 1, 2, 3].map((i) => (
+            <li key={i} className="flex min-h-[60px] animate-pulse items-center gap-3 px-4 py-2.5">
+              <div className="h-10 w-10 rounded-[9px] bg-muted" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3.5 w-1/3 rounded bg-muted" />
+                <div className="h-3 w-2/3 rounded bg-muted" />
+              </div>
+              <div className="h-6 w-14 rounded bg-muted" />
+            </li>
           ))}
         </ul>
+      )}
 
-        {unpriced.length > 0 && (
-          <>
-            <p className="mb-2 mt-6 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              No {GRADE_LABELS[grade].toLowerCase()} price yet
-            </p>
-            <ul className="space-y-2">
-              {unpriced.map((s) => (
-                <StationCard key={s.id} station={s} grade={grade} rank={null} lowest={null} onEdit={() => setEditing(s)} />
-              ))}
-            </ul>
-          </>
-        )}
+      {stations && visible.length === 0 && !loading && (
+        <div className="mx-4 mt-1 rounded-xl bg-card p-6 text-center text-[15px] text-muted-foreground">No stations within {radius} miles.</div>
+      )}
 
-        {/* ── Footer actions ────────────────────────────────────────── */}
-        {(stations || error) && (
-          <div className="mt-6 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => position && load(position)}
-              disabled={loading}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border bg-background px-4 py-2.5 text-sm font-medium shadow-sm transition active:scale-95 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
-            </button>
-            <button
-              type="button"
-              onClick={() => setAdding(true)}
-              disabled={!position}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-sm transition active:scale-95 disabled:opacity-50"
-            >
-              <Plus className="h-4 w-4" /> Add station
-            </button>
-          </div>
-        )}
-        {(stations || error) && (
-          <p className="mt-3 text-center text-[11px] text-muted-foreground">Prices from Google and drivers like you · tap a station for directions</p>
-        )}
-      </div>
+      {/* ── Station list ──────────────────────────────────────────── */}
+      {priced.length > 0 && (
+        <ul className="mx-4 overflow-hidden rounded-xl bg-card">
+          {priced.map((s) => (
+            <StationRow key={s.id} station={s} grade={grade} lowest={stats?.lowest ?? null} onOpen={() => setSelected(s)} onAddPrice={() => setEditing(s)} />
+          ))}
+        </ul>
+      )}
 
+      {unpriced.length > 0 && (
+        <>
+          <p className="mb-1.5 mt-6 px-8 text-[13px] uppercase tracking-wide text-muted-foreground">No {GRADE_LABELS[grade].toLowerCase()} price yet</p>
+          <ul className="mx-4 overflow-hidden rounded-xl bg-card">
+            {unpriced.map((s) => (
+              <StationRow key={s.id} station={s} grade={grade} lowest={null} onOpen={() => setSelected(s)} onAddPrice={() => setEditing(s)} />
+            ))}
+          </ul>
+        </>
+      )}
+
+      {/* ── Actions ───────────────────────────────────────────────── */}
+      {(stations || error) && (
+        <>
+          <ul className="mx-4 mt-6 overflow-hidden rounded-xl bg-card text-[17px] text-emerald-700 dark:text-emerald-400">
+            <li className="relative after:absolute after:bottom-0 after:left-4 after:right-0 after:h-px after:bg-border/70">
+              <button
+                type="button"
+                onClick={() => position && load(position)}
+                disabled={loading}
+                className="flex min-h-12 w-full items-center gap-3 px-4 text-left transition active:bg-foreground/5 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} /> Refresh prices
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                onClick={() => setAdding(true)}
+                disabled={!position}
+                className="flex min-h-12 w-full items-center gap-3 px-4 text-left transition active:bg-foreground/5 disabled:opacity-50"
+              >
+                <Plus className="h-5 w-5" /> Add a station
+              </button>
+            </li>
+          </ul>
+          <p className="mx-8 mt-2 text-[13px] text-muted-foreground">Prices from Google and drivers like you. Tap a station for details and to report a price.</p>
+        </>
+      )}
+
+      {selected && (
+        <StationSheet
+          station={selected}
+          onClose={() => setSelected(null)}
+          onReport={() => {
+            setEditing(selected);
+            setSelected(null);
+          }}
+        />
+      )}
       {editing && (
         <PriceForm
           station={editing}
@@ -438,18 +437,19 @@ function isStale(iso: string | null): boolean {
   return iso !== null && Date.now() - new Date(iso).getTime() > STALE_MS;
 }
 
-function StationCard({
+/** One station in an inset grouped list: tap anywhere for its details; stations with no price get an "Add price" button. */
+function StationRow({
   station: s,
   grade,
-  rank,
   lowest,
-  onEdit,
+  onOpen,
+  onAddPrice,
 }: {
   station: NearbyStation;
   grade: FuelGrade;
-  rank: number | null;
   lowest: number | null;
-  onEdit: () => void;
+  onOpen: () => void;
+  onAddPrice: () => void;
 }) {
   const p = s.prices[grade];
   const isLowest = p !== undefined && lowest !== null && p.price === lowest;
@@ -458,70 +458,96 @@ function StationCard({
   const street = s.address ? s.address.split(",")[0] : null;
   const stale = isStale(p?.updatedAt ?? null);
   return (
-    <li
-      className={`relative rounded-2xl border bg-card transition ${
-        isLowest ? "border-emerald-500/60 bg-emerald-500/[0.04] ring-1 ring-emerald-500/30" : p ? "shadow-sm" : "opacity-80"
-      }`}
-    >
-      <a href={directionsUrl(s)} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 pr-[6.5rem] active:opacity-80">
-        <div className="relative shrink-0">
-          <div className={`grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br text-sm font-bold shadow-inner ${brandStyle(brand)}`}>
-            {brandInitials(brand)}
-          </div>
-          {rank !== null && (
-            <span className="absolute -bottom-1 -left-1 grid h-5 min-w-5 place-items-center rounded-full border-2 border-card bg-foreground px-1 text-[10px] font-semibold text-background tabular-nums">
-              {rank}
-            </span>
-          )}
+    <li className="relative after:absolute after:bottom-0 after:left-[4.25rem] after:right-0 after:h-px after:bg-border/70 last:after:hidden">
+      <button
+        type="button"
+        onClick={onOpen}
+        className={`flex min-h-[60px] w-full items-center gap-3 py-2.5 pl-4 text-left transition active:bg-foreground/5 ${p ? "pr-3" : "pr-[7.5rem]"}`}
+      >
+        <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-[9px] bg-gradient-to-br text-sm font-bold ${brandStyle(brand)}`}>
+          {brandInitials(brand)}
         </div>
         <div className="min-w-0 flex-1">
           <p className="flex min-w-0 items-center gap-1.5">
-            <span className="min-w-0 truncate text-[15px] font-semibold leading-tight">{s.name}</span>
+            <span className="min-w-0 truncate text-[17px] font-medium leading-tight">{s.name}</span>
             {isLowest && (
-              <span className="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+              <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
                 Cheapest
               </span>
             )}
           </p>
-          {street && <p className="mt-0.5 truncate text-xs text-muted-foreground">{street}</p>}
-          <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Navigation className="h-3 w-3" /> {s.distanceMiles.toFixed(1)} mi
-            {p?.updatedAt && (
-              <span className={stale ? "font-medium text-amber-600 dark:text-amber-400" : ""}>· {timeAgo(p.updatedAt)}</span>
-            )}
+          <p className="break-words text-[14px] leading-snug text-muted-foreground">
+            {street && `${street} · `}
+            {s.distanceMiles.toFixed(1)} mi
+            {p?.updatedAt && <span className={stale ? "font-medium text-amber-600 dark:text-amber-400" : ""}> · {timeAgo(p.updatedAt)}</span>}
           </p>
         </div>
-      </a>
-      <div className="absolute inset-y-0 right-3 flex flex-col items-end justify-center gap-1">
-        {p ? (
-          <>
-            <p className={`text-[26px] font-bold leading-none tracking-tight tabular-nums ${isLowest ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
-              <span className="align-top text-sm font-semibold">$</span>
-              {p.price.toFixed(2)}
-            </p>
-            <div className="flex items-center gap-1.5">
-              {delta !== null && delta >= 0.01 && <span className="text-[11px] text-muted-foreground tabular-nums">+${delta.toFixed(2)}</span>}
-              <button
-                type="button"
-                onClick={onEdit}
-                aria-label={`Update prices at ${s.name}`}
-                className="grid h-6 w-6 place-items-center rounded-full bg-muted text-muted-foreground transition active:scale-90"
-              >
-                <Pencil className="h-3 w-3" />
-              </button>
-            </div>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={onEdit}
-            className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1.5 text-[11px] font-semibold text-foreground transition active:scale-95"
-          >
-            <Plus className="h-3 w-3" /> Add price
-          </button>
+        {p && (
+          <div className="shrink-0 text-right">
+            <p className={`text-xl font-semibold leading-tight tabular-nums ${isLowest ? "text-emerald-700 dark:text-emerald-400" : ""}`}>${p.price.toFixed(2)}</p>
+            {delta !== null && delta >= 0.01 && <p className="text-[13px] leading-tight text-muted-foreground tabular-nums">+${delta.toFixed(2)}</p>}
+          </div>
         )}
-      </div>
+        {p && <ChevronRight aria-hidden className="h-[18px] w-[18px] shrink-0 text-muted-foreground/50" />}
+      </button>
+      {!p && (
+        <button
+          type="button"
+          onClick={onAddPrice}
+          className="absolute right-3 top-1/2 inline-flex min-h-11 -translate-y-1/2 items-center gap-1 rounded-full bg-emerald-500/15 px-4 text-[15px] font-semibold text-emerald-700 transition active:scale-95 dark:text-emerald-400"
+        >
+          <Plus className="h-4 w-4" /> Add price
+        </button>
+      )}
     </li>
+  );
+}
+
+/** A station's details: every fuel type's price, then directions and "Report a price". */
+function StationSheet({ station: s, onClose, onReport }: { station: NearbyStation; onClose: () => void; onReport: () => void }) {
+  const street = s.address ? s.address.split(",")[0] : null;
+  return (
+    <Sheet title={s.name} subtitle={[street, `${s.distanceMiles.toFixed(1)} mi`].filter(Boolean).join(" · ")} onClose={onClose}>
+      <ul className="overflow-hidden rounded-xl bg-muted/60">
+        {GRADES.map((g) => {
+          const p = s.prices[g];
+          return (
+            <li key={g} className="relative flex min-h-12 items-center justify-between gap-3 px-4 py-2 text-[17px] after:absolute after:bottom-0 after:left-4 after:right-0 after:h-px after:bg-border/70 last:after:hidden">
+              <span>{GRADE_LABELS[g]}</span>
+              {p ? (
+                <span className="text-right">
+                  <span className="font-semibold tabular-nums">${p.price.toFixed(2)}</span>
+                  {p.updatedAt && (
+                    <span className={`block text-[13px] leading-tight ${isStale(p.updatedAt) ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+                      {timeAgo(p.updatedAt)}
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">No price yet</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <a
+          href={directionsUrl(s)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-emerald-500/15 text-[17px] font-semibold text-emerald-700 transition active:scale-95 dark:text-emerald-400"
+        >
+          <Navigation className="h-5 w-5" /> Directions
+        </a>
+        <button
+          type="button"
+          onClick={onReport}
+          className="min-h-12 rounded-full bg-emerald-500 text-[17px] font-semibold text-white transition active:scale-95"
+        >
+          Report a price
+        </button>
+      </div>
+    </Sheet>
   );
 }
 
@@ -538,13 +564,10 @@ function Sheet({ title, subtitle, onClose, children }: { title: string; subtitle
             <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
             {subtitle && <p className="truncate text-sm text-muted-foreground">{subtitle}</p>}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground transition hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
+          <button type="button" onClick={onClose} aria-label="Close" className="group -mr-2 -mt-2 grid h-11 w-11 shrink-0 place-items-center">
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-foreground/10 text-foreground/70 transition group-active:bg-foreground/20">
+              <X className="h-4 w-4" strokeWidth={2.5} />
+            </span>
           </button>
         </div>
         {children}
