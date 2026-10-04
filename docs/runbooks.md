@@ -44,6 +44,19 @@ Needs `STRIPE_SECRET_KEY` set to a **sandbox** key (it starts `sk_test_`); the P
 
 Do not use these test values in a **live** account; they fail verification.
 
+## Builder forgot their password
+
+They use **Forgot password?** on the login page (`/forgot-password`). The email links to `/auth/confirm` (any device) and
+then `/reset-password`. Links work once and expire after an hour; a used or expired link shows a notice and lets them ask
+again. The page gives the same answer whether or not the email has an account.
+
+**Production email template** (Supabase > Authentication > Emails > Reset password): subject
+`Reset your TapAndLaunch password`, body = contents of `supabase/templates/recovery.html`. If the template is ever reset to
+Supabase's default, resets still work but only when the link is opened in the same browser that asked for it.
+
+Locally, the template is loaded from `supabase/config.toml`; emails land in Mailpit at http://127.0.0.1:54324. After
+changing `config.toml`, run `supabase stop` then `supabase start` (restarting Docker alone keeps the old settings).
+
 ## Reset StageTime test requests
 
 Claude Code skill `reset-stagetime-test` (on the owner's Mac) deletes only the owner's own test addresses from the request

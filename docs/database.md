@@ -67,6 +67,7 @@ Set in the Supabase dashboard (Authentication), read back on 2026-10-03:
 | Leaked-password protection | Off |
 | SMTP | Resend (`smtp.resend.com`, port 465), sender `noreply@tapandlaunch.com`, name "TapAndLaunch" |
 | Email rate limit | 30 per hour |
+| Reset password email | Should use `supabase/templates/recovery.html` (subject "Reset your TapAndLaunch password"); until it is set, Supabase's default email is sent and its link only works in the browser that asked |
 
 `supabase/config.toml` holds the **local** equivalents (it does not change production).
 
