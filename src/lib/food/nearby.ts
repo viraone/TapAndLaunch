@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { calculateHaversineMiles } from "@/lib/listings/travel";
 import { fetchGooglePlaces, isGoogleConfigured, type GooglePlace } from "@/lib/food/google";
 import { CUISINE_BY_KEY, cuisineLabelFor, cuisineOf } from "@/lib/food/cuisines";
+import { isCellFresh } from "@/lib/food/cellFreshness";
 import type { CuisineKey, Database, OpeningPeriod } from "@/types/database";
 
 type PlaceRow = Database["public"]["Tables"]["food_places"]["Row"];
@@ -33,9 +34,6 @@ export interface NearbyPlace {
   wait: { minutes: number; reportedAt: string } | null;
 }
 
-/** Opening hours change rarely, and status is computed live from them, so
- * a fetched (cell, group) is trusted for a week. */
-const CELL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /** Hard ceiling on Google calls per app per day. A new cell costs one call
  * (the general sweep), five more in a busy area (POPULAR_GROUPS), and one
  * per other cuisine someone actually taps. */
@@ -109,7 +107,7 @@ export async function getNearbyPlaces(
     .eq("app_id", appId)
     .eq("cell_key", cellKey);
   const freshGroups = new Set(
-    (cells ?? []).filter((c) => Date.now() - new Date(c.fetched_at).getTime() < CELL_TTL_MS).map((c) => c.fetch_group)
+    (cells ?? []).filter((c) => isCellFresh(c.fetched_at)).map((c) => c.fetch_group)
   );
 
   let source: NearbyResult["source"] = "cache";

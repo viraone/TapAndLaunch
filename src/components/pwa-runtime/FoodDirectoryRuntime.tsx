@@ -461,7 +461,7 @@ const dishCache = new Map<string, PopularDish[]>();
 type MenuInfo =
   | { status: "ok"; embeddable: true; url: string; host: string; kind: "menu" | "site" }
   | { status: "ok"; embeddable: false; kind?: undefined }
-  | { status: "ok"; embeddable: false; kind: "items"; sections: MenuSection[]; sourceUrl: string | null; host: string | null; asOf: string | null };
+  | { status: "ok"; embeddable: false; kind: "items"; sections: MenuSection[]; sourceUrl: string | null; host: string | null; asOf: string | null; fromPhoto?: boolean };
 /** Menu lookups already done this visit. */
 const menuCache = new Map<string, MenuInfo>();
 
@@ -1012,7 +1012,8 @@ function SavedMenu({ menu }: { menu: Extract<MenuInfo, { kind: "items" }> }) {
           </section>
         ))}
         <p className="pt-5 text-center text-xs leading-relaxed text-muted-foreground">
-          Read from the restaurant&apos;s website{when ? ` on ${when}` : ""}. Dishes and prices may have changed, so check with the restaurant.
+          {menu.fromPhoto ? "Read from a photo of the restaurant's menu" : "Read from the restaurant's website"}
+          {when ? ` on ${when}` : ""}. {menu.fromPhoto ? "A price can be misread from a photo, and dishes may have changed, so check with the restaurant." : "Dishes and prices may have changed, so check with the restaurant."}
         </p>
       </div>
     </>

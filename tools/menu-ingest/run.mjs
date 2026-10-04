@@ -4,6 +4,7 @@
 //   2. opens the home page in a real headless browser, finds the Menu page and opens that too (so
 //      JavaScript-built menus are read, which a server-side fetch can't do),
 //   3. has a local model (Ollama, default qwen3.8:27b) read the page text into sections / dishes / prices,
+//      (a menu that is a PDF, or pictures of the menu, is read too: the model copies the words off each picture first),
 //   4. throws away anything that doesn't appear on the page, and
 //   5. saves the result for review (out/), and to the database only when run with --write.
 // See README.md. Nothing here costs money; it needs Ollama running and the Mac awake.
@@ -13,13 +14,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import robotsParser from "robots-parser";
-import { buildPrompt, chunkText, findMenuLink, findPdfMenuLinks, MENU_SCHEMA, mergeSections, pdfItemsToLines, sanitizeMenu, webUrl } from "./lib.mjs";
+import { buildPrompt, chunkText, findMenuLink, findPdfMenuLinks, joinTranscripts, MENU_SCHEMA, mergeSections, pdfItemsToLines, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, webUrl } from "./lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
 // ---------- options ----------
 function parseArgs(argv) {
-  const o = { near: false, lat: 47.7063, lng: -122.3254, site: "https://livebitesnow.tapandlaunch.com", limit: 20, write: false, force: false, model: "qwen3.8:27b", maxMinutes: 180, ollama: "http://localhost:11434", delayMs: 2500, ids: null, names: null, refreshDays: 14 };
+  const o = { near: false, lat: 47.7063, lng: -122.3254, site: "https://livebitesnow.tapandlaunch.com", limit: 20, write: false, force: false, model: "qwen3.8:27b", maxMinutes: 180, ollama: "http://localhost:11434", delayMs: 2500, ids: null, names: null, refreshDays: 14, photos: true };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
@@ -34,8 +35,9 @@ function parseArgs(argv) {
     else if (a === "--ids") o.ids = next().split(",").map((s) => s.trim());
     else if (a === "--names") o.names = next().split(",").map((s) => s.trim().toLowerCase());
     else if (a === "--refresh-days") o.refreshDays = Number(next());
+    else if (a === "--no-photos") o.photos = false;
     else if (a === "--help") {
-      console.log("node run.mjs [--limit 20] [--near --lat 47.70 --lng -122.32] [--names 'pho an,taco del mar'] [--ids uuid,uuid] [--write] [--force] [--model qwen3.8:27b] [--max-minutes 180]\nWithout --write nothing is saved to the database (results are written to out/ for review).");
+      console.log("node run.mjs [--limit 20] [--near --lat 47.70 --lng -122.32] [--names 'pho an,taco del mar'] [--ids uuid,uuid] [--write] [--force] [--model qwen3.8:27b] [--max-minutes 180] [--no-photos]\nWithout --write nothing is saved to the database (results are written to out/ for review).");
       process.exit(0);
     } else throw new Error(`Unknown option ${a}`);
   }
@@ -184,6 +186,59 @@ async function pdfText(url) {
   return lines.join("\n");
 }
 
+// ---------- menus that are pictures ----------
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+
+/** Opens a page with its pictures loaded and downloads the big ones that could be a menu (PNG, JPEG or WebP). */
+async function menuPictures(browser, url) {
+  const context = await browser.newContext({ userAgent: USER_AGENT, viewport: { width: 1280, height: 900 }, locale: "en-US" });
+  await context.route("**/*", (route) => (["font", "media"].includes(route.request().resourceType()) ? route.abort() : route.continue()));
+  const page = await context.newPage();
+  try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25000 });
+    await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
+    for (let i = 0; i < 8; i++) {
+      await page.mouse.wheel(0, 1600);
+      await page.waitForTimeout(400);
+    }
+    const found = await page.evaluate(() =>
+      Array.from(document.images).map((i) => ({ src: i.currentSrc || i.src || i.dataset.src || "", width: i.naturalWidth, height: i.naturalHeight }))
+    );
+    const pictures = [];
+    for (const img of selectMenuImages(found)) {
+      if (!(await allowed(img.src))) continue;
+      const res = await context.request.get(img.src, { timeout: 30000 }).catch(() => null);
+      if (!res || !res.ok()) continue;
+      const type = res.headers()["content-type"] ?? "";
+      if (!/image\/(png|jpe?g|webp)/i.test(type)) continue;
+      const buf = await res.body();
+      if (buf.length > MAX_IMAGE_BYTES) continue;
+      pictures.push({ src: img.src, base64: buf.toString("base64") });
+    }
+    return pictures;
+  } finally {
+    await context.close();
+  }
+}
+
+/** Has the vision model copy the words off one picture. */
+async function transcribe(base64) {
+  const res = await fetch(`${opts.ollama}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: opts.model,
+      stream: false,
+      think: false,
+      options: { temperature: 0, num_ctx: 16384 },
+      messages: [{ role: "user", content: TRANSCRIBE_PROMPT, images: [base64] }],
+    }),
+    signal: AbortSignal.timeout(10 * 60 * 1000),
+  });
+  if (!res.ok) throw new Error(`Model error ${res.status}`);
+  return (await res.json()).message?.content ?? "";
+}
+
 // ---------- the model ----------
 async function askModel(name, text) {
   const body = {
@@ -235,6 +290,7 @@ async function processPlace(browser, place) {
 
     const pdfLinks = findPdfMenuLinks(home.html, home.finalUrl);
     const targets = [];
+    const triedPages = [];
     const link = findMenuLink(home.html, home.finalUrl);
     if (link && link !== home.finalUrl) targets.push(link);
     targets.push(null); // null = the home page itself
@@ -251,6 +307,7 @@ async function processPlace(browser, place) {
         }
         pageText = menuPage.text;
         sourceUrl = menuPage.finalUrl;
+        triedPages.push(menuPage.finalUrl);
         for (const u of findPdfMenuLinks(menuPage.html, menuPage.finalUrl)) if (!pdfLinks.includes(u)) pdfLinks.push(u);
       }
       if (pageText.length < 300) {
@@ -261,7 +318,8 @@ async function processPlace(browser, place) {
       result.status = out.status;
       if (out.status === "ok") return { ...result, ...out, sourceUrl, seconds: Math.round((Date.now() - started) / 1000) };
     }
-    // Last resort: a menu that is a PDF (a fifth of the menus I looked at that the pages themselves couldn't give).
+    triedPages.push(home.finalUrl);
+    // Next: a menu that is a PDF (a fifth of the menus I looked at that the pages themselves couldn't give).
     for (const pdfUrl of pdfLinks.slice(0, 2)) {
       const text = await pdfText(pdfUrl).catch(() => null);
       if (!text || text.length < 300) {
@@ -271,6 +329,21 @@ async function processPlace(browser, place) {
       const out = await extractMenu(place.name, text);
       result.status = out.status === "ok" ? "ok" : result.status;
       if (out.status === "ok") return { ...result, ...out, sourceUrl: pdfUrl, fromPdf: true, seconds: Math.round((Date.now() - started) / 1000) };
+    }
+    // Last resort: the menu is pictures. The model copies the words off each one, then the same reading and
+    // checking as for page text runs on that copy (so a dish still has to appear in what was copied).
+    if (opts.photos) {
+      for (const pageUrl of triedPages) {
+        const pictures = await menuPictures(browser, pageUrl).catch(() => []);
+        if (pictures.length === 0) continue;
+        const copied = [];
+        for (const pic of pictures) copied.push(await transcribe(pic.base64).catch(() => ""));
+        const text = joinTranscripts(copied);
+        if (text.length < 300) continue;
+        const out = await extractMenu(place.name, text);
+        if (out.status === "ok") return { ...result, ...out, status: "ok", sourceUrl: pageUrl, fromPhoto: true, seconds: Math.round((Date.now() - started) / 1000) };
+        result.status = out.status;
+      }
     }
     return { ...result, seconds: Math.round((Date.now() - started) / 1000) };
   } catch (e) {
@@ -282,7 +355,7 @@ async function save(place, r) {
   if (r.status === "ok") {
     await rest(`food_places?id=eq.${place.id}`, {
       method: "PATCH",
-      body: { menu_items: { sections: r.sections }, menu_items_source_url: r.sourceUrl, menu_items_at: new Date().toISOString(), menu_items_status: "ok", menu_items_model: opts.model },
+      body: { menu_items: r.fromPhoto ? { sections: r.sections, fromPhoto: true } : { sections: r.sections }, menu_items_source_url: r.sourceUrl, menu_items_at: new Date().toISOString(), menu_items_status: "ok", menu_items_model: opts.model },
     });
   } else if (place.menu_items_status !== "ok") {
     // Remember the miss so we don't retry for a while; never replace a good saved menu with a failure.

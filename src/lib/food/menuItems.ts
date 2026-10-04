@@ -39,6 +39,12 @@ export function parseMenu(raw: unknown): MenuSection[] | null {
   return out.length ? out : null;
 }
 
+/** True when the menu job read this menu from pictures of it (the restaurant's page had no menu text), so the
+ * screen can say so: reading a photo is more likely to misread a price than reading text. */
+export function menuFromPhoto(raw: unknown): boolean {
+  return (raw as { fromPhoto?: unknown } | null)?.fromPhoto === true;
+}
+
 const norm = (s: string) =>
   s
     .normalize("NFD")

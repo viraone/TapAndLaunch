@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterMenu, parseMenu, type MenuSection } from "@/lib/food/menuItems";
+import { filterMenu, menuFromPhoto, parseMenu, type MenuSection } from "@/lib/food/menuItems";
 
 describe("parseMenu", () => {
   it("reads a well-formed saved menu", () => {
@@ -41,5 +41,14 @@ describe("filterMenu", () => {
     expect(filterMenu(menu, "thai peanuts")[0].items[0].name).toBe("Pad Thai"); // both words are in that one dish
     expect(filterMenu(menu, "basil peanuts").length).toBe(0); // in different dishes
     expect(filterMenu(menu, "zzz")).toEqual([]);
+  });
+});
+
+describe("menuFromPhoto", () => {
+  it("is true only when the job marked the menu as read from a photo", () => {
+    expect(menuFromPhoto({ sections: [], fromPhoto: true })).toBe(true);
+    expect(menuFromPhoto({ sections: [] })).toBe(false);
+    expect(menuFromPhoto({ fromPhoto: "yes" })).toBe(false);
+    expect(menuFromPhoto(null)).toBe(false);
   });
 });
