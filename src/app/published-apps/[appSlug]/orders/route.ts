@@ -3,20 +3,28 @@ import { getPublishedApp } from "@/lib/pwa/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentMember } from "@/lib/pwa/get-current-member";
 import { recordAnalyticsEvent } from "@/lib/pwa/analytics";
+import { getStripeAccountRow } from "@/lib/stripe/accounts";
+import { appOrigin, applicationFeeCents, buildCheckoutSessionParams, canPayByCard, safeReturnPath } from "@/lib/stripe/checkout";
+import { getStripe, isStripeConfigured } from "@/lib/stripe/server";
+import { getRootDomain } from "@/lib/tenant";
 
 const OrderSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.number().int().min(1).max(999),
   customerName: z.string().min(1).max(200),
   customerEmail: z.string().email(),
+  /** The page the shopper bought from, so they come back to it after paying. */
+  returnPath: z.string().optional(),
 });
 
 /**
  * Creates one order with one line item — see `ProductBuyRuntime`'s comment
- * on why this is "buy this product now," not a multi-item cart. No payment
- * is processed; this records a purchase *request* (`orders.status` starts
- * `'pending'`) for the merchant to follow up on manually until Phase 7
- * wires up real payment.
+ * on why this is "buy this product now," not a multi-item cart.
+ *
+ * If the app's organization has connected Stripe (and the order is big enough
+ * for a card), the response carries a `checkoutUrl` on Stripe's hosted page and
+ * the order stays `pending` until the webhook marks it `paid`. Otherwise this
+ * records a purchase *request* for the merchant to follow up on by hand.
  */
 export async function POST(request: Request, context: { params: Promise<{ appSlug: string }> }) {
   const { appSlug } = await context.params;
@@ -82,5 +90,68 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
     metadata: { productId: product.id, quantity: parsed.data.quantity, totalCents },
   });
 
-  return Response.json({ orderId: order.id }, { status: 201 });
+  const checkoutUrl = await startCardCheckout({
+    admin,
+    organizationId: published.app.organization_id,
+    appId: published.app.id,
+    appSlug,
+    orderId: order.id,
+    product,
+    quantity: parsed.data.quantity,
+    totalCents,
+    customerEmail: parsed.data.customerEmail,
+    returnPath: safeReturnPath(parsed.data.returnPath),
+  });
+
+  return Response.json({ orderId: order.id, checkoutUrl }, { status: 201 });
+}
+
+/**
+ * Opens a Stripe Checkout session on the merchant's connected account and returns its URL, or
+ * `null` to fall back to the request flow (Stripe off, account not ready, tiny order, or a Stripe
+ * error — the order is already saved, so the merchant still hears about it).
+ */
+async function startCardCheckout(input: {
+  admin: ReturnType<typeof createAdminClient>;
+  organizationId: string;
+  appId: string;
+  appSlug: string;
+  orderId: string;
+  product: { id: string; name: string; price_cents: number; currency: string };
+  quantity: number;
+  totalCents: number;
+  customerEmail: string;
+  returnPath: string;
+}): Promise<string | null> {
+  if (!isStripeConfigured() || !canPayByCard(input.totalCents)) return null;
+  const account = await getStripeAccountRow(input.admin, input.organizationId);
+  if (!account?.charges_enabled) return null;
+
+  try {
+    const session = await getStripe().checkout.sessions.create(
+      buildCheckoutSessionParams({
+        orderId: input.orderId,
+        appId: input.appId,
+        productId: input.product.id,
+        productName: input.product.name,
+        unitPriceCents: input.product.price_cents,
+        currency: input.product.currency,
+        quantity: input.quantity,
+        customerEmail: input.customerEmail,
+        origin: appOrigin(input.appSlug, getRootDomain()),
+        returnPath: input.returnPath,
+        feeCents: applicationFeeCents(input.totalCents, process.env.STRIPE_APPLICATION_FEE_PERCENT),
+      }),
+      { stripeAccount: account.stripe_account_id }
+    );
+    if (!session.url) return null;
+    await input.admin
+      .from("orders")
+      .update({ payment_method: "stripe", stripe_checkout_session_id: session.id })
+      .eq("id", input.orderId);
+    return session.url;
+  } catch (error) {
+    console.error("stripe checkout failed:", error instanceof Error ? error.message : error);
+    return null;
+  }
 }

@@ -5,8 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 import { OrgSettingsForm } from "./OrgSettingsForm";
+import { PaymentsCard } from "./PaymentsCard";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getStripeAccountRow, syncStripeAccount } from "@/lib/stripe/accounts";
+import { isStripeConfigured, isStripeTestMode } from "@/lib/stripe/server";
 
-export default async function OrgSettingsPage() {
+export default async function OrgSettingsPage({ searchParams }: { searchParams: Promise<{ stripe?: string }> }) {
+  const { stripe: stripeReturn } = await searchParams;
   const supabase = await createClient();
 
   const memberships = await getMemberships(supabase);
@@ -22,6 +27,23 @@ export default async function OrgSettingsPage() {
     .single();
 
   if (!organization) redirect("/dashboard");
+
+  // Payments card: admins only, and only when Stripe is switched on for this deployment.
+  let stripeAccount = null;
+  const showPayments = activeMembership?.role === "admin" && isStripeConfigured();
+  if (showPayments) {
+    const admin = createAdminClient();
+    stripeAccount = await getStripeAccountRow(admin, organizationId);
+    // Setup not finished (or just back from Stripe's pages): ask Stripe for the latest, so this page
+    // is right without waiting for a webhook.
+    if (stripeAccount && (stripeReturn || !stripeAccount.charges_enabled)) {
+      try {
+        stripeAccount = (await syncStripeAccount(admin, organizationId, stripeAccount.stripe_account_id)) ?? stripeAccount;
+      } catch (error) {
+        console.error("stripe sync failed:", error instanceof Error ? error.message : error);
+      }
+    }
+  }
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 p-6">
@@ -46,6 +68,7 @@ export default async function OrgSettingsPage() {
           )}
         </CardContent>
       </Card>
+      {showPayments && <PaymentsCard account={stripeAccount} testMode={isStripeTestMode()} />}
     </main>
   );
 }

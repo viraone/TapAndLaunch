@@ -35,7 +35,8 @@ export type AnalyticsEventType =
   | "sms_sent"
   | "order_placed"
   | "booking_created";
-export type OrderStatus = "pending" | "fulfilled" | "cancelled";
+export type OrderStatus = "pending" | "paid" | "fulfilled" | "cancelled" | "refunded";
+export type PaymentMethod = "request" | "stripe";
 
 export type CustomDomainStatus = "pending" | "verified" | "error";
 
@@ -268,6 +269,22 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["organizations"]["Row"]>;
         Relationships: [];
       };
+      stripe_accounts: {
+        Row: {
+          organization_id: string;
+          stripe_account_id: string;
+          charges_enabled: boolean;
+          details_submitted: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["stripe_accounts"]["Row"]> & {
+          organization_id: string;
+          stripe_account_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["stripe_accounts"]["Row"]>;
+        Relationships: [];
+      };
       memberships: {
         Row: {
           id: string;
@@ -446,6 +463,11 @@ export interface Database {
           status: OrderStatus;
           total_cents: number;
           currency: string;
+          /** 'request' = the merchant follows up by hand; 'stripe' = paid on Stripe's checkout page. */
+          payment_method: PaymentMethod;
+          stripe_checkout_session_id: string | null;
+          stripe_payment_intent_id: string | null;
+          paid_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -593,6 +615,19 @@ export interface Database {
           weekday_descriptions: string[];
           utc_offset_minutes: number | null;
           business_status: string | null;
+          phone_national: string | null;
+          phone_international: string | null;
+          website: string | null;
+          popular_dishes: { name: string; emoji: string; mentions: number }[] | null;
+          dishes_synced_at: string | null;
+          menu_url: string | null;
+          menu_embeddable: boolean | null;
+          menu_checked_at: string | null;
+          menu_items: { sections: { name: string; items: { name: string; price: string | null; description: string | null }[] }[] } | null;
+          menu_items_source_url: string | null;
+          menu_items_at: string | null;
+          menu_items_status: string | null;
+          menu_items_model: string | null;
           google_synced_at: string;
           created_at: string;
           updated_at: string;
@@ -617,6 +652,12 @@ export interface Database {
         Row: { app_id: string; cell_key: string; fetch_group: string; fetched_at: string };
         Insert: { app_id: string; cell_key: string; fetch_group?: string; fetched_at?: string };
         Update: Partial<{ app_id: string; cell_key: string; fetch_group: string; fetched_at: string }>;
+        Relationships: [];
+      };
+      food_dish_budget: {
+        Row: { app_id: string; month: string; calls: number };
+        Insert: { app_id: string; month: string; calls?: number };
+        Update: Partial<{ app_id: string; month: string; calls: number }>;
         Relationships: [];
       };
       food_fetch_budget: {
