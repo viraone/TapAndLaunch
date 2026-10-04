@@ -4,6 +4,8 @@ A no-code, multi-tenant Progressive Web App builder (a Beezer-style product, bra
 This repo covers **Phases 1–6 of a phased build** — see
 [Scope](#scope--whats-deferred) before assuming something is here that isn't.
 
+**Operations and setup docs** (services, settings, payments, email, push, deploying, runbooks) are in [`docs/`](docs/README.md).
+
 ## Stack
 
 - Next.js 16 (App Router, TypeScript), Tailwind CSS v4, shadcn/ui
