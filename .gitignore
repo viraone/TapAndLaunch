@@ -49,3 +49,6 @@ next-env.d.ts
 /tools/menu-ingest/node_modules
 /tools/menu-ingest/out
 /tools/menu-ingest/.env
+
+# Private operations notes (account IDs, security notes) - never committed
+/docs/private/
