@@ -13,7 +13,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import robotsParser from "robots-parser";
-import { buildPrompt, chunkText, findMenuLink, MENU_SCHEMA, mergeSections, sanitizeMenu, webUrl } from "./lib.mjs";
+import { buildPrompt, chunkText, findMenuLink, findPdfMenuLinks, MENU_SCHEMA, mergeSections, pdfItemsToLines, sanitizeMenu, webUrl } from "./lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -159,6 +159,31 @@ async function render(browser, url) {
   }
 }
 
+// ---------- PDF menus ----------
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
+const MAX_PDF_PAGES = 12;
+
+/** Downloads a PDF (size-capped, robots.txt respected) and returns its text as lines, or null. Pictures-only PDFs give no text. */
+async function pdfText(url) {
+  if (!(await allowed(url))) return null;
+  const res = await fetch(url, { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(30000), redirect: "follow" });
+  if (!res.ok) return null;
+  const declared = Number(res.headers.get("content-length") ?? 0);
+  if (declared > MAX_PDF_BYTES) return null;
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (buf.length > MAX_PDF_BYTES || String.fromCharCode(...buf.slice(0, 4)) !== "%PDF") return null;
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const doc = await pdfjs.getDocument({ data: buf, useSystemFonts: true, verbosity: 0 }).promise;
+  const lines = [];
+  for (let n = 1; n <= Math.min(doc.numPages, MAX_PDF_PAGES); n++) {
+    const page = await doc.getPage(n);
+    const content = await page.getTextContent();
+    lines.push(...pdfItemsToLines(content.items.map((i) => ({ str: i.str, x: i.transform[4], y: i.transform[5] }))));
+  }
+  await doc.destroy();
+  return lines.join("\n");
+}
+
 // ---------- the model ----------
 async function askModel(name, text) {
   const body = {
@@ -208,6 +233,7 @@ async function processPlace(browser, place) {
     const home = await render(browser, site.toString());
     if (/pdf/i.test(home.contentType)) return { ...result, status: "pdf" };
 
+    const pdfLinks = findPdfMenuLinks(home.html, home.finalUrl);
     const targets = [];
     const link = findMenuLink(home.html, home.finalUrl);
     if (link && link !== home.finalUrl) targets.push(link);
@@ -225,6 +251,7 @@ async function processPlace(browser, place) {
         }
         pageText = menuPage.text;
         sourceUrl = menuPage.finalUrl;
+        for (const u of findPdfMenuLinks(menuPage.html, menuPage.finalUrl)) if (!pdfLinks.includes(u)) pdfLinks.push(u);
       }
       if (pageText.length < 300) {
         result.status = "unreadable";
@@ -233,6 +260,17 @@ async function processPlace(browser, place) {
       const out = await extractMenu(place.name, pageText);
       result.status = out.status;
       if (out.status === "ok") return { ...result, ...out, sourceUrl, seconds: Math.round((Date.now() - started) / 1000) };
+    }
+    // Last resort: a menu that is a PDF (a fifth of the menus I looked at that the pages themselves couldn't give).
+    for (const pdfUrl of pdfLinks.slice(0, 2)) {
+      const text = await pdfText(pdfUrl).catch(() => null);
+      if (!text || text.length < 300) {
+        result.status = result.status === "error" ? "pdf" : result.status;
+        continue;
+      }
+      const out = await extractMenu(place.name, text);
+      result.status = out.status === "ok" ? "ok" : result.status;
+      if (out.status === "ok") return { ...result, ...out, sourceUrl: pdfUrl, fromPdf: true, seconds: Math.round((Date.now() - started) / 1000) };
     }
     return { ...result, seconds: Math.round((Date.now() - started) / 1000) };
   } catch (e) {

@@ -164,6 +164,43 @@ export function findMenuLink(html, baseUrl) {
   return best?.url ?? null;
 }
 
+/**
+ * Links to PDF files on a page that look like a menu, best first (a link or file name that says "menu" beats a plain PDF;
+ * wine lists, catering sheets and the like are skipped). Absolute http(s) URLs only.
+ */
+export function findPdfMenuLinks(html, baseUrl) {
+  const found = [];
+  for (const m of html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)) {
+    const href = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(m[1]);
+    if (!href) continue;
+    const url = webUrl((href[1] ?? href[2] ?? "").trim(), baseUrl);
+    if (!url || !/\.pdf$/i.test(url.pathname)) continue;
+    const label = `${stripTags(m[2])} ${url.pathname} ${/\btitle\s*=\s*"([^"]*)"/i.exec(m[1])?.[1] ?? ""}`;
+    if (/catering|wine|cocktail list|gift|job|application|allergen|nutrition|coupon|event|newsletter/i.test(label)) continue;
+    const score = /\bmenus?\b/i.test(label) ? 2 : /food|dinner|lunch|brunch|breakfast|eat|dine/i.test(label) ? 1 : 0;
+    if (!found.some((f) => f.url === url.toString())) found.push({ url: url.toString(), score });
+  }
+  return found.sort((a, b) => b.score - a.score).map((f) => f.url);
+}
+
+/**
+ * Text items from a PDF page ({str, x, y}) → lines: items on the same baseline are joined left to right, lines top to bottom.
+ * Menus put a dish and its price on one visual line, so keeping the baseline together matters.
+ */
+export function pdfItemsToLines(items) {
+  const usable = items.filter((it) => it.str && it.str.trim()).sort((a, b) => b.y - a.y);
+  const rows = [];
+  for (const it of usable) {
+    const row = rows[rows.length - 1];
+    // Same line when the baseline is within ~3 points of the line's first item.
+    if (row && Math.abs(row.y - it.y) <= 3) row.items.push(it);
+    else rows.push({ y: it.y, items: [it] });
+  }
+  return rows
+    .map((row) => row.items.sort((a, b) => a.x - b.x).map((i) => i.str.trim()).join(" ").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
 /** The instructions given to the model for one piece of page text. */
 export function buildPrompt(restaurantName, pageText) {
   return `You read the text of a restaurant web page and extract its FOOD AND DRINK MENU.
