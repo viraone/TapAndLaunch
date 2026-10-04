@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, Bell, Globe, LayoutTemplate, ShoppingBag, Sparkles, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { LegalLinks } from "@/components/legal/Doc";
+import { LEGAL_NAME } from "@/lib/legal";
 
 const FEATURES = [
   { icon: LayoutTemplate, title: "Drag-and-drop builder", body: "Text, media, forms, shops, events — arrange it all on a live phone preview." },
@@ -110,8 +112,11 @@ export default async function Home() {
         </ul>
       </main>
 
-      <footer className="relative z-10 px-6 py-6 text-center text-xs text-neutral-500">
-        © {new Date().getFullYear()} TapAndLaunch
+      <footer className="relative z-10 space-y-2 px-6 py-6 text-center text-xs text-neutral-500">
+        <LegalLinks />
+        <p>
+          © {new Date().getFullYear()} {LEGAL_NAME}, doing business as TapAndLaunch
+        </p>
       </footer>
     </div>
   );

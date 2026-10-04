@@ -114,6 +114,17 @@ export default function SignupPage() {
           {loading ? "Creating account…" : "Create account"}
           {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
         </button>
+        <p className="text-center text-xs text-neutral-500">
+          By creating an account you agree to our{" "}
+          <Link href="/terms" className="underline underline-offset-4 hover:text-neutral-300">
+            Terms
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="underline underline-offset-4 hover:text-neutral-300">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </form>
     </AuthShell>
   );
