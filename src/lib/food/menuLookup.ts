@@ -4,7 +4,7 @@ import http from "node:http";
 import https from "node:https";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { embeddableFromHeaders, findMenuLink, isPrivateAddress, normalizeWebUrl } from "@/lib/food/menuSite";
-import { parseMenu, type MenuSection } from "@/lib/food/menuItems";
+import { menuFromPhoto, parseMenu, type MenuSection } from "@/lib/food/menuItems";
 import { safeWebsite } from "@/lib/food/placeSheet";
 
 /** A restaurant's website is re-checked at most this often. */
@@ -127,7 +127,7 @@ export type MenuInfoResult =
   | { status: "ok"; embeddable: true; url: string; host: string; kind: "menu" | "site" }
   | { status: "ok"; embeddable: false; kind?: undefined }
   /** The menu as saved by the job on the owner's Mac (tools/menu-ingest): our own screen, not the restaurant's page. */
-  | { status: "ok"; embeddable: false; kind: "items"; sections: MenuSection[]; sourceUrl: string | null; host: string | null; asOf: string | null };
+  | { status: "ok"; embeddable: false; kind: "items"; sections: MenuSection[]; sourceUrl: string | null; host: string | null; asOf: string | null; fromPhoto: boolean };
 
 /**
  * What to show when someone taps Menu on a stored restaurant. A menu saved by the job on the owner's Mac comes first
@@ -146,7 +146,7 @@ export async function getMenuInfo(appId: string, placeRowId: string): Promise<Me
   const saved = row?.menu_items_status === "ok" ? parseMenu(row.menu_items) : null;
   if (row && saved) {
     const source = safeWebsite(row.menu_items_source_url);
-    return { status: "ok", embeddable: false, kind: "items", sections: saved, sourceUrl: source, host: source ? new URL(source).hostname.replace(/^www\./, "") : null, asOf: row.menu_items_at };
+    return { status: "ok", embeddable: false, kind: "items", sections: saved, sourceUrl: source, host: source ? new URL(source).hostname.replace(/^www\./, "") : null, asOf: row.menu_items_at, fromPhoto: menuFromPhoto(row.menu_items) };
   }
   if (!row?.website) return { status: "ok", embeddable: false };
 

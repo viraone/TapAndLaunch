@@ -244,3 +244,41 @@ export const MENU_SCHEMA = {
   },
   required: ["is_menu", "sections"],
 };
+
+// ---- menus that are photos (the page has pictures of the menu and no text) ----
+
+export const MAX_MENU_IMAGES = 6;
+/** Smaller pictures are logos, icons and food shots, not a readable menu. */
+export const MIN_IMAGE_WIDTH = 600;
+export const MIN_IMAGE_HEIGHT = 400;
+
+/**
+ * Which pictures on a page might be a menu, best first. `images` are {src, width, height} (natural size).
+ * Keeps big ones, skips logos / icons / avatars by name, drops repeats, caps the count.
+ */
+export function selectMenuImages(images, max = MAX_MENU_IMAGES) {
+  const seen = new Set();
+  const picked = [];
+  for (const img of images ?? []) {
+    const src = String(img?.src ?? "");
+    if (!/^https?:\/\//i.test(src) || /^data:/i.test(src)) continue;
+    if (!(img.width >= MIN_IMAGE_WIDTH && img.height >= MIN_IMAGE_HEIGHT)) continue;
+    if (/logo|icon|avatar|favicon|sprite|badge|trademark/i.test(src)) continue;
+    const key = src.split("?")[0];
+    if (seen.has(key)) continue;
+    seen.add(key);
+    picked.push({ src, width: img.width, height: img.height });
+  }
+  return picked.sort((a, b) => b.width * b.height - a.width * a.height).slice(0, max);
+}
+
+/** The instruction for the model that copies the words off one menu picture (a second step reads the copy into dishes). */
+export const TRANSCRIBE_PROMPT = `This picture may be a restaurant menu. Copy ALL the text you can read in it, exactly as written, one line per line of the menu, top to bottom (left column first when there are columns). Keep each dish name, its price and its description on the same line. Do not translate, summarize, correct or add anything. If the picture has no menu text (a photo of food, a logo, a map), answer with exactly: NO TEXT`;
+
+/** Joins what the model copied from several pictures; pictures with no menu text are dropped. */
+export function joinTranscripts(parts) {
+  return (parts ?? [])
+    .map((t) => String(t ?? "").trim())
+    .filter((t) => t && !/^no text\.?$/i.test(t))
+    .join("\n\n");
+}

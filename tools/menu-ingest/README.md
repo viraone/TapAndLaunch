@@ -40,10 +40,19 @@ Useful options: `--names "a,b"`, `--ids uuid,uuid`, `--force` (re-read even if r
 `--max-minutes 180`, `--model qwen3.8:27b`.
 
 ## Every night (optional)
-`./install-nightly.sh` turns on a 2:30 AM run (it keeps the Mac awake while it works and starts Ollama if needed);
+`./install-nightly.sh` turns on a 2:30 AM run (it keeps the Mac awake while it works and starts Ollama if needed).
+macOS won't let a background job read `~/Desktop`, so the installer copies the job to `~/.livebites-menu-job` and the schedule
+runs it from there. **Run `./install-nightly.sh` again after changing anything in this folder** (it re-copies the files).
 `./install-nightly.sh remove` turns it off. Log: `~/Library/Logs/menu-ingest.log`. If the Mac is off, nothing breaks:
 the app keeps showing the last saved menus.
 
+## Menus that are PDFs or pictures
+If the page has no menu text, the job tries the menu's PDF (text read straight from the file), then pictures of the menu:
+it opens the page with images, takes the big ones (up to 6), has the same local model (it can see) copy the words off each,
+and reads that copy into dishes the same way as page text, still throwing away any dish not found in the copy.
+Menus read from pictures are marked `fromPhoto` and the app says so ("a price can be misread from a photo"). Slower (about
+2 to 3 minutes a restaurant). `--no-photos` turns it off. Check a few against the real menu before trusting a new site.
+
 ## What it can't read
-PDF menus and image-only menus (the app falls back to the restaurant's website for those), and sites whose `robots.txt` says no.
+Menus that are only pictures the model can't read well (very stylised, tiny or tall images), and sites whose `robots.txt` says no.
 Prices are only as current as the restaurant's page.

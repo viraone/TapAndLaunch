@@ -6,10 +6,12 @@ import {
   cleanPrice,
   findMenuLink,
   findPdfMenuLinks,
+  joinTranscripts,
   mergeSections,
   normalizeForMatch,
   pdfItemsToLines,
   sanitizeMenu,
+  selectMenuImages,
 } from "../../../tools/menu-ingest/lib.mjs";
 
 describe("cleanPrice", () => {
@@ -126,5 +128,27 @@ describe("PDF menus", () => {
       { str: "  ", x: 10, y: 10 },
     ]);
     expect(lines).toEqual(["Soups", "Pad Thai $14.95", "Tom Yum $9"]);
+  });
+});
+
+describe("photo menus", () => {
+  it("keeps big pictures that could be a menu, largest first, without logos or repeats", () => {
+    const picked = selectMenuImages([
+      { src: "https://x.example.com/a/menu-page-1.jpg?format=1500w", width: 1500, height: 2000 },
+      { src: "https://x.example.com/a/menu-page-1.jpg?format=750w", width: 750, height: 1000 },
+      { src: "https://x.example.com/a/Kajiken_TradeMark.png", width: 3000, height: 3000 },
+      { src: "https://x.example.com/a/small.jpg", width: 300, height: 300 },
+      { src: "data:image/png;base64,AAAA", width: 2000, height: 2000 },
+      { src: "https://x.example.com/a/menu-page-2.jpg", width: 1600, height: 2200 },
+    ]);
+    expect(picked.map((p: { src: string }) => p.src)).toEqual(["https://x.example.com/a/menu-page-2.jpg", "https://x.example.com/a/menu-page-1.jpg?format=1500w"]);
+  });
+  it("caps how many pictures are read", () => {
+    const many = Array.from({ length: 20 }, (_, i) => ({ src: `https://x.example.com/m${i}.jpg`, width: 1000 + i, height: 1000 }));
+    expect(selectMenuImages(many)).toHaveLength(6);
+  });
+  it("joins the copied text and drops pictures with none", () => {
+    expect(joinTranscripts(["Ramen 12\nGyoza 6", "NO TEXT", "  ", "no text.", "Beer 5"])).toBe("Ramen 12\nGyoza 6\n\nBeer 5");
+    expect(joinTranscripts([])).toBe("");
   });
 });

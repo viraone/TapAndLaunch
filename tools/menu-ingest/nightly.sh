@@ -18,6 +18,7 @@ NODE="$(command ls -d "$HOME"/.nvm/versions/node/*/bin/node 2>/dev/null | sort -
   fi
   # caffeinate -i keeps the Mac from sleeping while the job runs; the job stops itself after 4 hours.
   [ -x "$NODE" ] || { echo "node not found"; exit 1; }
+  [ -d node_modules/playwright ] || { echo "Packages missing in $(pwd): run ./install-nightly.sh again."; exit 1; }
   caffeinate -i "$NODE" run.mjs --write --limit "${MENU_LIMIT:-60}" --max-minutes 240
   echo "finished with code $?"
 } >> "$LOG" 2>&1
