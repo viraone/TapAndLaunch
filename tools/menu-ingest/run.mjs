@@ -19,13 +19,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 // ---------- options ----------
 function parseArgs(argv) {
-  const o = { lat: 47.7063, lng: -122.3254, site: "https://livebitesnow.tapandlaunch.com", limit: 20, write: false, force: false, model: "qwen3.8:27b", maxMinutes: 180, ollama: "http://localhost:11434", delayMs: 2500, ids: null, names: null, refreshDays: 14 };
+  const o = { near: false, lat: 47.7063, lng: -122.3254, site: "https://livebitesnow.tapandlaunch.com", limit: 20, write: false, force: false, model: "qwen3.8:27b", maxMinutes: 180, ollama: "http://localhost:11434", delayMs: 2500, ids: null, names: null, refreshDays: 14 };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
     if (a === "--write") o.write = true;
     else if (a === "--force") o.force = true;
     else if (a === "--limit") o.limit = Number(next());
+    else if (a === "--near") o.near = true;
     else if (a === "--lat") o.lat = Number(next());
     else if (a === "--lng") o.lng = Number(next());
     else if (a === "--model") o.model = next();
@@ -34,7 +35,7 @@ function parseArgs(argv) {
     else if (a === "--names") o.names = next().split(",").map((s) => s.trim().toLowerCase());
     else if (a === "--refresh-days") o.refreshDays = Number(next());
     else if (a === "--help") {
-      console.log("node run.mjs [--limit 20] [--lat 47.70 --lng -122.32] [--names 'pho an,taco del mar'] [--ids uuid,uuid] [--write] [--force] [--model qwen3.8:27b] [--max-minutes 180]\nWithout --write nothing is saved to the database (results are written to out/ for review).");
+      console.log("node run.mjs [--limit 20] [--near --lat 47.70 --lng -122.32] [--names 'pho an,taco del mar'] [--ids uuid,uuid] [--write] [--force] [--model qwen3.8:27b] [--max-minutes 180]\nWithout --write nothing is saved to the database (results are written to out/ for review).");
       process.exit(0);
     } else throw new Error(`Unknown option ${a}`);
   }
@@ -82,6 +83,8 @@ async function candidates() {
     const cols = ["id", "name", "website", "address", "rating_count", "menu_items_status", "menu_items_at"];
     let q = `food_places?select=${cols.join(",")}&website=not.is.null&order=rating_count.desc.nullslast&limit=${opts.ids || opts.names ? 1000 : Math.max(opts.limit * 4, 50)}`;
     if (opts.ids) q += `&id=in.(${opts.ids.join(",")})`;
+    // --near: only restaurants within about 2.5 miles of --lat/--lng (a box, not a circle).
+    if (opts.near) q += `&latitude=gte.${opts.lat - 0.035}&latitude=lte.${opts.lat + 0.035}&longitude=gte.${opts.lng - 0.05}&longitude=lte.${opts.lng + 0.05}`;
     rows = await rest(q);
   } else {
     // No database keys: use the live site's own public list of restaurants around a point (read-only, same as the app).

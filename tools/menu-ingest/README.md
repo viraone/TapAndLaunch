@@ -36,7 +36,7 @@ Run after the app version with the menu screen is live:
 ```
 node run.mjs --write --limit 20
 ```
-Useful options: `--names "a,b"`, `--ids uuid,uuid`, `--force` (re-read even if recent), `--lat/--lng` (dry runs: which area),
+Useful options: `--names "a,b"`, `--ids uuid,uuid`, `--force` (re-read even if recent), `--lat/--lng` (dry runs: which area), `--near` (with --lat/--lng and --write: only restaurants within ~2.5 miles of that point),
 `--max-minutes 180`, `--model qwen3.8:27b`.
 
 ## Every night (optional)
