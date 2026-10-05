@@ -98,6 +98,8 @@ export interface SubscriptionLike {
   id: string;
   status: string;
   cancel_at_period_end: boolean;
+  /** When it's set to end. Stripe's customer portal sets this (not `cancel_at_period_end`) when someone cancels. */
+  cancel_at?: number | null;
   customer: string | { id: string };
   items: { data: Array<{ current_period_end: number; price: { recurring?: { interval: string } | null } }> };
 }
@@ -117,7 +119,7 @@ export function billingFromSubscription(sub: SubscriptionLike): Pick<BillingRow,
     stripe_subscription_id: sub.id,
     plan_interval: interval === "month" || interval === "year" ? interval : null,
     current_period_end: item ? new Date(item.current_period_end * 1000).toISOString() : null,
-    cancel_at_period_end: sub.cancel_at_period_end,
+    cancel_at_period_end: sub.cancel_at_period_end || sub.cancel_at != null,
   };
 }
 

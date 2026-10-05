@@ -87,6 +87,11 @@ describe("billingFromSubscription", () => {
     });
     expect(billingFromSubscription(sub("active", { customer: { id: "cus_9" } })).stripe_customer_id).toBe("cus_9");
   });
+  it("knows it's ending whichever way Stripe says so (the customer portal sets a cancel date, not the flag)", () => {
+    expect(billingFromSubscription(sub("trialing", { cancel_at: 1790000000 })).cancel_at_period_end).toBe(true);
+    expect(billingFromSubscription(sub("active", { cancel_at_period_end: true })).cancel_at_period_end).toBe(true);
+    expect(billingFromSubscription(sub("active", { cancel_at: null })).cancel_at_period_end).toBe(false);
+  });
 });
 
 describe("planChip", () => {
