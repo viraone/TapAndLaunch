@@ -9,6 +9,69 @@ import { salvage } from "./partial";
  * The whole build takes about as long as the plan plus the slowest section, instead of every file one after another.
  */
 
+/**
+ * Sends the same request again when the first one is slow to start answering, and keeps whichever answers first (the
+ * other is cancelled). A provider sometimes takes 10 seconds or more to start one answer (seen on a real build: 11.3s
+ * before the first word, where 1.3s is usual), and a second try usually starts at once.
+ */
+export function hedge(ask: Ask, after: number, onHedge?: () => void): Ask {
+  return (turns, onText, signal, maxTokens) =>
+    new Promise<string>((resolve, reject) => {
+      const tries: AbortController[] = [];
+      const errors: unknown[] = [];
+      let winner = -1;
+      let running = 0;
+      let settled = false;
+      let hedged = false;
+      const abortAll = () => tries.forEach((t) => t.abort());
+      const finish = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", abortAll);
+        fn();
+      };
+      signal?.addEventListener("abort", abortAll, { once: true });
+      const start = (k: number) => {
+        const c = new AbortController();
+        tries[k] = c;
+        running += 1;
+        ask(
+          turns,
+          (piece) => {
+            if (winner === -1) {
+              winner = k;
+              tries.forEach((t, i) => i !== k && t.abort());
+            }
+            if (winner === k) onText?.(piece);
+          },
+          c.signal,
+          maxTokens
+        ).then(
+          (text) => {
+            running -= 1;
+            if (winner === -1 || winner === k) finish(() => resolve(text));
+          },
+          (error: unknown) => {
+            running -= 1;
+            if (winner === k) return finish(() => reject(error));
+            if (winner !== -1) return; // the other one is answering
+            errors.push(error);
+            // Nothing answered: fail now unless another try is still running (an error isn't slowness; don't retry it).
+            if (running === 0) finish(() => reject(errors[0]));
+          }
+        );
+      };
+      const timer = setTimeout(() => {
+        if (winner !== -1 || settled || hedged || signal?.aborted) return;
+        hedged = true;
+        onHedge?.();
+        start(1);
+      }, after);
+      start(0);
+    });
+}
+
 /** One call to the AI: the conversation so far, and (optionally) a callback for the answer as it streams. */
 export type Ask = (turns: Array<{ role: "user" | "assistant"; content: string }>, onText?: (piece: string) => void, signal?: AbortSignal, maxTokens?: number) => Promise<string>;
 
@@ -22,6 +85,10 @@ const STARTER_MARK = "Your app starts here.";
  * its last whole element (see `salvage`).
  */
 export const PART_MAX_TOKENS = 850;
+
+/** How long to wait for the first words of an answer before sending the same request again (see `hedge`). */
+const PLAN_HEDGE_MS = 2500;
+const PART_HEDGE_MS = 2000;
 
 /** Sections written at once. More than this is a sign the plan went wrong. */
 const MAX_PARTS = 10;
@@ -348,6 +415,10 @@ export type FirstBuildResult = { reply: string; changes: Record<string, string> 
  */
 /** When things happened during a build, in milliseconds from its start, for tuning speed. */
 export interface BuildTimeline {
+  /** Our own checks were done and the AI was asked. */
+  lookupsDone?: number;
+  /** Requests sent again because the first try was slow to start answering. */
+  hedges?: number;
   planFirstText?: number;
   planDone?: number;
   sections: Record<string, { start: number; firstText?: number; done?: number; chars?: number; cut?: boolean }>;
@@ -425,6 +496,12 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     buffers.set(path, b);
   };
 
+  const countHedge = () => {
+    if (timeline) timeline.hedges = (timeline.hedges ?? 0) + 1;
+  };
+  const planAsk = hedge(opts.ask, PLAN_HEDGE_MS, countHedge);
+  const partAsk = hedge(opts.ask, PART_HEDGE_MS, countHedge);
+
   // The building blocks go out just before the first section starts, in the accent the plan chose.
   const built: { kit: string | null } = { kit: null };
   let others: string[] = [];
@@ -440,7 +517,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     launched.set(
       path,
       writePart(
-        opts.ask,
+        partAsk,
         partMessage({ message: opts.message, design, app, path, plan, usedAs, others }),
         path,
         (text, reset) => piece(path, text, reset),
@@ -500,7 +577,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     }
   };
   try {
-    planText = await opts.ask(
+    planText = await planAsk(
       [...opts.history, { role: "user", content: planMessage(opts.files, opts.message) }],
       (piece) => {
         if (stop.signal.aborted) return;

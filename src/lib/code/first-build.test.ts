@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accentOf, fallbackApp, firstBuild, PART_MAX_TOKENS, isFreshApp, missingImports, parsePlan, SlowDown, uiKit, type Ask, type BuildTimeline } from "./first-build";
+import { accentOf, fallbackApp, firstBuild, hedge, PART_MAX_TOKENS, isFreshApp, missingImports, parsePlan, SlowDown, uiKit, type Ask, type BuildTimeline } from "./first-build";
 import { parse } from "@babel/parser";
 import { starterFiles } from "./prompt";
 import { parseReply } from "./files";
@@ -304,5 +304,72 @@ describe("the two-step build", () => {
     expect(parse(result.changes["src/components/Reviews.jsx"] as string, { sourceType: "module", plugins: ["jsx"] })).toBeTruthy();
     expect(timeline.sections["src/components/Reviews.jsx"]?.cut).toBe(true);
     expect(timeline.sections["src/components/Hero.jsx"]?.cut).toBeUndefined();
+  });
+});
+
+describe("sending a slow request again", () => {
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  // A stand-in AI: each try waits `delays[n]` before its first words, then answers; it stops if cancelled.
+  function fakeAi(delays: number[], fail?: number) {
+    const log: string[] = [];
+    let n = 0;
+    const ask: Ask = (_turns, onText, signal) => {
+      const k = n++;
+      log.push(`start ${k}`);
+      return new Promise((resolve, reject) => {
+        signal?.addEventListener("abort", () => {
+          log.push(`cancelled ${k}`);
+          reject(new DOMException("aborted", "AbortError"));
+        });
+        setTimeout(() => {
+          if (signal?.aborted) return;
+          if (fail === k) return reject(new Error("bad key"));
+          onText?.(`answer ${k}`);
+          resolve(`answer ${k}`);
+        }, delays[k] ?? 0);
+      });
+    };
+    return { ask, log };
+  }
+
+  it("uses the second try when the first is slow to start, and cancels the first", async () => {
+    const { ask, log } = fakeAi([300, 10]);
+    let hedges = 0;
+    const pieces: string[] = [];
+    const text = await hedge(ask, 40, () => hedges++)([], (p) => pieces.push(p));
+    expect(text).toBe("answer 1");
+    expect(pieces).toEqual(["answer 1"]);
+    expect(hedges).toBe(1);
+    expect(log).toEqual(["start 0", "start 1", "cancelled 0"]);
+  });
+
+  it("doesn't send a second request when the first answers in time", async () => {
+    const { ask, log } = fakeAi([5]);
+    expect(await hedge(ask, 40)([])).toBe("answer 0");
+    await wait(60);
+    expect(log).toEqual(["start 0"]);
+  });
+
+  it("fails at once on a real error instead of retrying it", async () => {
+    const { ask, log } = fakeAi([5], 0);
+    await expect(hedge(ask, 40)([])).rejects.toThrow("bad key");
+    await wait(60);
+    expect(log).toEqual(["start 0"]);
+  });
+
+  it("keeps the first try if it answers first after all", async () => {
+    const { ask, log } = fakeAi([60, 200]);
+    expect(await hedge(ask, 30)([])).toBe("answer 0");
+    expect(log).toEqual(["start 0", "start 1", "cancelled 1"]);
+  });
+
+  it("stops both tries when the caller stops", async () => {
+    const { ask, log } = fakeAi([300, 300]);
+    const stop = new AbortController();
+    const result = hedge(ask, 20)([], undefined, stop.signal);
+    await wait(50);
+    stop.abort();
+    await expect(result).rejects.toThrow();
+    expect(log.sort()).toEqual(["cancelled 0", "cancelled 1", "start 0", "start 1"]);
   });
 });

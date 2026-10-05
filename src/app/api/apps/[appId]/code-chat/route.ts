@@ -87,7 +87,7 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
         }
       };
       // How this build went (the model that answered, and when each part happened), kept for tuning speed.
-      const timeline: BuildTimeline = { sections: {} };
+      const timeline: BuildTimeline = { sections: {}, lookupsDone: Date.now() - startedAt };
       const models = new Set<string>();
       let mode = "change";
       const record = (result: Record<string, unknown>) => {

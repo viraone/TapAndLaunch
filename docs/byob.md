@@ -82,8 +82,11 @@ writes a React app, shown live next to the chat. The block-based chat above stil
   `SiteFooter` that App.jsx places, so the AI doesn't write a header or footer section (those were often the biggest). A form field is one line instead of ~400 characters, which
   matters because the slowest section (usually a form) sets the build time; measured on a real build, a 4-field form was
   4 KB, 36% of it class names. The plan lists the heaviest sections first, in short lines, so they start earliest.
+- A request that hasn't started answering after 2.5s (the plan) or 2s (a section) is sent again and the first to answer
+  is kept (`hedge`); a real build once waited 11.3s for the plan's first word where ~1.3s is usual.
 - Each build's timeline is saved in `ai_generations.details` (migration 0032): the model that answered, total time,
-  when the plan finished, and each section's start / first text / done / size. Read it to see where time goes. Their
+  when our checks were done (`lookupsDone`), how many requests were sent again (`hedges`), when the plan finished, and
+  each section's start / first text / done / size / whether it was `cut`. Read it to see where time goes. Their
   output is streamed to the browser as whole `<file>` blocks, held back while the plan step is inside a `<file>` or
   `<reply>`, and announced with `<writing path="…"/>` lines.
 - Sections stream onto the screen while they are written (added 2026-10-05). Each section's text is forwarded as
