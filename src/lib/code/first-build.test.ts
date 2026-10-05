@@ -32,7 +32,13 @@ describe("new apps", () => {
     expect(parsePlan(PLAN)).toEqual({
       design: "accent emerald, slate neutrals, rounded-3xl cards, bold headlines",
       parts: { "src/components/Header.jsx": "logo and a Join button", "src/components/Hero.jsx": "big headline and a class search" },
+      sections: [],
     });
+    expect(parsePlan("<plan>\ndesign: x\nsections: ServicePicker (shares service), BookingDetails (shares: service), Hero\n</plan>").sections).toEqual([
+      { name: "ServicePicker", shares: "service" },
+      { name: "BookingDetails", shares: "service" },
+      { name: "Hero" },
+    ]);
   });
 
   it("finds every file that is imported but not written, with a sensible name", () => {
@@ -245,5 +251,36 @@ describe("the two-step build", () => {
     expect(result.changes["src/App.jsx"]).toBe(fallbackApp(["src/components/Hero.jsx", "src/components/Footer.jsx"]));
     expect(result.changes["src/App.jsx"].indexOf("<Hero />")).toBeLessThan(result.changes["src/App.jsx"].indexOf("<Footer />"));
     expect(parse(result.changes["src/App.jsx"], { sourceType: "module", plugins: ["jsx"] })).toBeTruthy();
+  });
+
+  it("starts every section at once when the sections line arrives, telling each about the others", async () => {
+    const events: string[] = [];
+    const asked: Record<string, string> = {};
+    const ask: Ask = async (turns, onText) => {
+      const last = turns.at(-1)?.content ?? "";
+      if (last.includes("This is a NEW app")) {
+        const text = `<plan>\ndesign: accent rose\nsections: ServicePicker (shares service), BookingDetails (shares service), Hero\n</plan>\n<reply>Grooming!</reply>\n<file path="src/App.jsx">\nimport Hero from '@/components/Hero';\nimport ServicePicker from '@/components/ServicePicker';\nimport BookingDetails from '@/components/BookingDetails';\nexport default () => <><Hero /><ServicePicker /><BookingDetails /></>;\n</file>`;
+        for (const piece of text.match(/[\s\S]{1,8}/g) ?? []) {
+          onText?.(piece);
+          await wait(2);
+        }
+        events.push("plan done");
+        return text;
+      }
+      const path = /Your file: (\S+)/.exec(last)?.[1] as string;
+      events.push(`start ${path}`);
+      asked[path] = last;
+      return `<file path="${path}">\nexport default function X() { return null }\n</file>`;
+    };
+    const result = await firstBuild({ files: starterFiles("x"), message: "dog grooming", history: [], ask, send: () => {} });
+    expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/BookingDetails.jsx", "src/components/Hero.jsx", "src/components/ServicePicker.jsx", "src/lib/shared.js", "src/lib/ui.jsx"]);
+    const planDone = events.indexOf("plan done");
+    for (const name of ["ServicePicker", "BookingDetails", "Hero"]) expect(events.indexOf(`start src/components/${name}.jsx`)).toBeLessThan(planDone);
+    const picker = asked["src/components/ServicePicker.jsx"] as string;
+    expect(picker).toContain("ServicePicker, BookingDetails, Hero");
+    expect(picker).toContain("What it must do: shares: service");
+    expect(picker).toContain('id="servicepicker"');
+    expect(asked["src/components/Hero.jsx"]).not.toContain("What it must do: shares");
+    expect("changes" in result && result.changes["src/lib/ui.jsx"]).toContain("bg-rose-600");
   });
 });

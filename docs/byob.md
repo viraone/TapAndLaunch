@@ -68,7 +68,8 @@ writes a React app, shown live next to the chat. The block-based chat above stil
 - Changes to an existing app come back as `<edit path><find>…</find><with>…</with></edit>` blocks instead of whole files
   (`applyEdits`). An edit whose `find` isn't found exactly once makes the route ask once for the whole file instead.
 - A brand-new app (`isFreshApp`: still the starter file) is built by `src/lib/code/first-build.ts`: the AI writes a
-  `<plan>` first (a design line, then one line per section), then a one-line reply and `src/App.jsx`. Each section starts in
+  `<plan>` first (a design line, then `sections: A (shares key), B, C`, which starts every section at once; the older
+  one-line-per-file shape still works), then a one-line reply and `src/App.jsx`. Each section starts in
   its own AI call the moment its plan line arrives, so they are written while App.jsx is still being written; anything still
   missing after that (`missingImports`) gets one more round. Sections are asked to be self-contained and ~50 lines; the
   slowest section sets the total, so the plan splits anything long (a booking form becomes a picker and a details form).

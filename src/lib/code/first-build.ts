@@ -185,18 +185,28 @@ export function isFreshApp(files: CodeFiles): boolean {
   return paths.length === 1 && paths[0] === "src/App.jsx" && (files["src/App.jsx"] ?? "").includes(STARTER_MARK);
 }
 
-/** The plan's design line and one line per file: "src/components/Hero.jsx: what it shows". */
-export function parsePlan(text: string): { design: string; parts: Record<string, string> } {
+/**
+ * The plan: its design line, the sections line ("sections: ServicePicker (shares service), BookingDetails (shares
+ * service), Hero"), and, in the older shape, one line per file ("src/components/Hero.jsx: what it shows").
+ */
+export function parsePlan(text: string): { design: string; parts: Record<string, string>; sections: Array<{ name: string; shares?: string }> } {
   const body = /<plan>([\s\S]*?)<\/plan>/.exec(text)?.[1] ?? "";
   const parts: Record<string, string> = {};
+  const sections: Array<{ name: string; shares?: string }> = [];
   let design = "";
   for (const raw of body.split("\n")) {
     const line = raw.replace(/^\s*[-*]\s*/, "").trim();
     const m = /^(src\/[^\s:]+)\s*:\s*(.+)$/.exec(line);
     if (m) parts[m[1] as string] = (m[2] as string).trim();
     else if (/^design\s*:/i.test(line)) design = line.replace(/^design\s*:\s*/i, "");
+    else if (/^sections\s*:/i.test(line)) {
+      for (const item of line.replace(/^sections\s*:\s*/i, "").split(",")) {
+        const s = /^\s*([A-Z][A-Za-z0-9]*)\s*(?:\(\s*(?:shares?\s*:?\s*)?([^)]*?)\s*\))?\s*$/.exec(item);
+        if (s && !sections.some((x) => x.name === s[1])) sections.push(s[2] ? { name: s[1] as string, shares: s[2] } : { name: s[1] as string });
+      }
+    }
   }
-  return { design, parts };
+  return { design, parts, sections };
 }
 
 export interface MissingImport {
@@ -252,26 +262,25 @@ ${filesContext(files)}
 This is a NEW app. To build it fast, answer with ONLY these three things, in this order:
 <plan>
 design: one line every section will follow: accent color (a Tailwind color name), backgrounds, headline style, corner radius, mood
-src/components/BookingForm.jsx: what it shows and does, in under 15 words; its root has id="book"
-src/components/Hero.jsx: ...
-(3 to 6 files in src/components/, one per section of the page, each small enough to write in about 35 lines. NO header and NO footer files: those are ready-made, see App.jsx below)
-List the sections that need the most code FIRST (forms, schedules, lists, galleries) and the simplest LAST (header, footer): each one starts being written the moment its line appears. App.jsx decides the order on the page.
-Keep each section's content small (a form: at most 4 fields; lists: at most 3 items). Anything that would still run long is TWO sections: a booking or contact form becomes a picker (ServicePicker.jsx) and a details form (BookingDetails.jsx); a schedule with filters becomes the filters and the list; a menu becomes categories and items.
-When two sections must share something (the chosen service, a selected day, a cart), end both of their lines with "shares: <key>", using the same key.
+sections: ServicePicker (shares service), BookingDetails (shares service), Hero, Testimonials
 </plan>
+- sections: 3 to 6 component names in PascalCase that say clearly what each one is. All of them start being written the moment this line is done, by writers who see only the names, so choose names that explain themselves. NO header and NO footer: those are ready-made.
+- Each section is small (about 35 lines): a form has at most 4 fields, a list at most 3 items. Anything bigger is two sections: a booking form becomes ServicePicker + BookingDetails, a schedule with filters becomes ScheduleFilters + ScheduleList.
+- Two sections that must share something (the chosen service, a selected day, a cart) both get "(shares <key>)" with the same key.
 <reply>One friendly sentence about what you're building.</reply>
 <file path="src/App.jsx">
-App.jsx imports every planned component with a default import (import Hero from '@/components/Hero') and renders them in order with no props, between the ready-made header and footer: import { SiteHeader, SiteFooter } from '@/lib/ui', then <SiteHeader name="..." links={[{ label: 'Classes', href: '#classes' }]} cta={{ label: 'Book now', href: '#book' }} /> at the top and <SiteFooter name="..." tagline="..." links={[...]} /> at the bottom. Links point to the sections' ids. Keep it short.
+App.jsx imports each section with a default import (import Hero from '@/components/Hero') and renders them in page order with no props, between the ready-made header and footer: import { SiteHeader, SiteFooter } from '@/lib/ui', then <SiteHeader name="..." links={[{ label: 'Book', href: '#bookingdetails' }]} cta={{ label: 'Book now', href: '#bookingdetails' }} /> at the top and <SiteFooter name="..." tagline="..." links={[...]} /> at the bottom. Each section's id is its name in lower case, so link with href="#bookingdetails". Keep it short.
 </file>
-Do NOT write the component files. Each one is written by someone else at the same time, starting the moment its plan line appears, without seeing the others, so write the plan FIRST and make every line specific.
+Do NOT write the component files: they are being written at the same time by others.
 
 <owner>${clean}</owner>`;
 }
 
 /** What the AI is asked for when writing one section of a new app. */
-export function partMessage(input: { message: string; design: string; app?: string; path: string; plan: string | undefined; usedAs: string[] }): string {
+export function partMessage(input: { message: string; design: string; app?: string; path: string; plan: string | undefined; usedAs: string[]; others?: string[] }): string {
   const clean = input.message.replace(/<\/?owner>/gi, "");
   const name = componentName(input.path);
+  const page = input.others?.length ? `\nThe whole page, top to bottom: the ready-made header, ${input.others.join(", ")}, the ready-made footer. You write only ${name ?? input.path}; don't repeat what the others do.` : "";
   return `A new app is being built. Several files are being written at the same time; you write ONE of them.
 
 What the owner asked for:
@@ -279,8 +288,9 @@ What the owner asked for:
 
 The design every file follows: ${input.design || "pick one accent color that fits and use slate neutrals"}
 ${input.app ? `\nsrc/App.jsx:\n${input.app}\n` : ""}
-Your file: ${input.path}
+Your file: ${input.path}${page}
 ${input.plan ? `What it must do: ${input.plan}` : ""}
+${name ? `Its outermost element has id="${name.toLowerCase()}" (the page links to it by that).` : ""}
 It is imported like this, so export exactly what these lines need:
 ${input.usedAs.join("\n")}
 ${name ? `Write it as \`export default function ${name}() { ... }\` and add \`export { ${name} };\` at the end, so either kind of import works.` : ""}
@@ -409,6 +419,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
 
   // The building blocks go out just before the first section starts, in the accent the plan chose.
   const built: { kit: string | null } = { kit: null };
+  let others: string[] = [];
   const launch = (path: string, usedAs: string[], plan: string | undefined, app?: string) => {
     if (launched.has(path) || launched.size >= MAX_PARTS) return;
     if (built.kit === null) {
@@ -420,7 +431,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     emit(`\n<writing path="${path}" />`);
     launched.set(
       path,
-      writePart(opts.ask, partMessage({ message: opts.message, design, app, path, plan, usedAs }), path, (text, reset) => piece(path, text, reset)).then(
+      writePart(opts.ask, partMessage({ message: opts.message, design, app, path, plan, usedAs, others }), path, (text, reset) => piece(path, text, reset)).then(
         (content) => {
           const t = timeline?.sections[path];
           if (t) {
@@ -444,6 +455,12 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     const complete = closed ? lines : lines.slice(0, lines.lastIndexOf("\n") + 1);
     const plan = parsePlan(`<plan>${complete}</plan>`);
     if (plan.design) design = plan.design;
+    // The sections line starts every section at once.
+    if (plan.sections.length > 0) {
+      others = plan.sections.map((x) => x.name);
+      for (const x of plan.sections.slice(0, MAX_PARTS)) launch(`src/components/${x.name}.jsx`, [`import ${x.name} from '@/components/${x.name}'`], x.shares ? `shares: ${x.shares}` : undefined);
+    }
+    if (Object.keys(plan.parts).length > 0 && others.length === 0) others = Object.keys(plan.parts).map((p) => componentName(p)).filter((n): n is string => n !== null);
     for (const [path, what] of Object.entries(plan.parts)) {
       const name = componentName(path);
       if (name && (design || closed)) launch(path, [`import ${name} from '@/components/${name}'`], what);
