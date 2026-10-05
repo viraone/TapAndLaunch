@@ -1,0 +1,13 @@
+{
+  "name": "class-ingest",
+  "private": true,
+  "type": "module",
+  "description": "FitnessNav: reads fitness studios' class schedules with a local model on the owner's Mac (runs every morning at 10 AM).",
+  "scripts": {
+    "start": "node read.mjs studios.json out"
+  },
+  "dependencies": {
+    "playwright": "1.63.0",
+    "robots-parser": "^3.0.1"
+  }
+}

@@ -11,6 +11,7 @@ import {
   Fuel,
   UtensilsCrossed,
   Ticket,
+  Dumbbell,
   type LucideIcon,
 } from "lucide-react";
 import type { BlockType } from "@/types/database";
@@ -29,6 +30,7 @@ export const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   food_directory: UtensilsCrossed,
   listing_directory: Mic,
   open_mic_signup: Ticket,
+  class_finder: Dumbbell,
 };
 
 /** Each block gets its own accent so the library reads as a set of tools,
@@ -46,6 +48,7 @@ export const BLOCK_ACCENTS: Record<BlockType, string> = {
   food_directory: "from-orange-400 to-red-500 text-white",
   listing_directory: "from-orange-400 to-rose-500 text-white",
   open_mic_signup: "from-red-500 to-rose-600 text-white",
+  class_finder: "from-orange-500 to-pink-600 text-white",
 };
 
 export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
@@ -61,11 +64,12 @@ export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
   gas_directory: "Cheapest gas near the viewer",
   food_directory: "What's open to eat right now",
   open_mic_signup: "Request a spot with a code",
+  class_finder: "Every fitness class nearby, by day",
 };
 
 export const BLOCK_GROUPS: Array<{ label: string; types: BlockType[] }> = [
   { label: "Content", types: ["text", "image", "video"] },
   { label: "Engage", types: ["contact_form", "zoom_meeting", "canva_embed"] },
   { label: "Sell & book", types: ["product_list", "event_calendar"] },
-  { label: "Live data", types: ["listing_directory", "gas_directory", "food_directory", "open_mic_signup"] },
+  { label: "Live data", types: ["listing_directory", "gas_directory", "food_directory", "open_mic_signup", "class_finder"] },
 ];

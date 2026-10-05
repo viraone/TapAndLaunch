@@ -7,6 +7,7 @@
 export const RESERVED_PAGE_PATHS = new Set([
   "app-icon",
   "bookings",
+  "fitness",
   "food",
   "gas",
   "manifest.webmanifest",

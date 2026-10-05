@@ -1,5 +1,6 @@
 import type {
   CanvaEmbedBlockConfig,
+  ClassFinderBlockConfig,
   ContactFormBlockConfig,
   EventCalendarBlockConfig,
   FoodDirectoryBlockConfig,
@@ -35,4 +36,5 @@ export type BuilderBlock =
   | { id: string; type: "listing_directory"; config: ListingDirectoryBlockConfig; minTier: string | null }
   | { id: string; type: "gas_directory"; config: GasDirectoryBlockConfig; minTier: string | null }
   | { id: string; type: "food_directory"; config: FoodDirectoryBlockConfig; minTier: string | null }
-  | { id: string; type: "open_mic_signup"; config: OpenMicSignupBlockConfig; minTier: string | null };
+  | { id: string; type: "open_mic_signup"; config: OpenMicSignupBlockConfig; minTier: string | null }
+  | { id: string; type: "class_finder"; config: ClassFinderBlockConfig; minTier: string | null };

@@ -1,0 +1,170 @@
+<title>FitnessNav</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one phone-width column — pick class types, Search, a day strip, then the day's classes grouped Morning / Afternoon / Evening. */
+:root {
+  --ground: #f2f4f1; --surface: #ffffff; --ink: #16201c; --muted: #5d6a64; --line: #dce2de; --accent: #df4f26; --accent-ink: #ffffff;
+  --pilates: #c13f78; --yoga: #2f8a63; --spin: #c97a0c; --lifting: #3656a6; --climbing: #9c4b27;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif; --body: "Figtree", system-ui, -apple-system, sans-serif;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --ground: #0e1311; --surface: #171f1b; --ink: #e8eeea; --muted: #9aa8a1; --line: #29342f; --accent: #ff7148; --accent-ink: #1a0d08;
+  --pilates: #f07ab0; --yoga: #5fc796; --spin: #f2a93b; --lifting: #7f9cf0; --climbing: #e08a5f; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --ground: #0e1311; --surface: #171f1b; --ink: #e8eeea; --muted: #9aa8a1; --line: #29342f; --accent: #ff7148; --accent-ink: #1a0d08;
+  --pilates: #f07ab0; --yoga: #5fc796; --spin: #f2a93b; --lifting: #7f9cf0; --climbing: #e08a5f; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--ink); font: 15px/1.45 var(--body); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 560px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 40px; display: flex; flex-direction: column; gap: 18px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.brand { font: 800 30px/1 var(--display); font-stretch: 78%; letter-spacing: -0.01em; text-transform: uppercase; }
+.brand span { color: var(--accent); }
+.where { color: var(--muted); font-size: 13px; text-align: right; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+h2 { margin: 0; font: 700 19px/1.2 var(--display); font-stretch: 88%; text-wrap: balance; }
+.types { display: flex; flex-wrap: wrap; gap: 8px; }
+.type { position: relative; }
+.type input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.type label { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 999px; border: 1.5px solid var(--line); font-weight: 600; font-size: 14px; cursor: pointer; user-select: none; }
+.type label i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.type input:checked + label { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.type input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+.search { appearance: none; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font: 700 16px/1 var(--body); padding: 14px; cursor: pointer; }
+.search:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.online { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); cursor: pointer; }
+.online input { width: 18px; height: 18px; accent-color: var(--accent); }
+.hint { margin: 0; color: var(--muted); font-size: 13px; }
+.days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.days::-webkit-scrollbar { display: none; }
+.day { flex: 0 0 auto; min-width: 64px; appearance: none; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 12px; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: pointer; font: inherit; }
+.day .dow { font: 700 11px/1 var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.day .num { font: 800 22px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.day .cnt { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.day[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+.day[aria-pressed="true"] .dow, .day[aria-pressed="true"] .cnt { color: var(--ground); opacity: 0.8; }
+.day:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.summary { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.summary h2 { font-size: 22px; }
+.summary p { margin: 0; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.part { display: flex; flex-direction: column; gap: 8px; }
+.part h3 { margin: 6px 2px 0; font: 700 12px/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; gap: 8px; }
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.cls { display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 12px 14px; border-top: 1px solid var(--line); }
+.cls:first-child { border-top: 0; }
+.time { font: 700 15px/1.15 var(--display); font-variant-numeric: tabular-nums; }
+.time small { display: block; font: 500 12px/1.3 var(--body); color: var(--muted); }
+.what { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.what b { font-weight: 650; overflow-wrap: anywhere; }
+.meta { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.chip { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--c); }
+.chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+.spots { font-size: 12px; font-weight: 600; color: var(--accent); }
+.book { align-self: center; text-decoration: none; font-weight: 700; font-size: 13px; color: var(--accent); border: 1.5px solid var(--accent); border-radius: 999px; padding: 6px 12px; white-space: nowrap; }
+.book:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cls.past { opacity: 0.5; }
+.endtag { align-self: center; font-size: 12px; font-weight: 600; color: var(--muted); }
+.empty { padding: 22px 16px; text-align: center; color: var(--muted); }
+details { color: var(--muted); font-size: 13px; }
+summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+.studios { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.studios li { display: flex; justify-content: space-between; gap: 10px; }
+.studios li span:first-child { min-width: 0; overflow-wrap: anywhere; color: var(--ink); }
+.studios a { color: var(--accent); }
+.note { color: var(--muted); font-size: 12.5px; margin: 0; }
+[data-type="pilates"] { --c: var(--pilates); } [data-type="yoga"] { --c: var(--yoga); } [data-type="spin"] { --c: var(--spin); }
+[data-type="lifting"] { --c: var(--lifting); } [data-type="climbing"] { --c: var(--climbing); }
+@media (prefers-reduced-motion: no-preference) { .cls { animation: in 0.18s ease-out both; } @keyframes in { from { opacity: 0.4; transform: translateY(3px); } } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">Fitness<span>Nav</span></div>
+    <div class="where" id="where"></div>
+  </header>
+
+  <form class="panel" id="pick">
+    <h2>What do you want to do?</h2>
+    <div class="types" id="types"></div>
+    <label class="online"><input type="checkbox" id="online"> Include online classes</label>
+    <button class="search" type="submit">Search classes</button>
+    <p class="hint" id="hint"></p>
+  </form>
+
+  <section class="panel" id="results" aria-live="polite">
+    <div class="days" id="days" role="group" aria-label="Pick a day"></div>
+    <div class="summary"><h2 id="dayTitle"></h2><p id="dayCount"></p></div>
+    <div id="parts" class="part"></div>
+  </section>
+
+  <details class="panel" id="studioBox"><summary id="studioSum"></summary><ul class="studios" id="studios"></ul></details>
+  <p class="note" id="note"></p>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const TYPES = [["pilates", "Pilates"], ["yoga", "Yoga"], ["spin", "Spin / Cycling"], ["lifting", "Weight lifting"], ["climbing", "Rock climbing"]];
+const LABEL = Object.fromEntries(TYPES);
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+let chosen = new Set(store.get("fn-types", ["pilates", "yoga"]));
+let applied = new Set(chosen);
+let showOnline = store.get("fn-online", false);
+const visible = (c) => applied.has(c.type) && (showOnline || !c.online);
+// Seattle time now, as "YYYY-MM-DD HH:MM", to tell classes that already started from upcoming ones.
+const nowLocal = (() => { const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date()).map((x) => [x.type, x.value])); return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`; })();
+const ended = (c) => `${c.date} ${c.start}` < nowLocal;
+const upcoming = (c) => visible(c) && !ended(c);
+const days = [...Array(7)].map((_, i) => { const d = new Date(DATA.today + "T12:00:00"); d.setDate(d.getDate() + i); return d.toISOString().slice(0, 10); });
+let day = days.find((d) => DATA.classes.some((c) => c.date === d && upcoming(c))) ?? days[0];
+
+const $ = (id) => document.getElementById(id);
+const fmtDay = (iso, opts) => new Date(iso + "T12:00:00").toLocaleDateString("en-US", opts);
+const t12 = (hhmm) => { if (!hhmm) return ""; const [h, m] = hhmm.split(":").map(Number); return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
+const mins = (a, b) => { if (!a || !b) return null; const [h1, m1] = a.split(":").map(Number), [h2, m2] = b.split(":").map(Number); const d = h2 * 60 + m2 - (h1 * 60 + m1); return d > 0 && d < 300 ? d : null; };
+const miles = (km) => `${(km * 0.621).toFixed(1)} mi`;
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+$("where").textContent = `Near ${DATA.area}`;
+$("types").innerHTML = TYPES.map(([k, l]) => `<div class="type" data-type="${k}"><input type="checkbox" id="t-${k}" value="${k}" ${chosen.has(k) ? "checked" : ""}><label for="t-${k}"><i></i>${l}</label></div>`).join("");
+$("online").checked = showOnline;
+$("types").addEventListener("change", (e) => { e.target.checked ? chosen.add(e.target.value) : chosen.delete(e.target.value); hint(); });
+$("pick").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (chosen.size === 0) { $("hint").textContent = "Pick at least one kind of class, then search."; return; }
+  applied = new Set(chosen); store.set("fn-types", [...applied]);
+  showOnline = $("online").checked; store.set("fn-online", showOnline);
+  if (!DATA.classes.some((c) => c.date === day && upcoming(c))) day = days.find((d) => DATA.classes.some((c) => c.date === d && upcoming(c))) ?? day;
+  render(); $("results").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+});
+function hint() { const n = new Set(DATA.classes.filter((c) => chosen.has(c.type) && !c.online).map((c) => c.studio)).size; $("hint").textContent = chosen.size ? `${[...chosen].map((k) => LABEL[k]).join(", ")} at ${n} studio${n === 1 ? "" : "s"} near you.` : "Pick the kinds of class you want."; }
+
+function render() {
+  const picked = DATA.classes.filter(visible);
+  $("days").innerHTML = days.map((d, i) => { const n = picked.filter((c) => c.date === d).length; return `<button type="button" class="day" data-day="${d}" aria-pressed="${d === day}"><span class="dow">${i === 0 ? "Today" : fmtDay(d, { weekday: "short" })}</span><span class="num">${fmtDay(d, { day: "numeric" })}</span><span class="cnt">${n ? `${n} class${n === 1 ? "" : "es"}` : "—"}</span></button>`; }).join("");
+  const list = picked.filter((c) => c.date === day);
+  const studios = new Set(list.map((c) => c.studio)).size;
+  $("dayTitle").textContent = (day === days[0] ? "Today, " : "") + fmtDay(day, { weekday: day === days[0] ? undefined : "long", month: "short", day: "numeric" });
+  $("dayCount").textContent = list.length ? `${list.length} class${list.length === 1 ? "" : "es"} · ${studios} studio${studios === 1 ? "" : "s"}` : "";
+  const parts = [["Morning", (c) => c.start < "12:00"], ["Afternoon", (c) => c.start >= "12:00" && c.start < "17:00"], ["Evening", (c) => c.start >= "17:00"]];
+  $("parts").innerHTML = list.length ? parts.map(([name, test]) => { const rows = list.filter(test); if (!rows.length) return ""; return `<h3>${name}<span>${rows.length}</span></h3><div class="list">${rows.map(row).join("")}</div>`; }).join("")
+    : `<div class="list"><p class="empty">No ${[...applied].map((k) => LABEL[k].toLowerCase()).join(" or ")} classes listed for ${fmtDay(day, { weekday: "long" })} in this preview. Try another day or add a class type.</p></div>`;
+}
+function row(c) {
+  const len = mins(c.start, c.end);
+  const done = ended(c);
+  return `<div class="cls${done ? " past" : ""}" data-type="${c.type}"><div class="time">${t12(c.start)}${len ? `<small>${len} min</small>` : ""}</div>
+    <div class="what"><span class="chip"><i></i>${esc(LABEL[c.type] ?? c.type)}</span><b>${esc(c.name)}</b>
+    <span class="meta">${c.online ? "Online · " : ""}${esc(c.studio)} · ${miles(c.km)}${c.instructor ? ` · ${esc(c.instructor)}` : ""}</span>${c.spots ? `<span class="spots">${esc(c.spots)}</span>` : ""}</div>
+    ${done ? `<span class="endtag">Ended</span>` : `<a class="book" href="${esc(c.book)}" target="_blank" rel="noopener">Book</a>`}</div>`;
+}
+$("days").addEventListener("click", (e) => { const b = e.target.closest(".day"); if (b) { day = b.dataset.day; render(); } });
+
+const read = DATA.studios.filter((s) => s.status === "ok");
+const notRead = DATA.studios.filter((s) => s.status !== "ok");
+$("studioSum").textContent = `Schedules read for ${read.length} of ${DATA.studios.length} studios`;
+$("studios").innerHTML = [...read.map((s) => `<li><span>${esc(s.name)}</span><span>${s.count} classes</span></li>`), ...notRead.map((s) => `<li><span>${esc(s.name)}</span><span><a href="${esc(s.site)}" target="_blank" rel="noopener">Check their site</a></span></li>`)].join("");
+$("note").textContent = `Preview: classes read from each studio's own website on ${DATA.readOn}. Times can change, so book on the studio's site.`;
+hint(); render();
+</script>

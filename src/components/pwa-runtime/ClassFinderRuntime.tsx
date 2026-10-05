@@ -1,0 +1,342 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Dumbbell, Loader2, LocateFixed, MapPin } from "lucide-react";
+import type { ClassFinderBlockConfig, FitnessClassType } from "@/types/database";
+import {
+  CLASS_TYPES,
+  CLASS_TYPE_LABEL,
+  classMinutes,
+  firstDayWithClasses,
+  hasStarted,
+  milesBetween,
+  partOfDay,
+  seattleStamp,
+  time12,
+  type FitnessClass,
+  type FitnessStudio,
+  type PartOfDay,
+} from "@/lib/fitness/schedule";
+
+interface Week {
+  days: string[];
+  classes: FitnessClass[];
+  studios: FitnessStudio[];
+  readAt: string | null;
+}
+
+/** Each class type's color, on its dot, its chip text and its selected pill. */
+const TYPE_STYLE: Record<FitnessClassType, { dot: string; text: string; pill: string }> = {
+  pilates: { dot: "bg-pink-600", text: "text-pink-700 dark:text-pink-300", pill: "border-pink-600 bg-pink-600/10" },
+  yoga: { dot: "bg-emerald-600", text: "text-emerald-700 dark:text-emerald-300", pill: "border-emerald-600 bg-emerald-600/10" },
+  spin: { dot: "bg-amber-500", text: "text-amber-700 dark:text-amber-300", pill: "border-amber-500 bg-amber-500/10" },
+  lifting: { dot: "bg-blue-600", text: "text-blue-700 dark:text-blue-300", pill: "border-blue-600 bg-blue-600/10" },
+  climbing: { dot: "bg-orange-800", text: "text-orange-800 dark:text-orange-300", pill: "border-orange-800 bg-orange-800/10" },
+};
+const PARTS: PartOfDay[] = ["Morning", "Afternoon", "Evening"];
+
+const stored = <T,>(key: string, fallback: T): T => {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? (JSON.parse(v) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+const store = (key: string, value: unknown) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+};
+const dayLabel = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", ...opts });
+
+/**
+ * FitnessNav: tick the kinds of class you want, tap Search, then pick any day of the week and see every matching class
+ * at nearby studios on one page, grouped Morning / Afternoon / Evening, each with a Book link to the studio's own
+ * schedule. Classes come from /fitness/classes (read from studios' own sites by the morning job, tools/class-ingest).
+ */
+export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig }) {
+  const offered = useMemo(() => {
+    const keys = config.class_types?.length ? config.class_types : CLASS_TYPES.map((t) => t.key);
+    return CLASS_TYPES.filter((t) => keys.includes(t.key));
+  }, [config.class_types]);
+
+  const [week, setWeek] = useState<Week | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [chosen, setChosen] = useState<Set<FitnessClassType>>(() => new Set(["pilates", "yoga"]));
+  const [applied, setApplied] = useState<Set<FitnessClassType>>(() => new Set(["pilates", "yoga"]));
+  const [online, setOnline] = useState(false);
+  const [day, setDay] = useState<string | null>(null);
+  const [origin, setOrigin] = useState<{ lat: number; lng: number; mine: boolean } | null>(
+    config.area_latitude != null && config.area_longitude != null ? { lat: config.area_latitude, lng: config.area_longitude, mine: false } : null
+  );
+  const [locating, setLocating] = useState(false);
+  const [now, setNow] = useState(() => seattleStamp());
+
+  // The week's classes, then this device's remembered choices (applied together, so the first list is already theirs).
+  useEffect(() => {
+    fetch("/fitness/classes", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((w: Week) => {
+        const types = new Set(stored<FitnessClassType[]>("fitnessnav-types", ["pilates", "yoga"]));
+        setChosen(types);
+        setApplied(types);
+        setOnline(stored("fitnessnav-online", false));
+        setWeek(w);
+      })
+      .catch(() => setFailed(true));
+    const t = setInterval(() => setNow(seattleStamp()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const studios = useMemo(() => new Map((week?.studios ?? []).map((s) => [s.id, s])), [week]);
+  const visible = useMemo(
+    () => (week?.classes ?? []).filter((c) => c.type !== "other" && applied.has(c.type) && (online || !c.online)),
+    [week, applied, online]
+  );
+  const shownDay = day ?? (week ? firstDayWithClasses(week.days, visible, now) : null);
+  const dayClasses = visible.filter((c) => c.date === shownDay);
+  const dayStudios = new Set(dayClasses.map((c) => c.studioId)).size;
+
+  function search(e: React.FormEvent) {
+    e.preventDefault();
+    if (chosen.size === 0) return;
+    const next = new Set(chosen);
+    setApplied(next);
+    store("fitnessnav-types", [...next]);
+    store("fitnessnav-online", online);
+    if (week && shownDay && !visible.some((c) => c.date === shownDay)) setDay(null);
+  }
+
+  function useMyLocation() {
+    if (!("geolocation" in navigator)) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setOrigin({ lat: p.coords.latitude, lng: p.coords.longitude, mine: true });
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 }
+    );
+  }
+
+  const miles = (studioId: string) => {
+    const s = studios.get(studioId);
+    if (!origin || s?.latitude == null || s.longitude == null) return null;
+    return milesBetween(origin.lat, origin.lng, s.latitude, s.longitude);
+  };
+
+  const studiosForHint = new Set((week?.classes ?? []).filter((c) => c.type !== "other" && chosen.has(c.type) && !c.online).map((c) => c.studioId)).size;
+  const readStudios = (week?.studios ?? []).filter((s) => s.readStatus === "ok");
+  const notRead = (week?.studios ?? []).filter((s) => s.readStatus !== "ok");
+
+  return (
+    <div className="flex flex-col gap-4 px-4 pb-10 pt-4">
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="flex items-center gap-2 text-2xl font-extrabold uppercase tracking-tight">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#df4f26] text-white">
+              <Dumbbell className="h-[18px] w-[18px]" strokeWidth={2.5} />
+            </span>
+            {config.title || "FitnessNav"}
+          </h1>
+          {config.subtitle && <p className="mt-1 text-sm text-muted-foreground">{config.subtitle}</p>}
+        </div>
+        <button
+          type="button"
+          onClick={useMyLocation}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium text-muted-foreground"
+        >
+          {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : origin?.mine ? <LocateFixed className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
+          {origin?.mine ? "Near you" : config.area_label ? `Near ${config.area_label}` : "Use my location"}
+        </button>
+      </header>
+
+      <form onSubmit={search} className="flex flex-col gap-3 rounded-2xl border bg-background p-4">
+        <h2 className="text-lg font-bold">What do you want to do?</h2>
+        <div className="flex flex-wrap gap-2">
+          {offered.map((t) => {
+            const on = chosen.has(t.key);
+            return (
+              <label
+                key={t.key}
+                className={`inline-flex cursor-pointer select-none items-center gap-2 rounded-full border-[1.5px] px-3.5 py-2 text-sm font-semibold has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[#df4f26] ${on ? TYPE_STYLE[t.key].pill : "border-border"}`}
+              >
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={on}
+                  onChange={(e) => {
+                    const next = new Set(chosen);
+                    if (e.target.checked) next.add(t.key);
+                    else next.delete(t.key);
+                    setChosen(next);
+                  }}
+                />
+                <span className={`h-2.5 w-2.5 rounded-full ${TYPE_STYLE[t.key].dot}`} />
+                {t.label}
+              </label>
+            );
+          })}
+        </div>
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+          <input type="checkbox" className="h-[18px] w-[18px] accent-[#df4f26]" checked={online} onChange={(e) => setOnline(e.target.checked)} />
+          Include online classes
+        </label>
+        <button type="submit" disabled={chosen.size === 0} className="rounded-xl bg-[#df4f26] px-4 py-3.5 text-base font-bold text-white disabled:opacity-50">
+          Search classes
+        </button>
+        <p className="text-xs text-muted-foreground">
+          {chosen.size === 0
+            ? "Pick the kinds of class you want."
+            : week
+              ? `${[...chosen].map((k) => CLASS_TYPE_LABEL[k]).join(", ")} at ${studiosForHint} studio${studiosForHint === 1 ? "" : "s"} near you.`
+              : " "}
+        </p>
+      </form>
+
+      <section aria-live="polite" className="flex flex-col gap-3 rounded-2xl border bg-background p-4">
+        {!week && !failed && (
+          <p className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading this week&apos;s classes…
+          </p>
+        )}
+        {failed && <p className="py-8 text-center text-sm text-muted-foreground">Couldn&apos;t load the class schedule. Pull to refresh or try again in a minute.</p>}
+        {week && shownDay && (
+          <>
+            <div role="group" aria-label="Pick a day" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+              {week.days.map((d, i) => {
+                const n = visible.filter((c) => c.date === d).length;
+                const on = d === shownDay;
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setDay(d)}
+                    className={`flex min-w-16 shrink-0 flex-col items-center rounded-xl border-[1.5px] px-1.5 py-2 ${on ? "border-foreground bg-foreground text-background" : "border-border"}`}
+                  >
+                    <span className={`text-[11px] font-bold uppercase tracking-wider ${on ? "opacity-80" : "text-muted-foreground"}`}>
+                      {i === 0 ? "Today" : dayLabel(d, { weekday: "short" })}
+                    </span>
+                    <span className="text-[22px] font-extrabold tabular-nums leading-tight">{dayLabel(d, { day: "numeric" })}</span>
+                    <span className={`text-[11px] tabular-nums ${on ? "opacity-80" : "text-muted-foreground"}`}>{n ? `${n} class${n === 1 ? "" : "es"}` : "—"}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-xl font-bold">
+                {shownDay === week.days[0] ? `Today, ${dayLabel(shownDay, { month: "short", day: "numeric" })}` : dayLabel(shownDay, { weekday: "long", month: "short", day: "numeric" })}
+              </h2>
+              {dayClasses.length > 0 && (
+                <p className="text-xs tabular-nums text-muted-foreground">
+                  {dayClasses.length} class{dayClasses.length === 1 ? "" : "es"} · {dayStudios} studio{dayStudios === 1 ? "" : "s"}
+                </p>
+              )}
+            </div>
+            {dayClasses.length === 0 ? (
+              <p className="rounded-xl border px-4 py-6 text-center text-sm text-muted-foreground">
+                No {[...applied].map((k) => CLASS_TYPE_LABEL[k].toLowerCase()).join(" or ")} classes listed for {dayLabel(shownDay, { weekday: "long" })}. Try another day or add a class type.
+              </p>
+            ) : (
+              PARTS.map((part) => {
+                const rows = dayClasses.filter((c) => partOfDay(c.start) === part);
+                if (!rows.length) return null;
+                return (
+                  <div key={part} className="flex flex-col gap-2">
+                    <h3 className="mt-1 flex gap-2 px-0.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      {part}
+                      <span>{rows.length}</span>
+                    </h3>
+                    <ul className="divide-y overflow-hidden rounded-xl border">
+                      {rows.map((c) => {
+                        const s = studios.get(c.studioId);
+                        const ended = hasStarted(c, now);
+                        const len = classMinutes(c.start, c.end);
+                        const mi = miles(c.studioId);
+                        const book = s?.bookUrl ?? s?.website ?? null;
+                        const type = c.type as FitnessClassType;
+                        return (
+                          <li key={c.id} className={`grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-3 px-3.5 py-3 ${ended ? "opacity-50" : ""}`}>
+                            <div className="font-bold tabular-nums leading-tight">
+                              {time12(c.start)}
+                              {len && <span className="block text-xs font-medium text-muted-foreground">{len} min</span>}
+                            </div>
+                            <div className="flex min-w-0 flex-col gap-0.5">
+                              <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide ${TYPE_STYLE[type].text}`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${TYPE_STYLE[type].dot}`} />
+                                {CLASS_TYPE_LABEL[type]}
+                              </span>
+                              <span className="break-words font-semibold">{c.name}</span>
+                              <span className="break-words text-xs text-muted-foreground">
+                                {c.online ? "Online · " : ""}
+                                {s?.name ?? "Studio"}
+                                {mi != null ? ` · ${mi.toFixed(1)} mi` : ""}
+                                {c.instructor ? ` · ${c.instructor}` : ""}
+                              </span>
+                              {c.spots && !ended && <span className="text-xs font-semibold text-[#df4f26]">{c.spots}</span>}
+                            </div>
+                            {ended ? (
+                              <span className="self-center text-xs font-semibold text-muted-foreground">Ended</span>
+                            ) : book ? (
+                              <a
+                                href={book}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="self-center whitespace-nowrap rounded-full border-[1.5px] border-[#df4f26] px-3 py-1.5 text-xs font-bold text-[#df4f26]"
+                              >
+                                Book
+                              </a>
+                            ) : (
+                              <span />
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })
+            )}
+          </>
+        )}
+      </section>
+
+      {week && week.studios.length > 0 && (
+        <details className="rounded-2xl border bg-background p-4 text-sm text-muted-foreground">
+          <summary className="cursor-pointer font-semibold text-foreground">
+            Schedules read for {readStudios.length} of {week.studios.length} studios
+          </summary>
+          <ul className="mt-3 flex flex-col gap-1.5">
+            {readStudios.map((s) => (
+              <li key={s.id} className="flex justify-between gap-3">
+                <span className="min-w-0 break-words text-foreground">{s.name}</span>
+                <span className="shrink-0 tabular-nums">{s.classCount} classes</span>
+              </li>
+            ))}
+            {notRead.map((s) => (
+              <li key={s.id} className="flex justify-between gap-3">
+                <span className="min-w-0 break-words text-foreground">{s.name}</span>
+                {s.website ? (
+                  <a href={s.website} target="_blank" rel="noopener noreferrer" className="shrink-0 text-[#df4f26] underline">
+                    Check their site
+                  </a>
+                ) : (
+                  <span className="shrink-0">Not available</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+      {week?.readAt && (
+        <p className="text-xs text-muted-foreground">
+          Classes read from each studio&apos;s own schedule on{" "}
+          {new Date(week.readAt).toLocaleString("en-US", { timeZone: "America/Los_Angeles", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}. Times can change, so book on the studio&apos;s site.
+        </p>
+      )}
+    </div>
+  );
+}

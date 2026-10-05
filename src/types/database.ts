@@ -24,7 +24,8 @@ export type BlockType =
   | "listing_directory"
   | "gas_directory"
   | "food_directory"
-  | "open_mic_signup";
+  | "open_mic_signup"
+  | "class_finder";
 export type AnalyticsEventType =
   | "view"
   | "install"
@@ -103,7 +104,8 @@ export type BlockConfig =
   | ListingDirectoryBlockConfig
   | GasDirectoryBlockConfig
   | FoodDirectoryBlockConfig
-  | OpenMicSignupBlockConfig;
+  | OpenMicSignupBlockConfig
+  | ClassFinderBlockConfig;
 
 export interface TextBlockConfig {
   heading?: string;
@@ -215,6 +217,22 @@ export interface FoodDirectoryBlockConfig {
   /** Which cuisine pills to show, in order. "All" is always first. */
   cuisines?: CuisineKey[];
   default_sort?: "distance" | "open";
+}
+
+/** The kinds of group class FitnessNav sorts every class into ("other" classes are never shown). */
+export type FitnessClassType = "pilates" | "yoga" | "spin" | "lifting" | "climbing";
+
+/** FitnessNav: pick class types and a day, see every class at nearby studios on one page. Studios and classes come
+ * from the morning job on the owner's Mac (tools/class-ingest) via fitness_studios / fitness_classes. */
+export interface ClassFinderBlockConfig {
+  title?: string;
+  subtitle?: string;
+  /** Shown as "Near …" and used for distances when the viewer doesn't share their location. */
+  area_label?: string;
+  area_latitude?: number;
+  area_longitude?: number;
+  /** Which class types to offer, in order. */
+  class_types?: FitnessClassType[];
 }
 
 /** StageTime PNW's weekly showcase sign-up. Comedians sign in with an email
@@ -643,6 +661,55 @@ export interface Database {
           longitude: number;
         };
         Update: Partial<Database["public"]["Tables"]["food_places"]["Row"]>;
+        Relationships: [];
+      };
+      fitness_studios: {
+        Row: {
+          id: string;
+          app_id: string;
+          google_place_id: string | null;
+          name: string;
+          kind: string;
+          address: string | null;
+          neighborhood: string | null;
+          latitude: number | null;
+          longitude: number | null;
+          website: string | null;
+          schedule_url: string | null;
+          read_status: string | null;
+          read_at: string | null;
+          class_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["fitness_studios"]["Row"]> & { app_id: string; name: string };
+        Update: Partial<Database["public"]["Tables"]["fitness_studios"]["Row"]>;
+        Relationships: [];
+      };
+      fitness_classes: {
+        Row: {
+          id: string;
+          app_id: string;
+          studio_id: string;
+          class_date: string;
+          start_time: string;
+          end_time: string | null;
+          name: string;
+          instructor: string | null;
+          spots: string | null;
+          class_type: string;
+          online: boolean;
+          read_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["fitness_classes"]["Row"]> & {
+          app_id: string;
+          studio_id: string;
+          class_date: string;
+          start_time: string;
+          name: string;
+          class_type: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["fitness_classes"]["Row"]>;
         Relationships: [];
       };
       food_wait_reports: {

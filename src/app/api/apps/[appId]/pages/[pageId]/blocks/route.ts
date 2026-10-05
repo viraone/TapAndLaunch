@@ -17,6 +17,7 @@ const BlockSchema = z.object({
     "gas_directory",
     "food_directory",
     "open_mic_signup",
+    "class_finder",
   ]),
   position: z.number().int().min(0),
   config: z.record(z.string(), z.unknown()),

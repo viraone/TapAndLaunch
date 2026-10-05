@@ -10,6 +10,7 @@ import { ListingDirectoryBlockEditor } from "@/components/builder/blocks/Listing
 import { GasDirectoryBlockEditor } from "@/components/builder/blocks/GasDirectoryBlockEditor";
 import { FoodDirectoryBlockEditor } from "@/components/builder/blocks/FoodDirectoryBlockEditor";
 import { OpenMicSignupBlockEditor } from "@/components/builder/blocks/OpenMicSignupBlockEditor";
+import { ClassFinderBlockEditor } from "@/components/builder/blocks/ClassFinderBlockEditor";
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
 import { GetLiveChecklist } from "@/components/builder/GetLiveChecklist";
 import type { Checklist, ChecklistStepId } from "@/lib/apps/checklist";
@@ -151,6 +152,9 @@ export function Inspector({
       )}
       {block.type === "open_mic_signup" && (
         <OpenMicSignupBlockEditor config={block.config} onChange={onChange} />
+      )}
+      {block.type === "class_finder" && (
+        <ClassFinderBlockEditor config={block.config} onChange={onChange} />
       )}
       <BlockAccessControl key={block.id} minTier={block.minTier} onChange={onMinTierChange} />
     </div>

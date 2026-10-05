@@ -52,3 +52,9 @@ next-env.d.ts
 
 # Private operations notes (account IDs, security notes) - never committed
 /docs/private/
+# class-ingest (FitnessNav reader, runs on the owner's Mac): packages, results and the built preview
+/tools/class-ingest/node_modules
+/tools/class-ingest/out
+/tools/class-ingest/out.new
+/tools/class-ingest/fitnessnav.html
+/tools/class-ingest/.env

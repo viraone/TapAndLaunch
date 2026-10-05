@@ -48,6 +48,15 @@ export function defaultConfigFor(type: BlockType): BlockConfig {
         ],
         default_sort: "open",
       };
+    case "class_finder":
+      return {
+        title: "FitnessNav",
+        subtitle: "Every Pilates, yoga, spin, lifting and climbing class near you, by day.",
+        area_label: "Fremont, Seattle",
+        area_latitude: 47.651,
+        area_longitude: -122.3505,
+        class_types: ["pilates", "yoga", "spin", "lifting", "climbing"],
+      };
     case "open_mic_signup":
       return {
         title: "Open Mic Sign-Up",
@@ -78,6 +87,7 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   gas_directory: "Gas prices",
   food_directory: "Live food",
   open_mic_signup: "Open mic sign-up",
+  class_finder: "Fitness classes",
 };
 
 export const BLOCK_TYPES: BlockType[] = [
@@ -93,4 +103,5 @@ export const BLOCK_TYPES: BlockType[] = [
   "gas_directory",
   "food_directory",
   "open_mic_signup",
+  "class_finder",
 ];

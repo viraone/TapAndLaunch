@@ -2,6 +2,7 @@ import type {
   BlockConfig,
   BlockType,
   CanvaEmbedBlockConfig,
+  ClassFinderBlockConfig,
   ContactFormBlockConfig,
   EventCalendarBlockConfig,
   FoodDirectoryBlockConfig,
@@ -21,6 +22,7 @@ import { GasDirectoryRuntime } from "@/components/pwa-runtime/GasDirectoryRuntim
 import { FoodDirectoryRuntime } from "@/components/pwa-runtime/FoodDirectoryRuntime";
 import { ListingDirectoryRuntime } from "@/components/pwa-runtime/ListingDirectoryRuntime";
 import { OpenMicSignupRuntime } from "@/components/pwa-runtime/OpenMicSignupRuntime";
+import { ClassFinderRuntime } from "@/components/pwa-runtime/ClassFinderRuntime";
 import type { RuntimeListing } from "@/lib/pwa/listings";
 
 /**
@@ -90,6 +92,8 @@ export function BlockRenderer({
       ) : (
         <OpenMicSignupBlockView config={block.config as OpenMicSignupBlockConfig} />
       );
+    case "class_finder":
+      return live ? <ClassFinderRuntime config={block.config as ClassFinderBlockConfig} /> : <ClassFinderBlockView config={block.config as ClassFinderBlockConfig} />;
     default:
       return <UnknownBlockView type={block.type} />;
   }
@@ -320,6 +324,19 @@ function FoodDirectoryBlockView({ config, live }: { config: FoodDirectoryBlockCo
     );
   }
   return <FoodDirectoryRuntime config={config} />;
+}
+
+function ClassFinderBlockView({ config }: { config: ClassFinderBlockConfig }) {
+  return (
+    <div className="px-4 py-3">
+      <h2 className="text-lg font-semibold">{config.title || "FitnessNav"}</h2>
+      {config.subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{config.subtitle}</p>}
+      <p className="mt-2 rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+        Viewers pick class types (Pilates, yoga, spin, lifting, climbing) and a day, and see every class at nearby
+        studios on one page when published. Schedules are read each morning from the studios&apos; own sites.
+      </p>
+    </div>
+  );
 }
 
 function OpenMicSignupBlockView({ config }: { config: OpenMicSignupBlockConfig }) {
