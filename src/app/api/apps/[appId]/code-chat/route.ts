@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAppEditor } from "@/lib/org";
 import { decryptSecret } from "@/lib/ai/keys";
-import { ProviderError, streamText, type AiProvider } from "@/lib/ai/providers";
+import { ProviderError, fastModel, streamText, type AiProvider } from "@/lib/ai/providers";
 import { CODE_SYSTEM_PROMPT, userMessage } from "@/lib/code/prompt";
 import { applyChanges, applyEdits, parseReply, summarize, validateFiles } from "@/lib/code/files";
 import { latestVersion, saveVersion } from "@/lib/code/store";
@@ -14,6 +14,8 @@ const CODE_HOURLY_LIMIT = 30;
 
 const Schema = z.object({
   message: z.string().trim().min(1).max(4000),
+  /** "fast" uses the provider's small, quick model; "best" uses the stronger one chosen when the key was saved. */
+  speed: z.enum(["fast", "best"]).default("fast"),
   history: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(3000) })).max(8).default([]),
 });
 
@@ -42,17 +44,18 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
   if (app.kind !== "code") return Response.json({ error: "This app isn't an AI code app" }, { status: 400 });
 
   const admin = createAdminClient();
-  const { data: keyRow } = await admin.from("org_ai_keys").select("provider, encrypted_key, model").eq("organization_id", app.organization_id).maybeSingle();
-  if (!keyRow) return Response.json({ error: "Add your AI key first.", needsKey: true }, { status: 400 });
-
   const since = new Date();
   since.setHours(since.getHours() - 1);
-  const { count } = await admin.from("ai_generations").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("kind", "code").gte("created_at", since.toISOString());
+  // Three independent lookups, run together so the AI can start sooner.
+  const [{ data: keyRow }, { count }, current] = await Promise.all([
+    admin.from("org_ai_keys").select("provider, encrypted_key, model").eq("organization_id", app.organization_id).maybeSingle(),
+    admin.from("ai_generations").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("kind", "code").gte("created_at", since.toISOString()),
+    latestVersion(supabase, appId),
+  ]);
+  if (!keyRow) return Response.json({ error: "Add your AI key first.", needsKey: true }, { status: 400 });
   if ((count ?? 0) >= CODE_HOURLY_LIMIT) return Response.json({ error: `That's ${CODE_HOURLY_LIMIT} builds this hour. Take a short break and try again.` }, { status: 429 });
-  await admin.from("ai_generations").insert({ user_id: user.id, organization_id: app.organization_id, kind: "code" });
-
-  const current = await latestVersion(supabase, appId);
   if (!current) return Response.json({ error: "This app has no code yet." }, { status: 400 });
+  void admin.from("ai_generations").insert({ user_id: user.id, organization_id: app.organization_id, kind: "code" });
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -74,7 +77,16 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
         const apiKey = decryptSecret(keyRow.encrypted_key);
         const provider = keyRow.provider as AiProvider;
         const turns = [...parsed.data.history, { role: "user" as const, content: userMessage(current.files, parsed.data.message) }];
-        const full = await streamText(provider, apiKey, keyRow.model, CODE_SYSTEM_PROMPT, turns, send);
+        // Fast mode tries the small quick model; if the provider doesn't have it, the stronger one does the job.
+        let model = parsed.data.speed === "fast" ? fastModel(provider, keyRow.model) : keyRow.model;
+        let full: string;
+        try {
+          full = await streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, send);
+        } catch (error) {
+          if (model === keyRow.model || !(error instanceof ProviderError) || ![400, 404].includes(error.status)) throw error;
+          model = keyRow.model;
+          full = await streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, send);
+        }
         const first = parseReply(full);
         const { reply, incomplete } = first;
         if (Object.keys(first.changes).length === 0 && first.edits.length === 0) {
@@ -96,7 +108,7 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
           const retry = await streamText(
             provider,
             apiKey,
-            keyRow.model,
+            model,
             CODE_SYSTEM_PROMPT,
             [
               ...turns,

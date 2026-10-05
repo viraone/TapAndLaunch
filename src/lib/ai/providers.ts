@@ -34,6 +34,11 @@ export function pickModel(provider: AiProvider, ids: string[]): string | null {
   return general[0] ?? null;
 }
 
+/** The provider's small, quick model, for when the owner picks speed. It is tried first; callers fall back to `model`. */
+export function fastModel(provider: AiProvider, model: string): string {
+  return provider === "anthropic" ? "claude-haiku-4-5" : model.endsWith("-mini") ? model : `${model}-mini`;
+}
+
 export class ProviderError extends Error {
   constructor(
     message: string,
