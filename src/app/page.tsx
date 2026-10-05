@@ -4,8 +4,8 @@ import { ArrowRight, Bell, Globe, LayoutTemplate, ShoppingBag, Sparkles, Users, 
 import { createClient } from "@/lib/supabase/server";
 import { LegalLinks } from "@/components/legal/Doc";
 import { LEGAL_NAME } from "@/lib/legal";
-import { PLAN, TRIAL_DAYS } from "@/lib/billing/plans";
-import { AUDIENCES, FAQ, FEATURES, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, STEPS } from "@/lib/marketing";
+import { TRIAL_DAYS } from "@/lib/billing/plans";
+import { AUDIENCES, FAQ, FEATURES, LISTED_PRICE, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, STEPS } from "@/lib/marketing";
 import { siteOrigin } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -25,8 +25,6 @@ export const metadata: Metadata = {
 
 const ICONS = [LayoutTemplate, Globe, Users, Bell, ShoppingBag, Sparkles];
 
-const money = (cents: number) => `$${Math.round(cents / 100)}`;
-
 /** What search engines read to understand the page: who we are, what the product is, and the questions answered below. */
 function structuredData() {
   const origin = siteOrigin();
@@ -41,10 +39,7 @@ function structuredData() {
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
         description: SITE_DESCRIPTION,
-        offers: [
-          { "@type": "Offer", name: `${PLAN.name}, billed yearly`, price: (PLAN.yearlyCents / 100).toFixed(2), priceCurrency: "USD" },
-          { "@type": "Offer", name: `${PLAN.name}, billed monthly`, price: (PLAN.monthlyCents / 100).toFixed(2), priceCurrency: "USD" },
-        ],
+        offers: { "@type": "Offer", name: LISTED_PRICE.name, price: LISTED_PRICE.dollarsPerMonth.toFixed(2), priceCurrency: "USD" },
         publisher: { "@id": `${origin}/#org` },
       },
       {
@@ -193,12 +188,12 @@ export default async function Home() {
           <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-left backdrop-blur">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-indigo-300">{PLAN.name}</p>
+                <p className="text-sm font-semibold text-indigo-300">{LISTED_PRICE.name}</p>
                 <p className="mt-1 flex items-baseline gap-1">
-                  <span className="text-5xl font-semibold tracking-tight">{money(PLAN.yearlyCents / 12)}</span>
-                  <span className="text-neutral-400">/month, billed yearly ({money(PLAN.yearlyCents)})</span>
+                  <span className="text-5xl font-semibold tracking-tight">${LISTED_PRICE.dollarsPerMonth}</span>
+                  <span className="text-neutral-400">/month</span>
                 </p>
-                <p className="mt-1 text-sm text-neutral-400">or {money(PLAN.monthlyCents)}/month if you prefer to pay monthly</p>
+                <p className="mt-2 max-w-sm text-sm leading-relaxed text-neutral-300">{LISTED_PRICE.pitch}</p>
               </div>
               <Link
                 href={signedIn ? "/dashboard/settings" : "/signup"}
@@ -209,7 +204,7 @@ export default async function Home() {
               </Link>
             </div>
             <ul className="mt-6 grid gap-2 text-sm text-neutral-300 sm:grid-cols-2">
-              {["Everything included, no feature locks", `${TRIAL_DAYS}-day free trial, no card needed`, "Your apps on their own web address", "Push notifications and email", "Card payments through your Stripe account", "Cancel any time"].map((line) => (
+              {["Build apps by chatting, with your own Claude or ChatGPT key", `${TRIAL_DAYS}-day free trial, no card needed`, "Your apps on their own web address", "Push notifications and email", "Card payments through your Stripe account", "Cancel any time"].map((line) => (
                 <li key={line} className="flex gap-2">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /> {line}
                 </li>

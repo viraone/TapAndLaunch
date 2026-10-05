@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PLAN, TRIAL_DAYS } from "@/lib/billing/plans";
+import { TRIAL_DAYS } from "@/lib/billing/plans";
 
 /** Search-engine facing text for the home page. Kept in one place so the page, the preview card and the structured data agree. */
 export const SITE_NAME = "TapAndLaunch";
@@ -7,7 +7,14 @@ export const SITE_TITLE = "TapAndLaunch: build your own app in minutes, no code"
 export const SITE_DESCRIPTION =
   "Build an app for your restaurant, gym, shop or event, no code needed. Share it by link or QR code, take payments and send push notifications. Free for 30 days.";
 
-const money = (cents: number) => `$${Math.round(cents / 100)}`;
+
+/** The price as the public site shows it. The pricing card, the FAQ and the search-engine data all read this. */
+export const LISTED_PRICE = {
+  name: "Standard",
+  dollarsPerMonth: 10,
+  headline: "Standard: $10/month",
+  pitch: "Everything included, no feature locks. Bring your own AI key.",
+} as const;
 
 export const FAQ: Array<{ q: string; a: string }> = [
   {
@@ -32,7 +39,7 @@ export const FAQ: Array<{ q: string; a: string }> = [
   },
   {
     q: "How much does it cost?",
-    a: `Every new account starts with a ${TRIAL_DAYS}-day free trial and no card is needed. After that the ${PLAN.name} plan is ${money(PLAN.yearlyCents / 12)} a month billed yearly (${money(PLAN.yearlyCents)}), or ${money(PLAN.monthlyCents)} a month if you prefer to pay monthly. You can cancel any time.`,
+    a: `Every new account starts with a ${TRIAL_DAYS}-day free trial and no card is needed. After that the ${LISTED_PRICE.name} plan is $${LISTED_PRICE.dollarsPerMonth} a month. ${LISTED_PRICE.pitch} You can cancel any time.`,
   },
 ];
 
