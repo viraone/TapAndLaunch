@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { formatDay, formatDayTime } from "@/lib/format-date";
 
 const noopSubscribe = () => () => {};
 
@@ -18,12 +19,10 @@ export function LocalTime({ iso, dateOnly = false }: { iso: string; dateOnly?: b
   return <time dateTime={iso}>{text}</time>;
 }
 
-const OPTIONS: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" };
-
-export function formatLocal(iso: string, dateOnly: boolean, locale?: string, timeZone?: string): string {
+export function formatLocal(iso: string, dateOnly: boolean, _locale?: string, timeZone?: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(locale, dateOnly ? { dateStyle: "medium", timeZone } : { ...OPTIONS, timeZone }).format(date);
+  return dateOnly ? formatDay(date, timeZone) : formatDayTime(date, timeZone);
 }
 
 export function formatUtc(iso: string, dateOnly: boolean): string {

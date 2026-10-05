@@ -31,9 +31,23 @@ describe("starter templates", () => {
     });
   }
 
-  it("fills the app's name into the welcome text", () => {
-    const home = buildStarter("business", "Maple Street Bakery").pages[0];
-    expect(home.blocks[0].config).toMatchObject({ heading: "Welcome to Maple Street Bakery" });
+  it("opens every finished template with a photo banner that has a headline", () => {
+    for (const t of STARTER_TEMPLATES.filter((x) => !["food", "gas", "blank"].includes(x.id))) {
+      const first = buildStarter(t.id, "Maple Street Bakery").pages[0]?.blocks[0];
+      expect(first?.type, t.id).toBe("hero");
+      expect((first?.config as { image_url?: string; headline?: string }).image_url, t.id).toMatch(/\/templates\/.+\.jpg$/);
+      expect((first?.config as { headline?: string }).headline, t.id).toBeTruthy();
+    }
+  });
+
+  it("gives every hero button a page that exists in the same app", () => {
+    for (const t of STARTER_TEMPLATES) {
+      const starter = buildStarter(t.id, "x");
+      const paths = new Set(starter.pages.map((p) => p.path));
+      for (const p of starter.pages)
+        for (const b of p.blocks)
+          if (b.type === "hero" && (b.config as { button_page?: string }).button_page) expect(paths, `${t.id} hero button`).toContain((b.config as { button_page: string }).button_page);
+    }
   });
 
   it("knows which starters use Google Maps", () => {

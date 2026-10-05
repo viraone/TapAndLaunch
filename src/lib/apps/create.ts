@@ -81,6 +81,10 @@ export async function createAppFromStarter(
     );
     if (productError) return fail(productError.message);
   }
+  if (starter.listings?.length) {
+    const { error: listingError } = await supabase.from("listings").insert(starter.listings.map((l) => ({ app_id: created.id, slug: l.slug, record: l.record })));
+    if (listingError) return fail(listingError.message);
+  }
 
   return { app: created };
 }

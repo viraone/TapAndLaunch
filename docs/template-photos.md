@@ -28,6 +28,18 @@ commercial use, no attribution required. Credit is kept here so we know where ea
 | store-shop.jpg | nzisN6dYiV8 |
 | store-set.jpg | n813OpXE59s |
 | store-amber.jpg | CUoyo6Pz0pU |
+| openmic-hero.jpg | aTjX3-vzpEk |
+| openmic-mic.jpg | Y20JJ_ddy9M |
+| openmic-brick.jpg | B53qfHDHa_Y |
+| openmic-neon.jpg | sxj2FDJ0G50 |
+| business-hero.jpg | H3jp35HOi6Q |
+| business-storefront.jpg | xr-zwOL-alM |
+| business-entrance.jpg | agcWDYG6tdk |
+| business-case.jpg | lp9wGFOZTz8 |
+| events-hero.jpg | ULHxWq8reao |
+| events-cheers.jpg | SdTKkcdz9mY |
+| events-workshop.jpg | 7ZK_CuHroq4 |
+| events-toast.jpg | ch4Fc1cGTq4 |
 
 Some Unsplash results are "Unsplash+" (paid licence); their download link returns 403. Only use photos whose free download works.
 Customers replace these with their own photos in the builder.

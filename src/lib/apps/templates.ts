@@ -40,10 +40,10 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     id: "business",
     name: "Local business",
-    tagline: "A home page and a contact form. Great for shops, salons and studios.",
+    tagline: "A warm, welcoming home for any local shop: your story, photos, reviews and hours.",
     icon: "briefcase",
-    color: "#6366f1",
-    includes: ["Welcome", "Photo", "Contact form"],
+    color: "#4f46e5",
+    includes: ["Photo banner", "About", "Gallery", "Reviews", "Hours", "Contact"],
     category: "shops",
   },
   {
@@ -58,10 +58,10 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     id: "events",
     name: "Events & bookings",
-    tagline: "A calendar people can book from. Classes, tastings, tours.",
+    tagline: "Tastings, workshops and live nights, with sample events people can book right away.",
     icon: "calendar",
-    color: "#8b5cf6",
-    includes: ["Welcome", "Event calendar"],
+    color: "#7c3aed",
+    includes: ["Photo banner", "Bookable events", "Gallery", "Reviews", "Contact"],
     category: "venues",
   },
   {
@@ -85,10 +85,10 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     id: "openmic",
     name: "Open mic list",
-    tagline: "What's on tonight, and a form for hosts to add theirs.",
+    tagline: "A moody, stage-lit guide to every open mic tonight, with a form for hosts.",
     icon: "mic",
-    color: "#f87171",
-    includes: ["Mics today", "Submit form"],
+    color: "#f43f5e",
+    includes: ["Photo banner", "Mics tonight", "Gallery", "Reviews", "Host form"],
     category: "venues",
   },
   {
@@ -179,12 +179,19 @@ export interface StarterProduct {
   image: string;
 }
 
+/** A sample open mic (or other listing) created with the app, so the list isn't empty on first open. */
+export interface StarterListing {
+  slug: string;
+  record: Record<string, unknown>;
+}
+
 export interface Starter {
   theme: ThemeConfig;
   manifest: ManifestConfig;
   pages: StarterPage[];
   events?: StarterEvent[];
   products?: StarterProduct[];
+  listings?: StarterListing[];
 }
 
 /** A photo that ships with TapAndLaunch (public/templates), as a full address so it also loads inside customers' apps. */
@@ -192,6 +199,23 @@ export function templatePhoto(name: string): string {
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
   const local = /^(localhost|127\.|\d{1,3}(\.\d{1,3}){3})/.test(root);
   return `${local ? "http" : "https"}://${root}/templates/${name}.jpg`;
+}
+
+/** A sample open mic in the shape the open mic list reads. Clearly named as a sample in its notes. */
+function sampleMic(id: string, name: string, venue: string, time: string, type: string, days: string, notes: string): Record<string, unknown> {
+  const on = new Set(days.split(","));
+  const week = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  return {
+    id,
+    name,
+    venue,
+    location: "",
+    timeSignupStart: time,
+    openMicType: type,
+    priceForTime: "Free",
+    requirementsInfo: `${notes} (Sample listing: edit or remove it under Manage, Listings.)`,
+    ...Object.fromEntries(week.map((d) => [d, on.has(d) ? "Yes" : "no"])),
+  };
 }
 
 const SAMPLE_NOTE = "This is a sample. Edit it or delete it under Manage, Events.";
@@ -223,25 +247,78 @@ function buildStarterBody(templateId: string, appName: string): Starter {
     display: "standalone",
   };
   const theme: ThemeConfig = { primary_color: template.color };
-  const welcome = (body: string) => block("text", { heading: `Welcome to ${appName}`, body });
   const home = (blocks: StarterBlock[]): StarterPage => ({ name: "Home", path: "home", isHome: true, blocks });
 
   switch (template.id) {
     case "business":
       return {
-        manifest,
+        manifest: { ...manifest, background_color: "#f8f6ff" },
         theme: {
           ...theme,
+          background_color: "#f8f6ff",
+          bottom_nav_style: "tabs",
           bottom_nav: [
             { label: "Home", icon: "home", page_path: "home" },
+            { label: "Visit", icon: "info", page_path: "visit" },
             { label: "Contact", icon: "mail", page_path: "contact" },
           ],
         },
         pages: [
           home([
-            welcome("Tell people what you do, where to find you, and why they should stop by. Change this text any time."),
-            block("image", { src: "", alt: `${appName}` }),
+            block("hero", {
+              image_url: templatePhoto("business-hero"),
+              eyebrow: "Locally owned · Since 2015",
+              headline: "Your neighbourhood favourite.",
+              subtext: "Fresh every morning, friendly faces every day. Come say hi, or order ahead from your phone.",
+              button_label: "Plan your visit",
+              button_page: "visit",
+            }),
+            block("stats", {
+              items: [
+                { value: "4.8★", label: "Local reviews" },
+                { value: "7 days", label: "A week" },
+                { value: "Free", label: "Wi-Fi" },
+              ],
+            }),
+            block("text", {
+              heading: "About us",
+              body: "We're a small, family-run shop on the corner. Tell your story here: what you make, what you care about, and why the neighbourhood keeps coming back.",
+            }),
+            block("gallery", {
+              title: "Take a look inside",
+              images: [
+                { src: templatePhoto("business-storefront"), alt: "Our storefront" },
+                { src: templatePhoto("business-entrance"), alt: "The front door with plants" },
+                { src: templatePhoto("business-case"), alt: "A display case of fresh treats" },
+              ],
+            }),
+            block("reviews", {
+              title: "What the neighbours say",
+              items: [
+                { quote: "My morning stop for three years. They know my order before I say it.", name: "Grace H.", rating: 5 },
+                { quote: "Warm, welcoming and always something new to try.", name: "Omar F.", rating: 5 },
+                { quote: "The kind of place every street should have.", name: "Beth C.", rating: 5 },
+              ],
+            }),
           ]),
+          {
+            name: "Visit",
+            path: "visit",
+            isHome: false,
+            blocks: [
+              block("hero", { image_url: templatePhoto("business-storefront"), eyebrow: "Come visit", headline: "We'd love to see you.", subtext: "Parking out front, and we're on the bus line." }),
+              block("hours", {
+                title: "Hours & location",
+                rows: [
+                  { label: "Mon to Fri", value: "7am to 6pm" },
+                  { label: "Saturday", value: "8am to 5pm" },
+                  { label: "Sunday", value: "8am to 2pm" },
+                ],
+                address: "",
+                phone: "",
+              }),
+            ],
+          },
           {
             name: "Contact",
             path: "contact",
@@ -326,9 +403,81 @@ function buildStarterBody(templateId: string, appName: string): Starter {
       };
     case "events":
       return {
-        manifest,
-        theme,
-        pages: [home([welcome("See what's coming up and save your spot."), block("event_calendar", { title: "Upcoming events" })])],
+        manifest: { ...manifest, background_color: "#faf5ff" },
+        theme: {
+          ...theme,
+          background_color: "#faf5ff",
+          bottom_nav_style: "tabs",
+          bottom_nav: [
+            { label: "Home", icon: "home", page_path: "home" },
+            { label: "Events", icon: "calendar", page_path: "events" },
+            { label: "Contact", icon: "mail", page_path: "contact" },
+          ],
+        },
+        pages: [
+          home([
+            block("hero", {
+              image_url: templatePhoto("events-hero"),
+              eyebrow: "Tastings · Workshops · Live nights",
+              headline: "Nights worth remembering.",
+              subtext: "Small-group events with good people, great food and something new to learn. Save your spot in seconds.",
+              button_label: "See upcoming events",
+              button_page: "events",
+            }),
+            block("stats", {
+              items: [
+                { value: "12", label: "Events a month" },
+                { value: "20", label: "Guests max" },
+                { value: "98%", label: "Would come again" },
+              ],
+            }),
+            block("event_calendar", { title: "Coming up" }),
+            block("gallery", {
+              title: "Past events",
+              images: [
+                { src: templatePhoto("events-cheers"), alt: "Guests raising a toast" },
+                { src: templatePhoto("events-workshop"), alt: "Hands shaping clay at a pottery workshop" },
+                { src: templatePhoto("events-toast"), alt: "Glasses raised in the sunshine" },
+              ],
+            }),
+            block("reviews", {
+              title: "Guests say",
+              items: [
+                { quote: "The wine and cheese night was so much fun. Booked the next one before I left.", name: "Natalie V.", rating: 5 },
+                { quote: "Perfect for a date night. Small group, great hosts.", name: "Chris & Jo", rating: 5 },
+                { quote: "I came alone and left with three new friends.", name: "Amir S.", rating: 5 },
+              ],
+            }),
+            block("text", {
+              heading: "Good to know",
+              body: "Events start on time, so come 10 minutes early. Can't make it? Let us know and we'll offer your spot to someone on the list.",
+            }),
+          ]),
+          { name: "Events", path: "events", isHome: false, blocks: [block("text", { heading: "All events", body: "Tap Book to save your spot. Spaces are limited." }), block("event_calendar", { title: "Upcoming" })] },
+          {
+            name: "Contact",
+            path: "contact",
+            isHome: false,
+            blocks: [
+              block("hours", { title: "Where we are", rows: [{ label: "Box office", value: "Wed to Sat, 12pm to 8pm" }], address: "", phone: "" }),
+              block("contact_form", {
+                title: "Private events and questions",
+                submit_label: "Send message",
+                fields: [
+                  { name: "name", label: "Your name", type: "text", required: true },
+                  { name: "email", label: "Email", type: "email", required: true },
+                  { name: "message", label: "Tell us about your group or question", type: "textarea", required: true },
+                ],
+              }),
+            ],
+          },
+        ],
+        events: [
+          { title: "Wine & cheese night", description: `Five wines, five cheeses and a host to guide you. ${SAMPLE_NOTE}`, dayOffset: 2, time: "19:00", minutes: 120, capacity: 20 },
+          { title: "Beginner pottery workshop", description: `Make two pieces to take home. All materials included. ${SAMPLE_NOTE}`, dayOffset: 4, time: "18:00", minutes: 150, capacity: 12 },
+          { title: "Live acoustic evening", description: `Local songwriters, candlelight and a full bar. ${SAMPLE_NOTE}`, dayOffset: 6, time: "20:00", minutes: 120, capacity: 40 },
+          { title: "Cocktail masterclass", description: `Shake three classic cocktails with our bartender. ${SAMPLE_NOTE}`, dayOffset: 9, time: "19:30", minutes: 90, capacity: 16 },
+        ],
       };
     case "food":
       return { manifest, theme, pages: [home([block("food_directory")])] };
@@ -761,24 +910,57 @@ function buildStarterBody(templateId: string, appName: string): Starter {
       };
     case "openmic":
       return {
-        manifest,
+        manifest: { ...manifest, background_color: "#09090b" },
         theme: {
           ...theme,
           color_scheme: "dark",
           background_color: "#09090b",
           bottom_nav_style: "tabs",
           bottom_nav: [
-            { label: "Home", icon: "home", page_path: "home" },
+            { label: "Tonight", icon: "home", page_path: "home" },
             { label: "Add your mic", icon: "plus", page_path: "add-mic" },
           ],
         },
         pages: [
-          home([block("listing_directory")]),
+          home([
+            block("hero", {
+              image_url: templatePhoto("openmic-hero"),
+              eyebrow: "Comedy · Music · Poetry",
+              headline: "Find your stage tonight.",
+              subtext: "Every open mic in town, sorted by start time, with sign-up details and directions.",
+              button_label: "Host a mic? Add it",
+              button_page: "add-mic",
+            }),
+            block("stats", {
+              items: [
+                { value: "7", label: "Nights a week" },
+                { value: "Free", label: "Most mics" },
+                { value: "All", label: "Levels" },
+              ],
+            }),
+            block("listing_directory"),
+            block("gallery", {
+              title: "The scene",
+              images: [
+                { src: templatePhoto("openmic-brick"), alt: "A microphone against a brick wall" },
+                { src: templatePhoto("openmic-mic"), alt: "A vintage microphone under stage lights" },
+                { src: templatePhoto("openmic-neon"), alt: "A neon sign that says yes, and" },
+              ],
+            }),
+            block("reviews", {
+              title: "Performers say",
+              items: [
+                { quote: "I check this every night before I head out. Saves me so much time.", name: "Dev P., comic", rating: 5 },
+                { quote: "Found my first ever mic here. Now I'm up three nights a week.", name: "Sara L., songwriter", rating: 5 },
+              ],
+            }),
+          ]),
           {
             name: "Add your mic",
             path: "add-mic",
             isHome: false,
             blocks: [
+              block("hero", { image_url: templatePhoto("openmic-brick"), eyebrow: "For hosts", headline: "Put your mic on the map.", subtext: "Free to list. We'll check the details and add it within a day." }),
               block("contact_form", {
                 title: "Submit your open mic",
                 submit_label: "Send it in",
@@ -791,6 +973,13 @@ function buildStarterBody(templateId: string, appName: string): Starter {
               }),
             ],
           },
+        ],
+        listings: [
+          { slug: "sample-early-laughs", record: sampleMic("sample-early-laughs", "Early Laughs Comedy Mic", "The Corner Pub", "6:30pm/7pm", "Comedy", "monday,wednesday,friday,saturday", "5 minutes each. Sign up in person.") },
+          { slug: "sample-songbird", record: sampleMic("sample-songbird", "Songbird Acoustic Night", "Harbor Café", "7pm/7:30pm", "Music", "tuesday,thursday,sunday", "Two songs each. Bring your own instrument.") },
+          { slug: "sample-mixed-bag", record: sampleMic("sample-mixed-bag", "Mixed Bag Variety Mic", "Lantern Lounge", "8pm/8:30pm", "Music & Comedy", "monday,tuesday,wednesday,thursday,friday,saturday,sunday", "Comedy, music, poetry, anything goes.") },
+          { slug: "sample-late-night", record: sampleMic("sample-late-night", "Late Night Laugh Lab", "Basement Theatre", "9:30pm/10pm", "Comedy", "tuesday,thursday,friday,saturday", "7 minutes. Online sign-up opens at noon.") },
+          { slug: "sample-poetry", record: sampleMic("sample-poetry", "Spoken Word Sundays", "Book & Bean", "6pm/6:30pm", "Poetry", "sunday,wednesday", "Poems, stories and spoken word.") },
         ],
       };
     default:

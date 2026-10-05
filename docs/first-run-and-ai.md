@@ -17,14 +17,15 @@ _Last checked: 2026-10-05._ What a brand-new customer sees, and how the app-from
    code** (opens the app's page, which has the QR code; ticks when someone opens the app).
 
 ## Showcase templates
-"Gym or studio", "Restaurant or café", "Salon or services", "Club or community" and "Online store" open as finished-looking apps: a photo banner with a button, a strip of highlights,
+All eight business templates (Gym, Restaurant, Salon, Club or community, Online store, Local business, Events & bookings,
+Open mic list) open as finished-looking apps: a photo banner with a button, a strip of highlights,
 a menu or membership price list, a photo gallery, reviews and opening hours, in a style of their own (the gym is dark with a
 red accent, the restaurant warm cream with burnt orange), with a tab bar. The salon is soft blush with deep rose, the community light mint with teal, the store warm cream with
 amber. The gym, salon and community create sample classes, appointments or events for the coming days, and the store creates
 three sample products (`StarterProduct`), all marked as samples. Sample events are created for the next
 week (`StarterEvent`, `sampleEventRows`, placed in Pacific time), each marked as a sample. The six showcase blocks are in
 `src/components/pwa-runtime/ShowcaseBlocks.tsx` (editors in `builder/blocks/ShowcaseEditors.tsx`), photos in
-`template-photos.md`. Local business, Events & bookings and Open mic list still use the plain blocks.
+`template-photos.md`. Events & bookings creates four sample events and Open mic list five sample mics (`StarterListing`). Event and dashboard dates use `src/lib/format-date.ts`, which gives identical text on the server and in every browser (`toLocaleString` with `dateStyle` differs between Node and Safari and caused hydration errors).
 
 ## Describe your app
 `POST /api/apps/generate` takes a sentence (10 to 500 characters) and an optional name, designs a first version and creates it

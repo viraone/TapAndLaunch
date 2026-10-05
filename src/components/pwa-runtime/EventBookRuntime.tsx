@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { formatDayTimeRange } from "@/lib/format-date";
 
 export interface RuntimeEvent {
   id: string;
@@ -20,13 +21,7 @@ const SERVER_TIME_ZONE = "America/Los_Angeles";
 const noopSubscribe = () => () => {};
 
 export function formatRange(startsAt: string, endsAt: string | null, timeZone?: string): string {
-  const start = new Date(startsAt);
-  const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone, dateStyle: "short" }).format(d);
-  const startLabel = start.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", timeZone });
-  if (!endsAt) return startLabel;
-  const end = new Date(endsAt);
-  const sameDay = day(start) === day(end);
-  return `${startLabel} – ${end.toLocaleString(undefined, sameDay ? { timeStyle: "short", timeZone } : { dateStyle: "medium", timeStyle: "short", timeZone })}`;
+  return formatDayTimeRange(new Date(startsAt), endsAt ? new Date(endsAt) : null, timeZone);
 }
 
 function EventTime({ startsAt, endsAt }: { startsAt: string; endsAt: string | null }) {
