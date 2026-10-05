@@ -93,6 +93,8 @@ export interface ParsedReply {
   edits: CodeEdit[];
   /** Files whose closing tag hasn't arrived yet (the reply is still streaming, or got cut off). */
   incomplete: string[];
+  /** Files announced as being written right now (a first build writes several at the same time) and not done yet. */
+  writing: string[];
 }
 
 /**
@@ -109,7 +111,7 @@ export function parseReply(text: string): ParsedReply {
   const incomplete: string[] = [];
 
   const replyMatch = /<reply>([\s\S]*?)(?:<\/reply>|$)/.exec(text);
-  const reply = (replyMatch?.[1] ?? "").trim();
+  const reply = (replyMatch?.[1] ?? "").replace(/<writing\s+path="[^"]*"\s*\/>/g, "").trim();
 
   for (const m of text.matchAll(/<file\s+path="([^"]+)"\s*>\n?([\s\S]*?)(<\/file>|$)/g)) {
     const [, path, body, close] = m as unknown as [string, string, string, string];
@@ -128,7 +130,13 @@ export function parseReply(text: string): ParsedReply {
   }
   for (const m of text.matchAll(/<delete\s+path="([^"]+)"\s*\/?>/g)) changes[m[1] as string] = null;
 
-  return { reply, changes, edits, incomplete };
+  const writing: string[] = [];
+  for (const m of text.matchAll(/<writing\s+path="([^"]+)"\s*\/>/g)) {
+    const path = m[1] as string;
+    if (!(path in changes) && !writing.includes(path)) writing.push(path);
+  }
+
+  return { reply, changes, edits, incomplete, writing };
 }
 
 /** Models sometimes wrap code in a markdown fence inside the tag; drop it. */

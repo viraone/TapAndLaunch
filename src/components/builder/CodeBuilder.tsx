@@ -5,7 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowUp, ArrowUpRight, FileCode2, History, Loader2, Monitor, RotateCcw, Rocket, Smartphone, Sparkles, Wrench } from "lucide-react";
 import { buildCodeDocument } from "@/lib/code/document";
-import { parseReply } from "@/lib/code/files";
+import { applyChanges, parseReply } from "@/lib/code/files";
 import { splitStream } from "@/lib/code/protocol";
 import { CODE_EXAMPLES } from "@/lib/code/prompt";
 import { createClient } from "@/lib/supabase/client";
@@ -68,7 +68,9 @@ export function CodeBuilder({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [live, setLive] = useState<{ reply: string; written: string[]; writing: string | null } | null>(null);
+  const [live, setLive] = useState<{ reply: string; written: string[]; writing: string[] } | null>(null);
+  // The app as far as it has been written, shown in the preview while the AI is still working.
+  const [draft, setDraft] = useState<{ step: number; files: Record<string, string> } | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -78,8 +80,13 @@ export function CodeBuilder({
   const builtThisSession = useRef(false);
   const lastFixedError = useRef<string | null>(null);
 
-  const shown = viewing?.files ?? files;
-  const srcDoc = useMemo(() => buildCodeDocument(shown, { title: appName, accent }), [shown, appName, accent]);
+  const shown = viewing?.files ?? draft?.files ?? files;
+  const docId = viewing ? `v${viewing.version}` : draft ? `d${draft.step}` : `l${version}`;
+  const srcDoc = useMemo(() => buildCodeDocument(shown, { title: appName, accent, stubs: docId.startsWith("d"), doc: docId }), [shown, appName, accent, docId]);
+  const filesRef = useRef(files);
+  useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
 
   useEffect(() => {
     void fetch("/api/organizations/ai-key")
@@ -114,7 +121,7 @@ export function CodeBuilder({
       setBusy(true);
       setElapsed(0);
       setViewing(null);
-      setLive({ reply: "", written: [], writing: null });
+      setLive({ reply: "", written: [], writing: [] });
       setTab("chat");
       try {
         const res = await fetch(`/api/apps/${appId}/code-chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message, history }) });
@@ -128,17 +135,38 @@ export function CodeBuilder({
         const decoder = new TextDecoder();
         let text = "";
         let lastPaint = 0;
+        let lastDraft = 0;
+        let draftKey = "";
+        let step = 0;
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
-          text += decoder.decode(value, { stream: true });
-          // Update the screen about 8 times a second, not for every few characters.
+          const chunk = decoder.decode(value, { stream: true });
+          text += chunk;
+          // Update the screen about 8 times a second, not for every few characters, but never skip the end of a file:
+          // the AI can go quiet right after one (a first build waits for its sections), and the preview should show it now.
           const now = Date.now();
-          if (now - lastPaint < 120) continue;
+          if (now - lastPaint < 120 && !chunk.includes("</file>") && !chunk.includes("<writing")) continue;
           lastPaint = now;
           const { answer } = splitStream(text);
           const parsed = parseReply(answer);
-          setLive({ reply: parsed.reply, written: [...new Set([...Object.keys(parsed.changes), ...parsed.edits.map((e) => e.path)])], writing: parsed.incomplete.at(-1) ?? null });
+          setLive({
+            reply: parsed.reply,
+            written: [...new Set([...Object.keys(parsed.changes), ...parsed.edits.map((e) => e.path)])],
+            writing: [...new Set([...parsed.writing, ...parsed.incomplete.slice(-1)])],
+          });
+          // Show each finished file in the preview straight away (sections not written yet appear as placeholders).
+          const whole = Object.fromEntries(Object.entries(parsed.changes).filter((e): e is [string, string] => typeof e[1] === "string"));
+          const key = Object.keys(whole).sort().join("|");
+          if (key && key !== draftKey && now - lastDraft > 500) {
+            const merged = applyChanges(filesRef.current, whole);
+            if (merged["src/App.jsx"]) {
+              draftKey = key;
+              lastDraft = now;
+              step += 1;
+              setDraft({ step, files: merged });
+            }
+          }
         }
         const { answer, result } = splitStream(text);
         const parsed = parseReply(answer);
@@ -160,6 +188,7 @@ export function CodeBuilder({
       } finally {
         setBusy(false);
         setLive(null);
+        setDraft(null);
       }
     },
     [appId, busy, messages]
@@ -169,6 +198,8 @@ export function CodeBuilder({
   useEffect(() => {
     function onMessage(e: MessageEvent) {
       if (e.source !== frame.current?.contentWindow || !e.data || e.data.source !== "tl-app") return;
+      // Only the page on screen counts, and a half-written app's errors aren't real errors yet.
+      if (e.data.doc !== docId || docId.startsWith("d")) return;
       if (e.data.type === "ready") setPreviewError(null);
       if (e.data.type === "error") {
         const message = String(e.data.message ?? "Unknown error").slice(0, 1200);
@@ -183,7 +214,7 @@ export function CodeBuilder({
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [busy, viewing, send]);
+  }, [busy, viewing, send, docId]);
 
   async function viewVersion(v: number) {
     if (v === version) return setViewing(null);
@@ -327,9 +358,10 @@ export function CodeBuilder({
                       {live.written.map((p) => (
                         <p key={p} className="flex items-center gap-2 font-mono text-xs text-emerald-300"><FileCode2 className="h-3.5 w-3.5" /> {p}</p>
                       ))}
-                      {live.writing && (
-                        <p className="flex items-center gap-2 font-mono text-xs text-indigo-200"><Loader2 className="h-3.5 w-3.5 animate-spin" /> writing {live.writing}… {elapsed}s</p>
-                      )}
+                      {live.writing.map((p) => (
+                        <p key={p} className="flex items-center gap-2 font-mono text-xs text-indigo-200"><Loader2 className="h-3.5 w-3.5 animate-spin" /> writing {p}…</p>
+                      ))}
+                      {live.reply && <p className="text-xs text-neutral-500">{elapsed}s</p>}
                     </div>
                   </div>
                 )}
@@ -382,7 +414,7 @@ export function CodeBuilder({
               </button>
             </div>
           )}
-          {previewError && !viewing && (
+          {previewError && !viewing && !busy && (
             <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-100">
               <Wrench className="h-4 w-4 shrink-0" />
               <span className="min-w-0 flex-1 truncate">The preview hit an error: {previewError.split("\n")[0]}</span>
@@ -400,7 +432,7 @@ export function CodeBuilder({
           </div>
           {busy && (
             <p className="flex items-center gap-2 border-t border-white/10 px-4 py-2 text-xs text-neutral-400">
-              <Sparkles className="h-3.5 w-3.5" /> The preview updates when the AI finishes writing.
+              <Sparkles className="h-3.5 w-3.5" /> The preview fills in as each part is written.
             </p>
           )}
         </section>

@@ -5,7 +5,8 @@ import { isAppEditor } from "@/lib/org";
 import { decryptSecret } from "@/lib/ai/keys";
 import { ProviderError, fastModel, streamText, type AiProvider } from "@/lib/ai/providers";
 import { CODE_SYSTEM_PROMPT, userMessage } from "@/lib/code/prompt";
-import { applyChanges, applyEdits, parseReply, summarize, validateFiles } from "@/lib/code/files";
+import { applyChanges, applyEdits, parseReply, summarize, validateFiles, type CodeFiles } from "@/lib/code/files";
+import { firstBuild, isFreshApp, SlowDown, type Ask } from "@/lib/code/first-build";
 import { latestVersion, saveVersion } from "@/lib/code/store";
 import { RESULT_MARK } from "@/lib/code/protocol";
 
@@ -74,55 +75,75 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
       try {
         const apiKey = decryptSecret(keyRow.encrypted_key);
         const provider = keyRow.provider as AiProvider;
-        const turns = [...parsed.data.history, { role: "user" as const, content: userMessage(current.files, parsed.data.message) }];
         // Builds use the provider's small, quick model; if the provider doesn't have it, the model chosen with the key does the job.
         let model = fastModel(provider, keyRow.model);
-        let full: string;
-        try {
-          full = await streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, send);
-        } catch (error) {
-          if (model === keyRow.model || !(error instanceof ProviderError) || ![400, 404].includes(error.status)) throw error;
-          model = keyRow.model;
-          full = await streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, send);
-        }
-        const first = parseReply(full);
-        const { reply, incomplete } = first;
-        if (Object.keys(first.changes).length === 0 && first.edits.length === 0) {
-          finish({ reply, version: current.version, files: null, note: incomplete.length ? "The answer was cut off before a file finished. Try a smaller request." : undefined });
-          return;
-        }
-        if (incomplete.length) {
-          finish({ error: `The AI's answer was cut off while writing ${incomplete[0]}. Nothing was changed. Try a smaller request.` });
-          return;
-        }
-        // Whole files and deletions first, then the small edits on top of them.
-        let next = applyChanges(current.files, first.changes);
-        const changed = new Set([...Object.keys(first.changes), ...first.edits.map((e) => e.path)]);
-        const applied = applyEdits(next, first.edits);
-        next = applied.files;
-        if (applied.failed.length > 0) {
-          // An edit didn't match exactly. Rather than fail, ask for the whole of each file once.
-          const paths = [...new Set(applied.failed.map((f) => f.path))];
-          const retry = await streamText(
-            provider,
-            apiKey,
-            model,
-            CODE_SYSTEM_PROMPT,
-            [
-              ...turns,
-              { role: "assistant", content: full },
-              { role: "user", content: `Some of your edits could not be applied (${applied.failed.map((f) => `${f.path}: ${f.reason}`).join("; ")}). Send the COMPLETE new content of these files as <file> blocks, with all the changes you intended, and nothing else: ${paths.join(", ")}.` },
-            ],
-            send
-          );
-          const second = parseReply(retry);
-          const missing = paths.filter((path) => typeof second.changes[path] !== "string");
-          if (second.incomplete.length > 0 || missing.length > 0) {
-            finish({ error: "The AI couldn't apply that change cleanly. Nothing was changed. Try again, or ask for it in a different way." });
+        const ask: Ask = async (turns, onText = () => {}) => {
+          try {
+            return await streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, onText);
+          } catch (error) {
+            if (error instanceof ProviderError && error.status === 429) throw new SlowDown(error.message);
+            if (model === keyRow.model || !(error instanceof ProviderError) || ![400, 404].includes(error.status)) throw error;
+            model = keyRow.model;
+            return streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, onText);
+          }
+        };
+
+        let reply: string;
+        let next: CodeFiles;
+        let changed: Set<string>;
+        if (isFreshApp(current.files)) {
+          // A new app: a short plan first, then every section written at the same time.
+          const built = await firstBuild({ files: current.files, message: parsed.data.message, history: parsed.data.history, ask, send });
+          if ("error" in built) {
+            finish({ error: built.error });
             return;
           }
-          // The failed files are replaced whole; every other edit already applied stays.
-          next = applyChanges(next, Object.fromEntries(paths.map((path) => [path, second.changes[path] as string])));
+          reply = built.reply;
+          if (Object.keys(built.changes).length === 0) {
+            finish({ reply, version: current.version, files: null });
+            return;
+          }
+          next = applyChanges(current.files, built.changes);
+          changed = new Set(Object.keys(built.changes));
+        } else {
+          const turns = [...parsed.data.history, { role: "user" as const, content: userMessage(current.files, parsed.data.message) }];
+          const full = await ask(turns, send);
+          const first = parseReply(full);
+          reply = first.reply;
+          const { incomplete } = first;
+          if (Object.keys(first.changes).length === 0 && first.edits.length === 0) {
+            finish({ reply, version: current.version, files: null, note: incomplete.length ? "The answer was cut off before a file finished. Try a smaller request." : undefined });
+            return;
+          }
+          if (incomplete.length) {
+            finish({ error: `The AI's answer was cut off while writing ${incomplete[0]}. Nothing was changed. Try a smaller request.` });
+            return;
+          }
+          // Whole files and deletions first, then the small edits on top of them.
+          next = applyChanges(current.files, first.changes);
+          changed = new Set([...Object.keys(first.changes), ...first.edits.map((e) => e.path)]);
+          const applied = applyEdits(next, first.edits);
+          next = applied.files;
+          if (applied.failed.length > 0) {
+            // An edit didn't match exactly. Rather than fail, ask for the whole of each file once.
+            const paths = [...new Set(applied.failed.map((f) => f.path))];
+            const retry = await ask(
+              [
+                ...turns,
+                { role: "assistant", content: full },
+                { role: "user", content: `Some of your edits could not be applied (${applied.failed.map((f) => `${f.path}: ${f.reason}`).join("; ")}). Send the COMPLETE new content of these files as <file> blocks, with all the changes you intended, and nothing else: ${paths.join(", ")}.` },
+              ],
+              send
+            );
+            const second = parseReply(retry);
+            const missing = paths.filter((path) => typeof second.changes[path] !== "string");
+            if (second.incomplete.length > 0 || missing.length > 0) {
+              finish({ error: "The AI couldn't apply that change cleanly. Nothing was changed. Try again, or ask for it in a different way." });
+              return;
+            }
+            // The failed files are replaced whole; every other edit already applied stays.
+            next = applyChanges(next, Object.fromEntries(paths.map((path) => [path, second.changes[path] as string])));
+          }
         }
         const problem = validateFiles(next);
         if (problem) {
@@ -136,7 +157,8 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
         }
         finish({ reply, version: saved.version, files: next, changed: [...changed] });
       } catch (error) {
-        finish({ error: error instanceof ProviderError ? error.message : "The AI stopped before it finished. Try again." });
+        const message = error instanceof SlowDown ? "Your AI provider says you're sending requests too fast. Wait a minute and try again." : error instanceof ProviderError ? error.message : "The AI stopped before it finished. Try again.";
+        finish({ error: message });
       }
     },
   });
