@@ -7,7 +7,7 @@ import { decryptSecret } from "@/lib/ai/keys";
 import { ProviderError, fastModel, streamText, type AiProvider } from "@/lib/ai/providers";
 import { CODE_SYSTEM_PROMPT, userMessage } from "@/lib/code/prompt";
 import { applyChanges, applyEdits, parseReply, summarize, validateFiles, type CodeFiles } from "@/lib/code/files";
-import { firstBuild, isFreshApp, SlowDown, type Ask, type BuildTimeline } from "@/lib/code/first-build";
+import { firstBuild, hedge, isFreshApp, SlowDown, type Ask, type BuildTimeline } from "@/lib/code/first-build";
 import { latestVersion, saveVersion } from "@/lib/code/store";
 import { RESULT_MARK } from "@/lib/code/protocol";
 import { repairFiles } from "@/lib/code/repair";
@@ -135,14 +135,18 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
         let reply: string;
         let next: CodeFiles;
         let changed: Set<string>;
-        if (isFreshApp(current.files)) {
-          // A new app: a short plan first, then every section written at the same time.
-          mode = "new app";
-          const built = await firstBuild({ files: current.files, message: parsed.data.message, history: parsed.data.history, ask, send, timeline, startedAt });
-          if ("error" in built) {
-            finish({ error: built.error });
-            return;
-          }
+        const fresh = isFreshApp(current.files);
+        // A new app gets a short plan first, then every section written at the same time. A change is answered with edits
+        // or, when it's big (new sections, a different kind of app), with a plan whose sections are written in parallel.
+        const prompt = fresh ? undefined : userMessage(current.files, parsed.data.message);
+        mode = fresh ? "new app" : "change";
+        const built = await firstBuild({ files: current.files, message: parsed.data.message, history: parsed.data.history, ask, send, timeline, startedAt, mode: fresh ? "new" : "change", prompt });
+        if ("error" in built) {
+          finish({ error: built.error });
+          return;
+        }
+        if (!("small" in built)) {
+          if (!fresh) mode = "big change";
           reply = built.reply;
           if (Object.keys(built.changes).length === 0) {
             finish({ reply, version: current.version, files: null });
@@ -151,8 +155,9 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
           next = applyChanges(current.files, built.changes);
           changed = new Set(Object.keys(built.changes));
         } else {
-          const turns = [...parsed.data.history, { role: "user" as const, content: userMessage(current.files, parsed.data.message) }];
-          const full = await ask(turns, send);
+          // Ordinary edits.
+          const full = built.small;
+          const turns = [...parsed.data.history, { role: "user" as const, content: prompt as string }];
           const first = parseReply(full);
           reply = first.reply;
           const { incomplete } = first;
@@ -171,8 +176,9 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
           next = applied.files;
           if (applied.failed.length > 0) {
             // An edit didn't match exactly. Rather than fail, ask for the whole of each file once.
+            timeline.retry = { start: Date.now() - startedAt, files: applied.failed.map((f) => f.path) };
             const paths = [...new Set(applied.failed.map((f) => f.path))];
-            const retry = await ask(
+            const retry = await hedge(ask, 2500, () => (timeline.hedges = (timeline.hedges ?? 0) + 1))(
               [
                 ...turns,
                 { role: "assistant", content: full },
@@ -180,6 +186,7 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
               ],
               send
             );
+            timeline.retry.done = Date.now() - startedAt;
             const second = parseReply(retry);
             const missing = paths.filter((path) => typeof second.changes[path] !== "string");
             if (second.incomplete.length > 0 || missing.length > 0) {

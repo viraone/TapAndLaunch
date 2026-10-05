@@ -1,4 +1,4 @@
-import { applyChanges, isValidPath, parseReply, type CodeFiles } from "./files";
+import { applyChanges, applyEdits, isValidPath, parseReply, type CodeFiles } from "./files";
 import { filesContext } from "./prompt";
 import { chunk } from "./protocol";
 import { salvage } from "./partial";
@@ -406,7 +406,11 @@ ${parts.map((n) => `      <${n} />`).join("\n")}
 }`;
 }
 
-export type FirstBuildResult = { reply: string; changes: Record<string, string> } | { error: string };
+/**
+ * What a build produced: the files to change (null deletes one), an error, or, for a change to an existing app that the
+ * AI answered with ordinary edits rather than a plan, its whole answer (`small`) for the caller to apply as usual.
+ */
+export type FirstBuildResult = { reply: string; changes: Record<string, string | null> } | { error: string } | { small: string };
 
 /**
  * Runs the build. `send` streams text to the browser in the same tag format as a normal answer: the plan step as it is
@@ -422,6 +426,8 @@ export interface BuildTimeline {
   planFirstText?: number;
   planDone?: number;
   sections: Record<string, { start: number; firstText?: number; done?: number; chars?: number; cut?: boolean }>;
+  /** A change whose edits didn't match, so the whole files were asked for again. */
+  retry?: { start: number; done?: number; files: string[] };
 }
 
 type BuildOptions = {
@@ -434,6 +440,13 @@ type BuildOptions = {
   timeline?: BuildTimeline;
   /** The moment the request started, so the timeline counts from there. */
   startedAt?: number;
+  /**
+   * "new": a brand-new app (the default). "change": a request to an existing app, which the AI answers either with
+   * ordinary edits (handed back as `small`) or, for big changes, with a plan whose sections are written in parallel.
+   */
+  mode?: "new" | "change";
+  /** The request to send instead of the new-app plan request (used for changes). */
+  prompt?: string;
 };
 
 export async function firstBuild(opts: BuildOptions): Promise<FirstBuildResult> {
@@ -450,9 +463,18 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
   // still being written can't become an unhandled rejection.
   const launched = new Map<string, Promise<{ path: string; content: string | null; error?: unknown }>>();
   let planText = "";
-  // The shared-state file goes first, so it's in place (and in the preview) before any section needs it.
-  const seeded: CodeFiles = { ...opts.files, [SHARED_PATH]: SHARED_FILE };
-  opts.send(`<file path="${SHARED_PATH}">\n${SHARED_FILE}\n</file>\n`);
+  const change = opts.mode === "change";
+  // The shared-state file goes first for a new app, so it's in place (and in the preview) before any section needs it.
+  // A change adds it only if sections are planned and the app doesn't have it yet.
+  const seeded: CodeFiles = { ...opts.files };
+  let addedShared = false;
+  const addShared = (send: (text: string) => void) => {
+    if (seeded[SHARED_PATH] !== undefined) return;
+    seeded[SHARED_PATH] = SHARED_FILE;
+    addedShared = true;
+    send(`<file path="${SHARED_PATH}">\n${SHARED_FILE}\n</file>\n`);
+  };
+  if (!change) addShared(opts.send);
   let design = "";
   let planDone = false;
   const queue: string[] = [];
@@ -507,7 +529,9 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
   let others: string[] = [];
   const launch = (path: string, usedAs: string[], plan: string | undefined, app?: string) => {
     if (launched.has(path) || launched.size >= MAX_PARTS) return;
-    if (built.kit === null) {
+    addShared(emit);
+    // An app that already has its building blocks keeps them (the owner may have changed them).
+    if (built.kit === null && seeded[UI_PATH] === undefined) {
       built.kit = uiKit(accentOf(design));
       seeded[UI_PATH] = built.kit;
       emit(`\n<file path="${UI_PATH}">\n${built.kit}\n</file>`);
@@ -578,7 +602,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
   };
   try {
     planText = await planAsk(
-      [...opts.history, { role: "user", content: planMessage(opts.files, opts.message) }],
+      [...opts.history, { role: "user", content: opts.prompt ?? planMessage(opts.files, opts.message) }],
       (piece) => {
         if (stop.signal.aborted) return;
         if (timeline && timeline.planFirstText === undefined) timeline.planFirstText = at();
@@ -600,16 +624,24 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
   if (cutAt !== -1) planText = planText.slice(0, cutAt);
   watchPlan();
 
+  // A change answered with ordinary edits: the caller applies it as usual.
+  if (change && launched.size === 0) return { small: planText };
+
   const first = parseReply(planText);
   if (first.incomplete.length) return { error: `The AI's answer was cut off while writing ${first.incomplete[0]}. Nothing was changed. Try again.` };
-  const changes: Record<string, string> = { [SHARED_PATH]: SHARED_FILE, ...(built.kit === null ? {} : { [UI_PATH]: built.kit }) };
-  if (built.kit === null && /@\/lib\/ui/.test(first.changes["src/App.jsx"] ?? "")) {
+  const changes: Record<string, string | null> = { ...(addedShared ? { [SHARED_PATH]: SHARED_FILE } : {}), ...(built.kit === null ? {} : { [UI_PATH]: built.kit }) };
+  if (built.kit === null && seeded[UI_PATH] === undefined && /@\/lib\/ui/.test(first.changes["src/App.jsx"] ?? "")) {
     built.kit = uiKit(accentOf(design));
     seeded[UI_PATH] = built.kit;
     emit(`\n<file path="${UI_PATH}">\n${built.kit}\n</file>`);
   }
-  // Sections being written in parallel win over any the plan step wrote itself.
-  for (const [path, content] of Object.entries(first.changes)) if (typeof content === "string" && !launched.has(path)) changes[path] = content;
+  // Sections being written in parallel win over any the plan step wrote itself. (Deletions and small edits to other
+  // files in a change's plan answer are kept too.)
+  for (const [path, content] of Object.entries(first.changes)) if (!launched.has(path)) changes[path] = content;
+  if (first.edits.length > 0) {
+    const edited = applyEdits(applyChanges(seeded, changes), first.edits.filter((e) => !launched.has(e.path))).files;
+    for (const e of first.edits) if (!launched.has(e.path) && edited[e.path] !== undefined) changes[e.path] = edited[e.path] as string;
+  }
   if (!changes["src/App.jsx"] && launched.size > 0) {
     changes["src/App.jsx"] = fallbackApp([...launched.keys()]);
     emit(`\n<file path="src/App.jsx">\n${changes["src/App.jsx"]}\n</file>`);
@@ -627,6 +659,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
       changes[UI_PATH] = built.kit;
       files = { ...files, [UI_PATH]: built.kit };
     }
+    if (addedShared) changes[SHARED_PATH] = SHARED_FILE;
     const pending = [...launched.entries()].filter(([path]) => !(path in changes));
     if (pending.length === 0) break;
     const written = await Promise.all(pending.map(([, p]) => p));
@@ -635,9 +668,27 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     const failed = written.find((w) => w.content === null);
     if (failed) return { error: `The AI couldn't finish writing ${failed.path}. Nothing was changed. Try again.` };
     for (const w of written) changes[w.path] = w.content as string;
-    files = { ...files, ...changes };
+    files = applyChanges(files, changes);
   }
+  // A big change can leave old sections behind that nothing shows any more: remove them.
+  if (change) for (const path of unusedComponents(files)) if (opts.files[path] !== undefined) changes[path] = null;
   return { reply: first.reply, changes };
+}
+
+/** Section files (src/components/...) that App.jsx no longer reaches through its imports. */
+export function unusedComponents(files: CodeFiles): string[] {
+  const seen = new Set<string>();
+  const visit = (from: string) => {
+    if (seen.has(from) || files[from] === undefined) return;
+    seen.add(from);
+    for (const m of (files[from] as string).matchAll(IMPORT)) {
+      const target = resolve(from, m[2] as string);
+      if (!target) continue;
+      for (const p of [target, `${target}.jsx`, `${target}.js`]) if (files[p] !== undefined) visit(p);
+    }
+  };
+  visit("src/App.jsx");
+  return Object.keys(files).filter((p) => p.startsWith("src/components/") && !seen.has(p));
 }
 
 async function writePart(ask: Ask, content: string, path: string, onText: (piece: string, reset: boolean) => void, onCut: () => void): Promise<string | null> {

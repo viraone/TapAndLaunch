@@ -64,8 +64,24 @@ export function filesContext(files: CodeFiles): string {
 
 export function userMessage(files: CodeFiles, message: string): string {
   const clean = message.replace(/<\/?owner>/gi, "");
-  return `The app as it is now:\n${filesContext(files)}\n\n<owner>${clean}</owner>`;
+  return `The app as it is now:\n${filesContext(files)}\n\n${BIG_CHANGES}\n\n<owner>${clean}</owner>`;
 }
+
+/**
+ * How to answer a big change quickly: name the new sections in a plan and they are written in parallel (see
+ * first-build.ts), instead of writing them one after another.
+ */
+const BIG_CHANGES = `For a SMALL change (a color, some text, one element, a fix), answer as usual with <edit> blocks.
+For a BIG change (new sections, a new page, or a different kind of app), do NOT write the section files yourself. Answer with ONLY:
+<plan>
+design: one line: the look every new section follows (keep the app's current look unless the owner asks for a new one)
+sections: NewSectionA (shares key), NewSectionB
+</plan>
+<reply>One friendly sentence.</reply>
+<file path="src/App.jsx">
+the COMPLETE new App.jsx, importing the listed sections (default imports from '@/components/Name') and any existing ones that stay; each section's id is its name in lower case
+</file>
+Only list sections that are new or completely rewritten (2 to 6, each small, about 35 lines); every listed section is written at the same time by someone else. Existing sections you don't list stay as they are, and ones App.jsx no longer uses are removed.`;
 
 /** The first version of a new code app: a polished placeholder so the preview is never blank. */
 export function starterFiles(appName: string): CodeFiles {

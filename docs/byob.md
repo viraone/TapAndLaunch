@@ -101,6 +101,12 @@ writes a React app, shown live next to the chat. The block-based chat above stil
   file whose source didn't change isn't compiled again, and animations are skipped while drafting. Messages from the page
   carry `rev`, so news about a replaced version is ignored. Known limit: files that import each other in a loop aren't
   supported (the browser reports an error, which goes to the AI).
+- Changes go through the same builder (`firstBuild` with `mode: "change"`). The change request (`userMessage`) tells the AI:
+  small change -> `<edit>` blocks (handed back as `small` and applied as before, with the whole-file retry if an edit
+  doesn't match, now also sent again when slow); big change (new sections, a different kind of app) -> a plan naming
+  only the new sections plus the complete new App.jsx, and those sections are written in parallel. The app's own
+  building blocks are kept, the shared-state file is added if missing, and section files App.jsx no longer reaches are
+  removed (`unusedComponents`). Real big changes took 16-20s written one after another.
 - (Before streaming) The preview fills in while the AI writes: as soon as App.jsx exists, the page shows the real layout with shimmering
   placeholders for sections not written yet (`buildCodeDocument(…, { stubs: true })`), and each section appears as it lands.
   Errors from those half-written pages are ignored (every page message carries a `doc` id).

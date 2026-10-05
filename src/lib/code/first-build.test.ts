@@ -77,8 +77,7 @@ describe("the two-step build", () => {
     const result = await firstBuild({ files: starterFiles("Gym"), message: "a gym app", history: [], ask, send: (t) => sent.push(t) });
     const took = Date.now() - started;
 
-    expect("error" in result).toBe(false);
-    if ("error" in result) return;
+    if (!("changes" in result)) throw new Error(JSON.stringify(result));
     expect(result.reply).toBe("Building a gym app.");
     expect(Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx", "src/data/classes.js", "src/lib/shared.js", "src/lib/ui.jsx"]);
     expect(asked.sort()).toEqual(["src/components/Header.jsx", "src/components/Hero.jsx", "src/data/classes.js"]);
@@ -249,8 +248,9 @@ describe("the two-step build", () => {
     expect(result.reply).toBe("Building it.");
     expect(result.changes["src/components/Hero.jsx"]).toContain("PARALLEL");
     expect(result.changes["src/App.jsx"]).toBe(fallbackApp(["src/components/Hero.jsx", "src/components/Footer.jsx"]));
-    expect(result.changes["src/App.jsx"].indexOf("<Hero />")).toBeLessThan(result.changes["src/App.jsx"].indexOf("<Footer />"));
-    expect(parse(result.changes["src/App.jsx"], { sourceType: "module", plugins: ["jsx"] })).toBeTruthy();
+    const app = result.changes["src/App.jsx"] as string;
+    expect(app.indexOf("<Hero />")).toBeLessThan(app.indexOf("<Footer />"));
+    expect(parse(app, { sourceType: "module", plugins: ["jsx"] })).toBeTruthy();
   });
 
   it("starts every section at once when the sections line arrives, telling each about the others", async () => {
@@ -371,5 +371,49 @@ describe("sending a slow request again", () => {
     stop.abort();
     await expect(result).rejects.toThrow();
     expect(log.sort()).toEqual(["cancelled 0", "cancelled 1", "start 0", "start 1"]);
+  });
+});
+
+describe("changes to an existing app", () => {
+  const existing = {
+    "src/App.jsx": "import { SiteHeader } from '@/lib/ui';\nimport Recipes from '@/components/Recipes';\nimport Saved from '@/components/Saved';\nexport default () => <><SiteHeader name=\"R\" /><Recipes /><Saved /></>;",
+    "src/components/Recipes.jsx": "export default function Recipes() { return <p>recipes</p>; }",
+    "src/components/Saved.jsx": "export default function Saved() { return <p>saved</p>; }",
+    "src/lib/ui.jsx": "// THE OWNER'S OWN BUILDING BLOCKS\nexport function SiteHeader() { return null; }",
+  };
+
+  it("hands back an ordinary edit answer untouched", async () => {
+    const answer = `<reply>Made it green.</reply>\n<edit path="src/components/Recipes.jsx">\n<find>recipes</find>\n<with>green recipes</with>\n</edit>`;
+    const ask: Ask = async (_turns, onText) => {
+      onText?.(answer);
+      return answer;
+    };
+    const sent: string[] = [];
+    const result = await firstBuild({ files: existing, message: "make it green", history: [], ask, send: (t) => sent.push(t), mode: "change", prompt: "PROMPT" });
+    expect(result).toEqual({ small: answer });
+    expect(sent.join("")).toBe(answer); // nothing extra (no shared-state file) for a small change
+  });
+
+  it("writes a big change's new sections in parallel, keeps the owner's building blocks, and removes sections no longer used", async () => {
+    const asked: string[] = [];
+    const ask: Ask = async (turns, onText) => {
+      const last = turns.at(-1)?.content ?? "";
+      if (last === "PROMPT") {
+        const text = `<plan>\ndesign: keep the look\nsections: ServicePicker (shares service), BookingDetails (shares service)\n</plan>\n<reply>Turned it into a booking app.</reply>\n<file path="src/App.jsx">\nimport { SiteHeader } from '@/lib/ui';\nimport ServicePicker from '@/components/ServicePicker';\nimport BookingDetails from '@/components/BookingDetails';\nimport Recipes from '@/components/Recipes';\nexport default () => <><SiteHeader name="B" /><ServicePicker /><BookingDetails /><Recipes /></>;\n</file>`;
+        for (const piece of text.match(/[\s\S]{1,12}/g) ?? []) onText?.(piece);
+        return text;
+      }
+      const path = /Your file: (\S+)/.exec(last)?.[1] as string;
+      asked.push(path);
+      return `<file path="${path}">\nimport { useShared } from '@/lib/shared';\nexport default function X() { const [s] = useShared('service', null); return <p>{s}</p>; }\n</file>`;
+    };
+    const result = await firstBuild({ files: existing, message: "make it a dog grooming booking app", history: [], ask, send: () => {}, mode: "change", prompt: "PROMPT" });
+    if (!("changes" in result)) throw new Error(JSON.stringify(result));
+    expect(result.reply).toBe("Turned it into a booking app.");
+    expect(asked.sort()).toEqual(["src/components/BookingDetails.jsx", "src/components/ServicePicker.jsx"]);
+    expect(result.changes["src/components/Saved.jsx"]).toBeNull(); // no longer used
+    expect("src/components/Recipes.jsx" in result.changes).toBe(false); // still used, unchanged
+    expect("src/lib/ui.jsx" in result.changes).toBe(false); // the owner's own building blocks stay
+    expect(result.changes["src/lib/shared.js"]).toContain("useShared"); // added: this app didn't have it
   });
 });
