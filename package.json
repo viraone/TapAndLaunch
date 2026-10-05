@@ -12,6 +12,7 @@
     "dev:phone": "IP=$(ipconfig getifaddr en0); DEV_APP_SLUG=${DEV_APP_SLUG:-stagetimepnw} DEV_ORIGINS=$IP NEXT_DIST_DIR=.next-phone next dev -p 3101"
   },
   "dependencies": {
+    "@babel/parser": "^7.29.9",
     "@base-ui/react": "^1.8.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",

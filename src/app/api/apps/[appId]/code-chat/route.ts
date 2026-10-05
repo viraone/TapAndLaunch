@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAppEditor } from "@/lib/org";
@@ -9,6 +10,7 @@ import { applyChanges, applyEdits, parseReply, summarize, validateFiles, type Co
 import { firstBuild, isFreshApp, SlowDown, type Ask, type BuildTimeline } from "@/lib/code/first-build";
 import { latestVersion, saveVersion } from "@/lib/code/store";
 import { RESULT_MARK } from "@/lib/code/protocol";
+import { repairFiles } from "@/lib/code/repair";
 
 /** Code builds are heavier than block edits, so they have their own hourly limit per person. */
 const CODE_HOURLY_LIMIT = 30;
@@ -76,6 +78,12 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
       () => null
     );
 
+  // The build's timeline is saved after the answer has gone out; `after` keeps the server running until it is (on Vercel
+  // the function could otherwise stop the moment the response ends, and the save was lost).
+  let markRecorded: () => void = () => {};
+  const recorded = new Promise<void>((resolve) => (markRecorded = resolve));
+  after(() => Promise.race([recorded, new Promise<void>((resolve) => setTimeout(resolve, 280_000))]));
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -92,10 +100,12 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
       let mode = "change";
       const record = (result: Record<string, unknown>) => {
         const details = { mode, models: [...models], total: Date.now() - startedAt, ok: !result.error, error: result.error ?? null, ...timeline };
-        void usage.then(
-          (row) => (row ? admin.from("ai_generations").update({ details }).eq("id", row.id).then(() => {}) : undefined),
-          () => {}
-        );
+        void Promise.resolve(usage)
+          .then(
+            (row) => (row ? admin.from("ai_generations").update({ details }).eq("id", row.id).then(() => {}) : undefined),
+            () => {}
+          )
+          .finally(markRecorded);
       };
       const finish = (result: Record<string, unknown>) => {
         record(result);
@@ -181,6 +191,8 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
             next = applyChanges(next, Object.fromEntries(paths.map((path) => [path, second.changes[path] as string])));
           }
         }
+        // Fix the commonest slip (an apostrophe that ends a quoted string early) so the app can be read without another try.
+        next = repairFiles(next);
         const problem = validateFiles(next);
         if (problem) {
           finish({ error: `${problem} Nothing was changed.` });
