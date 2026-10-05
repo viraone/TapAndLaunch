@@ -121,6 +121,24 @@ export function billingFromSubscription(sub: SubscriptionLike): Pick<BillingRow,
   };
 }
 
+/** A few words for the plan chip at the top of Settings. */
+export function planChip(state: BillingState): string {
+  switch (state.kind) {
+    case "complimentary":
+      return "Free access";
+    case "trial":
+      return `Free trial · ${state.daysLeft} ${state.daysLeft === 1 ? "day" : "days"} left`;
+    case "trial_expired":
+      return "Trial ended";
+    case "active":
+      return `${PLAN.name} plan`;
+    case "past_due":
+      return "Payment failed";
+    case "canceled":
+      return "Plan canceled";
+  }
+}
+
 export function formatPlanPrice(interval: "month" | "year"): string {
   const money = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: PLAN.currency.toUpperCase(), maximumFractionDigits: 0 }).format(cents / 100);
   return interval === "year" ? `${money(PLAN.yearlyCents / 12)}/month, billed yearly (${money(PLAN.yearlyCents)})` : `${money(PLAN.monthlyCents)}/month`;

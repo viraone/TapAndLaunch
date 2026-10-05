@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { billingFromSubscription, billingState, bannerFor, formatPlanPrice, isInGoodStanding } from "./plans";
+import { billingFromSubscription, billingState, bannerFor, formatPlanPrice, isInGoodStanding, planChip } from "./plans";
 
 const now = new Date("2026-10-05T12:00:00Z");
 const row = (over: Partial<Parameters<typeof billingState>[0] & object> = {}) => ({
@@ -86,6 +86,16 @@ describe("billingFromSubscription", () => {
       cancel_at_period_end: false,
     });
     expect(billingFromSubscription(sub("active", { customer: { id: "cus_9" } })).stripe_customer_id).toBe("cus_9");
+  });
+});
+
+describe("planChip", () => {
+  it("says where the plan stands in a few words", () => {
+    expect(planChip({ kind: "complimentary" })).toBe("Free access");
+    expect(planChip({ kind: "trial", daysLeft: 1, endsAt: "x" })).toBe("Free trial · 1 day left");
+    expect(planChip({ kind: "trial", daysLeft: 12, endsAt: "x" })).toBe("Free trial · 12 days left");
+    expect(planChip({ kind: "active", interval: "year", renewsAt: null, cancelsAtPeriodEnd: false })).toBe("Standard plan");
+    expect(planChip({ kind: "trial_expired", endedAt: "x" })).toBe("Trial ended");
   });
 });
 

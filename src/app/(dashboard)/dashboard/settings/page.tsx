@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Building2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 import { OrgSettingsForm } from "./OrgSettingsForm";
 import { PaymentsCard } from "./PaymentsCard";
 import { BillingCard } from "./BillingCard";
-import { billingState } from "@/lib/billing/plans";
+import { SettingsSection } from "./SettingsSection";
+import { tileGradient, tileInitial } from "@/lib/apps/tile";
+import { billingState, planChip } from "@/lib/billing/plans";
 import { syncOrgSubscription } from "@/lib/billing/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripeAccountRow, syncStripeAccount } from "@/lib/stripe/accounts";
@@ -62,31 +63,58 @@ export default async function OrgSettingsPage({ searchParams }: { searchParams: 
   const { data: billingRow } = await createAdminClient().from("org_billing").select("*").eq("organization_id", organizationId).maybeSingle();
   const plan = billingState(billingRow, new Date());
 
+  const isAdmin = activeMembership?.role === "admin";
+  const paymentsOn = stripeAccount?.charges_enabled === true;
+  const tile = tileGradient(organization.id);
+
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 p-6">
-      <Link
-        href="/dashboard"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" /> All apps
-      </Link>
-      <Card>
-        <CardHeader>
-          <CardTitle>Organization settings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {activeMembership?.role === "admin" ? (
+    <main className="flex-1 bg-neutral-100/70">
+      <section className="relative overflow-hidden bg-neutral-950 text-white">
+        <div aria-hidden className="pointer-events-none absolute -left-32 -top-40 h-96 w-96 rounded-full bg-indigo-600/30 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -right-24 top-10 h-80 w-80 rounded-full bg-pink-500/20 blur-3xl" />
+        <div className="relative mx-auto w-full max-w-3xl px-6 pb-24 pt-8">
+          <Link href="/dashboard" className="inline-flex min-h-11 items-center gap-1.5 text-sm text-neutral-400 transition hover:text-white">
+            <ArrowLeft className="h-4 w-4" /> All apps
+          </Link>
+          <div className="mt-2 flex items-center gap-4">
+            {organization.branding.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- arbitrary tenant-provided/storage URLs
+              <img src={organization.branding.logo_url} alt="" className="h-16 w-16 rounded-2xl object-cover ring-1 ring-white/20" />
+            ) : (
+              <span className={`grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br text-2xl font-bold text-white shadow-lg ${tile.classes}`}>
+                {tileInitial(organization.name)}
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">Settings</p>
+              <h1 className="truncate text-3xl font-semibold tracking-tight sm:text-4xl">{organization.name}</h1>
+            </div>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Chip>{activeMembership?.role === "admin" ? "Admin" : (activeMembership?.role ?? "Member")}</Chip>
+            <Chip>{planChip(plan)}</Chip>
+            {showPayments && <Chip>{paymentsOn ? "Payments on" : "Payments not set up"}</Chip>}
+          </div>
+        </div>
+      </section>
+
+      <div className="relative mx-auto -mt-14 w-full max-w-3xl space-y-6 px-4 pb-16 sm:px-6">
+        <SettingsSection icon={Building2} title="Organization" description="Your name, logo and brand color">
+          {isAdmin ? (
             <OrgSettingsForm organization={organization} />
           ) : (
-            <p className="text-sm text-muted-foreground">
-              Only an organization admin can change these settings. You&rsquo;re a{" "}
-              <strong>{activeMembership?.role}</strong> here.
+            <p className="text-sm text-neutral-500">
+              Only an organization admin can change these settings. You&rsquo;re a <strong className="text-neutral-800">{activeMembership?.role}</strong> here.
             </p>
           )}
-        </CardContent>
-      </Card>
-      <BillingCard state={plan} isAdmin={activeMembership?.role === "admin"} billingReady={isStripeConfigured()} testMode={isStripeTestMode()} />
-      {showPayments && <PaymentsCard account={stripeAccount} testMode={isStripeTestMode()} />}
+        </SettingsSection>
+        <BillingCard state={plan} isAdmin={isAdmin} billingReady={isStripeConfigured()} testMode={isStripeTestMode()} />
+        {showPayments && <PaymentsCard account={stripeAccount} testMode={isStripeTestMode()} />}
+      </div>
     </main>
   );
+}
+
+function Chip({ children }: { children: React.ReactNode }) {
+  return <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-neutral-100 ring-1 ring-white/15 backdrop-blur">{children}</span>;
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FIELD, LABEL, PRIMARY_BUTTON } from "./SettingsSection";
 
 const COUNTRIES: Array<[string, string]> = [
   ["US", "United States"],
@@ -51,14 +51,14 @@ export function ConnectStripeButton({ label, askCountry = false }: { label: stri
     <div className="space-y-3">
       {askCountry && (
         <div className="space-y-1.5">
-          <label htmlFor="stripe-country" className="text-sm font-medium">
+          <label htmlFor="stripe-country" className={LABEL}>
             Where is your business based?
           </label>
           <select
             id="stripe-country"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm"
+            className={FIELD}
           >
             {COUNTRIES.map(([code, name]) => (
               <option key={code} value={code}>
@@ -66,15 +66,15 @@ export function ConnectStripeButton({ label, askCountry = false }: { label: stri
               </option>
             ))}
           </select>
-          <p className="text-xs text-muted-foreground">You can&rsquo;t change this later.</p>
+          <p className="text-xs text-neutral-500">You can&rsquo;t change this later.</p>
         </div>
       )}
-      <Button onClick={connect} disabled={loading}>
-        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      <button type="button" onClick={connect} disabled={loading} className={PRIMARY_BUTTON}>
+        {loading && <Loader2 className="h-4 w-4 animate-spin" />}
         {label}
-      </Button>
+      </button>
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-sm text-red-600">
           {error}
         </p>
       )}
