@@ -290,6 +290,23 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["organizations"]["Row"]>;
         Relationships: [];
       };
+      org_billing: {
+        Row: {
+          organization_id: string;
+          status: "trialing" | "active" | "past_due" | "canceled" | "complimentary";
+          trial_ends_at: string | null;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          plan_interval: "month" | "year" | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["org_billing"]["Row"]> & { organization_id: string };
+        Update: Partial<Database["public"]["Tables"]["org_billing"]["Row"]>;
+        Relationships: [];
+      };
       stripe_accounts: {
         Row: {
           organization_id: string;

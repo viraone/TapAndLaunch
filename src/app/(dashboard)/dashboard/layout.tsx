@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
 import { OrgSwitcher } from "@/components/dashboard/OrgSwitcher";
+import { bannerFor, billingState } from "@/lib/billing/plans";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -28,6 +29,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .select("branding")
     .eq("id", activeOrganizationId)
     .maybeSingle();
+
+  const { data: billingRow } = await supabase.from("org_billing").select("*").eq("organization_id", activeOrganizationId).maybeSingle();
+  const banner = bannerFor(billingState(billingRow, new Date()));
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -77,6 +81,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <SignOutButton />
         </nav>
       </header>
+      {banner && (
+        <Link
+          href="/dashboard/settings"
+          className={`flex min-h-11 items-center justify-center gap-2 px-4 py-2 text-center text-sm font-medium ${banner.tone === "warn" ? "bg-amber-100 text-amber-950" : "bg-indigo-50 text-indigo-950"}`}
+        >
+          {banner.text} <span className="underline">{banner.action}</span>
+        </Link>
+      )}
       {children}
     </div>
   );

@@ -6,12 +6,15 @@ import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 import { OrgSettingsForm } from "./OrgSettingsForm";
 import { PaymentsCard } from "./PaymentsCard";
+import { BillingCard } from "./BillingCard";
+import { billingState } from "@/lib/billing/plans";
+import { syncOrgSubscription } from "@/lib/billing/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripeAccountRow, syncStripeAccount } from "@/lib/stripe/accounts";
 import { isStripeConfigured, isStripeTestMode } from "@/lib/stripe/server";
 
-export default async function OrgSettingsPage({ searchParams }: { searchParams: Promise<{ stripe?: string }> }) {
-  const { stripe: stripeReturn } = await searchParams;
+export default async function OrgSettingsPage({ searchParams }: { searchParams: Promise<{ stripe?: string; billing?: string }> }) {
+  const { stripe: stripeReturn, billing: billingReturn } = await searchParams;
   const supabase = await createClient();
 
   const memberships = await getMemberships(supabase);
@@ -45,6 +48,20 @@ export default async function OrgSettingsPage({ searchParams }: { searchParams: 
     }
   }
 
+  // Back from paying: ask Stripe for the latest, so the plan shows right away instead of waiting for the webhook.
+  if (billingReturn === "success" && isStripeConfigured()) {
+    try {
+      await syncOrgSubscription(createAdminClient(), organizationId);
+    } catch (error) {
+      console.error("billing sync failed:", error instanceof Error ? error.message : error);
+    }
+  }
+  // Read with the service-role client on purpose: the layout asks the same question with the user's client at the
+  // same moment, and Next.js reuses identical GET requests within one render, which would hand back the answer from
+  // before the sync above. `organizationId` is one of the signed-in user's own memberships.
+  const { data: billingRow } = await createAdminClient().from("org_billing").select("*").eq("organization_id", organizationId).maybeSingle();
+  const plan = billingState(billingRow, new Date());
+
   return (
     <main className="mx-auto w-full max-w-lg flex-1 p-6">
       <Link
@@ -68,6 +85,7 @@ export default async function OrgSettingsPage({ searchParams }: { searchParams: 
           )}
         </CardContent>
       </Card>
+      <BillingCard state={plan} isAdmin={activeMembership?.role === "admin"} billingReady={isStripeConfigured()} testMode={isStripeTestMode()} />
       {showPayments && <PaymentsCard account={stripeAccount} testMode={isStripeTestMode()} />}
     </main>
   );

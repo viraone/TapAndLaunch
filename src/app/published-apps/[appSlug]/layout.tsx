@@ -6,6 +6,7 @@ import { PublishedBottomNav } from "@/components/pwa-runtime/PublishedBottomNav"
 import { MemberAccountBar } from "@/components/pwa-runtime/MemberAccountBar";
 import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { getCurrentMember } from "@/lib/pwa/get-current-member";
+import { orgInGoodStanding } from "@/lib/billing/standing";
 
 // `params` is typed manually (Promise<{...}>) rather than via the generated
 // `LayoutProps<'/published-apps/[appSlug]'>` helper: that helper only exists after
@@ -64,6 +65,16 @@ export default async function PublishedAppLayout({
   const { appSlug } = await params;
   const published = await getPublishedApp(appSlug);
   if (!published) notFound();
+
+  // Only when billing is enforced: an organization with an expired trial or canceled plan has its apps paused.
+  if (!(await orgInGoodStanding(published.app.organization_id))) {
+    return (
+      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-2 p-8 text-center">
+        <h1 className="text-xl font-semibold">{published.app.name} is taking a break</h1>
+        <p className="text-sm text-muted-foreground">Please check back soon.</p>
+      </div>
+    );
+  }
 
   const member = await getCurrentMember(published.app.id);
   const { theme } = published.app;
