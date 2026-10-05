@@ -5,10 +5,11 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowUp, ArrowUpRight, FileCode2, History, Loader2, Monitor, RotateCcw, Rocket, Smartphone, Sparkles, Wrench } from "lucide-react";
 import { buildCodeDocument } from "@/lib/code/document";
-import { applyChanges, parseReply } from "@/lib/code/files";
-import { splitStream } from "@/lib/code/protocol";
+import { applyChanges, applyEdits, parseReply } from "@/lib/code/files";
+import { demux, splitStream } from "@/lib/code/protocol";
 import { CODE_EXAMPLES } from "@/lib/code/prompt";
-import { missingImports, SHARED_PATH } from "@/lib/code/first-build";
+import { isFreshApp, SHARED_PATH } from "@/lib/code/first-build";
+import { runnablePartial } from "@/lib/code/partial";
 import { createClient } from "@/lib/supabase/client";
 import { KeyForm, type SavedKey } from "@/components/builder/AiChatPanel";
 import { DictationButton } from "@/components/builder/DictationButton";
@@ -27,15 +28,28 @@ interface VersionInfo {
 
 const MAX_AUTO_FIXES = 2;
 
-/** A short fingerprint of the files, so an unchanged app keeps the same preview page instead of reloading it. */
-function fingerprint(files: Record<string, string>): string {
-  let h = 0x811c9dc5;
-  for (const path of Object.keys(files).sort()) {
-    const text = `${path}\u0000${files[path]}\u0000`;
-    for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
-  }
-  return (h >>> 0).toString(36);
+/** What a file still being written says so far, without the opening tag the AI started it with. */
+function streamedBody(text: string): string | null {
+  const m = /<file\s+path="[^"]*"\s*>\n?/.exec(text);
+  return m ? text.slice(m.index + m[0].length) : null;
 }
+
+/**
+ * Before a new app's App.jsx is written, its sections are already being written. Until App.jsx arrives, the preview
+ * stacks them in the order they were planned, so they can be seen from the first moment.
+ */
+function stackedApp(paths: string[]): string {
+  const parts = paths.filter((p) => /^src\/components\/[A-Z][A-Za-z0-9]*\.jsx$/.test(p)).map((p) => ({ name: `Tl${(p.split("/").pop() as string).replace(".jsx", "")}`, spec: `@/${p.slice(4, -4)}` }));
+  // Before any section is planned: one placeholder, so the old page goes away the moment the owner hits send.
+  const body = parts.length ? parts.map((p) => `<${p.name} />`).join("") : `<div className="tl-stub"><span>Planning your app\u2026</span></div>`;
+  return `${parts.map((p) => `import ${p.name} from '${p.spec}';`).join("\n")}
+export default function App() {
+  return <div className="min-h-screen bg-white font-sans text-slate-900">${body}</div>;
+}`;
+}
+
+/** A cheap way to tell whether a draft changed since the last one was shown. */
+const shape = (files: Record<string, string>) => Object.keys(files).sort().map((p) => `${p}:${(files[p] as string).length}`).join("|");
 
 /**
  * "BYOB" code mode: the owner chats, their own AI writes a React app, and it runs live next to the chat in a sandboxed
@@ -81,11 +95,7 @@ export function CodeBuilder({
   const [busy, setBusy] = useState(false);
   const [live, setLive] = useState<{ reply: string; written: string[]; writing: string[] } | null>(null);
   // The app as far as it has been written, shown in the preview while the AI is still working.
-  const [draft, setDraft] = useState<{ step: number; files: Record<string, string> } | null>(null);
-  // Bumped to force the preview to load again even though the files are the same.
-  const [reloads, setReloads] = useState(0);
-  // The last error a preview page reported while the AI was still writing (those are held back until it finishes).
-  const draftError = useRef<string | null>(null);
+  const [draft, setDraft] = useState<Record<string, string> | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -95,19 +105,27 @@ export function CodeBuilder({
   const builtThisSession = useRef(false);
   const lastFixedError = useRef<string | null>(null);
 
-  const shown = viewing?.files ?? draft?.files ?? files;
-  // Placeholders only while something is still missing, so the last draft and the saved app can be the same page.
-  const stubs = useMemo(() => draft !== null && missingImports(shown).length > 0, [draft, shown]);
-  const docId = useMemo(() => `${fingerprint(shown)}${stubs ? "s" : ""}${reloads ? `r${reloads}` : ""}`, [shown, stubs, reloads]);
-  const srcDoc = useMemo(() => buildCodeDocument(shown, { title: appName, accent, stubs, doc: docId }), [shown, appName, accent, stubs, docId]);
-  const docRef = useRef(docId);
-  useEffect(() => {
-    docRef.current = docId;
-  }, [docId]);
+  const shown = viewing?.files ?? draft ?? files;
   const filesRef = useRef(files);
   useEffect(() => {
     filesRef.current = files;
   }, [files]);
+
+  // The preview page is loaded once. Every later version (each moment of a build, the saved result, an old version) is
+  // sent into it, so it changes in place instead of reloading. Each one gets a number; the page sends that number back
+  // with its news, so news about a version that has since been replaced is ignored.
+  const [srcDoc] = useState(() => buildCodeDocument(initialFiles, { title: appName, accent }));
+  const onScreen = useRef<{ rev: number; files: Record<string, string>; stubs: boolean }>({ rev: 0, files: initialFiles, stubs: false });
+  const post = useCallback(() => {
+    const { rev, files: f, stubs } = onScreen.current;
+    frame.current?.contentWindow?.postMessage({ source: "tl-builder", type: "files", rev, files: f, stubs }, "*");
+  }, []);
+  useEffect(() => {
+    const stubs = draft !== null && !viewing;
+    if (onScreen.current.files === shown && onScreen.current.stubs === stubs) return;
+    onScreen.current = { rev: onScreen.current.rev + 1, files: shown, stubs };
+    post();
+  }, [shown, draft, viewing, post]);
 
   useEffect(() => {
     void fetch("/api/organizations/ai-key")
@@ -143,7 +161,6 @@ export function CodeBuilder({
       setElapsed(0);
       setViewing(null);
       setLive({ reply: "", written: [], writing: [] });
-      draftError.current = null;
       setTab("chat");
       try {
         const res = await fetch(`/api/apps/${appId}/code-chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message, history }) });
@@ -158,8 +175,7 @@ export function CodeBuilder({
         let text = "";
         let lastPaint = 0;
         let lastDraft = 0;
-        let draftKey = "";
-        let step = 0;
+        let lastShape = "";
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -170,27 +186,41 @@ export function CodeBuilder({
           const now = Date.now();
           if (now - lastPaint < 120 && !chunk.includes("</file>") && !chunk.includes("<writing")) continue;
           lastPaint = now;
-          const { answer } = splitStream(text);
-          const parsed = parseReply(answer);
+          const { main, streams } = demux(splitStream(text).answer);
+          const parsed = parseReply(main);
           setLive({
             reply: parsed.reply,
             written: [...new Set([...Object.keys(parsed.changes), ...parsed.edits.map((e) => e.path)])],
             writing: [...new Set([...parsed.writing, ...parsed.incomplete.slice(-1)])],
           });
-          // Show each finished file in the preview straight away (sections not written yet appear as placeholders).
+
+          // The preview shows the app as far as it's written: finished files and edits, plus every file still being
+          // typed, cut where it can run and closed up (a section appears line by line as the AI writes it).
+          if (now - lastDraft < 200) continue;
           const whole = Object.fromEntries(Object.entries(parsed.changes).filter((e): e is [string, string] => typeof e[1] === "string"));
-          const key = Object.keys(whole).sort().join("|");
-          // The shared-state helper on its own changes nothing on screen, so it isn't worth reloading the preview for.
-          const visible = Object.keys(whole).some((path) => path !== SHARED_PATH);
-          if (visible && key !== draftKey && now - lastDraft > 500) {
-            const merged = applyChanges(filesRef.current, whole);
-            if (merged["src/App.jsx"]) {
-              draftKey = key;
-              lastDraft = now;
-              step += 1;
-              setDraft({ step, files: merged });
-            }
+          const typing: Record<string, string> = {};
+          for (const [path, body] of Object.entries(parsed.partial)) {
+            const code = runnablePartial(path, body);
+            if (code) typing[path] = code;
           }
+          for (const [path, stream] of Object.entries(streams)) {
+            if (path in whole) continue;
+            const body = streamedBody(stream);
+            const code = body === null ? null : runnablePartial(path, body);
+            if (code) typing[path] = code;
+          }
+          const fresh = isFreshApp(filesRef.current);
+          const visible = fresh || Object.keys(whole).some((path) => path !== SHARED_PATH) || Object.keys(typing).length > 0 || parsed.edits.length > 0;
+          if (!visible) continue;
+          const next = { ...applyEdits(applyChanges(filesRef.current, whole), parsed.edits).files, ...typing };
+          if (fresh && !whole["src/App.jsx"] && !typing["src/App.jsx"]) {
+            next["src/App.jsx"] = stackedApp([...main.matchAll(/<writing\s+path="([^"]+)"/g)].map((m) => m[1] as string));
+          }
+          const nextShape = shape(next);
+          if (nextShape === lastShape || !next["src/App.jsx"]) continue;
+          lastShape = nextShape;
+          lastDraft = now;
+          setDraft(next);
         }
         const { answer, result } = splitStream(text);
         const parsed = parseReply(answer);
@@ -201,9 +231,6 @@ export function CodeBuilder({
         if (result.files && result.version) {
           builtThisSession.current = true;
           setPreviewError(null);
-          // The page on screen already shows these files, unless it hit an error while half-built: then load it again so
-          // the error is reported (and fixed) like any other.
-          if (draftError.current === docRef.current) setReloads((n) => n + 1);
           setFiles(result.files);
           setVersion(result.version);
           setVersions((v) => [{ version: result.version as number, summary: opts.hidden ? "Fixed an error" : message.replace(/\s+/g, " ").slice(0, 90), created_at: new Date().toISOString() }, ...v]);
@@ -225,12 +252,13 @@ export function CodeBuilder({
   useEffect(() => {
     function onMessage(e: MessageEvent) {
       if (e.source !== frame.current?.contentWindow || !e.data || e.data.source !== "tl-app") return;
-      // Only the page on screen counts, and a half-written app's errors aren't real errors yet.
-      if (e.data.doc !== docId) return;
-      if (draft) {
-        if (e.data.type === "error") draftError.current = docId;
+      // The page (re)loaded: give it the version that should be on screen, in case it missed it while loading.
+      if (e.data.type === "booted") {
+        if (onScreen.current.rev > 0) post();
         return;
       }
+      // Only news about the version on screen counts, and a half-written app's errors aren't real errors yet.
+      if (e.data.rev !== onScreen.current.rev || onScreen.current.stubs) return;
       if (e.data.type === "ready") setPreviewError(null);
       if (e.data.type === "error") {
         const message = String(e.data.message ?? "Unknown error").slice(0, 1200);
@@ -245,7 +273,7 @@ export function CodeBuilder({
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [busy, viewing, send, docId, draft]);
+  }, [busy, viewing, send, post]);
 
   async function viewVersion(v: number) {
     if (v === version) return setViewing(null);

@@ -34,9 +34,11 @@ const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;")
 const RUNTIME = String.raw`
 (function () {
   var opts = JSON.parse(document.getElementById("tl-opts").textContent);
-  // Every message says which page it came from, so the builder can ignore a page it has already replaced.
-  window.__tlDoc = opts.doc || "";
-  var send = function (type, message) { try { parent.postMessage({ source: "tl-app", type: type, message: message, doc: window.__tlDoc }, "*"); } catch (e) {} };
+  // Which version of the files is on screen, and whether it is half-written (the AI is still typing it). Every message
+  // to the builder carries the version, so it can ignore news about a version it has already replaced.
+  var rev = opts.rev || 0;
+  var draft = !!opts.stubs;
+  var send = function (type, message) { try { parent.postMessage({ source: "tl-app", type: type, message: message, rev: rev }, "*"); } catch (e) {} };
 
   // A sandboxed page has no localStorage; give apps an in-memory one so libraries and simple code keep working.
   function memoryStorage() {
@@ -49,19 +51,20 @@ const RUNTIME = String.raw`
     try { window[name].getItem("x"); } catch (e) { try { Object.defineProperty(window, name, { value: memoryStorage(), configurable: true }); } catch (e2) {} }
   });
 
-  var shown = false;
+  // Errors show on top of the app (not instead of it), so the next version can simply replace them.
+  var errorBox = null;
   function fail(message) {
     send("error", message);
-    if (shown) return; shown = true;
-    var root = document.getElementById("root");
-    if (root) root.innerHTML = '<div style="font:14px/1.5 system-ui;padding:24px;max-width:560px;margin:40px auto;color:#7f1d1d;background:#fef2f2;border:1px solid #fecaca;border-radius:12px"><b>This app hit an error.</b><pre style="white-space:pre-wrap;margin:8px 0 0;font:12px/1.5 ui-monospace,monospace"></pre></div>';
-    var pre = root && root.querySelector("pre"); if (pre) pre.textContent = message;
+    if (draft || errorBox) return; // half-written code isn't really broken yet
+    errorBox = document.createElement("div");
+    errorBox.style.cssText = "position:fixed;left:16px;right:16px;top:24px;z-index:2147483647;margin:0 auto;max-width:560px;font:14px/1.5 system-ui;padding:20px 24px;color:#7f1d1d;background:#fef2f2;border:1px solid #fecaca;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.12)";
+    errorBox.innerHTML = '<b>This app hit an error.</b><pre style="white-space:pre-wrap;margin:8px 0 0;font:12px/1.5 ui-monospace,monospace"></pre>';
+    errorBox.querySelector("pre").textContent = message;
+    document.body.appendChild(errorBox);
   }
+  function clearError() { if (errorBox) { errorBox.remove(); errorBox = null; } }
   window.addEventListener("error", function (e) { fail(e.message || String(e.error || "Unknown error")); });
   window.addEventListener("unhandledrejection", function (e) { fail(String((e.reason && e.reason.message) || e.reason || "Unhandled promise rejection")); });
-
-  var files = JSON.parse(document.getElementById("tl-files").textContent);
-  var css = [], code = {};
 
   // "@/components/Hero" and "src/components/Hero.jsx" are the same file; relative imports are rewritten to the @/ form.
   function spec(path) { return "@/" + path.replace(/^src\//, "").replace(/\.(jsx|js)$/, ""); }
@@ -89,55 +92,117 @@ const RUNTIME = String.raw`
     });
   }
 
-  try {
-    var imports = JSON.parse(document.getElementById("tl-libs").textContent);
-    var outputs = [];
-    Object.keys(files).forEach(function (path) {
-      if (path.endsWith(".css")) { css.push(files[path]); return; }
-      var out = Babel.transform(rewrite(path, files[path]), { presets: [["react", { runtime: "automatic" }]], filename: path, sourceType: "module" }).code;
-      outputs.push(out);
-      var url = URL.createObjectURL(new Blob([out], { type: "text/javascript" }));
-      imports[spec(path)] = url; imports["@/" + path.replace(/^src\//, "")] = url;
-    });
-    // While the AI is still writing, files that don't exist yet are shown as shimmering placeholders.
-    if (opts.stubs) {
-      var wanted = {};
-      outputs.forEach(function (out) {
-        var re = /import\s+([\w$]+)?\s*,?\s*(\{[^}]*\})?\s*from\s*["'](@\/[^"']+)["']/g, m;
-        while ((m = re.exec(out))) {
-          if (imports[m[3]]) continue;
-          var names = wanted[m[3]] || (wanted[m[3]] = {});
-          if (m[2]) m[2].slice(1, -1).split(",").forEach(function (part) { var n = part.trim().split(/\s+as\s+/)[0].trim(); if (n && n !== "default") names[n] = 1; });
-        }
-      });
-      Object.keys(wanted).forEach(function (s) {
-        // The placeholder says which part is still being written ("Writing Recipe List...").
-        var label = "Writing " + s.split("/").pop().replace(/([a-z])([A-Z])/g, "$1 $2") + "\u2026";
-        var lines = ["import React from 'react';", "function TlStub() { return React.createElement('div', { className: 'tl-stub', 'aria-hidden': true }, React.createElement('span', null, " + JSON.stringify(label) + ")); }", "export default TlStub;"];
-        Object.keys(wanted[s]).forEach(function (n) { if (n !== "TlStub") lines.push("export const " + n + " = " + (/^[A-Z][a-z]/.test(n) ? "TlStub" : "[]") + ";"); });
-        imports[s] = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/javascript" }));
-      });
-    }
-    var style = document.createElement("style"); style.textContent = css.join("\n"); document.head.appendChild(style);
-    var map = document.createElement("script"); map.type = "importmap"; map.textContent = JSON.stringify({ imports: imports }); document.head.appendChild(map);
-  } catch (e) { fail("Couldn't read the app's code: " + (e && e.message ? e.message : e)); return; }
+  // Libraries come from an import map (set once). The app's own files become blob modules that import each other by
+  // address, so a new version can be loaded into the same page without reloading it.
+  var map = document.createElement("script"); map.type = "importmap";
+  map.textContent = JSON.stringify({ imports: JSON.parse(document.getElementById("tl-libs").textContent) });
+  document.head.appendChild(map);
+  var style = document.createElement("style"); document.head.appendChild(style);
 
-  var boot = document.createElement("script"); boot.type = "module";
-  boot.textContent = [
-    "import React from 'react';",
-    "import { createRoot } from 'react-dom/client';",
-    "import App from '@/App';",
-    "class Boundary extends React.Component {",
-    "  constructor(p) { super(p); this.state = { error: null }; }",
-    "  static getDerivedStateFromError(error) { return { error: error }; }",
-    "  componentDidCatch(error) { window.dispatchEvent(new ErrorEvent('error', { message: String(error && error.message || error) })); }",
-    "  render() { return this.state.error ? null : this.props.children; }",
-    "}",
-    "createRoot(document.getElementById('root')).render(React.createElement(Boundary, null, React.createElement(App)));",
-    "parent.postMessage({ source: 'tl-app', type: 'ready', doc: window.__tlDoc }, '*');"
-  ].join("\n");
-  boot.onerror = function () { fail("The app couldn't start."); };
-  document.body.appendChild(boot);
+  var compiled = {}; // path -> { source, out }: a file that didn't change isn't compiled again
+  var modules = {};  // code -> blob address: the same code is the same module
+  function moduleUrl(code) { return modules[code] || (modules[code] = URL.createObjectURL(new Blob([code], { type: "text/javascript" }))); }
+
+  // A file that is imported but not written yet is a placeholder saying what's coming ("Writing Recipe List...").
+  function placeholder(s, names) {
+    var label = "Writing " + s.split("/").pop().replace(/([a-z])([A-Z])/g, "$1 $2") + "…";
+    var lines = ["import { createElement } from 'react';", "function TlStub() { return createElement('div', { className: 'tl-stub', 'aria-hidden': true }, createElement('span', null, " + JSON.stringify(label) + ")); }", "export default TlStub;"];
+    Object.keys(names).forEach(function (n) { if (n !== "TlStub" && n !== "createElement") lines.push("export const " + n + " = " + (/^[A-Z][a-z]/.test(n) ? "TlStub" : "[]") + ";"); });
+    return lines.join("\n");
+  }
+
+  function build(files, stubs) {
+    var css = [], out = {};
+    Object.keys(files).sort().forEach(function (path) {
+      var source = files[path];
+      if (/\.css$/.test(path)) { css.push(source); return; }
+      var hit = compiled[path];
+      if (hit && hit.source === source) { out[path] = hit.out; return; }
+      try {
+        var code = Babel.transform(rewrite(path, source), { presets: [["react", { runtime: "automatic" }]], filename: path, sourceType: "module" }).code;
+        compiled[path] = { source: source, out: code };
+        out[path] = code;
+      } catch (e) {
+        if (!stubs) throw e; // half-written and not readable yet: its placeholder shows instead
+      }
+    });
+    style.textContent = css.join("\n");
+
+    var bySpec = {};
+    Object.keys(out).forEach(function (p) { bySpec[spec(p)] = p; bySpec["@/" + p.replace(/^src\//, "")] = p; });
+    var wanted = {};
+    if (stubs) Object.keys(out).forEach(function (p) {
+      var re = /import\s+([\w$]+)?\s*,?\s*(\{[^}]*\})?\s*from\s*["'](@\/[^"']+)["']/g, m;
+      while ((m = re.exec(out[p]))) {
+        if (bySpec[m[3]]) continue;
+        var names = wanted[m[3]] || (wanted[m[3]] = {});
+        if (m[2]) m[2].slice(1, -1).split(",").forEach(function (part) { var n = part.trim().split(/\s+as\s+/)[0].trim(); if (n && n !== "default") names[n] = 1; });
+      }
+    });
+
+    var done = {}, visiting = {};
+    function link(s) {
+      var p = bySpec[s];
+      if (!p) return wanted[s] ? moduleUrl(placeholder(s, wanted[s])) : null;
+      if (done[p]) return done[p];
+      if (visiting[p]) return null; // files that import each other in a loop: the browser reports it
+      visiting[p] = true;
+      var code = out[p].replace(/(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(["'])(@\/[^"']+)\2/g, function (m, pre, q, s2) {
+        var u = link(s2);
+        return u ? pre + q + u + q : m;
+      });
+      return (done[p] = moduleUrl(code));
+    }
+    var app = link("@/App");
+    if (!app) throw new Error("The app needs a src/App.jsx file.");
+    return { url: app, motion: Object.keys(files).some(function (p) { return files[p].indexOf("framer-motion") !== -1; }) };
+  }
+
+  var React, ReactDOM, Boundary, root = null, latest = 0;
+  var libs = Promise.all([import("react"), import("react-dom/client")]).then(function (m) {
+    React = m[0].default || m[0];
+    ReactDOM = m[1];
+    Boundary = class extends React.Component {
+      constructor(p) { super(p); this.state = { error: null }; }
+      static getDerivedStateFromError(error) { return { error: error }; }
+      componentDidCatch(error) { fail(String((error && error.message) || error)); }
+      render() { return this.state.error ? null : this.props.children; }
+    };
+  });
+
+  function start(files, stubs, r) {
+    var n = ++latest;
+    var built;
+    try { built = build(files, stubs); } catch (e) {
+      if (stubs) return; // keep showing the last version that worked
+      rev = r; draft = false;
+      fail("Couldn't read the app's code: " + (e && e.message ? e.message : e));
+      return;
+    }
+    // While the AI is writing, the page is rebuilt every moment; animations would replay each time, so they're skipped.
+    var motion = built.motion ? import("framer-motion").then(function (m) { if (m.MotionGlobalConfig) m.MotionGlobalConfig.skipAnimations = stubs; }, function () {}) : null;
+    Promise.all([libs, motion]).then(function () { return import(built.url); }).then(function (mod) {
+      if (n !== latest) return;
+      rev = r; draft = stubs;
+      clearError();
+      if (!root) root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(React.createElement(Boundary, { key: n }, mod.default ? React.createElement(mod.default) : null));
+      send("ready");
+    }, function (e) {
+      if (n !== latest || stubs) return;
+      rev = r; draft = false;
+      fail(String((e && e.message) || e));
+    });
+  }
+
+  // New versions from the builder arrive as messages and replace the app in place.
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (e.source !== parent || !d || d.source !== "tl-builder" || d.type !== "files") return;
+    start(d.files, !!d.stubs, d.rev);
+  });
+  start(JSON.parse(document.getElementById("tl-files").textContent), draft, rev);
+  send("booted");
 })();
 `;
 
@@ -147,8 +212,8 @@ export interface DocumentOptions {
   accent?: string;
   /** Show files that are imported but not written yet as placeholders (the preview while the AI is still writing). */
   stubs?: boolean;
-  /** Sent back with every message from the page, so the builder knows which page is speaking. */
-  doc?: string;
+  /** The version number of these files; the page sends it back with every message. */
+  rev?: number;
 }
 
 export function buildCodeDocument(files: CodeFiles, options: DocumentOptions): string {
@@ -170,7 +235,7 @@ export function buildCodeDocument(files: CodeFiles, options: DocumentOptions): s
 <div id="tl-loading"><i></i></div>
 <script type="application/json" id="tl-files">${embedJson(Object.fromEntries(Object.keys(files).sort().map((path) => [path, files[path]])))}</script>
 <script type="application/json" id="tl-libs">${embedJson(LIBS)}</script>
-<script type="application/json" id="tl-opts">${embedJson({ stubs: options.stubs === true, doc: options.doc ?? "" })}</script>
+<script type="application/json" id="tl-opts">${embedJson({ stubs: options.stubs === true, rev: options.rev ?? 0 })}</script>
 <script src="${BABEL_URL}"></script>
 <script>${RUNTIME}</script>
 </body>

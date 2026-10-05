@@ -76,7 +76,19 @@ writes a React app, shown live next to the chat. The block-based chat above stil
   to every new app), named in the plan as "shares: <key>". Their
   output is streamed to the browser as whole `<file>` blocks, held back while the plan step is inside a `<file>` or
   `<reply>`, and announced with `<writing path="…"/>` lines.
-- The preview fills in while the AI writes: as soon as App.jsx exists, the page shows the real layout with shimmering
+- Sections stream onto the screen while they are written (added 2026-10-05). Each section's text is forwarded as
+  `<tl-chunk path>` pieces 10 times a second (`demux` in `protocol.ts` takes them out before the rest is read).
+  `runnablePartial` (`src/lib/code/partial.ts`) cuts a half-written file at the last point inside JSX children and closes
+  what is open (elements, brackets, `a ? (` gets `: null`); its default export is wrapped so an error shows the placeholder.
+  Checked against every 5th-character cut of 72 real AI-written sections (35,271 shown, all parse). Until App.jsx arrives,
+  the builder stacks the planned sections; before any is planned it shows "Planning your app…".
+- The preview page is loaded once (`buildCodeDocument`), and every later version (each moment of a build, the saved
+  result, an old version) is posted into it (`{source:"tl-builder", type:"files", rev, files, stubs}`) and swapped in
+  place: the app's files become blob modules that import each other by address (libraries stay in the import map), a
+  file whose source didn't change isn't compiled again, and animations are skipped while drafting. Messages from the page
+  carry `rev`, so news about a replaced version is ignored. Known limit: files that import each other in a loop aren't
+  supported (the browser reports an error, which goes to the AI).
+- (Before streaming) The preview fills in while the AI writes: as soon as App.jsx exists, the page shows the real layout with shimmering
   placeholders for sections not written yet (`buildCodeDocument(…, { stubs: true })`), and each section appears as it lands.
   Errors from those half-written pages are ignored (every page message carries a `doc` id).
 - Anthropic prompt caching on the long instructions. The mic sends what was said as soon as speaking stops.

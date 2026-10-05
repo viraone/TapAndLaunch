@@ -1,5 +1,6 @@
 import { applyChanges, isValidPath, parseReply, type CodeFiles } from "./files";
 import { filesContext } from "./prompt";
+import { chunk } from "./protocol";
 
 /**
  * A brand-new app is built in two steps so the owner isn't kept waiting: first the AI writes a short plan and
@@ -173,7 +174,18 @@ export type FirstBuildResult = { reply: string; changes: Record<string, string> 
  * written, a <writing path="..."/> line as each section starts, and each section's <file> once it is done. Sections
  * start the moment their plan line arrives, so they are written while the plan step is still writing App.jsx.
  */
-export async function firstBuild(opts: { files: CodeFiles; message: string; history: Array<{ role: "user" | "assistant"; content: string }>; ask: Ask; send: (text: string) => void }): Promise<FirstBuildResult> {
+type BuildOptions = { files: CodeFiles; message: string; history: Array<{ role: "user" | "assistant"; content: string }>; ask: Ask; send: (text: string) => void };
+
+export async function firstBuild(opts: BuildOptions): Promise<FirstBuildResult> {
+  const timers: Array<ReturnType<typeof setInterval>> = [];
+  try {
+    return await build(opts, timers);
+  } finally {
+    timers.forEach(clearInterval);
+  }
+}
+
+async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInterval>>): Promise<FirstBuildResult> {
   // Each section's result. These never reject (a failure is kept as `error`), so a section that fails while the plan is
   // still being written can't become an unhandled rejection.
   const launched = new Map<string, Promise<{ path: string; content: string | null; error?: unknown }>>();
@@ -201,12 +213,30 @@ export async function firstBuild(opts: { files: CodeFiles; message: string; hist
     if (safe()) while (queue.length) opts.send(queue.shift() as string);
   };
 
+  // Each section's text as it is written, sent 10 times a second so the preview can show it being built.
+  const buffers = new Map<string, { text: string; reset: boolean }>();
+  const flushPieces = () => {
+    // Pieces can go out right away, even mid-plan: the browser takes them out of the stream before reading the rest.
+    for (const [path, b] of buffers) if (b.text || b.reset) opts.send(chunk(path, b.text, b.reset));
+    buffers.clear();
+  };
+  timers.push(setInterval(flushPieces, 100));
+  const piece = (path: string, text: string, reset: boolean) => {
+    const b = buffers.get(path) ?? { text: "", reset: false };
+    if (reset) {
+      b.text = "";
+      b.reset = true;
+    }
+    b.text += text;
+    buffers.set(path, b);
+  };
+
   const launch = (path: string, usedAs: string[], plan: string | undefined, app?: string) => {
     if (launched.has(path) || launched.size >= MAX_PARTS) return;
     emit(`\n<writing path="${path}" />`);
     launched.set(
       path,
-      writePart(opts.ask, partMessage({ message: opts.message, design, app, path, plan, usedAs }), path).then(
+      writePart(opts.ask, partMessage({ message: opts.message, design, app, path, plan, usedAs }), path, (text, reset) => piece(path, text, reset)).then(
         (content) => {
           if (content !== null) emit(`\n<file path="${path}">\n${content}\n</file>`);
           return { path, content };
@@ -269,10 +299,16 @@ export async function firstBuild(opts: { files: CodeFiles; message: string; hist
   return { reply: first.reply, changes };
 }
 
-async function writePart(ask: Ask, content: string, path: string): Promise<string | null> {
+async function writePart(ask: Ask, content: string, path: string, onText: (piece: string, reset: boolean) => void): Promise<string | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const parsed = parseReply(await ask([{ role: "user", content }]));
+      let first = true;
+      const parsed = parseReply(
+        await ask([{ role: "user", content }], (piece) => {
+          onText(piece, first && attempt > 0);
+          first = false;
+        })
+      );
       const exact = parsed.changes[path];
       if (typeof exact === "string" && exact.trim()) return exact;
       // A model that names the file slightly differently still wrote the right thing.

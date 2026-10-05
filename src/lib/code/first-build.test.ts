@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { firstBuild, isFreshApp, missingImports, parsePlan, SlowDown, type Ask } from "./first-build";
 import { starterFiles } from "./prompt";
 import { parseReply } from "./files";
+import { demux } from "./protocol";
 
 const APP = `import React from 'react';
 import Header from '@/components/Header';
@@ -168,5 +169,29 @@ describe("the two-step build", () => {
     const result = await firstBuild({ files: starterFiles("x"), message: "x", history: [], ask, send: () => {} });
     expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Details.jsx", "src/components/Picker.jsx", "src/lib/shared.js"]);
     expect("changes" in result && result.changes["src/lib/shared.js"]).toContain("export function useShared");
+  });
+
+  it("streams each section's text as it is written, in pieces the browser can separate", async () => {
+    const heroText = `<file path="src/components/Hero.jsx">\nexport default function Hero() {\n  return (\n    <section>\n      <h1>Fresh cuts</h1>\n    </section>\n  );\n}\n</file>`;
+    const ask: Ask = async (turns, onText) => {
+      const last = turns.at(-1)?.content ?? "";
+      if (last.includes("This is a NEW app")) return `<plan>\ndesign: x\nsrc/components/Hero.jsx: y\n</plan><file path="src/App.jsx">\nimport Hero from '@/components/Hero';\nexport default () => <Hero />;\n</file>`;
+      for (const piece of heroText.match(/[\s\S]{1,20}/g) ?? []) {
+        onText?.(piece);
+        await wait(40);
+      }
+      return heroText;
+    };
+    const sent: string[] = [];
+    await firstBuild({ files: starterFiles("x"), message: "x", history: [], ask, send: (t) => sent.push(t) });
+    const all = sent.join("");
+    expect(all).toContain('<tl-chunk path="src/components/Hero.jsx">');
+    const { main, streams } = demux(all);
+    expect(streams["src/components/Hero.jsx"]).toBe(heroText);
+    expect(main).not.toContain("tl-chunk");
+    expect(parseReply(main).changes["src/components/Hero.jsx"]).toContain("<h1>Fresh cuts</h1>");
+    // Half-way through, the pieces received so far are the start of the section.
+    const half = demux(all.slice(0, all.indexOf("Fresh") + 20)).streams["src/components/Hero.jsx"] ?? "";
+    expect(heroText.startsWith(half)).toBe(true);
   });
 });
