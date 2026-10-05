@@ -71,7 +71,9 @@ writes a React app, shown live next to the chat. The block-based chat above stil
   `<plan>` first (a design line, then `sections: A (shares key), B, C`, which starts every section at once; the older
   one-line-per-file shape still works), then a one-line reply and `src/App.jsx`. Each section starts in
   its own AI call the moment its plan line arrives, so they are written while App.jsx is still being written; anything still
-  missing after that (`missingImports`) gets one more round. Sections are asked to be self-contained and ~50 lines; the
+  missing after that (`missingImports`) gets one more round. Each section call is capped at `PART_MAX_TOKENS` (850, about
+  2,700 characters) because the model doesn't keep to a requested length; a section that reaches it is ended after its
+  last whole element (`salvage` in `partial.ts`) and marked `cut` in the timeline. Sections are self-contained; the
   slowest section sets the total, so the plan splits anything long (a booking form becomes a picker and a details form).
   Split sections share values through `src/lib/shared.js` (`useShared(key, initial)`, written by us, not the AI, and added
   to every new app), named in the plan as "shares: <key>".

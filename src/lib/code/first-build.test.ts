@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accentOf, fallbackApp, firstBuild, isFreshApp, missingImports, parsePlan, SlowDown, uiKit, type Ask } from "./first-build";
+import { accentOf, fallbackApp, firstBuild, PART_MAX_TOKENS, isFreshApp, missingImports, parsePlan, SlowDown, uiKit, type Ask, type BuildTimeline } from "./first-build";
 import { parse } from "@babel/parser";
 import { starterFiles } from "./prompt";
 import { parseReply } from "./files";
@@ -282,5 +282,27 @@ describe("the two-step build", () => {
     expect(picker).toContain('id="servicepicker"');
     expect(asked["src/components/Hero.jsx"]).not.toContain("What it must do: shares");
     expect("changes" in result && result.changes["src/lib/ui.jsx"]).toContain("bg-rose-600");
+  });
+
+  it("caps how much a section may write, and keeps a section that hit the cap, ended cleanly", async () => {
+    const caps: Array<number | undefined> = [];
+    const ask: Ask = async (turns, _onText, _signal, maxTokens) => {
+      const last = turns.at(-1)?.content ?? "";
+      if (last.includes("This is a NEW app")) return `<plan>\ndesign: x\nsections: Reviews, Hero\n</plan><file path="src/App.jsx">\nimport Reviews from '@/components/Reviews';\nimport Hero from '@/components/Hero';\nexport default () => <><Hero /><Reviews /></>;\n</file>`;
+      caps.push(maxTokens);
+      const path = /Your file: (\S+)/.exec(last)?.[1] as string;
+      // Reviews runs into its limit mid-sentence.
+      if (path.endsWith("Reviews.jsx")) return `<file path="${path}">\nexport default function Reviews() {\n  return (\n    <section>\n      <h2>Reviews</h2>\n      <p>Absolutely love th`;
+      return `<file path="${path}">\nexport default function Hero() { return <h1>Hi</h1>; }\n</file>`;
+    };
+    const timeline: BuildTimeline = { sections: {} };
+    const result = await firstBuild({ files: starterFiles("x"), message: "x", history: [], ask, send: () => {}, timeline });
+    if (!("changes" in result)) throw new Error(JSON.stringify(result));
+    expect(caps).toEqual([PART_MAX_TOKENS, PART_MAX_TOKENS]);
+    expect(result.changes["src/components/Reviews.jsx"]).toContain("<h2>Reviews</h2>");
+    expect(result.changes["src/components/Reviews.jsx"]).not.toContain("Absolutely");
+    expect(parse(result.changes["src/components/Reviews.jsx"] as string, { sourceType: "module", plugins: ["jsx"] })).toBeTruthy();
+    expect(timeline.sections["src/components/Reviews.jsx"]?.cut).toBe(true);
+    expect(timeline.sections["src/components/Hero.jsx"]?.cut).toBeUndefined();
   });
 });

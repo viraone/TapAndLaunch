@@ -123,7 +123,9 @@ export async function streamText(
   system: string,
   turns: ChatTurn[],
   onText: (piece: string) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  /** The most the model may write (in tokens). The answer just stops there. */
+  maxTokens = 16000
 ): Promise<string> {
   const timeout = AbortSignal.timeout(280_000);
   const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
@@ -133,13 +135,13 @@ export async function streamText(
           method: "POST",
           headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
           // The long instructions are cached by Anthropic for a few minutes, so follow-up requests start sooner and cost less.
-          body: JSON.stringify({ model, max_tokens: 16000, stream: true, system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }], messages: turns }),
+          body: JSON.stringify({ model, max_tokens: maxTokens, stream: true, system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }], messages: turns }),
           signal: combined,
         })
       : await fetch(`${base("openai")}/v1/chat/completions`, {
           method: "POST",
           headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-          body: JSON.stringify({ model, stream: true, max_completion_tokens: 16000, messages: [{ role: "system", content: system }, ...turns] }),
+          body: JSON.stringify({ model, stream: true, max_completion_tokens: maxTokens, messages: [{ role: "system", content: system }, ...turns] }),
           signal: combined,
         });
   if (!res.ok || !res.body) {

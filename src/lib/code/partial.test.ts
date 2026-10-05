@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parse } from "@babel/parser";
-import { closePartialJsx, runnablePartial } from "./partial";
+import { closePartialJsx, runnablePartial, salvage } from "./partial";
 
 const SECTION = `import { useState } from 'react';
 import { Check, Star } from 'lucide-react';
@@ -93,5 +93,21 @@ describe("closing a half-written section", () => {
   it("shows nothing until the component has started its JSX", () => {
     expect(runnablePartial("src/components/A.jsx", SECTION.slice(0, SECTION.indexOf("return (")))).toBeNull();
     expect(runnablePartial("src/components/A.jsx", "")).toBeNull();
+  });
+
+  it("ends a section that hit its length limit after its last whole element, never mid-sentence", () => {
+    const cut = "export default function Reviews() {\n  return (\n    <section>\n      <h2>Reviews</h2>\n      <p>Absolutely love th";
+    expect(salvage("src/components/Reviews.jsx", cut)).toBe("export default function Reviews() {\n  return (\n    <section>\n      <h2>Reviews</h2>\n      </section>)}");
+    expect(salvage("src/components/Hero.jsx", "function Hero() {\n  return <div><h1>Hi</h1><p>The")).toBe("function Hero() {\n  return <div><h1>Hi</h1></div>}\nexport default Hero;");
+    expect(salvage("src/components/A.jsx", "const A = [1, 2")).toBeNull();
+    let kept = 0;
+    for (let at = 0; at <= SECTION.length; at += 3) {
+      const out = salvage("src/components/ServicePicker.jsx", SECTION.slice(0, at));
+      if (out === null) continue;
+      kept += 1;
+      expect(parses(out), `cut at ${at}`).toBe(true);
+      expect(out).toMatch(/export\s+default/);
+    }
+    expect(kept).toBeGreaterThan(0);
   });
 });

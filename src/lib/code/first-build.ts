@@ -1,6 +1,7 @@
 import { applyChanges, isValidPath, parseReply, type CodeFiles } from "./files";
 import { filesContext } from "./prompt";
 import { chunk } from "./protocol";
+import { salvage } from "./partial";
 
 /**
  * A brand-new app is built in two steps so the owner isn't kept waiting: first the AI writes a short plan and
@@ -9,12 +10,19 @@ import { chunk } from "./protocol";
  */
 
 /** One call to the AI: the conversation so far, and (optionally) a callback for the answer as it streams. */
-export type Ask = (turns: Array<{ role: "user" | "assistant"; content: string }>, onText?: (piece: string) => void, signal?: AbortSignal) => Promise<string>;
+export type Ask = (turns: Array<{ role: "user" | "assistant"; content: string }>, onText?: (piece: string) => void, signal?: AbortSignal, maxTokens?: number) => Promise<string>;
 
 /** Thrown by `ask` when the provider says to slow down; the section is tried again after a short pause. */
 export class SlowDown extends Error {}
 
 const STARTER_MARK = "Your app starts here.";
+/**
+ * The most a section may write (in tokens, about 2,700 characters). The slowest section sets the build time, and the
+ * AI doesn't keep to a line count it's asked for, so this is enforced: a section that reaches it is ended cleanly after
+ * its last whole element (see `salvage`).
+ */
+export const PART_MAX_TOKENS = 850;
+
 /** Sections written at once. More than this is a sign the plan went wrong. */
 const MAX_PARTS = 10;
 /** A section can import a helper that doesn't exist yet; that gets written in a second round, at most. */
@@ -150,14 +158,14 @@ export function Badge({ className, children }) {
   return <span className={cx('inline-flex items-center gap-1.5 rounded-full bg-${a}-50 px-3 py-1 text-sm font-semibold text-${a}-700 ring-1 ring-${a}-100', className)}>{children}</span>;
 }
 
-// A labelled form control: <Field label="Dog's name" name="dog" required />, as="select" with options, or as="textarea".
+// A labelled form control: <Field label="Dog's name" name="dog" required />, as="select" with options (text, or { label, value }), or as="textarea".
 export function Field({ label, as = 'input', options = [], className, ...props }) {
   const control = 'mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-${a}-500 focus:ring-2 focus:ring-${a}-500/30';
   return (
     <label className={cx('block text-sm font-medium text-slate-700', className)}>
       {label}
       {as === 'select' ? (
-        <select className={control} {...props}>{options.map((o) => <option key={o}>{o}</option>)}</select>
+        <select className={control} {...props}>{options.map((o) => typeof o === 'object' ? <option key={o.value ?? o.label} value={o.value ?? o.label}>{o.label ?? o.value}</option> : <option key={o}>{o}</option>)}</select>
       ) : as === 'textarea' ? (
         <textarea rows={3} className={control} {...props} />
       ) : (
@@ -264,7 +272,7 @@ This is a NEW app. To build it fast, answer with ONLY these three things, in thi
 design: one line every section will follow: accent color (a Tailwind color name), backgrounds, headline style, corner radius, mood
 sections: ServicePicker (shares service), BookingDetails (shares service), Hero, Testimonials
 </plan>
-- sections: 3 to 6 component names in PascalCase that say clearly what each one is. All of them start being written the moment this line is done, by writers who see only the names, so choose names that explain themselves. NO header and NO footer: those are ready-made.
+- sections: 4 to 6 component names in PascalCase that say clearly what each one is. All of them start being written the moment this line is done, by writers who see only the names, so choose names that explain themselves. NO header and NO footer: those are ready-made.
 - Each section is small (about 35 lines): a form has at most 4 fields, a list at most 3 items. Anything bigger is two sections: a booking form becomes ServicePicker + BookingDetails, a schedule with filters becomes ScheduleFilters + ScheduleList.
 - Two sections that must share something (the chosen service, a selected day, a cart) both get "(shares <key>)" with the same key.
 <reply>One friendly sentence about what you're building.</reply>
@@ -296,7 +304,7 @@ ${input.usedAs.join("\n")}
 ${name ? `Write it as \`export default function ${name}() { ... }\` and add \`export { ${name} };\` at the end, so either kind of import works.` : ""}
 
 Answer with ONLY <file path="${input.path}">...the complete file...</file>. No <reply>.
-- About 35 lines, never more than 50. Speed matters: the owner is watching, and the slowest file holds up the whole app.
+- About 35 lines. There is a HARD limit of about 2,500 characters: anything past it is cut off, so put the essentials first and keep text short. Speed matters: the owner is watching, and the slowest file holds up the whole app.
 - Keep the content small: a form has at most 4 fields and uses the browser's \`required\` (and \`type="email"\`) instead of validation code or per-field error messages; at most 3 cards or list items; at most 3 FAQ entries; no long arrays of options. The owner can ask for more later.
 - Self-contained: keep its sample data inside this file. Do NOT import other files from src/ (they are being written right now), except the two below. Import only react, the allowed libraries, '@/lib/ui' and '@/lib/shared'.
 - src/lib/ui.jsx already exists and matches the design: \`import { Section, Heading, Button, Card, Badge, Field, Success } from '@/lib/ui'\`. (It also has SiteHeader and SiteFooter, which App.jsx already uses: don't add a header or footer.) Use it for the common pieces, ESPECIALLY \`<Field label="Your email" name="email" type="email" required />\` for every form control (as="select" with options={[...]}, or as="textarea"), \`<Button>\` / \`<Button href="#book" variant="secondary">\` for buttons, \`<Section id="...">\` + \`<Heading eyebrow title subtitle />\` for a section's frame, and \`<Success title="...">\` after a form is sent. Plain Tailwind for everything else.
@@ -342,7 +350,7 @@ export type FirstBuildResult = { reply: string; changes: Record<string, string> 
 export interface BuildTimeline {
   planFirstText?: number;
   planDone?: number;
-  sections: Record<string, { start: number; firstText?: number; done?: number; chars?: number }>;
+  sections: Record<string, { start: number; firstText?: number; done?: number; chars?: number; cut?: boolean }>;
 }
 
 type BuildOptions = {
@@ -431,7 +439,16 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     emit(`\n<writing path="${path}" />`);
     launched.set(
       path,
-      writePart(opts.ask, partMessage({ message: opts.message, design, app, path, plan, usedAs, others }), path, (text, reset) => piece(path, text, reset)).then(
+      writePart(
+        opts.ask,
+        partMessage({ message: opts.message, design, app, path, plan, usedAs, others }),
+        path,
+        (text, reset) => piece(path, text, reset),
+        () => {
+          const t = timeline?.sections[path];
+          if (t) t.cut = true;
+        }
+      ).then(
         (content) => {
           const t = timeline?.sections[path];
           if (t) {
@@ -546,21 +563,33 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
   return { reply: first.reply, changes };
 }
 
-async function writePart(ask: Ask, content: string, path: string, onText: (piece: string, reset: boolean) => void): Promise<string | null> {
+async function writePart(ask: Ask, content: string, path: string, onText: (piece: string, reset: boolean) => void, onCut: () => void): Promise<string | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       let first = true;
       const parsed = parseReply(
-        await ask([{ role: "user", content }], (piece) => {
-          onText(piece, first && attempt > 0);
-          first = false;
-        })
+        await ask(
+          [{ role: "user", content }],
+          (piece) => {
+            onText(piece, first && attempt > 0);
+            first = false;
+          },
+          undefined,
+          PART_MAX_TOKENS
+        )
       );
       const exact = parsed.changes[path];
       if (typeof exact === "string" && exact.trim()) return exact;
       // A model that names the file slightly differently still wrote the right thing.
       const only = Object.values(parsed.changes).filter((c): c is string => typeof c === "string");
       if (only.length === 1 && (only[0] as string).trim()) return only[0] as string;
+      // It reached its length limit: keep what it wrote, ended after its last whole element.
+      const unfinished = parsed.partial[path] ?? Object.values(parsed.partial)[0];
+      const kept = unfinished === undefined ? null : salvage(path, unfinished);
+      if (kept) {
+        onCut();
+        return kept;
+      }
     } catch (error) {
       if (!(error instanceof SlowDown) || attempt === 1) throw error;
       await new Promise((r) => setTimeout(r, 3000));

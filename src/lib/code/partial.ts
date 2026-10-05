@@ -36,7 +36,12 @@ function closersFor(stack: Frame[]): string {
 const cloneStack = (stack: Frame[]): Frame[] => stack.map((f) => ({ ...f }));
 
 /** The prefix cut at the last safe point plus the code that closes it, or null when there's no safe point yet. */
-export function closePartialJsx(source: string): string | null {
+export function closePartialJsx(source: string, options: { atElement?: boolean } = {}): string | null {
+  // atElement: only cut right after a whole element (never in the middle of a sentence), for a file that was cut off
+  // for good rather than one still being written.
+  const atElement = options.atElement === true;
+  // 2: just after something finished (a closed element, a whole {expression}); 1: just after an opening tag; 0: in text.
+  let boundary = 2;
   const stack: Frame[] = [{ t: "js", close: "", ternaries: 0 }];
   let last = ""; // the last significant character in JS
   let word = ""; // the word being read, and the last whole word, in JS
@@ -50,7 +55,7 @@ export function closePartialJsx(source: string): string | null {
     const c = source[i] as string;
 
     if (top.t === "children") {
-      safe = { at: i, stack: cloneStack(stack) };
+      if (!atElement || boundary === 2) safe = { at: i, stack: cloneStack(stack) };
       if (c === "{") {
         stack.push({ t: "js", close: "}", ternaries: 0 });
         last = "{";
@@ -64,13 +69,14 @@ export function closePartialJsx(source: string): string | null {
           stack.pop();
           i = end;
           last = "x";
+          boundary = 2;
         } else {
           const m = /^<([A-Za-z0-9_.:-]*)/.exec(source.slice(i, i + 80));
           const name = m?.[1] ?? "";
           stack.push({ t: "tag", name });
           i += name.length;
         }
-      }
+      } else if (!/\s/.test(c)) boundary = 0;
       continue;
     }
 
@@ -100,9 +106,11 @@ export function closePartialJsx(source: string): string | null {
         stack.pop();
         i++;
         last = "x";
+        boundary = 2;
       } else if (c === ">") {
         stack.pop();
         stack.push({ t: "children", name: top.name });
+        boundary = 1;
       }
       continue;
     }
@@ -148,6 +156,7 @@ export function closePartialJsx(source: string): string | null {
       last = c;
     } else if (c === ")" || c === "]" || c === "}") {
       if (top.close === c && stack.length > 1) stack.pop();
+      if (stack[stack.length - 1]?.t === "children") boundary = 2;
       last = c === "}" ? "}" : "x";
       if (c === "}" && stack[stack.length - 1]?.t !== "js") last = "x";
     } else if (c === "?") {
@@ -173,7 +182,7 @@ export function closePartialJsx(source: string): string | null {
   }
 
   // Ended in the middle of text: keep every character written so far.
-  if (!cutShort && stack[stack.length - 1]?.t === "children") safe = { at: n, stack: cloneStack(stack) };
+  if (!cutShort && (!atElement || boundary === 2) && stack[stack.length - 1]?.t === "children") safe = { at: n, stack: cloneStack(stack) };
   if (!safe) return null;
   const closers = closersFor(safe.stack);
   if (!closers) return null;
@@ -227,4 +236,17 @@ class __TlSafe extends __TlComponent {
 }
 export default function __TlPartial(props) { return __tlH(__TlSafe, null, __tlH(${main}, props)); }
 `;
+}
+
+/**
+ * A section the AI didn't finish (it reached its length limit), ended cleanly: cut after the last whole element and
+ * closed, with its default export kept. Null when it stopped before its JSX began, so there's nothing to keep.
+ */
+export function salvage(path: string, source: string): string | null {
+  const body = source.replace(/^\s*```[a-zA-Z]*\n/, "");
+  const closed = closePartialJsx(body, { atElement: true });
+  if (!closed) return null;
+  if (/export\s+default/.test(closed)) return closed;
+  const name = nameOf(path);
+  return new RegExp(`(function|const|let)\\s+${name}\\b`).test(closed) ? `${closed}\nexport default ${name};` : null;
 }
