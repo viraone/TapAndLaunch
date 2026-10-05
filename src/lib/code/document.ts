@@ -73,6 +73,17 @@ const RUNTIME = String.raw`
   function rewrite(path, source) {
     // Style files are added to the page directly, so importing them is a no-op.
     source = source.replace(/^[ \t]*import\s+["'][^"']+\.css["'];?[ \t]*$/gm, "");
+    // An icon name lucide doesn't have would stop the whole app; it shows as a plain circle instead.
+    var icons = 0;
+    source = source.replace(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["'];?/g, function (m, names) {
+      var ns = "__tlIcons" + (icons++);
+      var out = "import * as " + ns + " from 'lucide-react';";
+      names.split(",").forEach(function (part) {
+        var bits = part.trim().split(/\s+as\s+/), name = (bits[0] || "").trim(), local = (bits[1] || bits[0] || "").trim();
+        if (name) out += " const " + local + " = " + ns + "[" + JSON.stringify(name) + "] || " + ns + ".CircleHelp || " + ns + ".Circle;";
+      });
+      return out;
+    });
     return source.replace(/(\bfrom\s*|\bimport\s*\(?\s*|\bimport\s+)(["'])(\.{1,2}\/[^"']+)\2/g, function (m, pre, q, rel) {
       return pre + q + resolve(path, rel) + q;
     });
@@ -83,7 +94,7 @@ const RUNTIME = String.raw`
     var outputs = [];
     Object.keys(files).forEach(function (path) {
       if (path.endsWith(".css")) { css.push(files[path]); return; }
-      var out = Babel.transform(rewrite(path, files[path]), { presets: [["react", { runtime: "classic" }]], filename: path, sourceType: "module" }).code;
+      var out = Babel.transform(rewrite(path, files[path]), { presets: [["react", { runtime: "automatic" }]], filename: path, sourceType: "module" }).code;
       outputs.push(out);
       var url = URL.createObjectURL(new Blob([out], { type: "text/javascript" }));
       imports[spec(path)] = url; imports["@/" + path.replace(/^src\//, "")] = url;

@@ -36,7 +36,7 @@ export const CODE_SYSTEM_PROMPT = `You are a senior product designer and React e
 - Libraries you may import, and nothing else: ${Object.keys(LIBS).filter((k) => !k.includes("/")).join(", ")}. Use lucide-react for all icons (for example \`import { Calendar, Check } from 'lucide-react'\`). Use HashRouter from react-router-dom for multiple pages, never BrowserRouter. Use framer-motion for tasteful animation.
 - There is NO backend, NO database and NO network API available yet. Keep data in React state (it resets on reload; localStorage is in-memory). Make it feel real: realistic sample data, working interactions (add, remove, filter, toggle, tabs, forms with validation, modals). Don't call fetch() to any server.
 - No TypeScript, no other file types, no environment variables, no <script> tags, no external CSS. No \`document.cookie\`, no \`window.parent\`, no \`eval\`.
-- Photos: you may use these library photos, which exist at https://tapandlaunch.com/templates/<name>.jpg : ${LIBRARY_PHOTOS.join(", ")}. For anything else use gradients, CSS shapes, emoji and icons. Never invent other image addresses.
+- Photos: you may use these library photos, which exist at https://tapandlaunch.com/templates/<name>.jpg : ${LIBRARY_PHOTOS.join(", ")}. Use one ONLY when its name clearly matches this business (a gym photo for a gym, a salon photo for a salon); a near match is wrong (never a gym or yoga photo for a pet groomer). When nothing matches, use no photo: gradients, CSS shapes, emoji and icons look better than the wrong picture. Never invent other image addresses.
 
 # Design: make it feel like a polished, modern product (this is what people notice first)
 - Mobile-first and fully responsive; looks great at 390px and at 1280px. Tap targets at least 44px.

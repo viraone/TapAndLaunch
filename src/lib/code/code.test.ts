@@ -127,3 +127,15 @@ describe("small edits", () => {
     expect(next).toEqual(files);
   });
 });
+
+describe("the preview runtime", () => {
+  const page = buildCodeDocument({ "src/App.jsx": "export default () => null" }, { title: "x" });
+  it("doesn't need every file to import React", () => {
+    expect(page).toContain('runtime: "automatic"');
+    expect(LIBS["react/jsx-runtime"]).toBeTruthy();
+  });
+  it("turns an icon name lucide doesn't have into a circle instead of a crash", () => {
+    expect(page).toContain("lucide-react");
+    expect(page).toContain(".CircleHelp || ");
+  });
+});
