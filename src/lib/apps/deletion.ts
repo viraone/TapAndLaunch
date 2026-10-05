@@ -1,4 +1,4 @@
-/** How long a deleted app can be restored before it is erased for good. Must match the 30 days in migration 0026. */
+/** How long a deleted app can be restored before it is erased for good. Must match the 30 days in migration 0027. */
 export const APP_RESTORE_DAYS = 30;
 
 const DAY_MS = 24 * 60 * 60 * 1000;

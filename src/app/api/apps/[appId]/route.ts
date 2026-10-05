@@ -75,7 +75,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ appId
 
 /**
  * Deletes an app, with a 30-day undo: it is hidden and unpublished at once, its custom domain is detached from
- * Vercel, and a daily job erases it for good after 30 days (see migration 0026). Admins only, and the app's name
+ * Vercel, and a daily job erases it for good after 30 days (see migration 0027). Admins only, and the app's name
  * must be typed as confirmation. The writes use the service role because the database rules deliberately hide
  * a deleted app from everyone, including the person deleting it.
  */
