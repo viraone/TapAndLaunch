@@ -22,7 +22,8 @@ export function safeReturnPath(path: unknown): string {
 
 /** `https://{slug}.{root}` — `http` when the root is a local address. */
 export function appOrigin(slug: string, rootDomain: string): string {
-  const local = /^(localhost|127\.|\d{1,3}(\.\d{1,3}){3})/.test(rootDomain);
+  // A local address: localhost or anything under it (`apps.localhost:3100`), or a plain IP address.
+  const local = /(^|\.)localhost(:\d+)?$|^127\.|^\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(rootDomain);
   return `${local ? "http" : "https"}://${slug}.${rootDomain}`;
 }
 

@@ -6,7 +6,7 @@ import { isPushConfigured, sendPush } from "@/lib/notifications/push";
 import { isEmailConfigured, sendEmailBatch } from "@/lib/notifications/email";
 import { fromHeader, renderEmailHtml, signUnsubscribe } from "@/lib/notifications/email-content";
 import { appOrigin } from "@/lib/stripe/checkout";
-import { getRootDomain } from "@/lib/tenant";
+import { rootDomainFor } from "@/lib/tenant";
 import { isSmsConfigured, sendSms } from "@/lib/notifications/sms";
 import { resolveEmailRecipients, resolvePushRecipients, resolveSmsRecipients } from "@/lib/notifications/recipients";
 import { recordAnalyticsEvent } from "@/lib/pwa/analytics";
@@ -88,12 +88,12 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
     );
   } else if (channel === "email") {
     const recipients = await resolveEmailRecipients(appId, target);
-    const { data: app } = await createAdminClient().from("apps").select("name, slug").eq("id", appId).single();
+    const { data: app } = await createAdminClient().from("apps").select("name, slug, kind").eq("id", appId).single();
     const secret = process.env.MEMBER_SESSION_SECRET;
     if (!app || !secret) return Response.json({ error: "Email is not set up correctly on this server" }, { status: 500 });
 
     // Every email carries its own unsubscribe link (also as the one-click header mail apps look for).
-    const origin = appOrigin(app.slug, getRootDomain());
+    const origin = appOrigin(app.slug, rootDomainFor(app.kind));
     const emails = recipients.map((r) => {
       const unsubscribeUrl = `${origin}/unsubscribe?m=${r.memberId}&t=${signUnsubscribe(r.memberId, secret)}`;
       return {

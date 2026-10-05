@@ -39,6 +39,9 @@ describe("appOrigin", () => {
   it("uses https on a real domain and http locally", () => {
     expect(appOrigin("gym", "tapandlaunch.com")).toBe("https://gym.tapandlaunch.com");
     expect(appOrigin("gym", "localhost:3100")).toBe("http://gym.localhost:3100");
+    expect(appOrigin("gym", "apps.localhost:3100")).toBe("http://gym.apps.localhost:3100");
+    expect(appOrigin("gym", "192.168.1.20:3100")).toBe("http://gym.192.168.1.20:3100");
+    expect(appOrigin("gym", "tapandlaunch.app")).toBe("https://gym.tapandlaunch.app");
   });
 });
 

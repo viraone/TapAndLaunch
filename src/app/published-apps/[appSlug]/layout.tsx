@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
-import { getPublishedApp } from "@/lib/pwa/data";
+import { headers } from "next/headers";
+import { getPublishedApp, isTakenDown } from "@/lib/pwa/data";
+import { hostRoot } from "@/lib/tenant";
 import { ServiceWorkerRegister } from "@/components/pwa-runtime/ServiceWorkerRegister";
 import { PublishedBottomNav } from "@/components/pwa-runtime/PublishedBottomNav";
 import { MemberAccountBar } from "@/components/pwa-runtime/MemberAccountBar";
@@ -65,7 +67,18 @@ export default async function PublishedAppLayout({
 }) {
   const { appSlug } = await params;
   const published = await getPublishedApp(appSlug);
-  if (!published) notFound();
+  if (!published) {
+    // Taken down by TapAndLaunch: say so plainly instead of a bare "not found".
+    if (await isTakenDown(appSlug)) {
+      return (
+        <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-2 p-8 text-center">
+          <h1 className="text-xl font-semibold">This app is unavailable</h1>
+          <p className="text-sm text-muted-foreground">It was taken down for breaking TapAndLaunch&apos;s rules.</p>
+        </div>
+      );
+    }
+    notFound();
+  }
 
   // Only when billing is enforced: an organization with an expired trial or canceled plan has its apps paused.
   if (!(await orgInGoodStanding(published.app.organization_id))) {
@@ -76,6 +89,9 @@ export default async function PublishedAppLayout({
       </div>
     );
   }
+
+  // The AI-apps domain serves AI-written apps only.
+  if (published.app.kind !== "code" && hostRoot((await headers()).get("host")) === "code") notFound();
 
   // An AI-written app is a full-screen page of its own (shown in a sandboxed frame by the page): no phone column, bars or member sign-in.
   if (published.app.kind === "code") {

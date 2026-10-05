@@ -1,4 +1,4 @@
-import { getRootDomain } from "@/lib/tenant";
+import { getCodeAppsDomain, getRootDomain } from "@/lib/tenant";
 
 const HOSTNAME_PATTERN = /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$/i;
 
@@ -16,10 +16,12 @@ export function validateCustomDomain(domain: string): string | null {
     return "Enter a valid domain, like app.yourbrand.com";
   }
 
-  const rootDomain = getRootDomain().split(":")[0]; // strip a dev `:port`
-  if (normalized === rootDomain || normalized.endsWith(`.${rootDomain}`)) {
-    return `Can't use ${rootDomain} or one of its subdomains as a custom domain`;
+  // TapAndLaunch's own domains (the main one and the AI-apps one) are never a customer's.
+  for (const root of [getRootDomain(), getCodeAppsDomain()]) {
+    const own = root?.split(":")[0]; // strip a dev `:port`
+    if (own && (normalized === own || normalized.endsWith(`.${own}`))) return `Can't use ${own} or one of its subdomains as a custom domain`;
   }
+
 
   return null;
 }

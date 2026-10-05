@@ -34,8 +34,12 @@ export type DailyViews = number[];
  * last-7-days views drawn across it, then name, address and actions.
  */
 export function AppCard({ app, rootDomain, views, checklist, canDelete = false }: { app: AppRow; rootDomain: string; views: DailyViews; checklist?: Checklist; canDelete?: boolean }) {
-  const previewUrl = `//${app.slug}.${rootDomain}`;
-  const published = app.status === "published";
+  // AI-written apps live on their own domain once it's set up (see getCodeAppsDomain).
+  const appRoot = app.kind === "code" ? (process.env.NEXT_PUBLIC_CODE_APPS_DOMAIN?.trim().toLowerCase() || rootDomain) : rootDomain;
+  const previewUrl = `//${app.slug}.${appRoot}`;
+  // Taken down by TapAndLaunch: not live, whatever its status says.
+  const takenDown = app.suspended_at !== null && app.suspended_at !== undefined;
+  const published = app.status === "published" && !takenDown;
   const iconUrl = app.manifest.icon_url;
   const tile = tileGradient(app.id);
   const brand = app.theme.primary_color ?? tile.from;
@@ -62,7 +66,7 @@ export function AppCard({ app, rootDomain, views, checklist, canDelete = false }
             {published && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />}
             <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${published ? "bg-emerald-300" : "bg-neutral-400"}`} />
           </span>
-          {published ? "Live" : "Draft"}
+          {takenDown ? "Taken down" : published ? "Live" : "Draft"}
         </span>
         <span className="absolute left-4 top-3.5 text-[11px] font-semibold text-white/90 tabular-nums">
           {total.toLocaleString()} {total === 1 ? "view" : "views"} · 7d
@@ -95,7 +99,7 @@ export function AppCard({ app, rootDomain, views, checklist, canDelete = false }
           className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate text-sm text-neutral-500 transition hover:text-neutral-950"
         >
           <span className="truncate">
-            {app.slug}.{rootDomain}
+            {app.slug}.{appRoot}
           </span>
           <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
         </a>

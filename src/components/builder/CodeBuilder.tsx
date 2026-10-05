@@ -67,6 +67,7 @@ export function CodeBuilder({
   initialVersions,
   initialStatus,
   initialPublished,
+  takenDown = null,
 }: {
   appId: string;
   appName: string;
@@ -78,6 +79,8 @@ export function CodeBuilder({
   initialVersions: VersionInfo[];
   initialStatus: "draft" | "published";
   initialPublished: number | null;
+  /** Set when TapAndLaunch took the app down: the reason (possibly empty). */
+  takenDown?: string | null;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [files, setFiles] = useState(initialFiles);
@@ -364,7 +367,7 @@ export function CodeBuilder({
             Unpublish
           </button>
         )}
-        <button type="button" disabled={publishing || busy} onClick={() => void publish("published")} className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-neutral-950 transition hover:bg-indigo-50 disabled:opacity-50">
+        <button type="button" disabled={publishing || busy || takenDown !== null} onClick={() => void publish("published")} className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-neutral-950 transition hover:bg-indigo-50 disabled:opacity-50">
           {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />} {hasUnpublished ? "Publish update" : status === "published" ? "Republish" : "Publish"}
         </button>
       </div>
@@ -377,6 +380,16 @@ export function CodeBuilder({
         ))}
       </div>
 
+      {takenDown !== null && (
+        <div role="alert" className="border-b border-red-500/30 bg-red-500/15 px-4 py-3 text-sm text-red-100">
+          <b>TapAndLaunch took this app down</b>
+          {takenDown ? `: ${takenDown}` : "."} It isn&apos;t shown to visitors and can&apos;t be published. Questions? Email{" "}
+          <a href="mailto:support@tapandlaunch.com" className="underline">
+            support@tapandlaunch.com
+          </a>
+          .
+        </div>
+      )}
       <div className="grid min-h-0 flex-1 lg:grid-cols-[420px_1fr]">
         <section className={`${tab === "chat" ? "flex" : "hidden"} min-h-0 flex-col border-white/10 lg:flex lg:border-r`} aria-label="Chat">
           {key === undefined ? (

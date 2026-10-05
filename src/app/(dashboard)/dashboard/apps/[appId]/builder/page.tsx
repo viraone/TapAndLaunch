@@ -4,7 +4,7 @@ import { BuilderClient } from "@/components/builder/BuilderClient";
 import { AiChatPanel } from "@/components/builder/AiChatPanel";
 import { CodeBuilder } from "@/components/builder/CodeBuilder";
 import { latestVersion, listVersions } from "@/lib/code/store";
-import { getRootDomain } from "@/lib/tenant";
+import { getRootDomain, rootDomainFor } from "@/lib/tenant";
 import { appHasVisit } from "@/lib/apps/signals";
 import { isVercelDomainsConfigured } from "@/lib/domains/vercel";
 
@@ -33,12 +33,13 @@ export default async function BuilderPage({ params, searchParams }: { params: Pa
         appName={app.name}
         accent={app.theme.primary_color}
         slug={app.slug}
-        rootDomain={getRootDomain()}
+        rootDomain={rootDomainFor("code")}
         initialFiles={latest?.files ?? {}}
         initialVersion={latest?.version ?? 0}
         initialVersions={versions}
         initialStatus={app.status}
         initialPublished={app.code_published_version}
+        takenDown={app.suspended_at ? app.suspended_reason ?? "" : null}
       />
     );
   }

@@ -117,9 +117,8 @@ writes a React app, shown live next to the chat. The block-based chat above stil
 **Security.** AI-written code runs in `<iframe sandbox="allow-scripts allow-forms allow-popups allow-modals">` (no
 `allow-same-origin`), so it has an opaque origin and can't read TapAndLaunch cookies or storage or reach other apps. Published
 apps are served by `/app-code` with the header `Content-Security-Policy: sandbox ...` as well, so even opening that address
-directly keeps it sandboxed. **Known gap:** published code apps are on `*.tapandlaunch.com`, so a malicious customer could
-publish a phishing page under our name. Before opening this up widely, serve published code apps from a separate domain
-(for example `tapandlaunch.app`) and add a report/takedown path.
+directly keeps it sandboxed. Published code apps move to their own domain once `NEXT_PUBLIC_CODE_APPS_DOMAIN` is set,
+and anyone can report one; admins can take one down. See `docs/moderation.md`.
 
 **Not built yet (stages 2 and 3):** a backend. Apps keep data in React state only (resets on reload). Stage 2 is letting the
 customer paste their own Supabase project URL and key so the AI can build tables, sign-in and real data against it. Stage 3:

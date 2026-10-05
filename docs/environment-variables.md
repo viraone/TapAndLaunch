@@ -36,3 +36,7 @@ _Last checked: 2026-10-03 (production list read from the Vercel dashboard)._ Val
 
 Supabase Edge Functions in the *rickshaw-open-mic* project have their own secrets (Google service account, sheet id, function
 secret, Resend). They are set in that project's dashboard, not in Vercel. See [stagetime-signup.md](stagetime-signup.md).
+
+## NEXT_PUBLIC_CODE_APPS_DOMAIN (optional)
+The root domain AI-written (BYOB) apps are published under, kept apart from the main site (planned: `tapandlaunch.app`).
+Unset means they stay on `NEXT_PUBLIC_ROOT_DOMAIN`. Read at build time; redeploy after changing it. See `docs/moderation.md`.

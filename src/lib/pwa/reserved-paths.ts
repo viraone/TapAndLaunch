@@ -16,6 +16,7 @@ export const RESERVED_PAGE_PATHS = new Set([
   "orders",
   "unsubscribe",
   "push",
+  "report",
   "submit",
   "sw.js",
 ]);

@@ -1,4 +1,6 @@
 import { getPublishedApp } from "@/lib/pwa/data";
+import { getCodeAppsDomain, hostRoot } from "@/lib/tenant";
+import { appOrigin } from "@/lib/stripe/checkout";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildCodeDocument } from "@/lib/code/document";
 import { orgInGoodStanding } from "@/lib/billing/standing";
@@ -9,8 +11,11 @@ import type { CodeFiles } from "@/lib/code/files";
  * when opened directly: it can run its own scripts, but it can't read TapAndLaunch cookies, storage or other apps.
  * (The app's own page also wraps this in a sandboxed iframe, so both layers apply.)
  */
-export async function GET(_request: Request, context: { params: Promise<{ appSlug: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ appSlug: string }> }) {
   const { appSlug } = await context.params;
+  // Served only from the AI-apps domain once it's set up (never from TapAndLaunch's own).
+  const codeDomain = getCodeAppsDomain();
+  if (codeDomain && hostRoot(request.headers.get("host")) === "main") return Response.redirect(`${appOrigin(appSlug, codeDomain)}/app-code`, 308);
   const published = await getPublishedApp(appSlug);
   if (!published || published.app.kind !== "code" || !published.app.code_published_version) return new Response("Not found", { status: 404 });
   if (!(await orgInGoodStanding(published.app.organization_id))) return new Response("This app is taking a break.", { status: 503 });

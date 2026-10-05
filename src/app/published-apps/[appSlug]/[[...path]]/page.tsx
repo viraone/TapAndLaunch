@@ -1,4 +1,7 @@
-import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { notFound, redirect } from "next/navigation";
+import { getCodeAppsDomain, hostRoot } from "@/lib/tenant";
+import { appOrigin } from "@/lib/stripe/checkout";
 import { getBlocksForPage, getPublishedApp, resolvePage } from "@/lib/pwa/data";
 import { getActiveProducts, getUpcomingEvents } from "@/lib/pwa/commerce";
 import { getActiveListings } from "@/lib/pwa/listings";
@@ -20,14 +23,23 @@ export default async function PublishedAppPage({ params }: { params: Params }) {
 
   // An AI-written app (BYOB code mode) is one sandboxed page, served by ./app-code; it handles its own routing.
   if (published.app.kind === "code") {
+    // AI-written apps live on their own domain once it's set up; their old address on TapAndLaunch's domain forwards there.
+    const codeDomain = getCodeAppsDomain();
+    if (codeDomain && hostRoot((await headers()).get("host")) === "main") redirect(`${appOrigin(appSlug, codeDomain)}/${(path ?? []).join("/")}`);
     void recordAnalyticsEvent({ appId: published.app.id, eventType: "view" });
     return (
-      <iframe
-        title={published.app.name}
-        src="/app-code"
-        sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads"
-        className="fixed inset-0 h-full w-full border-0 bg-white"
-      />
+      <>
+        <iframe
+          title={published.app.name}
+          src="/app-code"
+          sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads"
+          className="fixed inset-0 h-full w-full border-0 bg-white"
+        />
+        {/* Outside the app's own (sandboxed) code, so an app can't hide it. Small, but a full 44pt to tap. */}
+        <a href="/report" className="fixed bottom-1 left-1 z-10 inline-flex min-h-11 items-center p-1.5" aria-label={`Report ${published.app.name} to TapAndLaunch`}>
+          <span className="rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white/90 backdrop-blur hover:bg-black/70">Report</span>
+        </a>
+      </>
     );
   }
 

@@ -29,6 +29,12 @@ export interface PublishedApp {
  * and the page/layout components — which each call this independently for
  * the same request — share one Supabase round trip instead of four.
  */
+/** True when this address belongs to a published app that TapAndLaunch took down (to explain why it's gone). */
+export const isTakenDown = cache(async (slug: string): Promise<boolean> => {
+  const { data } = await createAdminClient().from("apps").select("id").eq("slug", slug).eq("status", "published").not("suspended_at", "is", null).maybeSingle();
+  return data !== null;
+});
+
 export const getPublishedApp = cache(async (slug: string): Promise<PublishedApp | null> => {
   const admin = createAdminClient();
 
@@ -37,6 +43,8 @@ export const getPublishedApp = cache(async (slug: string): Promise<PublishedApp 
     .select("*")
     .eq("slug", slug)
     .eq("status", "published")
+    // A taken-down app isn't served anywhere: every route that loads the app through here treats it as gone.
+    .is("suspended_at", null)
     .maybeSingle();
 
   if (error) throw error;

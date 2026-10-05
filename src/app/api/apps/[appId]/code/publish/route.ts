@@ -13,8 +13,13 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
   const parsed = Schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid input" }, { status: 400 });
 
-  const { data: app } = await supabase.from("apps").select("id, kind").eq("id", appId).maybeSingle();
+  const { data: app } = await supabase.from("apps").select("id, kind, suspended_at, suspended_reason").eq("id", appId).maybeSingle();
   if (!app || app.kind !== "code") return Response.json({ error: "Not found" }, { status: 404 });
+  // Taken down by TapAndLaunch (the database refuses this too).
+  if (app.suspended_at && parsed.data.status === "published") {
+    const why = app.suspended_reason ? `: ${app.suspended_reason.replace(/[.\s]+$/, "")}` : "";
+    return Response.json({ error: `This app was taken down${why}. Contact support@tapandlaunch.com.` }, { status: 403 });
+  }
 
   if (parsed.data.status === "draft") {
     const { data, error } = await supabase.from("apps").update({ status: "draft" }).eq("id", appId).select("*").single();

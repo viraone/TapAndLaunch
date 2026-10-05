@@ -10,6 +10,32 @@ export function getRootDomain(): string {
 }
 
 /**
+ * The root domain AI-written apps are published under, e.g. `tapandlaunch.app`, kept apart from TapAndLaunch's own
+ * domain: code a customer's AI wrote then can't pass itself off as TapAndLaunch, and if one is ever flagged as harmful
+ * the main site isn't. Null until it's set up (then they stay on the main domain, as before).
+ */
+export function getCodeAppsDomain(): string | null {
+  const domain = process.env.NEXT_PUBLIC_CODE_APPS_DOMAIN?.trim().toLowerCase();
+  return domain ? domain : null;
+}
+
+/** The root domain an app of this kind is published under. */
+export function rootDomainFor(kind: "blocks" | "code" | undefined | null): string {
+  return kind === "code" ? getCodeAppsDomain() ?? getRootDomain() : getRootDomain();
+}
+
+/** Which of TapAndLaunch's root domains a host is under: the main one, the AI-apps one, or neither (a custom domain). */
+export function hostRoot(host: string | null): "main" | "code" | null {
+  if (!host) return null;
+  const h = host.toLowerCase();
+  const code = getCodeAppsDomain();
+  if (code && (h === code || h.endsWith(`.${code}`))) return "code";
+  const main = getRootDomain().toLowerCase();
+  if (h === main || h.endsWith(`.${main}`)) return "main";
+  return null;
+}
+
+/**
  * Returns the published-app slug for a request `Host` header, or `null` if
  * the request is for the root domain itself (the marketing site / dashboard)
  * rather than a tenant subdomain.
@@ -23,26 +49,23 @@ export function extractAppSlug(host: string | null): string | null {
   const devSlug = process.env.NODE_ENV !== "production" ? process.env.DEV_APP_SLUG : undefined;
   if (devSlug && /^\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(host)) return devSlug;
 
-  const rootDomain = getRootDomain();
   const normalizedHost = host.toLowerCase();
-  const normalizedRoot = rootDomain.toLowerCase();
-
-  if (normalizedHost === normalizedRoot || normalizedHost === `www.${normalizedRoot}`) {
-    return null;
+  // The AI-apps domain first: locally it can sit under the main one (`apps.localhost:3100`).
+  const code = getCodeAppsDomain();
+  if (code) {
+    const slug = slugUnder(normalizedHost, code);
+    if (slug !== undefined) return slug;
   }
+  return slugUnder(normalizedHost, getRootDomain().toLowerCase()) ?? null;
+}
 
-  if (!normalizedHost.endsWith(`.${normalizedRoot}`)) {
-    // Not a subdomain of our root domain — likely a custom domain (deferred)
-    // or an unrelated request (health check, etc). Treat as "no tenant".
-    return null;
-  }
-
+/** The app slug in `{slug}.{root}`; null for the root itself; undefined when the host isn't under this root at all. */
+function slugUnder(normalizedHost: string, normalizedRoot: string): string | null | undefined {
+  if (normalizedHost === normalizedRoot || normalizedHost === `www.${normalizedRoot}`) return null;
+  if (!normalizedHost.endsWith(`.${normalizedRoot}`)) return undefined;
   const subdomain = normalizedHost.slice(0, -(`.${normalizedRoot}`.length));
-
-  // Guard against nested/multi-level subdomains (`a.b.{root}`) — apps only
-  // ever get one segment.
-  if (!subdomain || subdomain.includes(".")) return null;
-
+  // Guard against nested/multi-level subdomains (`a.b.{root}`) — apps only ever get one segment.
+  if (!subdomain || subdomain.includes(".")) return undefined;
   return subdomain;
 }
 
@@ -62,11 +85,9 @@ export async function resolveAppSlugForHost(host: string | null): Promise<string
   if (subdomainSlug) return subdomainSlug;
   if (!host) return null;
 
-  const rootDomain = getRootDomain().toLowerCase();
+  // TapAndLaunch's own domains (and anything under them) are never customer domains.
+  if (hostRoot(host)) return null;
   const normalizedHost = host.toLowerCase();
-  if (normalizedHost === rootDomain || normalizedHost === `www.${rootDomain}`) {
-    return null;
-  }
 
   // Deferred import: this file is otherwise DB-free and importable from
   // anywhere; the admin client is only needed for this one custom-domain

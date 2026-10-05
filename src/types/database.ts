@@ -10,6 +10,9 @@
 // ManifestConfig) to match however that generator shapes `jsonb` columns
 // (it emits `Json`, so the narrower types here stay as app-level casts).
 
+/** Why someone reported a published app. */
+export type AppReportReason = "phishing" | "malware" | "scam" | "illegal" | "other";
+
 export type Role = "admin" | "creator" | "client";
 export type AppStatus = "draft" | "published";
 export type BlockType =
@@ -462,6 +465,9 @@ export interface Database {
           /** Set when an admin deletes the app; it is hidden at once and erased 30 days later. */
           deleted_at: string | null;
           deleted_by: string | null;
+          /** Set when TapAndLaunch takes the app down: it isn't served anywhere and can't be published again. */
+          suspended_at: string | null;
+          suspended_reason: string | null;
           custom_domain_status: CustomDomainStatus | null;
           custom_domain_verification: DomainVerificationRecord[];
           theme: ThemeConfig;
@@ -476,6 +482,27 @@ export interface Database {
           slug: string;
         };
         Update: Partial<Database["public"]["Tables"]["apps"]["Row"]>;
+        Relationships: [];
+      };
+      platform_admins: {
+        Row: { user_id: string; created_at: string };
+        Insert: { user_id: string; created_at?: string };
+        Update: Partial<{ user_id: string; created_at: string }>;
+        Relationships: [];
+      };
+      app_reports: {
+        Row: {
+          id: string;
+          app_id: string;
+          reason: AppReportReason;
+          details: string | null;
+          contact: string | null;
+          reporter_hash: string | null;
+          created_at: string;
+          resolved_at: string | null;
+        };
+        Insert: Partial<Database["public"]["Tables"]["app_reports"]["Row"]> & { app_id: string; reason: AppReportReason };
+        Update: Partial<Database["public"]["Tables"]["app_reports"]["Row"]>;
         Relationships: [];
       };
       pages: {
