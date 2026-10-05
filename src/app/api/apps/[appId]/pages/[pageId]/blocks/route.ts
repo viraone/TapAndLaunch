@@ -2,23 +2,12 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { orgHasMaps } from "@/lib/platform/maps";
 import { MAPS_LOCKED_MESSAGE, isMapsBlock } from "@/lib/platform/maps-shared";
+import { BLOCK_TYPES } from "@/lib/builder/block-defaults";
+import type { BlockType } from "@/types/database";
 
 const BlockSchema = z.object({
-  type: z.enum([
-    "text",
-    "image",
-    "video",
-    "contact_form",
-    "product_list",
-    "event_calendar",
-    "zoom_meeting",
-    "canva_embed",
-    "listing_directory",
-    "gas_directory",
-    "food_directory",
-    "open_mic_signup",
-    "class_finder",
-  ]),
+  // Every block type the builder knows: one list (`BLOCK_TYPES`), so a new block can never be left out here again.
+  type: z.enum(BLOCK_TYPES as [BlockType, ...BlockType[]]),
   position: z.number().int().min(0),
   config: z.record(z.string(), z.unknown()),
   min_tier: z.string().nullable().optional(),
