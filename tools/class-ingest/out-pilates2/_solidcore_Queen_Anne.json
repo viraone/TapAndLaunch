@@ -1,0 +1,7 @@
+{
+  "name": "[solidcore] Queen Anne",
+  "kind": "pilates",
+  "status": "error",
+  "error": "browser.newContext: Target page, context or browser has been closed",
+  "classes": []
+}

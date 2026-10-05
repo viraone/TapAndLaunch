@@ -1,0 +1,51 @@
+{
+  "name": "Inspire Seattle",
+  "kind": "pilates",
+  "site": "https://www.inspireseattle.com/?utm_source=google&utm_medium=organic&utm_campaign=gbp&utm_content=queen_anne_website",
+  "tried": [
+    "https://www.inspireseattle.com/schedule/queen-anne/"
+  ],
+  "scheduleUrl": "https://www.inspireseattle.com/schedule/queen-anne/?_mt=%2Fschedule%2Fdaily%2F48541%3FactiveCategoryId%3D0%26locations%3D48717",
+  "platform": "own site",
+  "status": "ok",
+  "classes": [
+    {
+      "date": "2026-10-04",
+      "start": "08:00",
+      "end": "08:40",
+      "name": "Upper Body + Core",
+      "instructor": "Katie H",
+      "spots": null,
+      "why": ""
+    },
+    {
+      "date": "2026-10-04",
+      "start": "08:50",
+      "end": "09:30",
+      "name": "Total Body",
+      "instructor": "Katie H",
+      "spots": null,
+      "why": ""
+    },
+    {
+      "date": "2026-10-04",
+      "start": "09:40",
+      "end": "10:20",
+      "name": "Total Body",
+      "instructor": "Katie H",
+      "spots": null,
+      "why": ""
+    },
+    {
+      "date": "2026-10-04",
+      "start": "10:30",
+      "end": "11:10",
+      "name": "Total Body",
+      "instructor": "Katie H",
+      "spots": null,
+      "why": ""
+    }
+  ],
+  "dropped": [],
+  "seconds": 37
+}

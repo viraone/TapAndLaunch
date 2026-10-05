@@ -1,0 +1,72 @@
+{
+  "name": "Union Pilates",
+  "kind": "pilates",
+  "site": "http://www.unionpilates.com/",
+  "tried": [
+    "https://app.arketa.co/iframe/unionpilates/form/cM7p8yn7R1VtCnZAixmp",
+    "https://js.stripe.com/v3/controller-with-preconnect-0658b1f7fa008196200fc479c0f7b968.html#__shared_params__[version]=v3&__shared_params__[light_experiment_assignments]=%7B%22token%22%3A%22ae1360e5-a7dc-4929-a8a1-fd7bb2b4cff3%22%2C%22assignments%22%3A%7B%7D%2C%22unqualifiedExperiments%22%3A%7B%22react_version_18_v3%22%3A0.1%7D%7D&apiKey=pk_live_CnzWwEFQuIrgKkwJK1dqW5Ow00tKCf7zzj&stripeJsId=ae1360e5-a7dc-4929-a8a1-fd7bb2b4cff3&stripeObjId=sobj-a3725b41-ff5c-4075-b678-b8ebeb24b051&firstStripeInstanceCreatedLatency=269&topOriginForCrossOriginFrame=https%3A%2F%2Fwww.unionpilates.com&controllerCount=1&isCheckout=false&stripeJsLoadTime=1791179937558.6&manualBrowserDeprecationRollout=false&mids[guid]=NA&mids[muid]=NA&mids[sid]=NA&referrer=https%3A%2F%2Fapp.arketa.co%2Fiframe%2Funionpilates%2Fform%2FcM7p8yn7R1VtCnZAixmp&controllerId=__privateStripeController6061",
+    "https://js.stripe.com/v3/m-outer-3437aaddcdf6922d623e172c2d6f9278.html#url=https%3A%2F%2Fapp.arketa.co%2Fiframe%2Funionpilates%2Fform%2FcM7p8yn7R1VtCnZAixmp&title=arketa&referrer=https%3A%2F%2Fwww.unionpilates.com%2F&muid=NA&sid=NA&version=6&preview=false&__shared_params__[version]=v3",
+    "https://www.unionpilates.com/class-schedule"
+  ],
+  "scheduleUrl": "https://www.unionpilates.com/class-schedule",
+  "platform": "arketa",
+  "status": "ok",
+  "classes": [
+    {
+      "date": "2026-10-05",
+      "start": "08:00",
+      "end": "08:50",
+      "name": "Intermediate Tower",
+      "instructor": "Crystal Brooks",
+      "spots": null,
+      "why": ""
+    },
+    {
+      "date": "2026-10-06",
+      "start": "11:00",
+      "end": "11:50",
+      "name": "Open Intermediate Duet",
+      "instructor": "Abby Anzalone",
+      "spots": null,
+      "why": ""
+    },
+    {
+      "date": "2026-10-06",
+      "start": "17:30",
+      "end": "18:20",
+      "name": "Intermediate Tower",
+      "instructor": "Crystal Brooks",
+      "spots": null,
+      "why": ""
+    },
+    {
+      "date": "2026-10-07",
+      "start": "17:00",
+      "end": "17:50",
+      "name": "Strong Intermediate Tower",
+      "instructor": "Ashley Newman",
+      "spots": "Waitlist",
+      "why": ""
+    },
+    {
+      "date": "2026-10-09",
+      "start": "11:00",
+      "end": "11:50",
+      "name": "Strong Intermediate Tower",
+      "instructor": "Ashley Newman",
+      "spots": "Waitlist",
+      "why": ""
+    },
+    {
+      "date": "2026-10-09",
+      "start": "12:00",
+      "end": "12:50",
+      "name": "Strong Intermediate Tower",
+      "instructor": "Ashley Newman",
+      "spots": "Waitlist",
+      "why": ""
+    }
+  ],
+  "dropped": [],
+  "seconds": 93
+}

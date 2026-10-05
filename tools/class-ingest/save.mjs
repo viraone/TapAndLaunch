@@ -3,7 +3,7 @@
 // (replacing what was saved before). A studio that couldn't be read today keeps its earlier classes.
 // Needs .env with SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and FITNESSNAV_APP_ID. Usage: node save.mjs [out-dir]
 import fs from "node:fs";
-import { classTypeOf, isOnlineClass } from "./classify.mjs";
+import { classTypeOf, isNotAGroupClass, isOnlineClass } from "./classify.mjs";
 
 const env = {};
 if (fs.existsSync(".env")) for (const l of fs.readFileSync(".env", "utf8").split("\n")) { const m = /^([A-Z0-9_]+)=(.*)$/.exec(l.trim()); if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, ""); }
@@ -13,7 +13,8 @@ const H = { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "applic
 async function rest(path, { method = "GET", body, prefer } = {}) {
   const res = await fetch(`${URL_}/rest/v1/${path}`, { method, headers: { ...H, ...(prefer ? { Prefer: prefer } : {}) }, body: body ? JSON.stringify(body) : undefined });
   if (!res.ok) throw new Error(`${method} ${path.split("?")[0]} failed (${res.status}): ${(await res.text()).slice(0, 200)}`);
-  return res.status === 204 ? null : res.json();
+  const text = await res.text(); // deletes and return=minimal writes answer with no body
+  return text ? JSON.parse(text) : null;
 }
 
 const outDir = process.argv[2] ?? "out";
@@ -26,7 +27,7 @@ for (const s of studios) {
   const r = results.find((x) => x.name === s.name);
   if (!r) continue; // not part of this run (e.g. a one-studio test)
   const ok = r.status === "ok";
-  const classes = ok ? r.classes.filter((c) => /^\d{4}-\d{2}-\d{2}$/.test(c.date ?? "") && c.date >= today && /^\d{2}:\d{2}$/.test(c.start ?? "")) : [];
+  const classes = ok ? r.classes.filter((c) => /^\d{4}-\d{2}-\d{2}$/.test(c.date ?? "") && c.date >= today && /^\d{2}:\d{2}$/.test(c.start ?? "") && !isNotAGroupClass(c.name, c.start, c.end)) : [];
   const [row] = await rest("fitness_studios?on_conflict=app_id,name", {
     method: "POST",
     prefer: "resolution=merge-duplicates,return=representation",

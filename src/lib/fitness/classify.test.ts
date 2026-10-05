@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // The morning job lives outside src (it runs on the owner's Mac); its class sorting is tested here.
-import { classTypeOf, isOnlineClass } from "../../../tools/class-ingest/classify.mjs";
+import { classTypeOf, isNotAGroupClass, isOnlineClass } from "../../../tools/class-ingest/classify.mjs";
 
 describe("FitnessNav class sorting", () => {
   it("sorts by the class name first", () => {
@@ -25,5 +25,12 @@ describe("FitnessNav class sorting", () => {
     expect(isOnlineClass("Vinyasa Flow at HOME")).toBe(true);
     expect(isOnlineClass("Live-streamed Hot Pilates")).toBe(true);
     expect(isOnlineClass("Hot Vinyasa Flow")).toBe(false);
+  });
+  it("drops trainings, workshops and very long sessions", () => {
+    expect(isNotAGroupClass("STOTT PILATES Flowing Sequences on the Vertical Frame", "18:00", "20:00")).toBe(false);
+    expect(isNotAGroupClass("Live Stream STOTT PILATES Programming Protocols for Breast Cancer Rehab", "10:00", "13:30")).toBe(true);
+    expect(isNotAGroupClass("Teacher Training Weekend", "09:00", "10:00")).toBe(true);
+    expect(isNotAGroupClass("Hot Vinyasa Flow", "16:00", "17:00")).toBe(false);
+    expect(isNotAGroupClass("Open Gym", "10:00", "13:30")).toBe(true);
   });
 });

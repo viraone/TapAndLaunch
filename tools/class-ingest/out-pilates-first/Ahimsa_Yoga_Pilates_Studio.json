@@ -1,0 +1,60 @@
+{
+  "name": "Ahimsa Yoga & Pilates Studio",
+  "kind": "pilates",
+  "site": "http://ahimsaseattle.com/",
+  "tried": [
+    "https://ahimsaseattle.com/pages/schedule-1"
+  ],
+  "scheduleUrl": "https://ahimsaseattle.com/pages/schedule-1?_mt=%2Fschedule%2Fdaily%2F48541%3Flocations%3D48717",
+  "platform": "own site",
+  "status": "ok",
+  "classes": [
+    {
+      "date": "2026-10-04",
+      "start": "08:30",
+      "end": "09:30",
+      "name": "INTEGRATE | Slow Flow",
+      "instructor": "Olive Theodore",
+      "spots": null,
+      "why": ""
+    },
+    {
+      "date": "2026-10-04",
+      "start": "10:00",
+      "end": "11:15",
+      "name": "RESTORE | 75 minute Yin Yoga",
+      "instructor": "Olive Theodore",
+      "spots": null,
+      "why": ""
+    },
+    {
+      "date": "2026-10-04",
+      "start": "12:00",
+      "end": "13:00",
+      "name": "FLOW | Vinyasa",
+      "instructor": "Melanie Norton",
+      "spots": null,
+      "why": ""
+    },
+    {
+      "date": "2026-10-04",
+      "start": "15:00",
+      "end": "15:50",
+      "name": "PLAY | Kids Yoga",
+      "instructor": "Kristina Huston",
+      "spots": null,
+      "why": ""
+    },
+    {
+      "date": "2026-10-04",
+      "start": "18:00",
+      "end": "19:15",
+      "name": "RESTORE | 75 Min Restorative + Yoga Nidra",
+      "instructor": "Olive Theodore",
+      "spots": null,
+      "why": ""
+    }
+  ],
+  "dropped": [],
+  "seconds": 51
+}
