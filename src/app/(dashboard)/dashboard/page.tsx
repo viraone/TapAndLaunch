@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Plus, Sparkles } from "lucide-react";
+import { LayoutTemplate, Plus, Sparkles } from "lucide-react";
+import { STARTER_TEMPLATES } from "@/lib/apps/templates";
+import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
 import { AppCard, type DailyViews } from "@/components/dashboard/AppCard";
 import { createClient } from "@/lib/supabase/server";
 import { getRootDomain } from "@/lib/tenant";
@@ -11,6 +13,9 @@ import { restoreDaysLeft } from "@/lib/apps/deletion";
 import { RecentlyDeleted, type DeletedApp } from "@/components/dashboard/RecentlyDeleted";
 
 const DAYS = 7;
+
+/** Shown on the "New app" card so people can see templates are behind it. */
+const FEATURED = ["fitness", "restaurant", "salon", "store", "community"].flatMap((id) => STARTER_TEMPLATES.filter((t) => t.id === id));
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -73,12 +78,23 @@ export default async function DashboardPage() {
                   : "Build your first app in minutes and publish it to its own address."}
               </p>
             </div>
-            <Link
-              href="/dashboard/apps/new"
-              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-neutral-950 shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_10px_30px_-10px_rgba(129,140,248,0.8)] transition hover:bg-indigo-50"
-            >
-              <Plus className="h-4 w-4" /> New app
-            </Link>
+            <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/dashboard/apps/new#templates"
+                  className="inline-flex h-11 items-center gap-2 rounded-full bg-white/10 px-5 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/15"
+                >
+                  <LayoutTemplate className="h-4 w-4" /> Browse templates
+                </Link>
+                <Link
+                  href="/dashboard/apps/new"
+                  className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-neutral-950 shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_10px_30px_-10px_rgba(129,140,248,0.8)] transition hover:bg-indigo-50"
+                >
+                  <Plus className="h-4 w-4" /> New app
+                </Link>
+              </div>
+              <p className="text-xs text-neutral-400">Start from a template, or describe it in a sentence</p>
+            </div>
           </div>
 
           {!!apps?.length && (
@@ -121,6 +137,17 @@ export default async function DashboardPage() {
                 <Plus className="h-6 w-6" />
               </span>
               <span className="text-sm font-semibold">New app</span>
+              <span className="-mt-2 text-xs text-neutral-500">From a template or a sentence</span>
+              <span className="mt-1 flex -space-x-2" aria-hidden>
+                {FEATURED.map((t) => {
+                  const Icon = TEMPLATE_ICONS[t.icon];
+                  return (
+                    <span key={t.id} className="grid h-9 w-9 place-items-center rounded-full text-white ring-2 ring-neutral-100 transition group-hover:ring-white" style={{ background: t.color }}>
+                      <Icon className="h-4 w-4" />
+                    </span>
+                  );
+                })}
+              </span>
             </Link>
           </div>
         )}

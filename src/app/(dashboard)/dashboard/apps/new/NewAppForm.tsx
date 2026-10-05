@@ -2,39 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Briefcase,
-  CalendarDays,
-  Dumbbell,
-  Fuel,
-  Loader2,
-  Mic,
-  Plus,
-  ShoppingBag,
-  Sparkles,
-  UtensilsCrossed,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
-import { STARTER_TEMPLATES, TEMPLATE_CATEGORIES, templateNeedsMaps, type StarterTemplate, type TemplateIcon } from "@/lib/apps/templates";
+import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { STARTER_TEMPLATES, TEMPLATE_CATEGORIES, templateNeedsMaps, type StarterTemplate } from "@/lib/apps/templates";
 import { slugify } from "@/lib/apps/slug";
 import { MAX_DESCRIPTION, MIN_DESCRIPTION } from "@/lib/ai/app-spec";
 import { TemplatePreview } from "@/components/dashboard/TemplatePreview";
+import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
 
-const ICONS: Record<TemplateIcon, LucideIcon> = {
-  briefcase: Briefcase,
-  "shopping-bag": ShoppingBag,
-  calendar: CalendarDays,
-  utensils: UtensilsCrossed,
-  fuel: Fuel,
-  mic: Mic,
-  plus: Plus,
-  dumbbell: Dumbbell,
-  sparkles: Sparkles,
-  users: Users,
-};
+const ICONS = TEMPLATE_ICONS;
 
 const NAME_HINTS: Record<string, string> = {
   business: "Maple Street Bakery",
@@ -272,7 +247,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
         )}
       </form>
 
-      <div>
+      <div id="templates" className="scroll-mt-6">
         <h2 className="text-2xl font-semibold tracking-tight text-neutral-950">Or start from a template</h2>
         <p className="mt-1 text-sm text-neutral-500">Every one comes filled in. You can preview it right away and change anything.</p>
       </div>
