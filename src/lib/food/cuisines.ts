@@ -47,7 +47,7 @@ export const CUISINES: CuisineDef[] = [
   // Google files boba / tea shops under juice_shop too; notIfNamed sends those on to Dessert / Coffee.
   {
     key: "healthy",
-    label: "Healthy / Smoothies",
+    label: "Juice & Bowls",
     emoji: "🥗",
     types: ["juice_shop", "acai_shop", "salad_shop"],
     keywords: ["smoothie", "acai", "açaí", "juice", "salad", "sweetgreen", "kale"],
