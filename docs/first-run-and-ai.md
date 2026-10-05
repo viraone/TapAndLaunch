@@ -10,8 +10,8 @@ _Last checked: 2026-10-05._ What a brand-new customer sees, and how the app-from
    restore them.
 3. The page offers **Describe your app** at the top, then 11 templates in 6 groups (`TEMPLATE_CATEGORIES` in
    `src/lib/apps/templates.ts`). Each card has a small phone drawn from the starter's own blocks (`TemplatePreview`), so the
-   picture always matches what the customer gets. Templates that need live maps data (Food finder, Gas prices) show last, as
-   "Not on yet", and a group with nothing usable is hidden.
+   picture always matches what the customer gets. Templates that need live maps data (Food finder, Gas prices) are hidden from
+   accounts without maps switched on (Admin page), so a new customer sees 9 usable templates; an empty group is hidden.
 4. Creating an app lands in the builder, where the **Get live** checklist is: Create, Add your content, **Pick your colors and
    icon** (ticks when an icon is uploaded or colors are saved in App settings: `theme.looks_confirmed`), Publish, **Scan the QR
    code** (opens the app's page, which has the QR code; ticks when someone opens the app).

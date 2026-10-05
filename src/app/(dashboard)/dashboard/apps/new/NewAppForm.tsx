@@ -10,7 +10,6 @@ import {
   Dumbbell,
   Fuel,
   Loader2,
-  Lock,
   Mic,
   Plus,
   ShoppingBag,
@@ -279,10 +278,10 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
       </div>
 
       {TEMPLATE_CATEGORIES.map((category) => {
-        // Templates that need an account switch (live maps data) go last, and a group with nothing usable is left out.
-        const isLocked = (id: string) => !mapsEnabled && templateNeedsMaps(id);
-        const templates = STARTER_TEMPLATES.filter((t) => t.category === category.id).sort((a, b) => Number(isLocked(a.id)) - Number(isLocked(b.id)));
-        if (templates.length === 0 || templates.every((t) => isLocked(t.id))) return null;
+        // Templates that need live maps data (Food finder, Gas prices) only appear for accounts that have maps switched
+        // on; everyone else never sees them, and a group left empty is hidden.
+        const templates = STARTER_TEMPLATES.filter((t) => t.category === category.id && (mapsEnabled || !templateNeedsMaps(t.id)));
+        if (templates.length === 0) return null;
         return (
           <section key={category.id} aria-labelledby={`cat-${category.id}`} className="-mt-6">
             <h3 id={`cat-${category.id}`} className="text-lg font-semibold tracking-tight text-neutral-950">
@@ -292,20 +291,13 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
             <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {templates.map((t) => {
                 const Icon = ICONS[t.icon];
-                const locked = !mapsEnabled && templateNeedsMaps(t.id);
                 return (
                   <button
                     key={t.id}
                     type="button"
-                    disabled={locked}
                     onClick={() => setSelected(t)}
                     className="group relative flex flex-col rounded-3xl bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 enabled:hover:-translate-y-1 enabled:hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_24px_48px_-16px_rgba(0,0,0,0.28)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                   >
-                    {locked && (
-                      <span className="absolute right-6 top-6 z-10 inline-flex items-center gap-1 rounded-full bg-neutral-950 px-2.5 py-1 text-[11px] font-semibold text-white">
-                        <Lock className="h-3 w-3" /> Not on yet
-                      </span>
-                    )}
                     <TemplatePreview templateId={t.id} color={t.color} />
                     <div className="flex items-center gap-3 px-2 pt-4">
                       <span
@@ -317,7 +309,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
                       <h4 className="text-base font-semibold tracking-tight">{t.name}</h4>
                     </div>
                     <p className="mt-1.5 flex-1 px-2 text-sm leading-relaxed text-neutral-500">
-                      {locked ? "Uses live maps data, so it's switched on per account. Contact us to turn it on." : t.tagline}
+                      {t.tagline}
                     </p>
                     <div className="mt-3 flex min-h-6 flex-wrap gap-1.5 px-2 pb-2">
                       {t.includes.length ? (
