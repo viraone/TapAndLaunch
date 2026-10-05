@@ -19,6 +19,8 @@ export const LIBS = {
   recharts: "https://esm.sh/recharts@2.15.0?deps=react@18.3.1,react-dom@18.3.1",
   clsx: "https://esm.sh/clsx@2.1.1",
   "date-fns": "https://esm.sh/date-fns@4.1.0",
+  // For apps with a database connected (see backend.ts).
+  "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.109.0",
 } as const;
 
 export const BABEL_URL = "https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.4/babel.min.js";
@@ -39,6 +41,35 @@ const RUNTIME = String.raw`
   var rev = opts.rev || 0;
   var draft = !!opts.stubs;
   var send = function (type, message) { try { parent.postMessage({ source: "tl-app", type: type, message: message, rev: rev }, "*"); } catch (e) {} };
+
+  // Sign-ins (an app with a database) are kept by the page around this one: a sandboxed page can't keep anything itself.
+  // window.__tlStorage asks it over postMessage; if nothing answers within a second, it falls back to memory.
+  var memory = {}, waiting = {}, ask = 0;
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (e.source !== parent || !d || d.source !== "tl-host" || d.type !== "storage-reply" || !waiting[d.id]) return;
+    waiting[d.id](d.value === undefined ? null : d.value);
+    delete waiting[d.id];
+  });
+  function hostStorage(op, key, value) {
+    return new Promise(function (resolve) {
+      var id = "s" + (++ask);
+      var done = function (v) { clearTimeout(timer); resolve(v); };
+      var timer = setTimeout(function () {
+        delete waiting[id];
+        if (op === "get") resolve(key in memory ? memory[key] : null);
+        else { if (op === "set") memory[key] = value; else delete memory[key]; resolve(null); }
+      }, 1000);
+      waiting[id] = done;
+      if (op === "set") memory[key] = value; else if (op === "remove") delete memory[key];
+      try { parent.postMessage({ source: "tl-app", type: "storage", op: op, key: String(key), value: value === undefined ? null : String(value), id: id }, "*"); } catch (err) { done(null); }
+    });
+  }
+  window.__tlStorage = {
+    getItem: function (k) { return hostStorage("get", k); },
+    setItem: function (k, v) { return hostStorage("set", k, v); },
+    removeItem: function (k) { return hostStorage("remove", k); },
+  };
 
   // A sandboxed page has no localStorage; give apps an in-memory one so libraries and simple code keep working.
   function memoryStorage() {
@@ -115,6 +146,7 @@ const RUNTIME = String.raw`
     var css = [], out = {};
     Object.keys(files).sort().forEach(function (path) {
       var source = files[path];
+      if (path.indexOf("src/") !== 0) return; // database setup files (db/*.sql) aren't part of the running app
       if (/\.css$/.test(path)) { css.push(source); return; }
       var hit = compiled[path];
       if (hit && hit.source === source) { out[path] = hit.out; return; }
@@ -233,7 +265,7 @@ export function buildCodeDocument(files: CodeFiles, options: DocumentOptions): s
 <body>
 <div id="root"></div>
 <div id="tl-loading"><i></i></div>
-<script type="application/json" id="tl-files">${embedJson(Object.fromEntries(Object.keys(files).sort().map((path) => [path, files[path]])))}</script>
+<script type="application/json" id="tl-files">${embedJson(Object.fromEntries(Object.keys(files).filter((path) => path.startsWith("src/")).sort().map((path) => [path, files[path]])))}</script>
 <script type="application/json" id="tl-libs">${embedJson(LIBS)}</script>
 <script type="application/json" id="tl-opts">${embedJson({ stubs: options.stubs === true, rev: options.rev ?? 0 })}</script>
 <script src="${BABEL_URL}"></script>

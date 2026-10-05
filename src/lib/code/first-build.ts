@@ -2,6 +2,7 @@ import { applyChanges, applyEdits, isValidPath, parseReply, type CodeFiles } fro
 import { filesContext } from "./prompt";
 import { chunk } from "./protocol";
 import { salvage } from "./partial";
+import { backendRules, SQL_FILE, SUPABASE_PATH } from "./backend";
 
 /**
  * A brand-new app is built in two steps so the owner isn't kept waiting: first the AI writes a short plan and
@@ -258,7 +259,8 @@ export function Success({ title, children }) {
 
 /** True while the app is still the placeholder it was created with. */
 export function isFreshApp(files: CodeFiles): boolean {
-  const paths = Object.keys(files);
+  // A database connected before the first build adds its ready-made client; the app is still new.
+  const paths = Object.keys(files).filter((p) => p !== SUPABASE_PATH && !SQL_FILE.test(p));
   return paths.length === 1 && paths[0] === "src/App.jsx" && (files["src/App.jsx"] ?? "").includes(STARTER_MARK);
 }
 
@@ -266,16 +268,18 @@ export function isFreshApp(files: CodeFiles): boolean {
  * The plan: its design line, the sections line ("sections: ServicePicker (shares service), BookingDetails (shares
  * service), Hero"), and, in the older shape, one line per file ("src/components/Hero.jsx: what it shows").
  */
-export function parsePlan(text: string): { design: string; parts: Record<string, string>; sections: Array<{ name: string; shares?: string }> } {
+export function parsePlan(text: string): { design: string; parts: Record<string, string>; sections: Array<{ name: string; shares?: string }>; tables: string } {
   const body = /<plan>([\s\S]*?)<\/plan>/.exec(text)?.[1] ?? "";
   const parts: Record<string, string> = {};
   const sections: Array<{ name: string; shares?: string }> = [];
   let design = "";
+  let tables = "";
   for (const raw of body.split("\n")) {
     const line = raw.replace(/^\s*[-*]\s*/, "").trim();
     const m = /^(src\/[^\s:]+)\s*:\s*(.+)$/.exec(line);
     if (m) parts[m[1] as string] = (m[2] as string).trim();
     else if (/^design\s*:/i.test(line)) design = line.replace(/^design\s*:\s*/i, "");
+    else if (/^tables\s*:/i.test(line)) tables = line.replace(/^tables\s*:\s*/i, "");
     else if (/^sections\s*:/i.test(line)) {
       for (const item of line.replace(/^sections\s*:\s*/i, "").split(",")) {
         const s = /^\s*([A-Z][A-Za-z0-9]*)\s*(?:\(\s*(?:shares?\s*:?\s*)?([^)]*?)\s*\))?\s*$/.exec(item);
@@ -283,7 +287,7 @@ export function parsePlan(text: string): { design: string; parts: Record<string,
       }
     }
   }
-  return { design, parts, sections };
+  return { design, parts, sections, tables };
 }
 
 export interface MissingImport {
@@ -330,12 +334,23 @@ export function missingImports(files: CodeFiles): MissingImport[] {
   return [...found.values()];
 }
 
+/**
+ * With a database, the plan also names the tables (before the sections, so every section knows them from the start) and
+ * the plan step writes their setup file before App.jsx.
+ */
+export const DATABASE_PLAN = `THIS APP HAS A DATABASE, so the plan changes a little:
+- In <plan>, right after the design line, add a tables line naming each table and its columns, e.g.
+  tables: tasks(title text, done boolean, belongs to the signed-in person), comments(task_id, body text, public to read)
+- If people need accounts, one of the sections is SignIn (email and password).
+- After <reply>, and BEFORE src/App.jsx, write the complete setup for those tables as <file path="db/001_init.sql"> (or the next free number): create table if not exists, row level security on, policies, a few starter rows if useful.`;
+
 /** What the AI is asked for in the first step of a new app. */
-export function planMessage(files: CodeFiles, message: string): string {
+export function planMessage(files: CodeFiles, message: string, opts: { backend?: boolean } = {}): string {
   const clean = message.replace(/<\/?owner>/gi, "");
+  const database = opts.backend ? `\n${backendRules(files)}\n\n${DATABASE_PLAN}\n` : "";
   return `The app as it is now (a placeholder, replace it):
 ${filesContext(files)}
-
+${database}
 This is a NEW app. To build it fast, answer with ONLY these three things, in this order:
 <plan>
 design: one line every section will follow: accent color (a Tailwind color name), backgrounds, headline style, corner radius, mood
@@ -354,7 +369,7 @@ Do NOT write the component files: they are being written at the same time by oth
 }
 
 /** What the AI is asked for when writing one section of a new app. */
-export function partMessage(input: { message: string; design: string; app?: string; path: string; plan: string | undefined; usedAs: string[]; others?: string[] }): string {
+export function partMessage(input: { message: string; design: string; app?: string; path: string; plan: string | undefined; usedAs: string[]; others?: string[]; backend?: string; tables?: string }): string {
   const clean = input.message.replace(/<\/?owner>/gi, "");
   const name = componentName(input.path);
   const page = input.others?.length ? `\nThe whole page, top to bottom: the ready-made header, ${input.others.join(", ")}, the ready-made footer. You write only ${name ?? input.path}; don't repeat what the others do.` : "";
@@ -372,6 +387,7 @@ It is imported like this, so export exactly what these lines need:
 ${input.usedAs.join("\n")}
 ${name ? `Write it as \`export default function ${name}() { ... }\` and add \`export { ${name} };\` at the end, so either kind of import works.` : ""}
 
+${input.backend ? `\n${input.backend}\nThe tables (their setup is being written right now): ${input.tables || "see the owner's request"}. Your file uses them through supabase; it does NOT write any SQL.\n` : ""}
 Answer with ONLY <file path="${input.path}">...the complete file...</file>. No <reply>.
 - About 35 lines. There is a HARD limit of about 2,500 characters: anything past it is cut off, so put the essentials first and keep text short. Speed matters: the owner is watching, and the slowest file holds up the whole app.
 - Keep the content small: a form has at most 4 fields and uses the browser's \`required\` (and \`type="email"\`) instead of validation code or per-field error messages; at most 3 cards or list items; at most 3 FAQ entries; no long arrays of options. The owner can ask for more later.
@@ -449,6 +465,8 @@ type BuildOptions = {
   mode?: "new" | "change";
   /** The request to send instead of the new-app plan request (used for changes). */
   prompt?: string;
+  /** The app has a database connected (see backend.ts). */
+  backend?: boolean;
 };
 
 export async function firstBuild(opts: BuildOptions): Promise<FirstBuildResult> {
@@ -529,6 +547,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
   // The building blocks go out just before the first section starts, in the accent the plan chose.
   const built: { kit: string | null } = { kit: null };
   let others: string[] = [];
+  let tables = "";
   const launch = (path: string, usedAs: string[], plan: string | undefined, app?: string) => {
     if (launched.has(path) || launched.size >= MAX_PARTS) return;
     addShared(emit);
@@ -544,7 +563,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
       path,
       writePart(
         partAsk,
-        partMessage({ message: opts.message, design, app, path, plan, usedAs, others }),
+        partMessage({ message: opts.message, design, app, path, plan, usedAs, others, backend: opts.backend ? backendRules(opts.files) : undefined, tables }),
         path,
         (text, reset) => piece(path, text, reset),
         () => {
@@ -575,6 +594,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     const complete = closed ? lines : lines.slice(0, lines.lastIndexOf("\n") + 1);
     const plan = parsePlan(`<plan>${complete}</plan>`);
     if (plan.design) design = plan.design;
+    if (plan.tables) tables = plan.tables;
     // The sections line starts every section at once.
     if (plan.sections.length > 0) {
       others = plan.sections.map((x) => x.name);
@@ -595,7 +615,8 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     const end = planText.indexOf("</plan>");
     if (end === -1 || stop.signal.aborted) return;
     if (/<file\s+path="src\/App\.jsx"\s*>[\s\S]*?<\/file>/.test(planText.slice(end))) return stop.abort();
-    const other = /<file\s+path="(?!src\/App\.jsx")[^"]*"/.exec(planText.slice(end));
+    // Anything but App.jsx and a database setup file means it started writing a section itself.
+    const other = /<file\s+path="(?!src\/App\.jsx"|db\/)[^"]*"/.exec(planText.slice(end));
     if (other) {
       cutAt = end + other.index;
       opts.send("\n</file>\n"); // close what the browser was shown, so the rest of the answer reads cleanly
@@ -604,7 +625,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
   };
   try {
     planText = await planAsk(
-      [...opts.history, { role: "user", content: opts.prompt ?? planMessage(opts.files, opts.message) }],
+      [...opts.history, { role: "user", content: opts.prompt ?? planMessage(opts.files, opts.message, { backend: opts.backend }) }],
       (piece) => {
         if (stop.signal.aborted) return;
         if (timeline && timeline.planFirstText === undefined) timeline.planFirstText = at();

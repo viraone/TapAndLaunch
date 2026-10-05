@@ -124,3 +124,31 @@ and anyone can report one; admins can take one down. See `docs/moderation.md`.
 customer paste their own Supabase project URL and key so the AI can build tables, sign-in and real data against it. Stage 3:
 click an element in the preview to edit it, GitHub export, image upload. First real-key runs (2026-10-05) looked good; the
 parallel first build has only been timed against a stand-in so far.
+
+
+## Stage 2: the app's own database (added 2026-10-05)
+An AI-built app can connect the owner's own Supabase project. Builder: **Database** button (badge = setup files not
+run yet) -> `DatabasePanel`. API: `/api/apps/{id}/backend` (GET status + setup files, PUT connect, PATCH mark a setup
+file run, DELETE disconnect). Table `app_backends` (migration 0034, editors only by RLS).
+
+- Only the project's **public** key is stored (`anon` JWT or `sb_publishable_`). The secret key is refused in both formats
+  (`checkBackendInput`). On the live site the URL must be `https://<ref>.supabase.co`, because our server calls it to check
+  the connection (`verifyBackend` reads `/auth/v1/settings`, which also tells us whether sign-ups must confirm email).
+- Connecting writes `src/lib/supabase.js` (`supabaseFile`) as a new version. It's ours: the code-chat route restores it
+  after every build. The app's code talks to the project straight from the visitor's browser (the sandbox's origin is
+  `null`; Supabase answers `Access-Control-Allow-Origin: *`), so the owner's row-level security is what protects data.
+- The AI gets `backendRules` (in `userMessage`, `planMessage` with `DATABASE_PLAN`, and every section's `partMessage`):
+  tables in new `db/NNN_name.sql` files (never edit run ones), RLS + policies always, `supabase.from(...)`, email/password
+  sign-in only, a friendly "run the setup" card when a table is missing. A new app's plan names the tables before the
+  sections, and the plan step writes `db/001_init.sql` before App.jsx (the early stop lets `db/` files through).
+- Setup files aren't part of the running app (the runtime and `buildCodeDocument` skip anything outside `src/`). The
+  owner copies each into their SQL editor and clicks "I ran it" (`applied_sql`, by content hash, so an edited file shows
+  "Changed since you ran it").
+- Sign-ins: a sandboxed page can't store anything, so `window.__tlStorage` asks the page around it over postMessage. The
+  builder keeps sign-ins in memory (you stay signed in while the app rebuilds); a published app's `CodeAppFrame` keeps
+  them in its own `localStorage` under `tlapp:` (each app has its own address, so its own storage).
+- Tested end to end against the local Supabase: connect, build, "not set up yet", run setup, save a task, edit (still
+  signed in), publish, visitor signs in, reload (still signed in).
+
+**Not built yet:** running the setup for the owner (would need their access token), magic-link / social sign-in (need
+redirects), file uploads (Supabase Storage).

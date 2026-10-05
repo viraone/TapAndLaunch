@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowUp, ArrowUpRight, FileCode2, History, Loader2, Monitor, RotateCcw, Rocket, Smartphone, Sparkles, Wrench } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowUpRight, Database, FileCode2, History, Loader2, Monitor, RotateCcw, Rocket, Smartphone, Sparkles, Wrench } from "lucide-react";
 import { buildCodeDocument } from "@/lib/code/document";
 import { applyChanges, applyEdits, parseReply } from "@/lib/code/files";
 import { demux, splitStream } from "@/lib/code/protocol";
@@ -13,6 +13,7 @@ import { runnablePartial } from "@/lib/code/partial";
 import { createClient } from "@/lib/supabase/client";
 import { KeyForm, type SavedKey } from "@/components/builder/AiChatPanel";
 import { DictationButton } from "@/components/builder/DictationButton";
+import { DatabasePanel, type DbState } from "@/components/builder/DatabasePanel";
 
 interface Message {
   role: "user" | "assistant";
@@ -101,6 +102,24 @@ export function CodeBuilder({
   const [draft, setDraft] = useState<Record<string, string> | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
+  // The app's own database (see DatabasePanel): its status and the setup files the owner still has to run.
+  const [db, setDb] = useState<DbState | null>(null);
+  const [dbOpen, setDbOpen] = useState(false);
+  const loadDb = useCallback(async () => {
+    const res = await fetch(`/api/apps/${appId}/backend`).catch(() => null);
+    if (!res?.ok) return null;
+    const next = (await res.json()) as DbState;
+    setDb(next);
+    return next;
+  }, [appId]);
+  useEffect(() => {
+    void fetch(`/api/apps/${appId}/backend`)
+      .then((r) => (r.ok ? (r.json() as Promise<DbState>) : null))
+      .then((next) => next && setDb(next))
+      .catch(() => {});
+  }, [appId]);
+  // Sign-ins inside the preview (apps with a database): kept here, in memory, while the builder is open.
+  const previewStorage = useRef(new Map<string, string>());
   const [elapsed, setElapsed] = useState(0);
   const listEnd = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
@@ -237,6 +256,13 @@ export function CodeBuilder({
           setFiles(result.files);
           setVersion(result.version);
           setVersions((v) => [{ version: result.version as number, summary: opts.hidden ? "Fixed an error" : message.replace(/\s+/g, " ").slice(0, 90), created_at: new Date().toISOString() }, ...v]);
+          // New database setup to run: say so right away.
+          if (Object.keys(result.files).some((p) => p.startsWith("db/"))) {
+            void loadDb().then((next) => {
+              const todo = next?.sql.filter((f) => !f.ran).length ?? 0;
+              if (todo > 0 && next?.backend) toast("This change needs a database update", { description: "Open Database, copy the setup and run it in Supabase.", action: { label: "Open", onClick: () => setDbOpen(true) } });
+            });
+          }
         }
         const count = result.changed?.length ?? 0;
         setMessages((m) => [...m, { role: "assistant", content: result.reply || parsed.reply || "Done.", note: count ? `Updated ${count} file${count === 1 ? "" : "s"}` : result.note }]);
@@ -248,13 +274,22 @@ export function CodeBuilder({
         setDraft(null);
       }
     },
-    [appId, busy, messages]
+    [appId, busy, messages, loadDb]
   );
 
   // Messages from the preview frame: it tells us when the app started and when it hit an error.
   useEffect(() => {
     function onMessage(e: MessageEvent) {
       if (e.source !== frame.current?.contentWindow || !e.data || e.data.source !== "tl-app") return;
+      // The app keeping a sign-in (see the runtime's storage bridge).
+      if (e.data.type === "storage") {
+        const { op, key, value, id } = e.data as { op: string; key: string; value: string | null; id: string };
+        const store = previewStorage.current;
+        if (op === "set" && typeof value === "string") store.set(key, value);
+        if (op === "remove") store.delete(key);
+        frame.current?.contentWindow?.postMessage({ source: "tl-host", type: "storage-reply", id, value: op === "get" ? store.get(key) ?? null : null }, "*");
+        return;
+      }
       // The page (re)loaded: give it the version that should be on screen, in case it missed it while loading.
       if (e.data.type === "booted") {
         if (onScreen.current.rev > 0) post();
@@ -355,6 +390,19 @@ export function CodeBuilder({
             ))}
           </select>
         </div>
+        <button
+          type="button"
+          onClick={() => setDbOpen(true)}
+          className="relative inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-neutral-200 ring-1 ring-white/15 hover:bg-white/10"
+          aria-label={`Database${db?.backend ? ", connected" : ""}${db?.sql.some((f) => !f.ran) ? `, ${db.sql.filter((f) => !f.ran).length} setup to run` : ""}`}
+        >
+          <Database className="h-4 w-4" />
+          <span className="hidden md:inline">Database</span>
+          {db?.backend && <span className="h-2 w-2 rounded-full bg-emerald-400" />}
+          {!!db?.sql.filter((f) => !f.ran).length && (
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-amber-400 px-1 text-[11px] font-bold text-neutral-950">{db.sql.filter((f) => !f.ran).length}</span>
+          )}
+        </button>
         <div className="hidden rounded-full bg-white/[0.06] p-1 ring-1 ring-white/10 sm:flex" role="group" aria-label="Preview size">
           {(["phone", "desktop"] as const).map((d) => (
             <button key={d} type="button" onClick={() => setDevice(d)} aria-pressed={device === d} className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm ${device === d ? "bg-white text-neutral-950" : "text-neutral-300"}`}>
@@ -509,6 +557,19 @@ export function CodeBuilder({
           )}
         </section>
       </div>
+      {dbOpen && (
+        <DatabasePanel
+          appId={appId}
+          state={db}
+          onClose={() => setDbOpen(false)}
+          onState={setDb}
+          onConnected={({ files: connected, version: v }) => {
+            setFiles(connected);
+            setVersion(v);
+            setVersions((list) => [{ version: v, summary: "Connected a database", created_at: new Date().toISOString() }, ...list]);
+          }}
+        />
+      )}
     </div>
   );
 }

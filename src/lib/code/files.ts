@@ -11,8 +11,11 @@ export const MAX_TOTAL_BYTES = 400_000;
 /** Files live under src/. `@/x` in code means `src/x`. jsx/js for code, css for styles. */
 const PATH = /^src\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.(?:jsx|js|css)$/;
 
+/** Database setup files (`db/001_tasks.sql`, see backend.ts): text the owner runs, not part of the running app. */
+const SQL_PATH = /^db\/[0-9]{3}_[a-z0-9_]{1,50}\.sql$/;
+
 export function isValidPath(path: string): boolean {
-  return PATH.test(path) && !path.includes("..") && path.length <= 100;
+  return (PATH.test(path) || SQL_PATH.test(path)) && !path.includes("..") && path.length <= 100;
 }
 
 export function validateFiles(files: CodeFiles): string | null {
@@ -21,7 +24,7 @@ export function validateFiles(files: CodeFiles): string | null {
   if (paths.length > MAX_FILES) return `An app can have at most ${MAX_FILES} files.`;
   let total = 0;
   for (const path of paths) {
-    if (!isValidPath(path)) return `"${path}" isn't an allowed file name. Files live in src/ and end in .jsx, .js or .css.`;
+    if (!isValidPath(path)) return `"${path}" isn't an allowed file name. Files live in src/ and end in .jsx, .js or .css (database setup: db/001_name.sql).`;
     const size = new TextEncoder().encode(files[path] as string).length;
     if (size > MAX_FILE_BYTES) return `"${path}" is too large (over ${MAX_FILE_BYTES / 1000} KB). Split it into smaller files.`;
     total += size;

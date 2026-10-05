@@ -8,6 +8,7 @@ import { getActiveListings } from "@/lib/pwa/listings";
 import { BlockRenderer } from "@/components/pwa-runtime/BlockRenderer";
 import { GatedPlaceholder } from "@/components/pwa-runtime/GatedPlaceholder";
 import { recordAnalyticsEvent } from "@/lib/pwa/analytics";
+import { CodeAppFrame } from "@/components/pwa-runtime/CodeAppFrame";
 import { getCurrentMember, memberSatisfiesTier } from "@/lib/pwa/get-current-member";
 
 // See the note in `../layout.tsx` on why `params` is typed by hand here
@@ -27,20 +28,7 @@ export default async function PublishedAppPage({ params }: { params: Params }) {
     const codeDomain = getCodeAppsDomain();
     if (codeDomain && hostRoot((await headers()).get("host")) === "main") redirect(`${appOrigin(appSlug, codeDomain)}/${(path ?? []).join("/")}`);
     void recordAnalyticsEvent({ appId: published.app.id, eventType: "view" });
-    return (
-      <>
-        <iframe
-          title={published.app.name}
-          src="/app-code"
-          sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads"
-          className="fixed inset-0 h-full w-full border-0 bg-white"
-        />
-        {/* Outside the app's own (sandboxed) code, so an app can't hide it. Small, but a full 44pt to tap. */}
-        <a href="/report" className="fixed bottom-1 left-1 z-10 inline-flex min-h-11 items-center p-1.5" aria-label={`Report ${published.app.name} to TapAndLaunch`}>
-          <span className="rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white/90 backdrop-blur hover:bg-black/70">Report</span>
-        </a>
-      </>
-    );
+    return <CodeAppFrame name={published.app.name} />;
   }
 
   const page = resolvePage(published, path);

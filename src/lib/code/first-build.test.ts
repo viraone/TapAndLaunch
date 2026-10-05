@@ -33,7 +33,9 @@ describe("new apps", () => {
       design: "accent emerald, slate neutrals, rounded-3xl cards, bold headlines",
       parts: { "src/components/Header.jsx": "logo and a Join button", "src/components/Hero.jsx": "big headline and a class search" },
       sections: [],
+      tables: "",
     });
+    expect(parsePlan("<plan>\ndesign: x\ntables: tasks(title text, done boolean)\nsections: TaskList\n</plan>").tables).toBe("tasks(title text, done boolean)");
     expect(parsePlan("<plan>\ndesign: x\nsections: ServicePicker (shares service), BookingDetails (shares: service), Hero\n</plan>").sections).toEqual([
       { name: "ServicePicker", shares: "service" },
       { name: "BookingDetails", shares: "service" },

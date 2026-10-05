@@ -490,6 +490,22 @@ export interface Database {
         Update: Partial<{ user_id: string; created_at: string }>;
         Relationships: [];
       };
+      app_backends: {
+        Row: {
+          app_id: string;
+          provider: "supabase";
+          url: string;
+          anon_key: string;
+          /** Database setup files the owner has run: path -> the content's hash when marked run. */
+          applied_sql: Record<string, string>;
+          connected_by: string | null;
+          connected_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["app_backends"]["Row"]> & { app_id: string; url: string; anon_key: string };
+        Update: Partial<Database["public"]["Tables"]["app_backends"]["Row"]>;
+        Relationships: [];
+      };
       app_reports: {
         Row: {
           id: string;

@@ -1,6 +1,7 @@
 import { LIBS } from "./document";
 import { LIBRARY_PHOTOS } from "@/lib/ai/library-photos";
 import type { CodeFiles } from "./files";
+import { backendRules } from "./backend";
 
 /**
  * The instructions that make the AI's apps look designed from the first prompt. This is where most of the quality comes
@@ -34,7 +35,7 @@ export const CODE_SYSTEM_PROMPT = `You are a senior product designer and React e
 - Styling is Tailwind CSS (all utility classes, including arbitrary values like \`bg-[#0f172a]\`). A src/styles.css can hold custom CSS. You don't need to import it.
 - Fonts: Inter is the default sans. Use \`font-serif\` (Playfair Display) for elegant headlines.
 - Libraries you may import, and nothing else: ${Object.keys(LIBS).filter((k) => !k.includes("/")).join(", ")}. Use lucide-react for all icons (for example \`import { Calendar, Check } from 'lucide-react'\`). Use HashRouter from react-router-dom for multiple pages, never BrowserRouter. Use framer-motion for tasteful animation.
-- There is NO backend, NO database and NO network API available yet. Keep data in React state (it resets on reload; localStorage is in-memory). Make it feel real: realistic sample data, working interactions (add, remove, filter, toggle, tabs, forms, modals). Forms use the browser's \`required\` and input types for checks rather than hand-written validation code. Don't call fetch() to any server.
+- Unless the request says THIS APP HAS A REAL DATABASE, there is NO backend, NO database and NO network API. Then keep data in React state (it resets on reload; localStorage is in-memory). Make it feel real: realistic sample data, working interactions (add, remove, filter, toggle, tabs, forms, modals). Forms use the browser's \`required\` and input types for checks rather than hand-written validation code. Don't call fetch() to any server.
 - No TypeScript, no other file types, no environment variables, no <script> tags, no external CSS. No \`document.cookie\`, no \`window.parent\`, no \`eval\`.
 - Photos: you may use these library photos, which exist at https://tapandlaunch.com/templates/<name>.jpg : ${LIBRARY_PHOTOS.join(", ")}. Use one ONLY when its name clearly matches this business (a gym photo for a gym, a salon photo for a salon); a near match is wrong (never a gym or yoga photo for a pet groomer). When nothing matches, use no photo: gradients, CSS shapes, emoji and icons look better than the wrong picture. Never invent other image addresses.
 
@@ -62,9 +63,10 @@ export function filesContext(files: CodeFiles): string {
     .join("\n");
 }
 
-export function userMessage(files: CodeFiles, message: string): string {
+export function userMessage(files: CodeFiles, message: string, opts: { backend?: boolean } = {}): string {
   const clean = message.replace(/<\/?owner>/gi, "");
-  return `The app as it is now:\n${filesContext(files)}\n\n${BIG_CHANGES}\n\n<owner>${clean}</owner>`;
+  const database = opts.backend ? `${backendRules(files)}\n\n` : "";
+  return `The app as it is now:\n${filesContext(files)}\n\n${database}${BIG_CHANGES}\n\n<owner>${clean}</owner>`;
 }
 
 /**
@@ -81,7 +83,7 @@ sections: NewSectionA (shares key), NewSectionB
 <file path="src/App.jsx">
 the COMPLETE new App.jsx, importing the listed sections (default imports from '@/components/Name') and any existing ones that stay; each section's id is its name in lower case
 </file>
-Only list sections that are new or completely rewritten (2 to 6, each small, about 35 lines); every listed section is written at the same time by someone else. Existing sections you don't list stay as they are, and ones App.jsx no longer uses are removed.`;
+Only list sections that are new or completely rewritten (2 to 6, each small, about 35 lines); every listed section is written at the same time by someone else. If the app has a database and the change needs new tables, put a tables line in the plan (tables: name(columns), ...) and write the new db/NNN_name.sql file after <reply>, before App.jsx. Existing sections you don't list stay as they are, and ones App.jsx no longer uses are removed.`;
 
 /** The first version of a new code app: a polished placeholder so the preview is never blank. */
 export function starterFiles(appName: string): CodeFiles {
