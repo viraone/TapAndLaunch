@@ -1,5 +1,5 @@
 #!/bin/bash
-# Turns on the nightly menu job (about 2:30 AM). Undo with:  ./install-nightly.sh remove
+# Turns on the daily menu + happy hour job (10:00 AM). Undo with:  ./install-nightly.sh remove
 #
 # macOS doesn't let a background job read ~/Desktop, ~/Documents or ~/Downloads, so the job can't run from the repo
 # when the repo lives there. This copies the job to ~/.livebites-menu-job and the schedule runs it from there.
@@ -9,10 +9,13 @@ LABEL="com.tapandlaunch.menu-ingest"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 SRC="$(cd "$(dirname "$0")" && pwd)"
 DEST="$HOME/.livebites-menu-job"
+# When it runs each day (local time). 10 AM: the Mac is awake and on power, and the job stops itself after 4 hours.
+RUN_HOUR=10
+RUN_MINUTE=0
 if [ "${1:-}" = "remove" ]; then
   launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
   rm -f "$PLIST"
-  echo "Nightly menu job removed. (The copy in $DEST is still there; delete it if you like.)"
+  echo "Daily menu job removed. (The copy in $DEST is still there; delete it if you like.)"
   exit 0
 fi
 [ -f "$SRC/.env" ] || [ -f "$DEST/.env" ] || { echo "Create $SRC/.env first (see README.md)."; exit 1; }
@@ -28,12 +31,12 @@ cat > "$PLIST" <<PLISTEOF
 <plist version="1.0"><dict>
   <key>Label</key><string>$LABEL</string>
   <key>ProgramArguments</key><array><string>/bin/bash</string><string>$DEST/nightly.sh</string></array>
-  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>30</integer></dict>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>$RUN_HOUR</integer><key>Minute</key><integer>$RUN_MINUTE</integer></dict>
   <key>RunAtLoad</key><false/>
   <key>StandardErrorPath</key><string>$HOME/Library/Logs/menu-ingest.launchd.log</string>
 </dict></plist>
 PLISTEOF
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST"
-echo "Nightly menu job is on: every night at 2:30 AM (log: ~/Library/Logs/menu-ingest.log)."
-echo "If the Mac is asleep at 2:30 it runs when it wakes. Turn off with: ./install-nightly.sh remove"
+printf "Menu + happy hour job is on: every day at %d:%02d (log: ~/Library/Logs/menu-ingest.log).\n" "$RUN_HOUR" "$RUN_MINUTE"
+echo "If the Mac is asleep at that time it runs when it wakes. Turn off with: ./install-nightly.sh remove"

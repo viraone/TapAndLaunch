@@ -1,5 +1,5 @@
 #!/bin/bash
-# Nightly run of the menu job (started by launchd, see install-nightly.sh). Keeps the Mac awake while it works,
+# Daily run (10 AM) of the menu + happy hour job (started by launchd, see install-nightly.sh). Keeps the Mac awake while it works,
 # starts Ollama if it isn't running, and logs to ~/Library/Logs/menu-ingest.log.
 set -u
 cd "$(dirname "$0")"

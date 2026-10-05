@@ -39,8 +39,8 @@ node run.mjs --write --limit 20
 Useful options: `--names "a,b"`, `--ids uuid,uuid`, `--force` (re-read even if recent), `--lat/--lng` (dry runs: which area), `--near` (with --lat/--lng and --write: only restaurants within ~2.5 miles of that point),
 `--max-minutes 180`, `--model qwen3.8:27b`.
 
-## Every night (optional)
-`./install-nightly.sh` turns on a 2:30 AM run (it keeps the Mac awake while it works and starts Ollama if needed).
+## Every day at 10 AM (optional)
+`./install-nightly.sh` turns on a 10:00 AM daily run (change `RUN_HOUR` / `RUN_MINUTE` at the top of that script to move it) (it keeps the Mac awake while it works and starts Ollama if needed).
 macOS won't let a background job read `~/Desktop`, so the installer copies the job to `~/.livebites-menu-job` and the schedule
 runs it from there. **Run `./install-nightly.sh` again after changing anything in this folder** (it re-copies the files).
 `./install-nightly.sh remove` turns it off. Log: `~/Library/Logs/menu-ingest.log`. If the Mac is off, nothing breaks:
