@@ -7,7 +7,7 @@ _Last checked: 2026-10-03._ Sending and receiving are handled by two different s
 | What | How |
 |---|---|
 | Builder sign-up confirmation, password and auth emails | Supabase Auth, using **Resend as its SMTP server** (`smtp.resend.com:465`, sender `noreply@tapandlaunch.com`). Configured in Supabase > Authentication > SMTP |
-| App-level email (the Email channel on a Notifications page) | Resend **batch** API (100 per call), needs `RESEND_API_KEY` and `RESEND_FROM_EMAIL` in Vercel. **Not set on production yet**. Sent as `"App name" <noreply@tapandlaunch.com>`, the merchant's message is HTML-escaped, and every email has an unsubscribe link plus the one-click `List-Unsubscribe` header |
+| App-level email (the Email channel on a Notifications page) | Resend **batch** API (100 per call), needs `RESEND_API_KEY` and `RESEND_FROM_EMAIL` in Vercel. **Set on production 2026-10-05** (key is Sensitive, Production only; a live test email reached the inbox). Sent as `"App name" <noreply@tapandlaunch.com>`, the merchant's message is HTML-escaped, and every email has an unsubscribe link plus the one-click `List-Unsubscribe` header |
 | Card receipts | Sent by Stripe, from the builder's own Stripe account (live mode only) |
 | StageTime sign-in codes | The *rickshaw-open-mic* Supabase project, also through Resend, sender `noreply@stagetimepnw.com` |
 
