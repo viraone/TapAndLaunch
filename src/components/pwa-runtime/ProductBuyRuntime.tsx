@@ -9,6 +9,8 @@ export interface RuntimeProduct {
   price_cents: number;
   currency: string;
   image_url: string | null;
+  /** Card payments are on for this product: Stripe's page asks for name and email, so the form skips them. */
+  card_checkout?: boolean;
 }
 
 function formatMoney(cents: number, currency: string): string {
@@ -56,8 +58,7 @@ export function ProductBuyRuntime({ product }: { product: RuntimeProduct }) {
         body: JSON.stringify({
           productId: product.id,
           quantity,
-          customerName: name,
-          customerEmail: email,
+          ...(product.card_checkout ? {} : { customerName: name, customerEmail: email }),
           returnPath: window.location.pathname,
         }),
       });
@@ -116,23 +117,31 @@ export function ProductBuyRuntime({ product }: { product: RuntimeProduct }) {
           </button>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-2 pt-2">
+            {!product.card_checkout && (
+              <>
+                <input
+                  type="text"
+                  required
+                  placeholder="Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                />
+                <input
+                  type="email"
+                  required
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                />
+              </>
+            )}
+            <label htmlFor={`qty-${product.id}`} className="block text-xs text-muted-foreground">
+              Quantity
+            </label>
             <input
-              type="text"
-              required
-              placeholder="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-sm"
-            />
-            <input
-              type="email"
-              required
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-sm"
-            />
-            <input
+              id={`qty-${product.id}`}
               type="number"
               min={1}
               required
@@ -147,8 +156,12 @@ export function ProductBuyRuntime({ product }: { product: RuntimeProduct }) {
               className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
             >
               {status === "submitting"
-                ? "Sending…"
-                : `Order ${formatMoney(product.price_cents * quantity, product.currency)}`}
+                ? product.card_checkout
+                  ? "Opening checkout…"
+                  : "Sending…"
+                : product.card_checkout
+                  ? `Pay ${formatMoney(product.price_cents * quantity, product.currency)}`
+                  : `Order ${formatMoney(product.price_cents * quantity, product.currency)}`}
             </button>
           </form>
         )}

@@ -61,8 +61,8 @@ export default async function OrdersPage({ params }: { params: Params }) {
             <div key={order.id} className="rounded-md border p-4 text-sm">
               <div className="mb-2 flex items-center justify-between">
                 <div>
-                  <p className="font-medium">{order.customer_name}</p>
-                  <p className="text-xs text-muted-foreground">{order.customer_email}</p>
+                  <p className="font-medium">{order.customer_name || "Awaiting payment details"}</p>
+                  {order.customer_email && <p className="text-xs text-muted-foreground">{order.customer_email}</p>}
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="font-semibold">{formatMoney(order.total_cents, order.currency)}</span>

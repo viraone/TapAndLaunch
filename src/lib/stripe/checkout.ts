@@ -40,7 +40,8 @@ export interface CheckoutInput {
   unitPriceCents: number;
   currency: string;
   quantity: number;
-  customerEmail: string;
+  /** Known email (the form was filled in); leave out to let Stripe's page ask for it. */
+  customerEmail?: string;
   origin: string;
   returnPath: string;
   feeCents: number;
@@ -60,12 +61,12 @@ export function buildCheckoutSessionParams(i: CheckoutInput): Stripe.Checkout.Se
         },
       },
     ],
-    customer_email: i.customerEmail,
+    ...(i.customerEmail ? { customer_email: i.customerEmail } : {}),
     client_reference_id: i.orderId,
     metadata: { order_id: i.orderId, app_id: i.appId },
     // Stripe emails the receipt (live mode only) when the payment carries the shopper's address.
     payment_intent_data: {
-      receipt_email: i.customerEmail,
+      ...(i.customerEmail ? { receipt_email: i.customerEmail } : {}),
       ...(i.feeCents > 0 ? { application_fee_amount: i.feeCents } : {}),
     },
     success_url: withParams(i.origin, i.returnPath, { payment: "success", order: i.orderId, product: i.productId }),

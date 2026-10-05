@@ -57,6 +57,12 @@ describe("buildCheckoutSessionParams", () => {
     feeCents: 0,
   };
 
+  it("lets Stripe ask for the email when the buy form didn't", () => {
+    const p = buildCheckoutSessionParams({ ...base, customerEmail: undefined });
+    expect(p).not.toHaveProperty("customer_email");
+    expect(p.payment_intent_data).not.toHaveProperty("receipt_email");
+  });
+
   it("builds a one-line hosted checkout that returns to the page", () => {
     const p = buildCheckoutSessionParams(base);
     expect(p.mode).toBe("payment");

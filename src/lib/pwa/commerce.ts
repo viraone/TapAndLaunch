@@ -1,11 +1,13 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { canTakeCards } from "@/lib/stripe/accounts";
+import { canPayByCard } from "@/lib/stripe/checkout";
 import type { RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import type { RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
 
 /** Every active product for an app, in display order — see the migration
  * comment on `products` for why there's no per-block curation to filter by. */
-export async function getActiveProducts(appId: string): Promise<RuntimeProduct[]> {
+export async function getActiveProducts(appId: string, organizationId: string): Promise<RuntimeProduct[]> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("products")
@@ -15,7 +17,9 @@ export async function getActiveProducts(appId: string): Promise<RuntimeProduct[]
     .order("position", { ascending: true });
 
   if (error) throw error;
-  return data ?? [];
+  // With card payments on, Stripe's page collects the shopper's name and email, so the buy form skips them.
+  const cards = await canTakeCards(admin, organizationId);
+  return (data ?? []).map((p) => ({ ...p, card_checkout: cards && canPayByCard(p.price_cents) }));
 }
 
 /**

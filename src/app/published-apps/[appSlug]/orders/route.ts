@@ -3,7 +3,7 @@ import { getPublishedApp } from "@/lib/pwa/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentMember } from "@/lib/pwa/get-current-member";
 import { recordAnalyticsEvent } from "@/lib/pwa/analytics";
-import { getStripeAccountRow } from "@/lib/stripe/accounts";
+import { canTakeCards, getStripeAccountRow } from "@/lib/stripe/accounts";
 import { appOrigin, applicationFeeCents, buildCheckoutSessionParams, canPayByCard, safeReturnPath } from "@/lib/stripe/checkout";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/server";
 import { getRootDomain } from "@/lib/tenant";
@@ -11,8 +11,9 @@ import { getRootDomain } from "@/lib/tenant";
 const OrderSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.number().int().min(1).max(999),
-  customerName: z.string().min(1).max(200),
-  customerEmail: z.string().email(),
+  /** Left out when the shopper pays by card: Stripe's checkout page asks for them. */
+  customerName: z.string().min(1).max(200).optional(),
+  customerEmail: z.string().email().optional(),
   /** The page the shopper bought from, so they come back to it after paying. */
   returnPath: z.string().optional(),
 });
@@ -54,13 +55,21 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
   const member = await getCurrentMember(published.app.id);
   const totalCents = product.price_cents * parsed.data.quantity;
 
+  // Name and email are only optional when the shopper is about to pay on Stripe, which asks for them.
+  const { customerName, customerEmail } = parsed.data;
+  const hasContact = !!customerName && !!customerEmail;
+  if (!hasContact && !(canPayByCard(totalCents) && (await canTakeCards(admin, published.app.organization_id)))) {
+    return Response.json({ error: "Please enter your name and email." }, { status: 400 });
+  }
+
   const { data: order, error: orderError } = await admin
     .from("orders")
     .insert({
       app_id: published.app.id,
       member_id: member?.id ?? null,
-      customer_name: parsed.data.customerName,
-      customer_email: parsed.data.customerEmail,
+      // Blank until Stripe tells us who paid (see `markOrderPaid`).
+      customer_name: customerName ?? "",
+      customer_email: customerEmail ?? "",
       total_cents: totalCents,
       currency: product.currency,
     })
@@ -99,9 +108,15 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
     product,
     quantity: parsed.data.quantity,
     totalCents,
-    customerEmail: parsed.data.customerEmail,
+    customerEmail,
     returnPath: safeReturnPath(parsed.data.returnPath),
   });
+
+  // Without a form there's no way to reach this shopper, so a checkout that didn't open is a failure, not a request.
+  if (!checkoutUrl && !hasContact) {
+    await admin.from("orders").update({ status: "cancelled" }).eq("id", order.id);
+    return Response.json({ error: "Checkout is unavailable right now. Please try again." }, { status: 502 });
+  }
 
   return Response.json({ orderId: order.id, checkoutUrl }, { status: 201 });
 }
@@ -120,7 +135,7 @@ async function startCardCheckout(input: {
   product: { id: string; name: string; price_cents: number; currency: string };
   quantity: number;
   totalCents: number;
-  customerEmail: string;
+  customerEmail: string | undefined;
   returnPath: string;
 }): Promise<string | null> {
   if (!isStripeConfigured() || !canPayByCard(input.totalCents)) return null;
