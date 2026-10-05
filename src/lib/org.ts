@@ -116,5 +116,10 @@ export async function isAppEditor(supabase: SupabaseClient<Database>, appId: str
     .eq("user_id", user.id)
     .maybeSingle();
 
-  return membership?.role === "admin" || membership?.role === "creator";
+  return isEditorRole(membership?.role);
+}
+
+/** The roles that may edit an organization's apps. */
+export function isEditorRole(role: string | null | undefined): boolean {
+  return role === "admin" || role === "creator";
 }

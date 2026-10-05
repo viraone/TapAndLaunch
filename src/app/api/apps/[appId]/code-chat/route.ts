@@ -2,7 +2,7 @@ import { z } from "zod";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isAppEditor } from "@/lib/org";
+import { isEditorRole } from "@/lib/org";
 import { decryptSecret } from "@/lib/ai/keys";
 import { ProviderError, fastModel, streamText, type AiProvider } from "@/lib/ai/providers";
 import { CODE_SYSTEM_PROMPT, userMessage } from "@/lib/code/prompt";
@@ -33,37 +33,36 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
   const { appId } = await context.params;
   const supabase = await createClient();
   // Everything the AI needs is looked up at once, in two rounds, so it can start sooner (one after another, these took
-  // about half a second). Nothing is used until the checks below have passed.
+  // about half a second on the live site). Nothing is used until the checks below have passed.
   const [
     {
       data: { user },
     },
     body,
-    editor,
     { data: app },
     current,
   ] = await Promise.all([
     supabase.auth.getUser(),
     request.json().catch(() => null),
-    isAppEditor(supabase, appId),
     supabase.from("apps").select("id, organization_id, kind").eq("id", appId).maybeSingle(),
     latestVersion(supabase, appId),
   ]);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
-  if (!editor) return Response.json({ error: "You can't edit this app" }, { status: 403 });
-  const parsed = Schema.safeParse(body);
-  if (!parsed.success) return Response.json({ error: "Type a message (up to 4,000 characters)" }, { status: 400 });
-  if (!app) return Response.json({ error: "Not found" }, { status: 404 });
-  if (app.kind !== "code") return Response.json({ error: "This app isn't an AI code app" }, { status: 400 });
-  if (!current) return Response.json({ error: "This app has no code yet." }, { status: 400 });
+  if (!app) return Response.json({ error: "You can't edit this app" }, { status: 403 });
 
   const admin = createAdminClient();
   const since = new Date();
   since.setHours(since.getHours() - 1);
-  const [{ data: keyRow }, { count }] = await Promise.all([
+  const [{ data: membership }, { data: keyRow }, { count }] = await Promise.all([
+    supabase.from("memberships").select("role").eq("organization_id", app.organization_id).eq("user_id", user.id).maybeSingle(),
     admin.from("org_ai_keys").select("provider, encrypted_key, model").eq("organization_id", app.organization_id).maybeSingle(),
     admin.from("ai_generations").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("kind", "code").gte("created_at", since.toISOString()),
   ]);
+  if (!isEditorRole(membership?.role)) return Response.json({ error: "You can't edit this app" }, { status: 403 });
+  const parsed = Schema.safeParse(body);
+  if (!parsed.success) return Response.json({ error: "Type a message (up to 4,000 characters)" }, { status: 400 });
+  if (app.kind !== "code") return Response.json({ error: "This app isn't an AI code app" }, { status: 400 });
+  if (!current) return Response.json({ error: "This app has no code yet." }, { status: 400 });
   if (!keyRow) return Response.json({ error: "Add your AI key first.", needsKey: true }, { status: 400 });
   if ((count ?? 0) >= CODE_HOURLY_LIMIT) return Response.json({ error: `That's ${CODE_HOURLY_LIMIT} builds this hour. Take a short break and try again.` }, { status: 429 });
   // Counted for the hourly limit. It's saved while the AI starts rather than before (Supabase sends a query only once
