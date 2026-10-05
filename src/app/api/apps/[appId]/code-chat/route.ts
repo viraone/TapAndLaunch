@@ -54,7 +54,8 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
   if (!keyRow) return Response.json({ error: "Add your AI key first.", needsKey: true }, { status: 400 });
   if ((count ?? 0) >= CODE_HOURLY_LIMIT) return Response.json({ error: `That's ${CODE_HOURLY_LIMIT} builds this hour. Take a short break and try again.` }, { status: 429 });
   if (!current) return Response.json({ error: "This app has no code yet." }, { status: 400 });
-  void admin.from("ai_generations").insert({ user_id: user.id, organization_id: app.organization_id, kind: "code" });
+  // Counted for the hourly limit. Supabase only sends a query once something waits for it, so it's awaited (about 50ms).
+  await admin.from("ai_generations").insert({ user_id: user.id, organization_id: app.organization_id, kind: "code" });
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
