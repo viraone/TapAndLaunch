@@ -14,8 +14,6 @@ const CODE_HOURLY_LIMIT = 30;
 
 const Schema = z.object({
   message: z.string().trim().min(1).max(4000),
-  /** "fast" uses the provider's small, quick model; "best" uses the stronger one chosen when the key was saved. */
-  speed: z.enum(["fast", "best"]).default("fast"),
   history: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(3000) })).max(8).default([]),
 });
 
@@ -77,8 +75,8 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
         const apiKey = decryptSecret(keyRow.encrypted_key);
         const provider = keyRow.provider as AiProvider;
         const turns = [...parsed.data.history, { role: "user" as const, content: userMessage(current.files, parsed.data.message) }];
-        // Fast mode tries the small quick model; if the provider doesn't have it, the stronger one does the job.
-        let model = parsed.data.speed === "fast" ? fastModel(provider, keyRow.model) : keyRow.model;
+        // Builds use the provider's small, quick model; if the provider doesn't have it, the model chosen with the key does the job.
+        let model = fastModel(provider, keyRow.model);
         let full: string;
         try {
           full = await streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, send);

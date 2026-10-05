@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowUp, ArrowUpRight, FileCode2, Gem, Zap, History, Loader2, Monitor, RotateCcw, Rocket, Smartphone, Sparkles, Wrench } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowUpRight, FileCode2, History, Loader2, Monitor, RotateCcw, Rocket, Smartphone, Sparkles, Wrench } from "lucide-react";
 import { buildCodeDocument } from "@/lib/code/document";
 import { parseReply } from "@/lib/code/files";
 import { splitStream } from "@/lib/code/protocol";
@@ -25,17 +25,6 @@ interface VersionInfo {
 }
 
 const MAX_AUTO_FIXES = 2;
-
-type Speed = "fast" | "best";
-const SPEED_KEY = "tl-code-speed";
-
-function savedSpeed(): Speed {
-  try {
-    return window.localStorage.getItem(SPEED_KEY) === "best" ? "best" : "fast";
-  } catch {
-    return "fast";
-  }
-}
 
 /**
  * "BYOB" code mode: the owner chats, their own AI writes a React app, and it runs live next to the chat in a sandboxed
@@ -83,7 +72,6 @@ export function CodeBuilder({
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [speed, setSpeed] = useState<Speed>(savedSpeed);
   const listEnd = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const autoFixes = useRef(0);
@@ -129,7 +117,7 @@ export function CodeBuilder({
       setLive({ reply: "", written: [], writing: null });
       setTab("chat");
       try {
-        const res = await fetch(`/api/apps/${appId}/code-chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message, history, speed }) });
+        const res = await fetch(`/api/apps/${appId}/code-chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message, history }) });
         if (!res.ok || !res.body) {
           const body = (await res.json().catch(() => ({}))) as { error?: string; needsKey?: boolean };
           if (body.needsKey) setKey(null);
@@ -174,7 +162,7 @@ export function CodeBuilder({
         setLive(null);
       }
     },
-    [appId, busy, messages, speed]
+    [appId, busy, messages]
   );
 
   // Messages from the preview frame: it tells us when the app started and when it hit an error.
@@ -347,37 +335,12 @@ export function CodeBuilder({
                 )}
                 <div ref={listEnd} />
               </div>
-              <div className="flex items-center gap-2 border-t border-white/10 px-3 pt-2.5" role="group" aria-label="AI speed">
-                {(
-                  [
-                    { id: "fast", label: "Fast", icon: Zap, hint: "Quickest answers" },
-                    { id: "best", label: "Best quality", icon: Gem, hint: "Slower, more polished" },
-                  ] as const
-                ).map((o) => (
-                  <button
-                    key={o.id}
-                    type="button"
-                    aria-pressed={speed === o.id}
-                    title={o.hint}
-                    disabled={busy}
-                    onClick={() => {
-                      setSpeed(o.id);
-                      try {
-                        window.localStorage.setItem(SPEED_KEY, o.id);
-                      } catch {}
-                    }}
-                    className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition disabled:opacity-50 ${speed === o.id ? "bg-white text-neutral-950" : "text-neutral-300 ring-1 ring-white/15 hover:bg-white/10"}`}
-                  >
-                    <o.icon className="h-3.5 w-3.5" /> {o.label}
-                  </button>
-                ))}
-              </div>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   void send(input);
                 }}
-                className="flex items-end gap-2 p-3"
+                className="flex items-end gap-2 border-t border-white/10 p-3"
               >
                 <label htmlFor="code-message" className="sr-only">
                   Message
