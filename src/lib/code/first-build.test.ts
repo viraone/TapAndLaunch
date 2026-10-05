@@ -206,10 +206,11 @@ describe("the two-step build", () => {
     expect(accentOf("slate neutrals, warm amber highlights")).toBe("amber");
     expect(accentOf("clean and calm")).toBe("indigo");
     const kit = uiKit("teal");
-    expect(kit).toContain("bg-teal-600");
+    expect(kit).toContain("export const ACCENT = 'teal';");
+    expect(kit).toContain("bg-${ACCENT}-600");
     expect(kit).toContain("export function Field(");
     expect(parse(kit, { sourceType: "module", plugins: ["jsx"] })).toBeTruthy();
-    expect(uiKit("not-a-color")).toContain("bg-indigo-600");
+    expect(uiKit("not-a-color")).toContain("export const ACCENT = 'indigo';");
   });
 
   // A plan step that keeps going and writes the sections itself, one after another (a real build took 34s this way).
@@ -281,7 +282,7 @@ describe("the two-step build", () => {
     expect(picker).toContain("What it must do: shares: service");
     expect(picker).toContain('id="servicepicker"');
     expect(asked["src/components/Hero.jsx"]).not.toContain("What it must do: shares");
-    expect("changes" in result && result.changes["src/lib/ui.jsx"]).toContain("bg-rose-600");
+    expect("changes" in result && result.changes["src/lib/ui.jsx"]).toContain("export const ACCENT = 'rose';");
   });
 
   it("caps how much a section may write, and keeps a section that hit the cap, ended cleanly", async () => {

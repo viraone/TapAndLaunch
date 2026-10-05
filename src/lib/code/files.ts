@@ -74,7 +74,11 @@ export function applyEdits(files: CodeFiles, edits: CodeEdit[]): { files: CodeFi
     }
     const first = current.indexOf(edit.find);
     if (first === -1) {
-      failed.push({ path: edit.path, reason: "the text to find isn't in the file" });
+      // Models often get the spacing or line breaks slightly wrong; the same words in the same order still count.
+      const loose = looseMatch(current, edit.find);
+      if (loose === "many") failed.push({ path: edit.path, reason: "the text to find appears more than once" });
+      else if (loose === null) failed.push({ path: edit.path, reason: "the text to find isn't in the file" });
+      else next[edit.path] = current.slice(0, loose.start) + edit.replace + current.slice(loose.end);
       continue;
     }
     if (current.indexOf(edit.find, first + 1) !== -1) {
@@ -84,6 +88,18 @@ export function applyEdits(files: CodeFiles, edits: CodeEdit[]): { files: CodeFi
     next[edit.path] = current.slice(0, first) + edit.replace + current.slice(first + edit.find.length);
   }
   return { files: next, failed };
+}
+
+/** Where `find` occurs in `text` if spacing is ignored (any run of spaces and line breaks matches any other), once. */
+function looseMatch(text: string, find: string): { start: number; end: number } | "many" | null {
+  const words = find.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return null;
+  const pattern = new RegExp(words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+"), "g");
+  const hits = [...text.matchAll(pattern)];
+  if (hits.length === 0) return null;
+  if (hits.length > 1) return "many";
+  const hit = hits[0] as RegExpMatchArray;
+  return { start: hit.index as number, end: (hit.index as number) + hit[0].length };
 }
 
 export interface ParsedReply {

@@ -139,3 +139,20 @@ describe("the preview runtime", () => {
     expect(page).toContain(".CircleHelp || ");
   });
 });
+
+describe("forgiving edit matching", () => {
+  const file = "export default function Hero() {\n  return (\n    <h1 className=\"text-5xl font-bold\">\n      Discover Delicious Recipes\n    </h1>\n  );\n}";
+
+  it("matches a find whose spacing or line breaks differ from the file", () => {
+    const { files, failed } = applyEdits({ "src/Hero.jsx": file }, [{ path: "src/Hero.jsx", find: '<h1 className="text-5xl font-bold">   Discover Delicious Recipes', replace: '<h1 className="text-5xl font-bold">Find Your Inner Peace' }]);
+    expect(failed).toEqual([]);
+    expect(files["src/Hero.jsx"]).toContain("Find Your Inner Peace");
+    expect(files["src/Hero.jsx"]).not.toContain("Discover");
+  });
+
+  it("still refuses a find whose words aren't there, or appear twice", () => {
+    expect(applyEdits({ "a.jsx": file }, [{ path: "a.jsx", find: "Discover Tasty Recipes", replace: "x" }]).failed[0]?.reason).toBe("the text to find isn't in the file");
+    expect(applyEdits({ "a.jsx": "a  b\na b" }, [{ path: "a.jsx", find: "a\nb", replace: "x" }]).failed[0]?.reason).toBe("the text to find appears more than once");
+  });
+});
+

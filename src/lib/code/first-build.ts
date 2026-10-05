@@ -146,6 +146,8 @@ export function uiKit(accent: string): string {
 import { Check, Menu, X } from 'lucide-react';
 
 // Building blocks in this app's style. Use them for the common pieces; plain Tailwind for everything else.
+// The app's accent color (a Tailwind color name). Change it here to recolor every building block.
+export const ACCENT = '${a}';
 export const cx = (...classes) => classes.filter(Boolean).join(' ');
 
 // The top of every page: <SiteHeader name="Pawfect" links={[{ label: 'Services', href: '#services' }]} cta={{ label: 'Book now', href: '#book' }} />
@@ -155,19 +157,19 @@ export function SiteHeader({ name, links = [], cta }) {
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-6">
         <a href="#" className="flex items-center gap-2.5 text-lg font-extrabold tracking-tight text-slate-900">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-${a}-600 text-base text-white shadow-sm">{(name || '?').charAt(0)}</span>
+          <span className={\`grid h-9 w-9 place-items-center rounded-xl bg-\${ACCENT}-600 text-base text-white shadow-sm\`}>{(name || '?').charAt(0)}</span>
           {name}
         </a>
         <nav className="ml-auto hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
           {links.map((l) => <a key={l.href} href={l.href} className="transition hover:text-slate-900">{l.label}</a>)}
         </nav>
-        {cta && <a href={cta.href} className="ml-auto hidden rounded-full bg-${a}-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-${a}-700 md:ml-0 md:inline-flex">{cta.label}</a>}
+        {cta && <a href={cta.href} className={\`ml-auto hidden rounded-full bg-\${ACCENT}-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-\${ACCENT}-700 md:ml-0 md:inline-flex\`}>{cta.label}</a>}
         <button type="button" aria-label="Menu" onClick={() => setOpen(!open)} className="ml-auto grid h-11 w-11 place-items-center rounded-full text-slate-700 hover:bg-slate-100 md:hidden">{open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</button>
       </div>
       {open && (
         <nav className="grid gap-1 border-t border-slate-200/70 bg-white px-6 py-3 md:hidden">
           {links.map((l) => <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="rounded-xl px-3 py-3 font-medium text-slate-700 hover:bg-slate-50">{l.label}</a>)}
-          {cta && <a href={cta.href} onClick={() => setOpen(false)} className="mt-1 rounded-full bg-${a}-600 px-5 py-3 text-center font-semibold text-white">{cta.label}</a>}
+          {cta && <a href={cta.href} onClick={() => setOpen(false)} className={\`mt-1 rounded-full bg-\${ACCENT}-600 px-5 py-3 text-center font-semibold text-white\`}>{cta.label}</a>}
         </nav>
       )}
     </header>
@@ -199,7 +201,7 @@ export function Section({ id, className, children }) {
 export function Heading({ eyebrow, title, subtitle, center }) {
   return (
     <div className={cx('max-w-2xl', center && 'mx-auto text-center')}>
-      {eyebrow && <p className="text-sm font-semibold uppercase tracking-widest text-${a}-600">{eyebrow}</p>}
+      {eyebrow && <p className={\`text-sm font-semibold uppercase tracking-widest text-\${ACCENT}-600\`}>{eyebrow}</p>}
       <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">{title}</h2>
       {subtitle && <p className="mt-4 text-lg text-slate-600">{subtitle}</p>}
     </div>
@@ -209,9 +211,9 @@ export function Heading({ eyebrow, title, subtitle, center }) {
 export function Button({ href, variant = 'primary', className, children, ...props }) {
   const style = cx(
     'inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold transition active:scale-[.98] disabled:opacity-50',
-    variant === 'primary' && 'bg-${a}-600 text-white shadow-lg shadow-${a}-600/25 hover:bg-${a}-700',
+    variant === 'primary' && \`bg-\${ACCENT}-600 text-white shadow-lg shadow-\${ACCENT}-600/25 hover:bg-\${ACCENT}-700\`,
     variant === 'secondary' && 'border border-slate-300 bg-white text-slate-800 hover:border-slate-400',
-    variant === 'ghost' && 'text-${a}-700 hover:bg-${a}-50',
+    variant === 'ghost' && \`text-\${ACCENT}-700 hover:bg-\${ACCENT}-50\`,
     className
   );
   return href ? <a href={href} className={style} {...props}>{children}</a> : <button className={style} {...props}>{children}</button>;
@@ -222,12 +224,12 @@ export function Card({ className, children, ...props }) {
 }
 
 export function Badge({ className, children }) {
-  return <span className={cx('inline-flex items-center gap-1.5 rounded-full bg-${a}-50 px-3 py-1 text-sm font-semibold text-${a}-700 ring-1 ring-${a}-100', className)}>{children}</span>;
+  return <span className={cx(\`inline-flex items-center gap-1.5 rounded-full bg-\${ACCENT}-50 px-3 py-1 text-sm font-semibold text-\${ACCENT}-700 ring-1 ring-\${ACCENT}-100\`, className)}>{children}</span>;
 }
 
 // A labelled form control: <Field label="Dog's name" name="dog" required />, as="select" with options (text, or { label, value }), or as="textarea".
 export function Field({ label, as = 'input', options = [], className, ...props }) {
-  const control = 'mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-${a}-500 focus:ring-2 focus:ring-${a}-500/30';
+  const control = \`mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-\${ACCENT}-500 focus:ring-2 focus:ring-\${ACCENT}-500/30\`;
   return (
     <label className={cx('block text-sm font-medium text-slate-700', className)}>
       {label}
@@ -427,7 +429,7 @@ export interface BuildTimeline {
   planDone?: number;
   sections: Record<string, { start: number; firstText?: number; done?: number; chars?: number; cut?: boolean }>;
   /** A change whose edits didn't match, so the whole files were asked for again. */
-  retry?: { start: number; done?: number; files: string[] };
+  retry?: { start: number; done?: number; files: string[]; whole?: string[] };
 }
 
 type BuildOptions = {

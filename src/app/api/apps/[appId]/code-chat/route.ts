@@ -175,26 +175,45 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
           const applied = applyEdits(next, first.edits);
           next = applied.files;
           if (applied.failed.length > 0) {
-            // An edit didn't match exactly. Rather than fail, ask for the whole of each file once.
-            timeline.retry = { start: Date.now() - startedAt, files: applied.failed.map((f) => f.path) };
+            // An edit didn't match. First ask for just those edits again, showing the files as they are now (a few seconds);
+            // only if that fails too, ask for the whole files (slow for a big file).
+            const retryAsk = hedge(ask, 2500, () => (timeline.hedges = (timeline.hedges ?? 0) + 1));
             const paths = [...new Set(applied.failed.map((f) => f.path))];
-            const retry = await hedge(ask, 2500, () => (timeline.hedges = (timeline.hedges ?? 0) + 1))(
-              [
-                ...turns,
-                { role: "assistant", content: full },
-                { role: "user", content: `Some of your edits could not be applied (${applied.failed.map((f) => `${f.path}: ${f.reason}`).join("; ")}). Send the COMPLETE new content of these files as <file> blocks, with all the changes you intended, and nothing else: ${paths.join(", ")}.` },
-              ],
-              send
-            );
+            timeline.retry = { start: Date.now() - startedAt, files: paths };
+            const failedList = applied.failed.map((f) => `${f.path}: ${f.reason}`).join("; ");
+            const shown = paths.filter((path) => next[path] !== undefined).map((path) => `<current_file path="${path}">\n${next[path]}\n</current_file>`).join("\n");
+            const fixTurns = [
+              ...turns,
+              { role: "assistant" as const, content: full },
+              { role: "user" as const, content: `Some of your edits didn't match the files (${failedList}). Here are those files exactly as they are now (your other edits are already applied):\n${shown}\n\nSend corrected <edit> blocks for the changes that didn't apply, with each <find> copied exactly from the files above (one or two lines), and nothing else.` },
+            ];
+            const corrected = parseReply(await retryAsk(fixTurns, send));
+            const second = applyEdits(next, corrected.edits.filter((e) => paths.includes(e.path)));
+            next = applyChanges(second.files, Object.fromEntries(Object.entries(corrected.changes).filter(([path, c]) => paths.includes(path) && typeof c === "string")));
             timeline.retry.done = Date.now() - startedAt;
-            const second = parseReply(retry);
-            const missing = paths.filter((path) => typeof second.changes[path] !== "string");
-            if (second.incomplete.length > 0 || missing.length > 0) {
-              finish({ error: "The AI couldn't apply that change cleanly. Nothing was changed. Try again, or ask for it in a different way." });
-              return;
+            const stillFailing = [...new Set(second.failed.map((f) => f.path))].filter((path) => typeof corrected.changes[path] !== "string");
+            if (corrected.edits.length === 0 && Object.keys(corrected.changes).length === 0) stillFailing.push(...paths);
+            if (stillFailing.length > 0) {
+              // Last resort: the whole of each file that still didn't take the change.
+              timeline.retry.whole = stillFailing;
+              const whole = parseReply(
+                await retryAsk(
+                  [
+                    ...turns,
+                    { role: "assistant", content: full },
+                    { role: "user", content: `Some of your edits could not be applied (${failedList}). Send the COMPLETE new content of these files as <file> blocks, with all the changes you intended, and nothing else: ${stillFailing.join(", ")}.` },
+                  ],
+                  send
+                )
+              );
+              timeline.retry.done = Date.now() - startedAt;
+              const missing = stillFailing.filter((path) => typeof whole.changes[path] !== "string");
+              if (whole.incomplete.length > 0 || missing.length > 0) {
+                finish({ error: "The AI couldn't apply that change cleanly. Nothing was changed. Try again, or ask for it in a different way." });
+                return;
+              }
+              next = applyChanges(next, Object.fromEntries(stillFailing.map((path) => [path, whole.changes[path] as string])));
             }
-            // The failed files are replaced whole; every other edit already applied stays.
-            next = applyChanges(next, Object.fromEntries(paths.map((path) => [path, second.changes[path] as string])));
           }
         }
         // Fix the commonest slip (an apostrophe that ends a quoted string early) so the app can be read without another try.

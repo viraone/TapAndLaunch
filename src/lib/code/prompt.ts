@@ -71,7 +71,7 @@ export function userMessage(files: CodeFiles, message: string): string {
  * How to answer a big change quickly: name the new sections in a plan and they are written in parallel (see
  * first-build.ts), instead of writing them one after another.
  */
-const BIG_CHANGES = `For a SMALL change (a color, some text, one element, a fix), answer as usual with <edit> blocks.
+const BIG_CHANGES = `For a SMALL change (a color, some text, one element, a fix), answer as usual with <edit> blocks. Keep each <find> to one or two lines. To change the accent color of the ready-made pieces, edit only the ACCENT line in src/lib/ui.jsx (if it has one); don't edit its class names.
 For a BIG change (new sections, a new page, or a different kind of app), do NOT write the section files yourself. Answer with ONLY:
 <plan>
 design: one line: the look every new section follows (keep the app's current look unless the owner asks for a new one)
