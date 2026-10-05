@@ -56,9 +56,15 @@ a cancellation.
 2. In Stripe **live** mode: create a webhook endpoint to `https://tapandlaunch.com/api/stripe/billing-webhook` on **your
    account**, events listed above; put its secret in `STRIPE_BILLING_WEBHOOK_SECRET`; redeploy.
 3. In Stripe **live** mode: Settings > Billing > **Customer portal**, save the settings (allow cancel, switch plan,
-   update card). Without it "Manage billing" errors.
+   update card). Without it "Manage billing" errors. Turn **off** "End trials on subscription updates", or switching
+   from monthly to yearly during the trial ends the trial and charges at once.
 4. Subscribe a real test organization with a real card, check the plan shows, cancel it, refund it.
 5. Only then set `BILLING_ENFORCED=true`.
+
+All five were done on 2026-10-05 (live account `acct_1UEIHGCdX1J0Mx1o`; enforcement on from that day).
+
+Note: the customer portal marks a cancellation with `cancel_at` (a date), not `cancel_at_period_end`.
+`billingFromSubscription` treats either as "ending".
 
 ## Not built yet
 Per-plan limits (apps, storage, notification counts), annual-vs-monthly proration messaging, invoices page (Stripe's

@@ -17,7 +17,7 @@ _Last updated: 2026-10-03._ Tick items as they are done and note the date.
 
 - [x] Forgot-password flow for builders, including the branded any-device reset email on production (2026-10-04)
 - [x] Shorter checkout: skip our name/email form when Stripe is connected (2026-10-05)
-- [ ] Plans and billing: see the checklist in `billing.md` (live webhook, customer portal, real test, then `BILLING_ENFORCED`)
+- [x] Plans and billing (done 2026-10-05): see the checklist in `billing.md` (live webhook, customer portal, real test, then `BILLING_ENFORCED`)
 - [x] App-level email: `RESEND_API_KEY` and `RESEND_FROM_EMAIL` set in Vercel (2026-10-05), live test passed
 - [x] Show notification send times in the viewer's time zone (2026-10-05)
 - [ ] Lawyer review of Terms and Privacy
