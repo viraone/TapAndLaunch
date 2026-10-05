@@ -30,33 +30,51 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
   const startedAt = Date.now();
   const { appId } = await context.params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Everything the AI needs is looked up at once, in two rounds, so it can start sooner (one after another, these took
+  // about half a second). Nothing is used until the checks below have passed.
+  const [
+    {
+      data: { user },
+    },
+    body,
+    editor,
+    { data: app },
+    current,
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    request.json().catch(() => null),
+    isAppEditor(supabase, appId),
+    supabase.from("apps").select("id, organization_id, kind").eq("id", appId).maybeSingle(),
+    latestVersion(supabase, appId),
+  ]);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
-  if (!(await isAppEditor(supabase, appId))) return Response.json({ error: "You can't edit this app" }, { status: 403 });
-
-  const parsed = Schema.safeParse(await request.json().catch(() => null));
+  if (!editor) return Response.json({ error: "You can't edit this app" }, { status: 403 });
+  const parsed = Schema.safeParse(body);
   if (!parsed.success) return Response.json({ error: "Type a message (up to 4,000 characters)" }, { status: 400 });
-
-  const { data: app } = await supabase.from("apps").select("id, organization_id, kind").eq("id", appId).maybeSingle();
   if (!app) return Response.json({ error: "Not found" }, { status: 404 });
   if (app.kind !== "code") return Response.json({ error: "This app isn't an AI code app" }, { status: 400 });
+  if (!current) return Response.json({ error: "This app has no code yet." }, { status: 400 });
 
   const admin = createAdminClient();
   const since = new Date();
   since.setHours(since.getHours() - 1);
-  // Three independent lookups, run together so the AI can start sooner.
-  const [{ data: keyRow }, { count }, current] = await Promise.all([
+  const [{ data: keyRow }, { count }] = await Promise.all([
     admin.from("org_ai_keys").select("provider, encrypted_key, model").eq("organization_id", app.organization_id).maybeSingle(),
     admin.from("ai_generations").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("kind", "code").gte("created_at", since.toISOString()),
-    latestVersion(supabase, appId),
   ]);
   if (!keyRow) return Response.json({ error: "Add your AI key first.", needsKey: true }, { status: 400 });
   if ((count ?? 0) >= CODE_HOURLY_LIMIT) return Response.json({ error: `That's ${CODE_HOURLY_LIMIT} builds this hour. Take a short break and try again.` }, { status: 429 });
-  if (!current) return Response.json({ error: "This app has no code yet." }, { status: 400 });
-  // Counted for the hourly limit. Supabase only sends a query once something waits for it, so it's awaited (about 50ms).
-  const { data: usage } = await admin.from("ai_generations").insert({ user_id: user.id, organization_id: app.organization_id, kind: "code" }).select("id").maybeSingle();
+  // Counted for the hourly limit. It's saved while the AI starts rather than before (Supabase sends a query only once
+  // something waits for it, so `then` is what sends it); the build's timeline is added to the same row at the end.
+  const usage = admin
+    .from("ai_generations")
+    .insert({ user_id: user.id, organization_id: app.organization_id, kind: "code" })
+    .select("id")
+    .maybeSingle()
+    .then(
+      ({ data }) => data,
+      () => null
+    );
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -73,10 +91,9 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
       const models = new Set<string>();
       let mode = "change";
       const record = (result: Record<string, unknown>) => {
-        if (!usage) return;
         const details = { mode, models: [...models], total: Date.now() - startedAt, ok: !result.error, error: result.error ?? null, ...timeline };
-        void admin.from("ai_generations").update({ details }).eq("id", usage.id).then(
-          () => {},
+        void usage.then(
+          (row) => (row ? admin.from("ai_generations").update({ details }).eq("id", row.id).then(() => {}) : undefined),
           () => {}
         );
       };

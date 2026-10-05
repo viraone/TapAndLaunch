@@ -254,9 +254,9 @@ This is a NEW app. To build it fast, answer with ONLY these three things, in thi
 design: one line every section will follow: accent color (a Tailwind color name), backgrounds, headline style, corner radius, mood
 src/components/BookingForm.jsx: what it shows and does, in under 15 words; its root has id="book"
 src/components/Hero.jsx: ...
-(3 to 6 files in src/components/, one per section of the page, each small enough to write in about 50 lines. NO header and NO footer files: those are ready-made, see App.jsx below)
+(3 to 6 files in src/components/, one per section of the page, each small enough to write in about 35 lines. NO header and NO footer files: those are ready-made, see App.jsx below)
 List the sections that need the most code FIRST (forms, schedules, lists, galleries) and the simplest LAST (header, footer): each one starts being written the moment its line appears. App.jsx decides the order on the page.
-Keep each section's content small (a form: at most 4 fields; lists: at most 4 items). Anything that would still run long is TWO sections: a booking or contact form becomes a picker (ServicePicker.jsx) and a details form (BookingDetails.jsx); a schedule with filters becomes the filters and the list; a menu becomes categories and items.
+Keep each section's content small (a form: at most 4 fields; lists: at most 3 items). Anything that would still run long is TWO sections: a booking or contact form becomes a picker (ServicePicker.jsx) and a details form (BookingDetails.jsx); a schedule with filters becomes the filters and the list; a menu becomes categories and items.
 When two sections must share something (the chosen service, a selected day, a cart), end both of their lines with "shares: <key>", using the same key.
 </plan>
 <reply>One friendly sentence about what you're building.</reply>
@@ -286,8 +286,8 @@ ${input.usedAs.join("\n")}
 ${name ? `Write it as \`export default function ${name}() { ... }\` and add \`export { ${name} };\` at the end, so either kind of import works.` : ""}
 
 Answer with ONLY <file path="${input.path}">...the complete file...</file>. No <reply>.
-- About 50 lines, never more than 80. Speed matters: the owner is watching, and the slowest file holds up the whole app.
-- Keep the content small: a form has at most 4 fields and uses the browser's \`required\` (and \`type="email"\`) instead of validation code or per-field error messages; at most 4 cards or list items; at most 3 FAQ entries; no long arrays of options. The owner can ask for more later.
+- About 35 lines, never more than 50. Speed matters: the owner is watching, and the slowest file holds up the whole app.
+- Keep the content small: a form has at most 4 fields and uses the browser's \`required\` (and \`type="email"\`) instead of validation code or per-field error messages; at most 3 cards or list items; at most 3 FAQ entries; no long arrays of options. The owner can ask for more later.
 - Self-contained: keep its sample data inside this file. Do NOT import other files from src/ (they are being written right now), except the two below. Import only react, the allowed libraries, '@/lib/ui' and '@/lib/shared'.
 - src/lib/ui.jsx already exists and matches the design: \`import { Section, Heading, Button, Card, Badge, Field, Success } from '@/lib/ui'\`. (It also has SiteHeader and SiteFooter, which App.jsx already uses: don't add a header or footer.) Use it for the common pieces, ESPECIALLY \`<Field label="Your email" name="email" type="email" required />\` for every form control (as="select" with options={[...]}, or as="textarea"), \`<Button>\` / \`<Button href="#book" variant="secondary">\` for buttons, \`<Section id="...">\` + \`<Heading eyebrow title subtitle />\` for a section's frame, and \`<Success title="...">\` after a form is sent. Plain Tailwind for everything else.
 - One exception to "don't import other files": src/lib/shared.js already exists. If your plan line says "shares: <key>", share that value with \`import { useShared } from '@/lib/shared'\` and \`const [value, setValue] = useShared('<key>', initialValue)\`; it works like useState, shared with the other section by that key. Sample data both sections need (like the list of services) must be written the same way in both.
