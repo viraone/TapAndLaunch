@@ -41,6 +41,7 @@ export async function getChecklists(supabase: SupabaseClient<Database>, apps: Ap
       buildChecklist({
         hasContent: withContent.has(app.id),
         hasIcon: !!app.manifest.icon_url,
+        hasLook: !!app.theme.looks_confirmed,
         published: app.status === "published",
         hasVisit: visited.has(app.id),
       })

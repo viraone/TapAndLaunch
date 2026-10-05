@@ -17,6 +17,7 @@ const ThemeSchema = z.object({
     .optional(),
   color_scheme: z.enum(["light", "dark"]).optional(),
   show_member_bar: z.boolean().optional(),
+  looks_confirmed: z.boolean().optional(),
   bottom_nav_style: z.enum(["compact", "tabs"]).optional(),
 });
 

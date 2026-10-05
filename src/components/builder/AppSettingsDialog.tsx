@@ -67,7 +67,7 @@ export function AppSettingsDialog({
       const res = await fetch(`/api/apps/${app.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme, manifest }),
+        body: JSON.stringify({ theme: { ...theme, looks_confirmed: true }, manifest }),
       });
       const body = await res.json();
       if (!res.ok) {

@@ -26,7 +26,15 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false });
 
   const orgName = memberships.find((m) => m.organization_id === organizationId)?.name;
-  const isAdmin = memberships.find((m) => m.organization_id === organizationId)?.role === "admin";
+  const role = memberships.find((m) => m.organization_id === organizationId)?.role;
+  const isAdmin = role === "admin";
+
+  // Someone who has never made an app skips the empty screen and goes straight to "What are you building?".
+  // (An organization whose apps were all deleted still gets the dashboard, so it can restore them.)
+  if ((apps?.length ?? 0) === 0 && (role === "admin" || role === "creator")) {
+    const { count } = await createAdminClient().from("apps").select("id", { count: "exact", head: true }).eq("organization_id", organizationId);
+    if ((count ?? 0) === 0) redirect("/dashboard/apps/new?welcome=1");
+  }
 
   // Deleted apps are hidden from the user's own session by the database, so admins see them via the server.
   let deletedApps: DeletedApp[] = [];

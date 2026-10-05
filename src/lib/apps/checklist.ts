@@ -4,13 +4,15 @@
  * data, so nobody has to tick anything.
  */
 
-export type ChecklistStepId = "create" | "content" | "icon" | "publish" | "visit";
+export type ChecklistStepId = "create" | "content" | "look" | "publish" | "visit";
 
 export interface ChecklistSignals {
   /** The app has at least one block on a page. */
   hasContent: boolean;
   /** An app icon has been uploaded. */
   hasIcon: boolean;
+  /** The owner has saved their colours in App settings. */
+  hasLook: boolean;
   published: boolean;
   /** Someone has opened the published app (the owner counts). */
   hasVisit: boolean;
@@ -46,6 +48,13 @@ export function buildChecklist(s: ChecklistSignals): Checklist {
       done: s.hasContent,
     },
     {
+      id: "look",
+      title: "Pick your colors and icon",
+      hint: "Make it look like you: a brand color, and the picture people see when they add your app to their home screen.",
+      action: "Open app settings",
+      done: s.hasIcon || s.hasLook,
+    },
+    {
       id: "publish",
       title: "Publish",
       hint: "Put it on its own web address. You can unpublish any time.",
@@ -54,17 +63,10 @@ export function buildChecklist(s: ChecklistSignals): Checklist {
     },
     {
       id: "visit",
-      title: "Open it on your phone",
-      hint: "Visit your live address and try it the way your customers will.",
-      action: "Open my app",
+      title: "Scan the QR code on your phone",
+      hint: "Your app's page has a QR code. Point your phone's camera at it and try the app the way your customers will.",
+      action: "Show my QR code",
       done: s.hasVisit,
-    },
-    {
-      id: "icon",
-      title: "Add your app icon",
-      hint: "It's the picture people see when they add your app to their home screen.",
-      action: "Upload an icon",
-      done: s.hasIcon,
     },
   ];
   const doneCount = steps.filter((x) => x.done).length;

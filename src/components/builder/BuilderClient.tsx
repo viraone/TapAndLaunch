@@ -73,7 +73,7 @@ export function BuilderClient({
   const [blocks, setBlocks] = useState<BuilderBlock[]>(initialBlocks.map(toBuilderBlock));
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [device, setDevice] = useState<DeviceFrame>("ios");
-  const [visited, setVisited] = useState(hasVisit);
+  const [visited] = useState(hasVisit);
   const [isSaving, startSaving] = useTransition();
   const [isPublishing, startPublishing] = useTransition();
 
@@ -216,6 +216,7 @@ export function BuilderClient({
   const checklist = buildChecklist({
     hasContent: blocks.length > 0 || contentOnOtherPages,
     hasIcon: !!currentApp.manifest.icon_url,
+    hasLook: !!currentApp.theme.looks_confirmed,
     published: live,
     hasVisit: visited,
   });
@@ -225,13 +226,13 @@ export function BuilderClient({
       const search = document.getElementById("block-search");
       search?.scrollIntoView({ block: "center" });
       search?.focus();
-    } else if (step === "icon") {
-      window.dispatchEvent(new CustomEvent("open-app-settings", { detail: { tab: "manifest" } }));
+    } else if (step === "look") {
+      window.dispatchEvent(new CustomEvent("open-app-settings", { detail: { tab: "theme" } }));
     } else if (step === "publish") {
       togglePublish();
-    } else if (step === "visit" && liveUrl) {
-      window.open(liveUrl, "_blank", "noopener");
-      setVisited(true); // opening it records a view; no need to wait for that
+    } else if (step === "visit") {
+      // The app's page has the QR code; the step ticks itself once someone actually opens the app.
+      window.open(`/dashboard/apps/${currentApp.id}`, "_blank", "noopener");
     }
   }
 

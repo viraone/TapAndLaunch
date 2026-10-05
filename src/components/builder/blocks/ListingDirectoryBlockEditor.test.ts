@@ -41,7 +41,7 @@ describe("ListingDirectoryBlockEditor", () => {
         blocks: [],
         onSelect: () => {},
         onClose: () => {},
-        checklist: buildChecklist({ hasContent: true, hasIcon: false, published: false, hasVisit: false }),
+        checklist: buildChecklist({ hasContent: true, hasIcon: false, hasLook: false, published: false, hasVisit: false }),
         liveUrl: null,
         publishing: false,
         onChecklistAction: () => {},

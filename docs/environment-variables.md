@@ -24,6 +24,8 @@ _Last checked: 2026-10-03 (production list read from the Vercel dashboard)._ Val
 | `VAPID_CONTACT` | `mailto:` contact sent to push services | No | Set (2026-10-03) | Push cannot be sent |
 | `STRIPE_BILLING_WEBHOOK_SECRET` | Signs billing webhook events (our own plans) | **Yes** | **Not set** | Plan changes only show up when the admin returns from checkout, not later (cancellations, failed payments) |
 | `BILLING_ENFORCED` | `true` pauses apps whose organization is out of good standing | No | Not set (nothing paused) | Plans show in the dashboard but never pause an app |
+| `ANTHROPIC_API_KEY` | "Describe your app" designs the app with Claude | Key is **secret** | Not set | The feature still works: it matches the sentence to the closest template instead of designing one |
+| `AI_MODEL` | Which Claude model designs apps | No | Not set (default `claude-sonnet-5-5`) | Uses the default |
 | `RESEND_API_KEY` | App-level email (the Email channel on the Notifications page) | **Yes** | Set (2026-10-05) | Email channel shows "not configured". Sign-in emails still work (they go through Supabase SMTP) |
 | `RESEND_FROM_EMAIL` | The sending address for app-level email, e.g. `TapAndLaunch <noreply@tapandlaunch.com>`; each email shows the app's name in front of this address | No | Set (2026-10-05) | As above |
 | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | Text messages from the Notifications page | Token is **secret** | Not set | SMS channel shows "not configured" |

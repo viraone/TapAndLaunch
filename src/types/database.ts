@@ -71,6 +71,8 @@ export interface ThemeConfig {
   header_title?: string;
   header_tagline?: string;
   header_logo_url?: string;
+  /** Set once the owner has saved their colours in App settings, so the "Get live" checklist can tick that step. */
+  looks_confirmed?: boolean;
   bottom_nav?: Array<{ label: string; icon: string; page_path: string }>;
   /** "dark" puts the published app on a dark zinc palette, the whole page
    * (not just the column) in `background_color`. Unset keeps the light look. */
@@ -297,6 +299,12 @@ export interface Database {
           slug: string;
         };
         Update: Partial<Database["public"]["Tables"]["organizations"]["Row"]>;
+        Relationships: [];
+      };
+      ai_generations: {
+        Row: { id: string; user_id: string; organization_id: string | null; created_at: string };
+        Insert: Partial<Database["public"]["Tables"]["ai_generations"]["Row"]> & { user_id: string };
+        Update: Partial<Database["public"]["Tables"]["ai_generations"]["Row"]>;
         Relationships: [];
       };
       org_billing: {

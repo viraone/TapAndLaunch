@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { isReservedPagePath } from "@/lib/pwa/reserved-paths";
 import { BLOCK_TYPES } from "@/lib/builder/block-defaults";
-import { STARTER_TEMPLATES, buildStarter, isTemplateId, templateNeedsMaps } from "./templates";
+import { STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter, isTemplateId, templateNeedsMaps } from "./templates";
 
 describe("starter templates", () => {
   it("offers a template for everything, ending with a blank one", () => {
-    expect(STARTER_TEMPLATES.map((t) => t.id)).toEqual(["business", "store", "events", "food", "gas", "openmic", "blank"]);
+    expect(STARTER_TEMPLATES.map((t) => t.id)).toEqual(["business", "store", "events", "food", "gas", "openmic", "restaurant", "fitness", "salon", "community", "blank"]);
+    expect(STARTER_TEMPLATES.at(-1)?.id).toBe("blank");
     expect(isTemplateId("store")).toBe(true);
     expect(isTemplateId("nope")).toBe(false);
+  });
+
+  it("groups every template under a real category, and every category has a template", () => {
+    const ids = TEMPLATE_CATEGORIES.map((c) => c.id);
+    for (const t of STARTER_TEMPLATES) expect(ids).toContain(t.category);
+    for (const c of TEMPLATE_CATEGORIES) expect(STARTER_TEMPLATES.some((t) => t.category === c.id)).toBe(true);
   });
 
   for (const template of STARTER_TEMPLATES) {
