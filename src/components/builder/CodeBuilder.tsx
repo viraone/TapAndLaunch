@@ -8,6 +8,7 @@ import { buildCodeDocument } from "@/lib/code/document";
 import { applyChanges, parseReply } from "@/lib/code/files";
 import { splitStream } from "@/lib/code/protocol";
 import { CODE_EXAMPLES } from "@/lib/code/prompt";
+import { missingImports, SHARED_PATH } from "@/lib/code/first-build";
 import { createClient } from "@/lib/supabase/client";
 import { KeyForm, type SavedKey } from "@/components/builder/AiChatPanel";
 import { DictationButton } from "@/components/builder/DictationButton";
@@ -25,6 +26,16 @@ interface VersionInfo {
 }
 
 const MAX_AUTO_FIXES = 2;
+
+/** A short fingerprint of the files, so an unchanged app keeps the same preview page instead of reloading it. */
+function fingerprint(files: Record<string, string>): string {
+  let h = 0x811c9dc5;
+  for (const path of Object.keys(files).sort()) {
+    const text = `${path}\u0000${files[path]}\u0000`;
+    for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
 
 /**
  * "BYOB" code mode: the owner chats, their own AI writes a React app, and it runs live next to the chat in a sandboxed
@@ -71,6 +82,10 @@ export function CodeBuilder({
   const [live, setLive] = useState<{ reply: string; written: string[]; writing: string[] } | null>(null);
   // The app as far as it has been written, shown in the preview while the AI is still working.
   const [draft, setDraft] = useState<{ step: number; files: Record<string, string> } | null>(null);
+  // Bumped to force the preview to load again even though the files are the same.
+  const [reloads, setReloads] = useState(0);
+  // The last error a preview page reported while the AI was still writing (those are held back until it finishes).
+  const draftError = useRef<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -81,8 +96,14 @@ export function CodeBuilder({
   const lastFixedError = useRef<string | null>(null);
 
   const shown = viewing?.files ?? draft?.files ?? files;
-  const docId = viewing ? `v${viewing.version}` : draft ? `d${draft.step}` : `l${version}`;
-  const srcDoc = useMemo(() => buildCodeDocument(shown, { title: appName, accent, stubs: docId.startsWith("d"), doc: docId }), [shown, appName, accent, docId]);
+  // Placeholders only while something is still missing, so the last draft and the saved app can be the same page.
+  const stubs = useMemo(() => draft !== null && missingImports(shown).length > 0, [draft, shown]);
+  const docId = useMemo(() => `${fingerprint(shown)}${stubs ? "s" : ""}${reloads ? `r${reloads}` : ""}`, [shown, stubs, reloads]);
+  const srcDoc = useMemo(() => buildCodeDocument(shown, { title: appName, accent, stubs, doc: docId }), [shown, appName, accent, stubs, docId]);
+  const docRef = useRef(docId);
+  useEffect(() => {
+    docRef.current = docId;
+  }, [docId]);
   const filesRef = useRef(files);
   useEffect(() => {
     filesRef.current = files;
@@ -122,6 +143,7 @@ export function CodeBuilder({
       setElapsed(0);
       setViewing(null);
       setLive({ reply: "", written: [], writing: [] });
+      draftError.current = null;
       setTab("chat");
       try {
         const res = await fetch(`/api/apps/${appId}/code-chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message, history }) });
@@ -158,7 +180,9 @@ export function CodeBuilder({
           // Show each finished file in the preview straight away (sections not written yet appear as placeholders).
           const whole = Object.fromEntries(Object.entries(parsed.changes).filter((e): e is [string, string] => typeof e[1] === "string"));
           const key = Object.keys(whole).sort().join("|");
-          if (key && key !== draftKey && now - lastDraft > 500) {
+          // The shared-state helper on its own changes nothing on screen, so it isn't worth reloading the preview for.
+          const visible = Object.keys(whole).some((path) => path !== SHARED_PATH);
+          if (visible && key !== draftKey && now - lastDraft > 500) {
             const merged = applyChanges(filesRef.current, whole);
             if (merged["src/App.jsx"]) {
               draftKey = key;
@@ -177,6 +201,9 @@ export function CodeBuilder({
         if (result.files && result.version) {
           builtThisSession.current = true;
           setPreviewError(null);
+          // The page on screen already shows these files, unless it hit an error while half-built: then load it again so
+          // the error is reported (and fixed) like any other.
+          if (draftError.current === docRef.current) setReloads((n) => n + 1);
           setFiles(result.files);
           setVersion(result.version);
           setVersions((v) => [{ version: result.version as number, summary: opts.hidden ? "Fixed an error" : message.replace(/\s+/g, " ").slice(0, 90), created_at: new Date().toISOString() }, ...v]);
@@ -199,7 +226,11 @@ export function CodeBuilder({
     function onMessage(e: MessageEvent) {
       if (e.source !== frame.current?.contentWindow || !e.data || e.data.source !== "tl-app") return;
       // Only the page on screen counts, and a half-written app's errors aren't real errors yet.
-      if (e.data.doc !== docId || docId.startsWith("d")) return;
+      if (e.data.doc !== docId) return;
+      if (draft) {
+        if (e.data.type === "error") draftError.current = docId;
+        return;
+      }
       if (e.data.type === "ready") setPreviewError(null);
       if (e.data.type === "error") {
         const message = String(e.data.message ?? "Unknown error").slice(0, 1200);
@@ -214,7 +245,7 @@ export function CodeBuilder({
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [busy, viewing, send, docId]);
+  }, [busy, viewing, send, docId, draft]);
 
   async function viewVersion(v: number) {
     if (v === version) return setViewing(null);

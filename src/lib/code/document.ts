@@ -111,7 +111,9 @@ const RUNTIME = String.raw`
         }
       });
       Object.keys(wanted).forEach(function (s) {
-        var lines = ["import React from 'react';", "function TlStub() { return React.createElement('div', { className: 'tl-stub', 'aria-hidden': true }); }", "export default TlStub;"];
+        // The placeholder says which part is still being written ("Writing Recipe List...").
+        var label = "Writing " + s.split("/").pop().replace(/([a-z])([A-Z])/g, "$1 $2") + "\u2026";
+        var lines = ["import React from 'react';", "function TlStub() { return React.createElement('div', { className: 'tl-stub', 'aria-hidden': true }, React.createElement('span', null, " + JSON.stringify(label) + ")); }", "export default TlStub;"];
         Object.keys(wanted[s]).forEach(function (n) { if (n !== "TlStub") lines.push("export const " + n + " = " + (/^[A-Z][a-z]/.test(n) ? "TlStub" : "[]") + ";"); });
         imports[s] = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/javascript" }));
       });
@@ -161,12 +163,12 @@ export function buildCodeDocument(files: CodeFiles, options: DocumentOptions): s
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'], serif: ['"Playfair Display"', 'ui-serif', 'serif'] } } } };</script>
-<style>html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}#tl-loading{position:fixed;inset:0;display:grid;place-items:center;background:#fff}#tl-loading i{width:28px;height:28px;border-radius:50%;border:3px solid ${accent}33;border-top-color:${accent};animation:tlspin .8s linear infinite}@keyframes tlspin{to{transform:rotate(360deg)}}#root:not(:empty)~#tl-loading{display:none}.tl-stub{margin:24px auto;width:calc(100% - 32px);max-width:1120px;height:220px;border-radius:24px;background:linear-gradient(100deg,#f1f5f9 30%,#e2e8f0 50%,#f1f5f9 70%);background-size:200% 100%;animation:tlshimmer 1.2s linear infinite}@keyframes tlshimmer{to{background-position:-200% 0}}</style>
+<style>html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}#tl-loading{position:fixed;inset:0;display:grid;place-items:center;background:#fff}#tl-loading i{width:28px;height:28px;border-radius:50%;border:3px solid ${accent}33;border-top-color:${accent};animation:tlspin .8s linear infinite}@keyframes tlspin{to{transform:rotate(360deg)}}#root:not(:empty)~#tl-loading{display:none}.tl-stub{display:grid;place-items:center;margin:24px auto;width:calc(100% - 32px);max-width:1120px;height:220px;border-radius:24px;background:linear-gradient(100deg,#f1f5f9 30%,#e2e8f0 50%,#f1f5f9 70%);background-size:200% 100%;animation:tlshimmer 1.2s linear infinite}@keyframes tlshimmer{to{background-position:-200% 0}}.tl-stub span{color:#64748b;font:600 14px/1.4 Inter,ui-sans-serif,system-ui,sans-serif}</style>
 </head>
 <body>
 <div id="root"></div>
 <div id="tl-loading"><i></i></div>
-<script type="application/json" id="tl-files">${embedJson(files)}</script>
+<script type="application/json" id="tl-files">${embedJson(Object.fromEntries(Object.keys(files).sort().map((path) => [path, files[path]])))}</script>
 <script type="application/json" id="tl-libs">${embedJson(LIBS)}</script>
 <script type="application/json" id="tl-opts">${embedJson({ stubs: options.stubs === true, doc: options.doc ?? "" })}</script>
 <script src="${BABEL_URL}"></script>
