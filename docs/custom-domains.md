@@ -6,7 +6,7 @@ _Last checked: 2026-10-05, tested against the real Vercel project._ A customer c
 ## Setup (done once)
 Three Vercel environment variables (Production): `VERCEL_API_TOKEN` (**secret**, scoped to the team that owns the project,
 expires 2027-10-05, name `tapandlaunch-domains`), `VERCEL_PROJECT_ID` (`tap-and-launch`) and `VERCEL_TEAM_ID`. IDs are in
-`private/accounts-and-ids.md`. Renew the token before it expires: Vercel > Account > Tokens.
+`docs/private/accounts-and-ids.md` (git-ignored). Renew the token before it expires: Vercel > Account > Tokens.
 
 The token can do anything in that team, including reading environment variables; it cannot be limited to domains. Keep it
 only in Vercel's settings.
