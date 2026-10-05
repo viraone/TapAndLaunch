@@ -33,7 +33,7 @@ export default async function PublishedAppPage({ params }: { params: Params }) {
   const needsEvents = blocks.some((b) => b.type === "event_calendar");
   const needsListings = blocks.some((b) => b.type === "listing_directory");
   const [products, events, listings] = await Promise.all([
-    needsProducts ? getActiveProducts(published.app.id) : Promise.resolve(undefined),
+    needsProducts ? getActiveProducts(published.app.id, published.app.organization_id) : Promise.resolve(undefined),
     needsEvents ? getUpcomingEvents(published.app.id) : Promise.resolve(undefined),
     needsListings ? getActiveListings(published.app.id) : Promise.resolve(undefined),
   ]);

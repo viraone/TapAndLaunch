@@ -7,7 +7,12 @@ const event = (type: string, object: Record<string, unknown>) => ({ type, data: 
 describe("actionFor", () => {
   it("marks an order paid when a card checkout completes", () => {
     const a = actionFor(event("checkout.session.completed", { id: "cs_1", payment_status: "paid", metadata: { order_id: "o1" }, payment_intent: "pi_1" }));
-    expect(a).toEqual({ kind: "order_paid", orderId: "o1", sessionId: "cs_1", paymentIntentId: "pi_1" });
+    expect(a).toEqual({ kind: "order_paid", orderId: "o1", sessionId: "cs_1", paymentIntentId: "pi_1", customer: { name: null, email: null } });
+  });
+
+  it("carries the name and email the shopper typed on Stripe's page", () => {
+    const a = actionFor(event("checkout.session.completed", { id: "cs_1", payment_status: "paid", metadata: { order_id: "o1" }, payment_intent: "pi_1", customer_details: { name: "Ada Lovelace", email: "ada@example.com" } }));
+    expect(a).toMatchObject({ kind: "order_paid", customer: { name: "Ada Lovelace", email: "ada@example.com" } });
   });
 
   it("falls back to client_reference_id and accepts an expanded payment intent", () => {

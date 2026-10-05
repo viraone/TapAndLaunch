@@ -392,6 +392,8 @@ export interface Database {
           display_name: string | null;
           phone: string | null;
           tier: string;
+          /** Set when the member clicked Unsubscribe in an email; they're skipped by the Email channel. */
+          email_unsubscribed_at: string | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["app_members"]["Row"]> & {

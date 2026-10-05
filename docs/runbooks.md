@@ -70,6 +70,8 @@ list. Test rows already copied to the Google Sheet are not removed; delete those
 
 ## Local development
 
+The repo is at `~/Developer/beezer` (not in iCloud; `~/Desktop/beezer` is only a shortcut to it).
+
 ```bash
 open -a Docker && supabase start   # local database
 npm run dev -- -p 3100             # http://localhost:3100 and http://{slug}.localhost:3100

@@ -32,11 +32,12 @@ Applied in order from `supabase/migrations/`. Production has every one of these 
 | 0016_open_mic_signup_block | StageTime sign-up block type |
 | 0017_platform_admins_and_maps_gate | Platform admins; Google Maps features off per organization until enabled |
 | 0018_stripe_connect | `stripe_accounts`; orders gain `payment_method`, Stripe ids, `paid_at`, statuses `paid` and `refunded` |
+| 0024 (email unsubscribe) | `app_members.email_unsubscribed_at`: members who clicked Unsubscribe are skipped by the Email channel |
 | 0019 to 0022 (food) | Restaurant phone/website, popular dishes, menu page, menu items |
 
 ### Writing a migration
 
-- Next number, short name: `supabase/migrations/0023_something.sql`. Explain *why* in a comment at the top.
+- Next number, short name: `supabase/migrations/0025_something.sql`. Explain *why* in a comment at the top.
 - Prefer additive changes (new tables, nullable columns). `/push` **stops** if a pending migration contains `drop table`,
   `drop column`, `drop schema`, `truncate` or `delete from`, so a person reviews it first.
 - Update `src/types/database.ts` by hand to match (it is hand-written; see the README section on regenerating types).

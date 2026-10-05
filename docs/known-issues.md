@@ -2,15 +2,18 @@
 
 _Last updated: 2026-10-03._
 
-## Duplicate files named "... 2.ts" appear in the repo
+## The repo used to live in iCloud (fixed 2026-10-04)
 
-**Cause:** the repo lives in `~/Desktop`, and macOS iCloud syncs the Desktop folder ("Desktop & Documents" is on). When files
-change quickly, especially with more than one session or worktree, iCloud saves conflict copies with " 2" in the name.
+The repo was in `~/Desktop`, which macOS syncs to iCloud ("Desktop & Documents"). With several sessions editing at once,
+iCloud saved conflict copies named "... 2.ts" (49 in the source, 3,497 inside `node_modules`), which broke
+`supabase migration list`, `/push` and the typecheck, and once appeared to wipe `node_modules`.
 
-**Why it matters:** Supabase counts `0019_x 2.sql` as a second migration, so `/push` could fail or try to apply a migration
-twice. They also clutter `git status`.
+**Fix:** the repo now lives at **`~/Developer/beezer`**, outside iCloud. `~/Desktop/beezer` is a shortcut (symlink) to it
+so older tools and running sessions keep working. `/push` and the reset skill point at the real path. Claude's project
+memory for the new path is a link to the old memory folder, so memory carries over.
 
-**Fix:** delete them after checking each is identical to its original:
+**If " 2" files ever come back** (for example if the repo is moved into a synced folder again), delete them only after
+checking each is identical to its original:
 
 ```bash
 git ls-files --others --exclude-standard | grep " 2\." | while IFS= read -r f; do
@@ -18,8 +21,10 @@ git ls-files --others --exclude-standard | grep " 2\." | while IFS= read -r f; d
 find . -type d -name "* 2" -empty -not -path "./node_modules/*" -delete
 ```
 
-**Lasting fix:** move the repo out of iCloud, for example to `~/Developer/beezer`. The `/push` and reset skills and Claude
-Code's project memory refer to `~/Desktop/beezer`, so update them in the same step.
+If `node_modules` has "* 2" folders, delete it and run `npm ci`.
+
+**Still in iCloud:** other folders on the Desktop, such as `beezer-livebites` (a git worktree for FitnessNav), can hit the
+same problem. Move them to `~/Developer` too, then run `git worktree repair` from the main repo.
 
 ## Local pages return 500: "Parsing CSS source code failed"
 
@@ -35,9 +40,11 @@ The dashboard says "N sent", which means the push services accepted it. If nothi
 - **Focus / Do Not Disturb** (moon icon) hides everything.
 - Chrome: `chrome://settings/content/notifications` must allow the app's site.
 
-## Notification send times show UTC
+## Dates in the dashboard
 
-The "Recent sends" list on a Notifications page shows server (UTC) time, e.g. 5:35 PM for 10:35 AM in Seattle. Cosmetic.
+Dashboard pages render on the server (UTC), so dates and times go through `LocalTime` (`src/components/dashboard/LocalTime.tsx`),
+which swaps in the viewer's own time zone in the browser (fixed 2026-10-05). Use it for any new date shown in the dashboard;
+a plain `toLocaleString()` in a server page shows UTC.
 
 ## Stripe surprises
 

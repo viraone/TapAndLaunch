@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { OrderStatusSelect } from "./OrderStatusSelect";
+import { LocalTime } from "@/components/dashboard/LocalTime";
 
 type Params = Promise<{ appId: string }>;
 
@@ -61,8 +62,8 @@ export default async function OrdersPage({ params }: { params: Params }) {
             <div key={order.id} className="rounded-md border p-4 text-sm">
               <div className="mb-2 flex items-center justify-between">
                 <div>
-                  <p className="font-medium">{order.customer_name}</p>
-                  <p className="text-xs text-muted-foreground">{order.customer_email}</p>
+                  <p className="font-medium">{order.customer_name || "Awaiting payment details"}</p>
+                  {order.customer_email && <p className="text-xs text-muted-foreground">{order.customer_email}</p>}
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="font-semibold">{formatMoney(order.total_cents, order.currency)}</span>
@@ -77,7 +78,7 @@ export default async function OrdersPage({ params }: { params: Params }) {
                 ))}
               </ul>
               <p className="mt-2 text-xs text-muted-foreground">
-                {new Date(order.created_at).toLocaleString()}
+                <LocalTime iso={order.created_at} />
                 {order.payment_method === "stripe" ? " · Card payment" : " · Order request"}
               </p>
             </div>

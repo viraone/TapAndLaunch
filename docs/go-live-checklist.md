@@ -17,7 +17,7 @@ _Last updated: 2026-10-03._ Tick items as they are done and note the date.
 
 - [x] Forgot-password flow for builders (2026-10-04; production reset email template still to be switched, see runbooks)
 - [ ] Shorter checkout: skip our name/email form when Stripe is connected (Stripe already asks)
-- [ ] App-level email: set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` if the Email notification channel is wanted
+- [x] App-level email: `RESEND_API_KEY` and `RESEND_FROM_EMAIL` set in Vercel (2026-10-05), live test passed
 - [ ] Show notification send times in the viewer's time zone (they show UTC)
 - [ ] Lawyer review of Terms and Privacy
 

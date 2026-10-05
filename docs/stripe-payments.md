@@ -32,7 +32,12 @@ hand.
    shows one of: *Take card payments* (not started), *Finish setting up Stripe* (they still owe details), *Stripe is
    checking your details* (only Stripe's review remains), *Payments are on*.
 3. **Buy.** In a published app, `POST /orders` saves the order (`pending`) and, if the organization's account can take
-   charges, creates a Checkout session on that account and returns its URL. The shopper pays on Stripe.
+   charges, creates a Checkout session on that account and returns its URL. The shopper pays on Stripe. When card payments
+   are on, the buy form is just a quantity and a **Pay** button (`card_checkout` on the product, set in `getActiveProducts`);
+   Stripe's page asks for the email and cardholder name. The order starts with a blank name and email, and `markOrderPaid`
+   fills them in from Stripe's `customer_details` (webhook and return visit both do). The dashboard shows "Awaiting payment
+   details" until then. Without Stripe (or under 50 cents) the form still asks for name and email, and the server refuses
+   an order that has neither contact details nor a working card checkout.
 4. **Confirm.** Two independent ways, whichever is first (both only act on a `pending` order with the matching session id):
    - **Webhook** `POST /api/stripe/webhook` with a verified signature marks it `paid`.
    - **Return visit**: the shopper lands on `?payment=success&order=...`; the page calls `POST /orders/confirm`, which asks

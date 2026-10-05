@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import type { Database } from "@/types/database";
+import { LocalTime } from "@/components/dashboard/LocalTime";
 
 type MemberRow = Database["public"]["Tables"]["app_members"]["Row"];
 
@@ -72,7 +73,10 @@ export function MembersTable({ appId, members }: { appId: string; members: Omit<
       <tbody>
         {members.map((member) => (
           <tr key={member.id} className="border-b last:border-b-0">
-            <td className="py-2">{member.email}</td>
+            <td className="py-2">
+              {member.email}
+              {member.email_unsubscribed_at && <span className="ml-2 text-xs text-muted-foreground">unsubscribed from email</span>}
+            </td>
             <td className="py-2">{member.display_name ?? "—"}</td>
             <td className="py-2">{member.phone ?? "—"}</td>
             <td className="py-2">
@@ -93,7 +97,7 @@ export function MembersTable({ appId, members }: { appId: string; members: Omit<
                 </Button>
               </div>
             </td>
-            <td className="py-2 text-muted-foreground">{new Date(member.created_at).toLocaleDateString()}</td>
+            <td className="py-2 text-muted-foreground"><LocalTime iso={member.created_at} dateOnly /></td>
             <td className="py-2">
               <Button
                 type="button"

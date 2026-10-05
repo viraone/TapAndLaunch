@@ -17,7 +17,7 @@ export default async function MembersPage({ params }: { params: Params }) {
   // should ever serialize to the client, RLS-permitted or not.
   const { data: members } = await supabase
     .from("app_members")
-    .select("id, app_id, email, display_name, phone, tier, created_at")
+    .select("id, app_id, email, display_name, phone, tier, email_unsubscribed_at, created_at")
     .eq("app_id", appId)
     .order("created_at", { ascending: false });
 

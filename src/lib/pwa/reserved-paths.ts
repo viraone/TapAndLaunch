@@ -13,6 +13,7 @@ export const RESERVED_PAGE_PATHS = new Set([
   "manifest.webmanifest",
   "members",
   "orders",
+  "unsubscribe",
   "push",
   "submit",
   "sw.js",

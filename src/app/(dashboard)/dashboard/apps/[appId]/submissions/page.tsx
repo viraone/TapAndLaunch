@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { LocalTime } from "@/components/dashboard/LocalTime";
 
 type Params = Promise<{ appId: string }>;
 
@@ -38,7 +39,7 @@ export default async function SubmissionsPage({ params }: { params: Params }) {
             <div key={submission.id} className="rounded-md border p-4 text-sm">
               <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
                 <span>{pageNameById.get(submission.page_id ?? "") ?? "Unknown page"}</span>
-                <span>{new Date(submission.created_at).toLocaleString()}</span>
+                <span><LocalTime iso={submission.created_at} /></span>
               </div>
               <dl className="space-y-1">
                 {Object.entries(submission.data).map(([key, value]) => (

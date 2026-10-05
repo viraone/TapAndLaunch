@@ -2,11 +2,21 @@ import type Stripe from "stripe";
 
 /** What a Stripe webhook event means for our data. Kept free of any database code so it can be tested on its own. */
 export type StripeAction =
-  | { kind: "order_paid"; orderId: string; sessionId: string; paymentIntentId: string | null }
+  | { kind: "order_paid"; orderId: string; sessionId: string; paymentIntentId: string | null; customer: PaidCustomer }
   | { kind: "order_cancelled"; orderId: string; sessionId: string }
   | { kind: "order_refunded"; paymentIntentId: string }
   | { kind: "account_updated"; accountId: string; chargesEnabled: boolean; detailsSubmitted: boolean }
   | { kind: "ignore" };
+
+/** Who paid, as typed into Stripe's checkout page. */
+export interface PaidCustomer {
+  name: string | null;
+  email: string | null;
+}
+
+export function customerOf(s: { customer_details?: { name?: string | null; email?: string | null } | null }): PaidCustomer {
+  return { name: s.customer_details?.name ?? null, email: s.customer_details?.email ?? null };
+}
 
 const idOf = (v: string | { id: string } | null | undefined): string | null => (typeof v === "string" ? v : (v?.id ?? null));
 
@@ -19,7 +29,7 @@ export function actionFor(event: Stripe.Event): StripeAction {
       // A card payment is `paid` right away. Bank-style payments complete the session while still
       // `unpaid`, and a later async_payment_succeeded event says the money arrived.
       if (!orderId || s.payment_status !== "paid") return { kind: "ignore" };
-      return { kind: "order_paid", orderId, sessionId: s.id, paymentIntentId: idOf(s.payment_intent) };
+      return { kind: "order_paid", orderId, sessionId: s.id, paymentIntentId: idOf(s.payment_intent), customer: customerOf(s) };
     }
     case "checkout.session.expired":
     case "checkout.session.async_payment_failed": {

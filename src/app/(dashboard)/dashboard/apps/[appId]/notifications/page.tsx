@@ -5,6 +5,7 @@ import { isPushConfigured } from "@/lib/notifications/push";
 import { isEmailConfigured } from "@/lib/notifications/email";
 import { isSmsConfigured } from "@/lib/notifications/sms";
 import { ComposeForm } from "./ComposeForm";
+import { LocalTime } from "@/components/dashboard/LocalTime";
 
 type Params = Promise<{ appId: string }>;
 
@@ -88,7 +89,7 @@ export default async function NotificationsPage({ params }: { params: Params }) 
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{metadata.title ?? "(untitled)"}</span>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(event.created_at).toLocaleString()}
+                      <LocalTime iso={event.created_at} />
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
