@@ -17,6 +17,12 @@ export function BillingCard({ state, isAdmin, billingReady, testMode }: { state:
   const needsPlan = state.kind === "trial" || state.kind === "trial_expired" || state.kind === "canceled";
   const bad = state.kind === "trial_expired" || state.kind === "canceled" || state.kind === "past_due";
   const good = state.kind === "complimentary" || state.kind === "active";
+  const free = state.kind === "complimentary";
+  const adminOnlyNote = !isAdmin && !free;
+  const canChoose = isAdmin && billingReady && needsPlan;
+  const canManage = isAdmin && billingReady && (state.kind === "active" || state.kind === "past_due");
+  const plansSoon = isAdmin && !billingReady && needsPlan;
+  const hasAction = adminOnlyNote || canChoose || canManage || plansSoon;
 
   return (
     <SettingsSection icon={CreditCard} title="Plan & billing" description="What you pay TapAndLaunch" tag={testMode ? <TestModeTag /> : null}>
@@ -81,14 +87,14 @@ export function BillingCard({ state, isAdmin, billingReady, testMode }: { state:
         </ul>
       )}
 
-      {(!isAdmin && state.kind !== "complimentary") || (needsPlan && (billingReady || isAdmin)) || (billingReady && isAdmin && (state.kind === "active" || state.kind === "past_due")) ? (
+      {hasAction && (
         <div className="mt-6">
-          {!isAdmin && state.kind !== "complimentary" && <p className="text-sm text-neutral-500">Only an organization admin can change the plan.</p>}
-          {isAdmin && billingReady && needsPlan && <PlanButtons mode="choose" labels={{ year: formatPlanPrice("year"), month: formatPlanPrice("month") }} />}
-          {isAdmin && billingReady && (state.kind === "active" || state.kind === "past_due") && <PlanButtons mode="manage" />}
-          {isAdmin && !billingReady && needsPlan && <p className="text-sm text-neutral-500">Plans open soon.</p>}
+          {adminOnlyNote && <p className="text-sm text-neutral-500">Only an organization admin can change the plan.</p>}
+          {canChoose && <PlanButtons mode="choose" labels={{ year: formatPlanPrice("year"), month: formatPlanPrice("month") }} />}
+          {canManage && <PlanButtons mode="manage" />}
+          {plansSoon && <p className="text-sm text-neutral-500">Plans open soon.</p>}
         </div>
-      ) : null}
+      )}
     </SettingsSection>
   );
 }
