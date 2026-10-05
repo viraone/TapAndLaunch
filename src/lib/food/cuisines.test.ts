@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { CUISINES, CUISINE_KEYS, cuisineLabelFor, cuisineOf } from "@/lib/food/cuisines";
 
 describe("cuisines", () => {
-  it("offers the fifteen quick-filters in display order", () => {
+  it("offers the sixteen quick-filters in display order", () => {
     expect(CUISINE_KEYS).toEqual([
       "ramen", "vietnamese", "thai", "korean", "taiwanese", "japanese",
-      "mexican", "pizza", "burgers", "mediterranean", "ethiopian", "indian", "bars", "ice_cream", "dessert",
+      "mexican", "pizza", "burgers", "mediterranean", "ethiopian", "indian", "healthy", "bars", "ice_cream", "dessert",
     ]);
     expect(new Set(CUISINES.map((c) => c.emoji)).size).toBe(CUISINES.length);
   });
@@ -20,6 +20,13 @@ describe("cuisines", () => {
     // With no Google type to go on, the name decides.
     expect(cuisineOf({ types: ["food"], name: "Seattle Gelato Co" })).toBe("ice_cream");
     expect(cuisineOf({ types: ["pizza_restaurant", "italian_restaurant"], name: "Big Mario's" })).toBe("pizza");
+    expect(cuisineOf({ types: ["salad_shop", "restaurant"], primaryType: "salad_shop", name: "sweetgreen" })).toBe("healthy");
+    expect(cuisineOf({ types: ["acai_shop", "cafe"], primaryType: "acai_shop", name: "Berry Much" })).toBe("healthy");
+    expect(cuisineOf({ types: ["juice_shop", "food"], primaryType: "juice_shop", name: "Pure Green - Juice Bar" })).toBe("healthy");
+    // Boba and tea shops are filed as juice shops by Google but belong with Dessert / Coffee.
+    expect(cuisineOf({ types: ["juice_shop", "tea_house"], primaryType: "juice_shop", name: "heytea (South Lake Union)" })).toBe("dessert");
+    expect(cuisineOf({ types: ["juice_shop"], primaryType: "juice_shop", name: "Tea Addicts" })).toBe("dessert");
+    expect(cuisineOf({ types: ["steak_house", "restaurant"], name: "Seattle Steak House" })).not.toBe("dessert");
     // Din Tai Fung is tagged taiwanese, dim sum, cantonese and chinese: Google's primary type decides.
     expect(cuisineOf({ types: ["taiwanese_restaurant", "dim_sum_restaurant", "chinese_restaurant"], primaryType: "taiwanese_restaurant", name: "Din Tai Fung" })).toBe("taiwanese");
     expect(cuisineOf({ types: ["restaurant", "food"], name: "Taipei Noodle House" })).toBe("taiwanese");

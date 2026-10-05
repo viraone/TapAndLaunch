@@ -190,6 +190,7 @@ export type CuisineKey =
   | "mediterranean"
   | "ethiopian"
   | "indian"
+  | "healthy"
   | "bars"
   | "ice_cream"
   | "dessert";

@@ -20,6 +20,8 @@ export interface CuisineDef {
   types: string[];
   /** Lower-case name fragments that also count as this cuisine. */
   keywords: string[];
+  /** Name fragments that keep a place OUT of this cuisine even when Google's type says it belongs (boba shops are filed as juice shops). */
+  notIfNamed?: string[];
 }
 
 export const CUISINES: CuisineDef[] = [
@@ -42,6 +44,15 @@ export const CUISINES: CuisineDef[] = [
   // Google has no ethiopian_restaurant type; African + the names do the work.
   { key: "ethiopian", label: "Ethiopian", emoji: "🫓", types: ["african_restaurant"], keywords: ["ethiopian", "eritrean", "injera", "habesha", "abyssinia", "addis"] },
   { key: "indian", label: "Indian", emoji: "🍛", types: ["indian_restaurant"], keywords: ["indian", "curry", "tikka", "biryani", "tandoor", "masala", "dosa"] },
+  // Google files boba / tea shops under juice_shop too; notIfNamed sends those on to Dessert / Coffee.
+  {
+    key: "healthy",
+    label: "Healthy / Smoothies",
+    emoji: "🥗",
+    types: ["juice_shop", "acai_shop", "salad_shop"],
+    keywords: ["smoothie", "acai", "açaí", "juice", "salad", "sweetgreen", "kale"],
+    notIfNamed: ["boba", "bubble tea", "milk tea", " tea ", "heytea", "happy lemon"],
+  },
   { key: "bars", label: "Bars & Pub Grub", emoji: "🍻", types: ["bar", "pub", "bar_and_grill"], keywords: ["tavern", "pub", "taproom", "brewery", "saloon", "bait shop"] },
   // Ahead of Dessert / Coffee, whose Google types also include ice_cream_shop: an ice cream shop belongs under this pill.
   {
@@ -56,7 +67,7 @@ export const CUISINES: CuisineDef[] = [
     label: "Dessert / Coffee",
     emoji: "☕",
     types: ["coffee_shop", "cafe", "dessert_shop", "ice_cream_shop", "bakery", "tea_house"],
-    keywords: ["boba", "bubble tea", "coffee", "espresso", "ice cream", "gelato", "dessert", "bakery", "donut", "doughnut", "creamery"],
+    keywords: ["boba", "bubble tea", " tea ", "heytea", "happy lemon", "coffee", "espresso", "ice cream", "gelato", "dessert", "bakery", "donut", "doughnut", "creamery"],
   },
 ];
 
@@ -72,11 +83,12 @@ export const CUISINE_BY_KEY: Record<CuisineKey, CuisineDef> = Object.fromEntries
 export function cuisineOf(place: { types: string[]; primaryType?: string | null; name: string }): CuisineKey | null {
   // Google's primary type is its own call on what the place is; a fusion
   // spot also tagged with a second cuisine keeps its primary one.
-  if (place.primaryType) for (const c of CUISINES) if (c.types.includes(place.primaryType)) return c.key;
-  const types = new Set(place.types ?? []);
-  for (const c of CUISINES) if (c.types.some((t) => types.has(t))) return c.key;
   const lower = ` ${place.name.toLowerCase()} `;
-  for (const c of CUISINES) if (c.keywords.some((k) => lower.includes(k))) return c.key;
+  const allowed = (c: CuisineDef) => !c.notIfNamed?.some((k) => lower.includes(k));
+  if (place.primaryType) for (const c of CUISINES) if (c.types.includes(place.primaryType) && allowed(c)) return c.key;
+  const types = new Set(place.types ?? []);
+  for (const c of CUISINES) if (c.types.some((t) => types.has(t)) && allowed(c)) return c.key;
+  for (const c of CUISINES) if (c.keywords.some((k) => lower.includes(k)) && allowed(c)) return c.key;
   return null;
 }
 
