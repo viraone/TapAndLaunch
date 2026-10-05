@@ -14,7 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import robotsParser from "robots-parser";
-import { buildPrompt, chunkText, findMenuLink, findPdfMenuLinks, joinTranscripts, MENU_SCHEMA, mergeSections, pdfItemsToLines, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, webUrl } from "./lib.mjs";
+import { buildPrompt, chunkText, findMenuLink, findPdfMenuLinks, joinTranscripts, MENU_SCHEMA, mergePhotoReadings, mergeSections, pdfItemsToLines, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, tileGrid, webUrl } from "./lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -201,23 +201,75 @@ async function menuPictures(browser, url) {
       await page.mouse.wheel(0, 1600);
       await page.waitForTimeout(400);
     }
+    // `best` = the largest version of the picture the page offers (its srcset, up to 3200px wide): a bigger copy is the difference
+    // between reading "$5.00" and misreading it as "$6.00" on small print.
     const found = await page.evaluate(() =>
-      Array.from(document.images).map((i) => ({ src: i.currentSrc || i.src || i.dataset.src || "", width: i.naturalWidth, height: i.naturalHeight }))
+      Array.from(document.images).map((i) => {
+        const sets = [i.srcset, i.dataset.srcset, ...Array.from(i.closest("picture")?.querySelectorAll("source") ?? []).map((s) => s.srcset)].filter(Boolean).join(",");
+        let best = null;
+        let bestW = 0;
+        for (const m of sets.matchAll(/(\S+)\s+(\d+)w/g)) {
+          const w = Number(m[2]);
+          if (w > bestW && w <= 3200) {
+            bestW = w;
+            best = new URL(m[1], location.href).href;
+          }
+        }
+        return { src: i.currentSrc || i.src || i.dataset.src || "", width: i.naturalWidth, height: i.naturalHeight, best };
+      })
     );
     const pictures = [];
     for (const img of selectMenuImages(found)) {
-      if (!(await allowed(img.src))) continue;
-      const res = await context.request.get(img.src, { timeout: 30000 }).catch(() => null);
+      const url = img.best ?? img.src;
+      if (!(await allowed(url))) continue;
+      const res = await context.request.get(url, { timeout: 30000 }).catch(() => null);
       if (!res || !res.ok()) continue;
       const type = res.headers()["content-type"] ?? "";
       if (!/image\/(png|jpe?g|webp)/i.test(type)) continue;
       const buf = await res.body();
       if (buf.length > MAX_IMAGE_BYTES) continue;
-      pictures.push({ src: img.src, base64: buf.toString("base64") });
+      pictures.push({ src: url, base64: buf.toString("base64"), type: type.split(";")[0].trim().toLowerCase() });
     }
     return pictures;
   } finally {
     await context.close();
+  }
+}
+
+/** Cuts a picture into overlapping tiles (as PNG, base64) so small print is read at a larger size. One tile = the picture is small enough already. */
+async function cutTiles(browser, pic) {
+  const page = await browser.newPage();
+  try {
+    const dataUrl = `data:${pic.type};base64,${pic.base64}`;
+    const size = await page.evaluate(async (u) => {
+      const img = new Image();
+      img.src = u;
+      await img.decode();
+      return { w: img.naturalWidth, h: img.naturalHeight };
+    }, dataUrl);
+    const grid = tileGrid(size.w, size.h);
+    if (grid.length === 0) return [];
+    return await page.evaluate(
+      async ({ u, grid }) => {
+        const img = new Image();
+        img.src = u;
+        await img.decode();
+        return grid.map((t) => {
+          // Smaller tiles are enlarged (up to 2x) so the print is bigger for the model.
+          const k = Math.min(2, Math.max(1, 1300 / Math.max(t.w, t.h)));
+          const c = document.createElement("canvas");
+          c.width = Math.round(t.w * k);
+          c.height = Math.round(t.h * k);
+          const ctx = c.getContext("2d");
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, t.x, t.y, t.w, t.h, 0, 0, c.width, c.height);
+          return c.toDataURL("image/png").split(",")[1];
+        });
+      },
+      { u: dataUrl, grid }
+    );
+  } finally {
+    await page.close();
   }
 }
 
@@ -336,13 +388,36 @@ async function processPlace(browser, place) {
       for (const pageUrl of triedPages) {
         const pictures = await menuPictures(browser, pageUrl).catch(() => []);
         if (pictures.length === 0) continue;
-        const copied = [];
-        for (const pic of pictures) copied.push(await transcribe(pic.base64).catch(() => ""));
-        const text = joinTranscripts(copied);
-        if (text.length < 300) continue;
-        const out = await extractMenu(place.name, text);
-        if (out.status === "ok") return { ...result, ...out, status: "ok", sourceUrl: pageUrl, fromPhoto: true, seconds: Math.round((Date.now() - started) / 1000) };
-        result.status = out.status;
+        // Two independent readings: the whole pictures, and zoomed-in tiles of the big ones. A price is kept only where the two
+        // agree or only one saw it; where they disagree it is dropped (a missing price is better than a wrong one).
+        const wholeCopies = [];
+        for (const pic of pictures) wholeCopies.push(await transcribe(pic.base64).catch(() => ""));
+        const wholeText = joinTranscripts(wholeCopies);
+        if (wholeText.length < 300) continue;
+        const tileCopies = [];
+        for (const pic of pictures) for (const tile of await cutTiles(browser, pic).catch(() => [])) tileCopies.push(await transcribe(tile).catch(() => ""));
+        const tileText = joinTranscripts(tileCopies);
+        const a = await extractMenu(place.name, wholeText);
+        const b = tileText.length >= 300 ? await extractMenu(place.name, tileText) : { status: "none" };
+        let sections;
+        let priceChecked = false;
+        let conflicts = [];
+        if (a.status === "ok" && b.status === "ok") {
+          const merged = mergePhotoReadings(a.sections, b.sections);
+          sections = merged.sections;
+          conflicts = merged.conflicts;
+          priceChecked = true;
+        } else if (a.status === "ok" && b.status === "none") {
+          sections = a.sections; // small pictures: nothing to zoom into, the first reading is already at full size
+        } else if (a.status === "ok" || b.status === "ok") {
+          // Only one of two readings produced a menu: keep the dishes but not the prices, which nothing double-checked.
+          sections = (a.status === "ok" ? a : b).sections.map((sec) => ({ ...sec, items: sec.items.map((i) => ({ ...i, price: null })) }));
+        } else {
+          result.status = a.status === "ok" ? b.status : a.status;
+          continue;
+        }
+        const itemCount = sections.reduce((n, sec) => n + sec.items.length, 0);
+        return { ...result, status: "ok", sections, itemCount, sourceUrl: pageUrl, fromPhoto: true, priceChecked, priceConflicts: conflicts, seconds: Math.round((Date.now() - started) / 1000) };
       }
     }
     return { ...result, seconds: Math.round((Date.now() - started) / 1000) };

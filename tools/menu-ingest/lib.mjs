@@ -267,7 +267,7 @@ export function selectMenuImages(images, max = MAX_MENU_IMAGES) {
     const key = src.split("?")[0];
     if (seen.has(key)) continue;
     seen.add(key);
-    picked.push({ src, width: img.width, height: img.height });
+    picked.push({ src, width: img.width, height: img.height, best: typeof img.best === "string" && /^https?:\/\//i.test(img.best) ? img.best : null });
   }
   return picked.sort((a, b) => b.width * b.height - a.width * a.height).slice(0, max);
 }
@@ -281,4 +281,63 @@ export function joinTranscripts(parts) {
     .map((t) => String(t ?? "").trim())
     .filter((t) => t && !/^no text\.?$/i.test(t))
     .join("\n\n");
+}
+
+/**
+ * Splits a picture into overlapping tiles no bigger than `max` pixels on a side, covering all of it (an empty list = too small to bother).
+ * A model reads small print more reliably when it sees it larger, so a second reading of the tiles is used to double-check the
+ * first reading of the whole picture.
+ */
+export function tileGrid(width, height, max = 1300, overlap = 0.06) {
+  const ov = Math.round(max * overlap);
+  const axis = (len) => {
+    if (len > max) {
+      const n = Math.ceil((len - ov) / (max - ov)); // fewest tiles that cover the length with at least `ov` pixels shared
+      return Array.from({ length: n }, (_, i) => {
+        const start = Math.round((i * (len - max)) / (n - 1));
+        return [start, start + max];
+      });
+    }
+    // A mid-size side is split in two (the tiles get enlarged when cut), because small print is misread at that size; a small one is left whole.
+    if (len >= 500) {
+      const half = Math.ceil(len / 2) + Math.round(ov / 2);
+      return [[0, half], [len - half, len]];
+    }
+    return [[0, len]];
+  };
+  const tiles = [];
+  for (const [y0, y1] of axis(height)) for (const [x0, x1] of axis(width)) tiles.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+  return tiles.length === 1 ? [] : tiles;
+}
+
+const priceValue = (p) => {
+  const m = p ? /(\d+(?:\.\d+)?)/.exec(String(p)) : null;
+  return m ? Number(m[1]) : null;
+};
+
+/**
+ * Double-checks the prices of a picture reading against a second reading of the same picture made from zoomed tiles. Only dishes the
+ * first (whole-picture) reading found are kept: tiles cut names off at their edges and spell things differently, so they are
+ * never allowed to add dishes. For a dish both readings have, the price is kept when they agree or only one saw it, and dropped
+ * (null) when they disagree: a missing price is better than a wrong one. Returns the sections and the names whose prices disagreed.
+ */
+export function mergePhotoReadings(whole, tiled) {
+  const index = new Map();
+  for (const s of tiled ?? []) for (const item of s.items ?? []) index.set(normalizeForMatch(item.name), item);
+  const conflicts = [];
+  const sections = (whole ?? []).map((s) => ({
+    name: s.name,
+    items: (s.items ?? []).map((item) => {
+      const other = index.get(normalizeForMatch(item.name));
+      if (!other) return item;
+      const a = priceValue(item.price);
+      const b = priceValue(other.price);
+      if (a !== null && b !== null && Math.abs(a - b) > 0.001) {
+        conflicts.push(item.name);
+        return { ...item, price: null };
+      }
+      return a === null && b !== null ? { ...item, price: other.price } : item;
+    }),
+  }));
+  return { sections, conflicts };
 }

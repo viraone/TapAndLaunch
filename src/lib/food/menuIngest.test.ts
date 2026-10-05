@@ -7,11 +7,13 @@ import {
   findMenuLink,
   findPdfMenuLinks,
   joinTranscripts,
+  mergePhotoReadings,
   mergeSections,
   normalizeForMatch,
   pdfItemsToLines,
   sanitizeMenu,
   selectMenuImages,
+  tileGrid,
 } from "../../../tools/menu-ingest/lib.mjs";
 
 describe("cleanPrice", () => {
@@ -150,5 +152,54 @@ describe("photo menus", () => {
   it("joins the copied text and drops pictures with none", () => {
     expect(joinTranscripts(["Ramen 12\nGyoza 6", "NO TEXT", "  ", "no text.", "Beer 5"])).toBe("Ramen 12\nGyoza 6\n\nBeer 5");
     expect(joinTranscripts([])).toBe("");
+  });
+});
+
+describe("tileGrid", () => {
+  it("skips a picture too small to bother with", () => {
+    expect(tileGrid(450, 400)).toEqual([]);
+  });
+  it("splits a mid-size picture into quarters that overlap and cover it", () => {
+    const tiles = tileGrid(1280, 905);
+    expect(tiles.length).toBe(4);
+    expect(Math.max(...tiles.map((t: { x: number; w: number }) => t.x + t.w))).toBe(1280);
+    expect(Math.max(...tiles.map((t: { y: number; h: number }) => t.y + t.h))).toBe(905);
+    expect(tiles[0].w).toBeGreaterThan(1280 / 2);
+  });
+  it("covers a big picture completely with overlapping tiles no larger than the limit", () => {
+    const tiles = tileGrid(2500, 1768);
+    expect(tiles.length).toBe(4);
+    expect(tiles.every((t: { w: number; h: number }) => t.w <= 1300 && t.h <= 1300)).toBe(true);
+    for (const [x, y] of [[0, 0], [1249, 883], [2499, 1767], [1300, 5], [20, 1700]]) {
+      expect(tiles.some((t: { x: number; y: number; w: number; h: number }) => x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h)).toBe(true);
+    }
+    expect(Math.max(...tiles.map((t: { x: number; w: number }) => t.x + t.w))).toBe(2500);
+  });
+  it("never makes a tile that runs past the edge", () => {
+    for (const t of tileGrid(3100, 2900)) {
+      expect(t.x + t.w).toBeLessThanOrEqual(3100);
+      expect(t.y + t.h).toBeLessThanOrEqual(2900);
+    }
+  });
+});
+
+describe("mergePhotoReadings", () => {
+  const whole = () => [{ name: "Toppings", items: [{ name: "PLANT-BASED SWEET PORK", price: "$6.00", description: null }, { name: "CORN", price: "$1.50", description: null }, { name: "HOT TEA", price: null, description: null }] }];
+  it("drops a price the two readings disagree on, keeps agreeing ones", () => {
+    const tiled = [{ name: "Toppings", items: [{ name: "Plant-Based Sweet Pork", price: "$5.00", description: null }, { name: "Corn", price: "1.50", description: null }] }];
+    const out = mergePhotoReadings(whole(), tiled);
+    const items = out.sections[0].items;
+    expect(items.find((i: { name: string }) => /plant/i.test(i.name)).price).toBeNull();
+    expect(items.find((i: { name: string }) => /corn/i.test(i.name)).price).toBe("$1.50");
+    expect(out.conflicts).toEqual(["PLANT-BASED SWEET PORK"]);
+  });
+  it("fills a price only the tiles saw", () => {
+    const out = mergePhotoReadings(whole(), [{ name: "Toppings", items: [{ name: "Hot Tea", price: "$1.00", description: null }] }]);
+    expect(out.sections[0].items.find((i: { name: string }) => /tea/i.test(i.name)).price).toBe("$1.00");
+  });
+  it("never adds dishes the first reading did not find (tiles cut names and misspell them)", () => {
+    const tiled = [{ name: "Toppings", items: [{ name: "ABRASOBA Fragment", price: "$9", description: null }, { name: "CORN", price: "$1.50", description: null }] }];
+    const out = mergePhotoReadings(whole(), tiled);
+    expect(out.sections[0].items.map((i: { name: string }) => i.name)).toEqual(["PLANT-BASED SWEET PORK", "CORN", "HOT TEA"]);
   });
 });
