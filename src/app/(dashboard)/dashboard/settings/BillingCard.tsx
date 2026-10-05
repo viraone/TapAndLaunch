@@ -72,7 +72,7 @@ export function BillingCard({ state, isAdmin, billingReady, testMode }: { state:
             </p>
             {state.renewsAt && (
               <p className="text-muted-foreground">
-                {state.cancelsAtPeriodEnd ? "Ends on " : "Renews on "}
+                {state.cancelsAtPeriodEnd ? "Ends on " : "Next payment on "}
                 <LocalTime iso={state.renewsAt} dateOnly />.
               </p>
             )}
