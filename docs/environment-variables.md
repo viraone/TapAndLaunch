@@ -24,6 +24,7 @@ _Last checked: 2026-10-03 (production list read from the Vercel dashboard)._ Val
 | `VAPID_CONTACT` | `mailto:` contact sent to push services | No | Set (2026-10-03) | Push cannot be sent |
 | `STRIPE_BILLING_WEBHOOK_SECRET` | Signs billing webhook events (our own plans) | **Yes** | **Not set** | Plan changes only show up when the admin returns from checkout, not later (cancellations, failed payments) |
 | `BILLING_ENFORCED` | `true` pauses apps whose organization is out of good standing | No | Not set (nothing paused) | Plans show in the dashboard but never pause an app |
+| `AI_KEY_SECRET` | Encrypts customers' saved AI keys ("Bring your own bot") | **Yes** | Not set (falls back to a value derived from `MEMBER_SESSION_SECRET`) | Saved keys use the fallback secret. Fine; set it only if you want a separate one |
 | `ANTHROPIC_API_KEY` | "Describe your app" designs the app with Claude | Key is **secret** | Not set | The feature still works: it matches the sentence to the closest template instead of designing one |
 | `AI_MODEL` | Which Claude model designs apps | No | Not set (default `claude-sonnet-5-5`) | Uses the default |
 | `RESEND_API_KEY` | App-level email (the Email channel on the Notifications page) | **Yes** | Set (2026-10-05) | Email channel shows "not configured". Sign-in emails still work (they go through Supabase SMTP) |

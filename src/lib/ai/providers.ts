@@ -1,0 +1,90 @@
+export type AiProvider = "anthropic" | "openai";
+
+/** The provider's address. Local development can point at a stand-in server (AI_TEST_BASE_URL) to test without
+ * spending money; this is ignored in production. */
+function base(provider: AiProvider): string {
+  const test = process.env.NODE_ENV !== "production" ? process.env.AI_TEST_BASE_URL : undefined;
+  if (test) return `${test}/${provider}`;
+  return provider === "anthropic" ? "https://api.anthropic.com" : "https://api.openai.com";
+}
+
+export const PROVIDER_LABELS: Record<AiProvider, string> = { anthropic: "Anthropic (Claude)", openai: "OpenAI (ChatGPT)" };
+
+/** Rough shape check before calling the provider, so an obvious paste mistake gets a clear message. */
+export function looksLikeKey(provider: AiProvider, key: string): boolean {
+  const k = key.trim();
+  if (/\s/.test(k) || k.length < 20 || k.length > 300) return false;
+  return provider === "anthropic" ? k.startsWith("sk-ant-") : k.startsWith("sk-");
+}
+
+/**
+ * Picks the model to build with from the models this key can use, so nothing depends on guessing model names.
+ * Anthropic lists newest first; a Sonnet model is the best balance of quality and cost for building, else the newest.
+ * OpenAI: the newest general GPT model, skipping the small, audio, image, realtime and search variants.
+ */
+export function pickModel(provider: AiProvider, ids: string[]): string | null {
+  if (ids.length === 0) return null;
+  if (provider === "anthropic") {
+    const claude = ids.filter((id) => id.startsWith("claude-"));
+    return claude.find((id) => id.includes("sonnet")) ?? claude[0] ?? null;
+  }
+  const general = ids.filter((id) => /^gpt-\d/.test(id) && !/(mini|nano|audio|realtime|search|transcribe|tts|image|vision|instruct|codex|preview|\d{4}-\d{2}-\d{2})/.test(id));
+  const version = (id: string) => Number(/^gpt-(\d+(?:\.\d+)?)/.exec(id)?.[1] ?? 0);
+  general.sort((a, b) => version(b) - version(a) || a.length - b.length);
+  return general[0] ?? null;
+}
+
+export class ProviderError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+  }
+}
+
+function friendly(provider: AiProvider, status: number, detail: string | undefined): string {
+  if (status === 401 || status === 403) return `${PROVIDER_LABELS[provider]} refused this key. Check you copied all of it, and that it's still active.`;
+  if (status === 429) return `${PROVIDER_LABELS[provider]} says you're over your limit or out of credit. Check your account's billing.`;
+  return detail ? `${PROVIDER_LABELS[provider]} error: ${detail}` : `${PROVIDER_LABELS[provider]} answered ${status}.`;
+}
+
+/** Lists the models this key can use. A failure here means the key doesn't work. */
+export async function listModels(provider: AiProvider, key: string): Promise<string[]> {
+  const res =
+    provider === "anthropic"
+      ? await fetch(`${base("anthropic")}/v1/models?limit=100`, { headers: { "x-api-key": key, "anthropic-version": "2023-06-01" }, signal: AbortSignal.timeout(15_000) })
+      : await fetch(`${base("openai")}/v1/models`, { headers: { authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(15_000) });
+  const body = (await res.json().catch(() => ({}))) as { data?: Array<{ id: string }>; error?: { message?: string } };
+  if (!res.ok) throw new ProviderError(friendly(provider, res.status, body.error?.message), res.status);
+  return (body.data ?? []).map((m) => m.id);
+}
+
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** One reply from the model, asked to answer with a JSON object. */
+export async function chatJson(provider: AiProvider, key: string, model: string, system: string, turns: ChatTurn[]): Promise<string> {
+  if (provider === "anthropic") {
+    const res = await fetch(`${base("anthropic")}/v1/messages`, {
+      method: "POST",
+      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model, max_tokens: 4000, system, messages: turns }),
+      signal: AbortSignal.timeout(55_000),
+    });
+    const body = (await res.json().catch(() => ({}))) as { content?: Array<{ type: string; text?: string }>; error?: { message?: string } };
+    if (!res.ok) throw new ProviderError(friendly(provider, res.status, body.error?.message), res.status);
+    return body.content?.find((c) => c.type === "text")?.text ?? "";
+  }
+  const res = await fetch(`${base("openai")}/v1/chat/completions`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({ model, response_format: { type: "json_object" }, messages: [{ role: "system", content: system }, ...turns] }),
+    signal: AbortSignal.timeout(55_000),
+  });
+  const body = (await res.json().catch(() => ({}))) as { choices?: Array<{ message?: { content?: string } }>; error?: { message?: string } };
+  if (!res.ok) throw new ProviderError(friendly(provider, res.status, body.error?.message), res.status);
+  return body.choices?.[0]?.message?.content ?? "";
+}

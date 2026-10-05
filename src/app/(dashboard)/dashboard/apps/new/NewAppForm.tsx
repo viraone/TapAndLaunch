@@ -19,6 +19,7 @@ const NAME_HINTS: Record<string, string> = {
   gas: "Cheap gas",
   openmic: "Open mics tonight",
   blank: "My app",
+  byob: "My AI-built app",
   restaurant: "Taco Loco",
   fitness: "Flow Yoga Studio",
   salon: "Bloom Hair Studio",
@@ -62,7 +63,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
       return;
     }
 
-    router.push(`/dashboard/apps/${body.app.id}/builder`);
+    router.push(`/dashboard/apps/${body.app.id}/builder${selected.id === "byob" ? "?ai=1" : ""}`);
   }
 
   async function handleDescribe(e: React.FormEvent) {

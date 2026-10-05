@@ -6,6 +6,7 @@ import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 import { OrgSettingsForm } from "./OrgSettingsForm";
 import { PaymentsCard } from "./PaymentsCard";
 import { BillingCard } from "./BillingCard";
+import { AiKeyCard } from "./AiKeyCard";
 import { SettingsSection } from "./SettingsSection";
 import { tileGradient, tileInitial } from "@/lib/apps/tile";
 import { billingState, planChip } from "@/lib/billing/plans";
@@ -64,6 +65,7 @@ export default async function OrgSettingsPage({ searchParams }: { searchParams: 
   const plan = billingState(billingRow, new Date());
 
   const isAdmin = activeMembership?.role === "admin";
+  const { data: aiKey } = await createAdminClient().from("org_ai_keys").select("provider, key_hint, model").eq("organization_id", organizationId).maybeSingle();
   const paymentsOn = stripeAccount?.charges_enabled === true;
   const tile = tileGradient(organization.id);
 
@@ -110,6 +112,7 @@ export default async function OrgSettingsPage({ searchParams }: { searchParams: 
         </SettingsSection>
         <BillingCard state={plan} isAdmin={isAdmin} billingReady={isStripeConfigured()} testMode={isStripeTestMode()} />
         {showPayments && <PaymentsCard account={stripeAccount} testMode={isStripeTestMode()} />}
+        <AiKeyCard initialKey={aiKey ? { provider: aiKey.provider, hint: aiKey.key_hint, model: aiKey.model } : null} canManage={isAdmin} />
       </div>
     </main>
   );

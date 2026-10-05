@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BuilderClient } from "@/components/builder/BuilderClient";
+import { AiChatPanel } from "@/components/builder/AiChatPanel";
 import { getRootDomain } from "@/lib/tenant";
 import { appHasVisit } from "@/lib/apps/signals";
 import { isVercelDomainsConfigured } from "@/lib/domains/vercel";
@@ -9,8 +10,9 @@ import { isVercelDomainsConfigured } from "@/lib/domains/vercel";
 // hand instead of via the generated `PageProps<...>` helper.
 type Params = Promise<{ appId: string }>;
 
-export default async function BuilderPage({ params }: { params: Params }) {
+export default async function BuilderPage({ params, searchParams }: { params: Params; searchParams: Promise<{ ai?: string }> }) {
   const { appId } = await params;
+  const { ai } = await searchParams;
   const supabase = await createClient();
 
   // RLS (`is_org_member`) is what actually enforces "this user may view this
@@ -44,8 +46,18 @@ export default async function BuilderPage({ params }: { params: Params }) {
     otherPageIds.length ? supabase.from("blocks").select("id").in("page_id", otherPageIds).limit(1) : Promise.resolve({ data: [] }),
   ]);
 
+  // When the AI chat changes the saved app, this value changes and the builder reloads from the new version.
+  const allPageIds = pages.map((p) => p.id);
+  const [{ data: latestBlock }, { count: blockCount }] = await Promise.all([
+    supabase.from("blocks").select("updated_at").in("page_id", allPageIds).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("blocks").select("id", { count: "exact", head: true }).in("page_id", allPageIds),
+  ]);
+  const version = [app.updated_at, ...pages.map((p) => `${p.id}:${p.updated_at}`), latestBlock?.updated_at ?? "", blockCount ?? 0].join("|");
+
   return (
+    <>
     <BuilderClient
+      key={version}
       app={app}
       rootDomain={getRootDomain()}
       initialPages={pages}
@@ -56,5 +68,7 @@ export default async function BuilderPage({ params }: { params: Params }) {
       hasVisit={hasVisit}
       contentOnOtherPages={!!otherBlocks.data?.length}
     />
+    <AiChatPanel appId={appId} appName={app.name} initiallyOpen={ai === "1"} />
+    </>
   );
 }

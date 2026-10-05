@@ -5,8 +5,8 @@ import { STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter, isTemplateId, tem
 
 describe("starter templates", () => {
   it("offers a template for everything, ending with a blank one", () => {
-    expect(STARTER_TEMPLATES.map((t) => t.id)).toEqual(["business", "store", "events", "food", "gas", "openmic", "restaurant", "fitness", "salon", "community", "blank"]);
-    expect(STARTER_TEMPLATES.at(-1)?.id).toBe("blank");
+    expect(STARTER_TEMPLATES.map((t) => t.id)).toEqual(["business", "store", "events", "food", "gas", "openmic", "restaurant", "fitness", "salon", "community", "blank", "byob"]);
+    expect(STARTER_TEMPLATES.at(-1)?.id).toBe("byob");
     expect(isTemplateId("store")).toBe(true);
     expect(isTemplateId("nope")).toBe(false);
   });
@@ -32,7 +32,7 @@ describe("starter templates", () => {
   }
 
   it("opens every finished template with a photo banner that has a headline", () => {
-    for (const t of STARTER_TEMPLATES.filter((x) => !["food", "gas", "blank"].includes(x.id))) {
+    for (const t of STARTER_TEMPLATES.filter((x) => !["food", "gas", "blank", "byob"].includes(x.id))) {
       const first = buildStarter(t.id, "Maple Street Bakery").pages[0]?.blocks[0];
       expect(first?.type, t.id).toBe("hero");
       expect((first?.config as { image_url?: string; headline?: string }).image_url, t.id).toMatch(/\/templates\/.+\.jpg$/);

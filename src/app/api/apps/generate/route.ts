@@ -7,6 +7,9 @@ import { generateApp, isAiConfigured } from "@/lib/ai/generate";
 import { AI_DAILY_LIMIT, AI_LIMIT_MESSAGE } from "@/lib/ai/limits";
 import { MAX_DESCRIPTION, MIN_DESCRIPTION } from "@/lib/ai/app-spec";
 
+/** A Claude design can take 20 to 40 seconds. */
+export const maxDuration = 60;
+
 const Schema = z.object({
   organization_id: z.string().uuid(),
   description: z.string().trim().min(MIN_DESCRIPTION, "Tell us a little more: a sentence or two is perfect.").max(MAX_DESCRIPTION, `Keep it under ${MAX_DESCRIPTION} characters.`),

@@ -356,8 +356,29 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["organizations"]["Row"]>;
         Relationships: [];
       };
+      org_ai_keys: {
+        Row: {
+          organization_id: string;
+          provider: "anthropic" | "openai";
+          encrypted_key: string;
+          key_hint: string;
+          model: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["org_ai_keys"]["Row"]> & {
+          organization_id: string;
+          provider: "anthropic" | "openai";
+          encrypted_key: string;
+          key_hint: string;
+          model: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["org_ai_keys"]["Row"]>;
+        Relationships: [];
+      };
       ai_generations: {
-        Row: { id: string; user_id: string; organization_id: string | null; created_at: string };
+        Row: { id: string; user_id: string; organization_id: string | null; kind: "describe" | "chat"; created_at: string };
         Insert: Partial<Database["public"]["Tables"]["ai_generations"]["Row"]> & { user_id: string };
         Update: Partial<Database["public"]["Tables"]["ai_generations"]["Row"]>;
         Relationships: [];

@@ -9,7 +9,7 @@ import type { BlockConfig, BlockType, ManifestConfig, ThemeConfig } from "@/type
  * app is created (`buildStarter`).
  */
 
-export type TemplateIcon = "briefcase" | "shopping-bag" | "calendar" | "utensils" | "fuel" | "mic" | "plus" | "dumbbell" | "sparkles" | "users";
+export type TemplateIcon = "briefcase" | "shopping-bag" | "calendar" | "utensils" | "fuel" | "mic" | "plus" | "dumbbell" | "sparkles" | "users" | "bot";
 
 export interface StarterTemplate {
   id: string;
@@ -24,7 +24,7 @@ export interface StarterTemplate {
   category: TemplateCategoryId;
 }
 
-export type TemplateCategoryId = "food" | "fitness" | "shops" | "venues" | "local" | "scratch";
+export type TemplateCategoryId = "food" | "fitness" | "shops" | "venues" | "local" | "scratch" | "ai";
 
 /** The picker's groups, in the order they are shown. */
 export const TEMPLATE_CATEGORIES: Array<{ id: TemplateCategoryId; name: string; blurb: string }> = [
@@ -34,6 +34,7 @@ export const TEMPLATE_CATEGORIES: Array<{ id: TemplateCategoryId; name: string; 
   { id: "venues", name: "Venues, events & community", blurb: "Events people can book, and a home for your group" },
   { id: "local", name: "Local info", blurb: "Live data for the neighbourhood" },
   { id: "scratch", name: "Start from scratch", blurb: "Build exactly what you want" },
+  { id: "ai", name: "Bring your own bot", blurb: "Use your own Claude or ChatGPT key and build your app by chatting" },
 ];
 
 export const STARTER_TEMPLATES: StarterTemplate[] = [
@@ -135,6 +136,15 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     color: "#64748b",
     includes: [],
     category: "scratch",
+  },
+  {
+    id: "byob",
+    name: "BYOB: Bring your own bot",
+    tagline: "Paste your own Claude or ChatGPT key, then just chat: \u201cadd a menu page\u201d, \u201cmake it green\u201d. It builds as you talk.",
+    icon: "bot",
+    color: "#4f46e5",
+    includes: ["AI chat builder", "Your own key", "Billed to your AI account"],
+    category: "ai",
   },
 ];
 
@@ -239,7 +249,7 @@ export function buildStarter(templateId: string, appName: string): Starter {
 }
 
 function buildStarterBody(templateId: string, appName: string): Starter {
-  const template = STARTER_TEMPLATES.find((t) => t.id === templateId) ?? STARTER_TEMPLATES[STARTER_TEMPLATES.length - 1];
+  const template = STARTER_TEMPLATES.find((t) => t.id === templateId) ?? (STARTER_TEMPLATES.find((t) => t.id === DEFAULT_TEMPLATE_ID) as StarterTemplate);
   const manifest: ManifestConfig = {
     name: appName,
     short_name: appName.slice(0, 12),
@@ -980,6 +990,23 @@ function buildStarterBody(templateId: string, appName: string): Starter {
           { slug: "sample-mixed-bag", record: sampleMic("sample-mixed-bag", "Mixed Bag Variety Mic", "Lantern Lounge", "8pm/8:30pm", "Music & Comedy", "monday,tuesday,wednesday,thursday,friday,saturday,sunday", "Comedy, music, poetry, anything goes.") },
           { slug: "sample-late-night", record: sampleMic("sample-late-night", "Late Night Laugh Lab", "Basement Theatre", "9:30pm/10pm", "Comedy", "tuesday,thursday,friday,saturday", "7 minutes. Online sign-up opens at noon.") },
           { slug: "sample-poetry", record: sampleMic("sample-poetry", "Spoken Word Sundays", "Book & Bean", "6pm/6:30pm", "Poetry", "sunday,wednesday", "Poems, stories and spoken word.") },
+        ],
+      };
+    case "byob":
+      return {
+        manifest,
+        theme,
+        pages: [
+          home([
+            block("hero", {
+              image_url: "",
+              eyebrow: "Built with AI",
+              headline: appName,
+              subtext: "This app is being built by chat. Open Build with AI in the builder and describe what you want.",
+              button_label: "",
+              button_page: "",
+            }),
+          ]),
         ],
       };
     default:

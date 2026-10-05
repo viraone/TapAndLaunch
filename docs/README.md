@@ -12,6 +12,7 @@ accounts, card payments, push notifications, email and the StageTime sign-up.
 | [stripe-payments.md](stripe-payments.md) | Card payments for stores: design, data, webhooks, testing, going live |
 | [custom-domains.md](custom-domains.md) | Customers' own domains: Vercel setup, how "Connected" is decided |
 | [seo.md](seo.md) | Search and share setup for the main site: metadata, sitemap, robots, structured data |
+| [byob.md](byob.md) | "Bring your own bot": customers build by chatting, with their own AI key |
 | [template-photos.md](template-photos.md) | Where the template photos come from (Unsplash, free licence) |
 | [first-run-and-ai.md](first-run-and-ai.md) | What a new customer sees, the template picker, and "Describe your app" (Claude) |
 | [billing.md](billing.md) | What customers pay TapAndLaunch: the plan, trial, Stripe Billing, enforcement switch |

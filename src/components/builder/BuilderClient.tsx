@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   DndContext,
   closestCenter,
@@ -76,6 +76,15 @@ export function BuilderClient({
   const [visited] = useState(hasVisit);
   const [isSaving, startSaving] = useTransition();
   const [isPublishing, startPublishing] = useTransition();
+  // What the current page looked like when it was last loaded or saved, to tell whether there are unsaved changes.
+  const snapshot = (list: BuilderBlock[]) => JSON.stringify(list.map((b) => [b.type, b.config, b.minTier]));
+  const [savedSnapshot, setSavedSnapshot] = useState(() => snapshot(initialBlocks.map(toBuilderBlock)));
+  const dirty = snapshot(blocks) !== savedSnapshot;
+
+  // The AI chat (outside this component) works on the saved app, so it needs to know when there are unsaved edits.
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("builder-dirty", { detail: { dirty } }));
+  }, [dirty]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
@@ -134,7 +143,9 @@ export function BuilderClient({
       toast.error("Failed to load page: " + error.message);
       return;
     }
-    setBlocks((data ?? []).map(toBuilderBlock));
+    const loaded = (data ?? []).map(toBuilderBlock);
+    setBlocks(loaded);
+    setSavedSnapshot(snapshot(loaded));
   }
 
   async function createPage(name: string, path: string) {
@@ -152,6 +163,7 @@ export function BuilderClient({
     setPages((prev) => [...prev, newPage]);
     setCurrentPageId(newPage.id);
     setBlocks([]);
+    setSavedSnapshot(snapshot([]));
     setSelectedBlockId(null);
   }
 
@@ -175,7 +187,9 @@ export function BuilderClient({
       toast.error(body.error ?? "Failed to save");
       return false;
     }
-    setBlocks((body.blocks as BlockRow[]).map(toBuilderBlock));
+    const saved = (body.blocks as BlockRow[]).map(toBuilderBlock);
+    setBlocks(saved);
+    setSavedSnapshot(snapshot(saved));
     return true;
   }
 
