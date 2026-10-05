@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { OrderStatusSelect } from "./OrderStatusSelect";
+import { LocalTime } from "@/components/dashboard/LocalTime";
 
 type Params = Promise<{ appId: string }>;
 
@@ -77,7 +78,7 @@ export default async function OrdersPage({ params }: { params: Params }) {
                 ))}
               </ul>
               <p className="mt-2 text-xs text-muted-foreground">
-                {new Date(order.created_at).toLocaleString()}
+                <LocalTime iso={order.created_at} />
                 {order.payment_method === "stripe" ? " · Card payment" : " · Order request"}
               </p>
             </div>

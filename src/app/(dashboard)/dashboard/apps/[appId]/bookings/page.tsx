@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { LocalTime } from "@/components/dashboard/LocalTime";
 
 type Params = Promise<{ appId: string }>;
 
@@ -42,7 +43,7 @@ export default async function BookingsPage({ params }: { params: Params }) {
               </div>
               <div className="text-right">
                 <p>{titleByEventId.get(booking.event_id) ?? "Unknown event"}</p>
-                <p className="text-xs text-muted-foreground">{new Date(booking.created_at).toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground"><LocalTime iso={booking.created_at} /></p>
               </div>
             </div>
           ))}

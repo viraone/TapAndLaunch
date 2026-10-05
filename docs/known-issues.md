@@ -40,9 +40,11 @@ The dashboard says "N sent", which means the push services accepted it. If nothi
 - **Focus / Do Not Disturb** (moon icon) hides everything.
 - Chrome: `chrome://settings/content/notifications` must allow the app's site.
 
-## Notification send times show UTC
+## Dates in the dashboard
 
-The "Recent sends" list on a Notifications page shows server (UTC) time, e.g. 5:35 PM for 10:35 AM in Seattle. Cosmetic.
+Dashboard pages render on the server (UTC), so dates and times go through `LocalTime` (`src/components/dashboard/LocalTime.tsx`),
+which swaps in the viewer's own time zone in the browser (fixed 2026-10-05). Use it for any new date shown in the dashboard;
+a plain `toLocaleString()` in a server page shows UTC.
 
 ## Stripe surprises
 
