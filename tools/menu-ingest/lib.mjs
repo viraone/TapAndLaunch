@@ -210,7 +210,7 @@ Rules:
 - Only items that appear on the page. Never invent items, prices or descriptions.
 - Copy item names and prices exactly as written. Price is text such as "$14.95", or null when the page gives none.
 - Skip navigation, cart, login, store hours, addresses, cookie notices, gift cards, rewards, and size or option lines ("Large", "Extra cheese").
-- Keep each description under 100 characters, or null.
+- Copy each description in full, or null when there is none. Only if it is longer than 130 characters, shorten it by leaving out words from the end so it ends on a whole word. Never cut a word in half.
 - Group items by the page's own section names (Appetizers, Entrees, ...). If there are no sections, use one section called "Menu".
 - If this page is not a menu, return is_menu false and no sections.
 
@@ -340,4 +340,36 @@ export function mergePhotoReadings(whole, tiled) {
     }),
   }));
   return { sections, conflicts };
+}
+
+// ---- whose page is it? (a restaurant's home page can link to a listing site about other restaurants with the same name) ----
+
+/** Hosts that run restaurants' own ordering pages or sites, so a link to them from the restaurant's site is the restaurant's own page. */
+const PLATFORM_DOMAINS = new Set([
+  "toasttab.com", "square.site", "squareup.com", "clover.com", "chownow.com", "olo.com", "menufy.com", "popmenu.com", "slicelife.com",
+  "spoton.com", "order.online", "getbento.com", "owner.com", "wixsite.com", "squarespace.com", "wordpress.com", "weebly.com",
+  "godaddysites.com", "myshopify.com", "menu.app", "bentobox.com", "resy.com", "opentable.com",
+]);
+
+const registrable = (url) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "").split(".").slice(-2).join(".");
+  } catch {
+    return "";
+  }
+};
+const brandLabel = (domain) => domain.split(".")[0];
+
+/**
+ * Whether `pageUrl` is the restaurant's own page: same site as `websiteUrl`, a domain with the same brand name (razzis.com and
+ * razzispizza.com), or a known ordering platform. Anything else, such as an aggregator that lists many restaurants, is not trusted.
+ */
+export function sameSite(websiteUrl, pageUrl) {
+  const a = registrable(websiteUrl);
+  const b = registrable(pageUrl);
+  if (!a || !b) return false;
+  if (a === b || PLATFORM_DOMAINS.has(b) || PLATFORM_DOMAINS.has(a)) return true;
+  const x = brandLabel(a);
+  const y = brandLabel(b);
+  return x.length >= 4 && y.length >= 4 && (x.includes(y) || y.includes(x));
 }

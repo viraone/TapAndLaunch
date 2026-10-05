@@ -10,6 +10,7 @@ import {
   mergePhotoReadings,
   mergeSections,
   normalizeForMatch,
+  sameSite,
   pdfItemsToLines,
   sanitizeMenu,
   selectMenuImages,
@@ -201,5 +202,19 @@ describe("mergePhotoReadings", () => {
     const tiled = [{ name: "Toppings", items: [{ name: "ABRASOBA Fragment", price: "$9", description: null }, { name: "CORN", price: "$1.50", description: null }] }];
     const out = mergePhotoReadings(whole(), tiled);
     expect(out.sections[0].items.map((i: { name: string }) => i.name)).toEqual(["PLANT-BASED SWEET PORK", "CORN", "HOT TEA"]);
+  });
+});
+
+describe("sameSite", () => {
+  it("trusts the restaurant's own site, its brand's other domain, and ordering platforms", () => {
+    expect(sameSite("https://www.kajikenusa.com/", "https://kajikenusa.com/menu-1")).toBe(true);
+    expect(sameSite("http://www.razzis.com/", "http://www.razzispizza.com/menus/traditional.html")).toBe(true);
+    expect(sameSite("https://pizzeria.example.com/", "https://order.toasttab.com/online/pizzeria")).toBe(true);
+    expect(sameSite("https://tengusushi.square.site/", "https://tengusushi.square.site/#P6YA")).toBe(true);
+  });
+  it("rejects listing sites about other restaurants", () => {
+    expect(sameSite("https://phoba.website/", "https://pho-ba.menujoys.com/menu")).toBe(false);
+    expect(sameSite("https://acafe-seattle.com/", "https://menu-prices.org/acafe")).toBe(false);
+    expect(sameSite("", "https://x.example.com")).toBe(false);
   });
 });

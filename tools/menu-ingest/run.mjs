@@ -14,7 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import robotsParser from "robots-parser";
-import { buildPrompt, chunkText, findMenuLink, findPdfMenuLinks, joinTranscripts, MENU_SCHEMA, mergePhotoReadings, mergeSections, pdfItemsToLines, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, tileGrid, webUrl } from "./lib.mjs";
+import { buildPrompt, chunkText, findMenuLink, findPdfMenuLinks, joinTranscripts, MENU_SCHEMA, mergePhotoReadings, mergeSections, pdfItemsToLines, sameSite, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, tileGrid, webUrl } from "./lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -351,8 +351,9 @@ async function processPlace(browser, place) {
       let pageText = home.text;
       let sourceUrl = home.finalUrl;
       if (target) {
-        if (!(await allowed(target))) continue;
+        if (!(await allowed(target)) || !sameSite(place.website, target)) continue;
         const menuPage = await render(browser, target);
+        if (!sameSite(place.website, menuPage.finalUrl)) continue; // redirected to somebody else's page
         if (/pdf/i.test(menuPage.contentType)) {
           result.status = "pdf";
           continue;
@@ -372,7 +373,7 @@ async function processPlace(browser, place) {
     }
     triedPages.push(home.finalUrl);
     // Next: a menu that is a PDF (a fifth of the menus I looked at that the pages themselves couldn't give).
-    for (const pdfUrl of pdfLinks.slice(0, 2)) {
+    for (const pdfUrl of pdfLinks.filter((u) => sameSite(place.website, u)).slice(0, 2)) {
       const text = await pdfText(pdfUrl).catch(() => null);
       if (!text || text.length < 300) {
         result.status = result.status === "error" ? "pdf" : result.status;

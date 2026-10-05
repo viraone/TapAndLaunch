@@ -1,0 +1,23 @@
+import { chromium } from "playwright";
+const S = process.argv[2];
+const b = await chromium.launch({ headless: true });
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, geolocation: { latitude: 47.6165, longitude: -122.3181 }, permissions: ["geolocation"], locale: "en-US" });
+const page = await ctx.newPage();
+await page.goto("https://livebitesnow.tapandlaunch.com/?v=" + Date.now(), { waitUntil: "networkidle", timeout: 60000 });
+await page.waitForTimeout(4000);
+const ramen = page.getByRole("button", { name: /ramen/i }).first();
+if (await ramen.count()) { await ramen.click(); await page.waitForTimeout(2500); }
+await page.screenshot({ path: `${S}/ui-1-list.png` });
+const card = page.getByText(/Kajiken \(Capitol Hill\)/).first();
+console.log("card found:", await card.count());
+const bx = await card.boundingBox(); await page.mouse.click(bx.x + 20, bx.y + bx.height / 2); await page.waitForTimeout(1500);
+await page.screenshot({ path: `${S}/ui-2-sheet.png` });
+await page.getByRole("button", { name: /^menu$/i }).first().click(); await page.waitForTimeout(3000);
+await page.screenshot({ path: `${S}/ui-3-menu.png` });
+const scroller = page.locator("[data-section]").first();
+console.log("sections visible:", await page.locator("[data-section]").count());
+await page.evaluate(() => { const el = document.querySelector("[data-section]")?.parentElement; if (el) el.scrollTop = el.scrollHeight; });
+await page.waitForTimeout(800);
+await page.screenshot({ path: `${S}/ui-4-menu-bottom.png` });
+console.log((await page.locator("text=/photo of the restaurant/i").allInnerTexts()).join(" | ").slice(0, 300));
+await b.close();
