@@ -56,7 +56,9 @@ export function AiChatPanel({ appId, appName, initiallyOpen = false }: { appId: 
     return () => window.removeEventListener("builder-dirty", onDirty);
   }, []);
 
-  useEffect(() => listEnd.current?.scrollIntoView({ block: "end" }), [messages, busy]);
+  useEffect(() => {
+    listEnd.current?.scrollIntoView({ block: "end" });
+  }, [messages, busy]);
 
   async function send(text: string) {
     const message = text.trim();

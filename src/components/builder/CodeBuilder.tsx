@@ -89,7 +89,9 @@ export function CodeBuilder({
       .catch(() => setKey(null));
   }, []);
 
-  useEffect(() => listEnd.current?.scrollIntoView({ block: "end" }), [messages, live]);
+  useEffect(() => {
+    listEnd.current?.scrollIntoView({ block: "end" });
+  }, [messages, live]);
 
   const send = useCallback(
     async (text: string, opts: { hidden?: boolean } = {}) => {
