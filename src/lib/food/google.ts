@@ -161,3 +161,28 @@ export async function fetchPlaceReviews(googlePlaceId: string): Promise<{ rating
     text: r.originalText?.text ?? r.text?.text ?? "",
   }));
 }
+
+/** One Google review as Google returns it (only the fields the reviews screen shows). */
+export interface RawGoogleReview {
+  rating?: number;
+  relativePublishTimeDescription?: string;
+  text?: { text?: string };
+  originalText?: { text?: string };
+  authorAttribution?: { displayName?: string; uri?: string; photoUri?: string };
+}
+
+/**
+ * A place's reviews as Google gives them (up to 5, its "most relevant"), for the reviews screen. Same cost tier as
+ * fetchPlaceReviews (Enterprise + Atmosphere, 1,000 free a month), so placeReviews.ts calls it only when someone taps
+ * the rating, caps it per month, and never stores the result.
+ */
+export async function fetchPlaceReviewList(googlePlaceId: string): Promise<RawGoogleReview[]> {
+  const key = process.env.GOOGLE_MAPS_API_KEY;
+  if (!key) throw new Error("GOOGLE_MAPS_API_KEY is not set");
+  const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(googlePlaceId)}`, {
+    headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": "id,reviews" },
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(`Google Places error (${res.status}): ${body?.error?.message ?? "unknown"}`);
+  return Array.isArray(body.reviews) ? (body.reviews as RawGoogleReview[]) : [];
+}

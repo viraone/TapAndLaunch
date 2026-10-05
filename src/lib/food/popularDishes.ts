@@ -17,14 +17,17 @@ export type DishesResult =
   | { status: "ok"; dishes: PopularDish[] }
   | { status: "unavailable" };
 
-/** Increments this month's counter; false if the app is at the cap. */
-async function consumeDishBudget(appId: string): Promise<boolean> {
+/**
+ * Increments this month's counter for Google's review-text calls (popular dishes and the reviews screen are the same
+ * Google tier, so they share one counter); false if the app is at `ceiling`.
+ */
+export async function consumeDishBudget(appId: string, ceiling: number = MONTHLY_DISH_CALL_BUDGET): Promise<boolean> {
   const admin = createAdminClient();
   const month = new Date().toISOString().slice(0, 7);
   const { data } = await admin.from("food_dish_budget").select("calls").eq("app_id", appId).eq("month", month).maybeSingle();
   const calls = data?.calls ?? 0;
-  if (calls >= MONTHLY_DISH_CALL_BUDGET) {
-    console.warn(`Food dish budget exhausted for app ${appId} (${calls}/${MONTHLY_DISH_CALL_BUDGET})`);
+  if (calls >= ceiling) {
+    console.warn(`Food dish budget exhausted for app ${appId} (${calls}/${ceiling})`);
     return false;
   }
   await admin.from("food_dish_budget").upsert({ app_id: appId, month, calls: calls + 1 });

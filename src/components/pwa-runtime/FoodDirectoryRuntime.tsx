@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Check, ChevronDown, ChevronLeft, Clock, Copy, ExternalLink, Globe, LocateFixed, Loader2, MapPin, Phone, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, Copy, ExternalLink, Globe, LocateFixed, Loader2, MapPin, Phone, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
 import type { CuisineKey, FoodDirectoryBlockConfig } from "@/types/database";
 import type { NearbyPlace } from "@/lib/food/nearby";
 import { CUISINES, CUISINE_BY_KEY } from "@/lib/food/cuisines";
@@ -10,6 +10,7 @@ import { computeHappyHour, daysLabel, windowTimeLabel, type CloseInfo, type Happ
 import { driveMinutes, travelEstimate, walkLabel, walkMinutes, type TravelMode } from "@/lib/food/walk";
 import { hoursRows, mapsPlaceUrl, menuSearchUrl, safeWebsite, telHref } from "@/lib/food/placeSheet";
 import type { PopularDish } from "@/lib/food/dishes";
+import type { PlaceReview } from "@/lib/food/reviews";
 import { filterMenu, type MenuSection } from "@/lib/food/menuItems";
 
 type Position = { latitude: number; longitude: number; label: string; live: boolean };
@@ -486,6 +487,170 @@ function CuisineTile({ emoji, label, active, loading, onClick }: { emoji: string
   );
 }
 
+/** Reviews already fetched this visit, so reopening doesn't ask again (they are never stored on our side). */
+const reviewsCache = new Map<string, PlaceReview[]>();
+
+function Stars({ rating, className = "h-3.5 w-3.5" }: { rating: number; className?: string }) {
+  return (
+    <span className="inline-flex" role="img" aria-label={`${rating} out of 5 stars`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star key={n} className={`${className} ${n <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "fill-transparent text-foreground/25"}`} aria-hidden />
+      ))}
+    </span>
+  );
+}
+
+function ReviewCard({ review }: { review: PlaceReview }) {
+  const [more, setMore] = useState(false);
+  const long = review.text.length > 220;
+  const name = review.authorUrl ? (
+    <a href={review.authorUrl} target="_blank" rel="noreferrer" className="truncate font-semibold underline-offset-2 hover:underline">
+      {review.author}
+    </a>
+  ) : (
+    <span className="truncate font-semibold">{review.author}</span>
+  );
+  return (
+    <li className="rounded-2xl border bg-card p-4">
+      <div className="flex items-center gap-3">
+        {review.photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={review.photoUrl} alt="" referrerPolicy="no-referrer" loading="lazy" className="h-10 w-10 shrink-0 rounded-full bg-muted object-cover" />
+        ) : (
+          <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-orange-500/15 text-sm font-bold text-orange-700 dark:text-orange-300">
+            {review.author.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="flex min-w-0 text-[15px]">{name}</p>
+          <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+            <Stars rating={review.rating} />
+            {review.when && <span>{review.when}</span>}
+          </p>
+        </div>
+      </div>
+      <p className={`mt-3 whitespace-pre-line text-[15px] leading-snug ${long && !more ? "line-clamp-5" : ""}`}>{review.text}</p>
+      {long && (
+        <button type="button" onClick={() => setMore(!more)} className="mt-1.5 text-sm font-semibold text-orange-600 dark:text-orange-400">
+          {more ? "Less" : "More"}
+        </button>
+      )}
+    </li>
+  );
+}
+
+/**
+ * Google's most relevant reviews for one restaurant, fetched live when the viewer taps its rating (/food/reviews). Google only
+ * hands out its top few, so the screen always offers the full list on Google Maps, which is also what shows when the monthly
+ * free allowance is used up or Google doesn't answer.
+ */
+function ReviewsPanel({ place, onBack }: { place: NearbyPlace; onBack: () => void }) {
+  const [reviews, setReviews] = useState<PlaceReview[] | null | undefined>(() => reviewsCache.get(place.id)); // undefined = loading, null = unavailable
+  const googleUrl = mapsPlaceUrl(place.name, place.googlePlaceId);
+
+  useEffect(() => {
+    if (reviewsCache.has(place.id)) return;
+    const ctrl = new AbortController();
+    fetch("/food/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ placeId: place.id }),
+      signal: ctrl.signal,
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: { status?: string; reviews?: PlaceReview[] } | null) => {
+        if (body?.status === "ok" && Array.isArray(body.reviews)) {
+          reviewsCache.set(place.id, body.reviews);
+          setReviews(body.reviews);
+        } else {
+          setReviews(null);
+        }
+      })
+      .catch((e) => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setReviews(null);
+      });
+    return () => ctrl.abort();
+  }, [place.id]);
+
+  const total = place.ratingCount;
+  const seeAll = (
+    <a
+      href={googleUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-4 flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-foreground/10 px-4 text-[15px] font-semibold active:bg-foreground/20"
+    >
+      <MapPin className="h-5 w-5" aria-hidden />
+      {total !== null ? `See all ${total.toLocaleString()} reviews on Google Maps` : "See all reviews on Google Maps"}
+    </a>
+  );
+
+  return (
+    <div className="absolute inset-0 z-10 mx-auto flex w-full max-w-md flex-col bg-background" role="region" aria-label={`${place.name} reviews`}>
+      <div className="flex shrink-0 items-center gap-1 border-b px-2 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
+        <button type="button" onClick={onBack} className="inline-flex h-11 items-center gap-0.5 rounded-full pl-1 pr-3 text-[16px] font-semibold text-orange-600 active:bg-foreground/10 dark:text-orange-400">
+          <ChevronLeft className="h-6 w-6" aria-hidden /> Back
+        </button>
+        <div className="min-w-0 flex-1 text-center">
+          <p className="text-[15px] font-bold leading-tight">Reviews</p>
+          <p className="truncate text-xs text-muted-foreground">{place.name}</p>
+        </div>
+        <span className="w-14" aria-hidden />
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
+        {place.rating !== null && (
+          <div className="flex items-center gap-3">
+            <span className="text-4xl font-bold tabular-nums leading-none">{place.rating.toFixed(1)}</span>
+            <div>
+              <Stars rating={place.rating} className="h-4 w-4" />
+              {total !== null && <p className="mt-1 text-xs text-muted-foreground">{total.toLocaleString()} reviews on Google</p>}
+            </div>
+          </div>
+        )}
+
+        {reviews === undefined && (
+          <ul className="mt-4 space-y-3" aria-hidden>
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="animate-pulse rounded-2xl border p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-foreground/10" />
+                  <div className="h-3.5 w-28 rounded bg-foreground/10" />
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="h-3 w-full rounded bg-foreground/10" />
+                  <div className="h-3 w-4/5 rounded bg-foreground/10" />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {reviews && reviews.length > 0 && (
+          <>
+            <p className="mt-4 text-xs text-muted-foreground">Google&apos;s most relevant reviews for this place.</p>
+            <ul className="mt-2 space-y-3">
+              {reviews.map((r, i) => (
+                <ReviewCard key={`${r.author}-${i}`} review={r} />
+              ))}
+            </ul>
+          </>
+        )}
+
+        {reviews !== undefined && (!reviews || reviews.length === 0) && (
+          <div className="mt-6 rounded-2xl border border-dashed p-5 text-center text-sm text-muted-foreground">
+            {reviews === null ? "Reviews can't be shown here right now." : "Google has no written reviews to show for this place."} Everything is on Google Maps.
+          </div>
+        )}
+
+        {reviews !== undefined && seeAll}
+        {reviews !== undefined && <p className="mt-3 text-center text-[11px] text-muted-foreground">Reviews from Google</p>}
+      </div>
+    </div>
+  );
+}
+
 /** Dishes already fetched this visit, so reopening a sheet doesn't ask again. */
 const dishCache = new Map<string, PopularDish[]>();
 
@@ -588,6 +753,11 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
   useEffect(() => {
     menuOpenRef.current = menuOpen;
   }, [menuOpen]);
+  const [reviewsOpen, setReviewsOpen] = useState(false);
+  const reviewsOpenRef = useRef(false);
+  useEffect(() => {
+    reviewsOpenRef.current = reviewsOpen;
+  }, [reviewsOpen]);
   /** undefined = still loading; [] = nothing to show (no data, cap reached, or an error): the section is left out. */
   const [dishes, setDishes] = useState<PopularDish[] | undefined>(() => dishCache.get(place.id));
   const startY = useRef<number | null>(null);
@@ -610,7 +780,8 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
     closeButton.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (menuOpenRef.current) setMenuOpen(false); // Escape backs out of the menu first
+      if (reviewsOpenRef.current) setReviewsOpen(false); // Escape backs out of reviews or the menu first
+      else if (menuOpenRef.current) setMenuOpen(false);
       else close();
     };
     window.addEventListener("keydown", onKey);
@@ -717,9 +888,18 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
                 {place.rating !== null && (
                   <>
                     <span aria-hidden>·</span>
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                    <span className="font-medium text-foreground/80">{place.rating.toFixed(1)}</span>
-                    {place.ratingCount !== null && <span>({place.ratingCount.toLocaleString()})</span>}
+                    {/* Tapping the rating opens Google's reviews for this place (ReviewsPanel). */}
+                    <button
+                      type="button"
+                      onClick={() => setReviewsOpen(true)}
+                      aria-label={`Read reviews for ${place.name}, rated ${place.rating.toFixed(1)}${place.ratingCount !== null ? ` from ${place.ratingCount.toLocaleString()} reviews` : ""}`}
+                      className="-my-1 inline-flex items-center gap-1 rounded-full bg-foreground/[0.07] py-1 pl-1.5 pr-1 transition active:bg-foreground/15"
+                    >
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      <span className="font-medium text-foreground/80">{place.rating.toFixed(1)}</span>
+                      {place.ratingCount !== null && <span>({place.ratingCount.toLocaleString()})</span>}
+                      <ChevronRight className="h-3.5 w-3.5 opacity-60" aria-hidden />
+                    </button>
                   </>
                 )}
                 {place.priceLevel !== null && place.priceLevel > 0 && (
@@ -863,6 +1043,7 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
       </div>
       {/* Outside the sliding sheet on purpose: a fixed panel inside a transformed element would be clipped to it. */}
       {menuOpen && <MenuPanel place={place} dishes={dishes} onBack={() => setMenuOpen(false)} />}
+      {reviewsOpen && <ReviewsPanel place={place} onBack={() => setReviewsOpen(false)} />}
     </div>
   );
 }
