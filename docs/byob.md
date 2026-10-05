@@ -62,6 +62,24 @@ writes a React app, shown live next to the chat. The block-based chat above stil
   publish. When the preview reports an error after an AI build, the error goes back to the AI to fix (twice at most, never the
   same error twice), and there's an "Ask AI to fix it" button.
 
+**Speed (added 2026-10-05).** Owners were waiting 27 to 76 seconds, so:
+- Builds use the provider's small, quick model (`fastModel`: Claude Haiku, or the `-mini` of the OpenAI model), falling back
+  to the model chosen with the key if the provider doesn't have it. There is no quality switch (removed on purpose).
+- Changes to an existing app come back as `<edit path><find>…</find><with>…</with></edit>` blocks instead of whole files
+  (`applyEdits`). An edit whose `find` isn't found exactly once makes the route ask once for the whole file instead.
+- A brand-new app (`isFreshApp`: still the starter file) is built by `src/lib/code/first-build.ts`: the AI writes a
+  `<plan>` first (a design line, then one line per section), then a one-line reply and `src/App.jsx`. Each section starts in
+  its own AI call the moment its plan line arrives, so they are written while App.jsx is still being written; anything still
+  missing after that (`missingImports`) gets one more round. Sections are asked to be self-contained and ~50 lines. Their
+  output is streamed to the browser as whole `<file>` blocks, held back while the plan step is inside a `<file>` or
+  `<reply>`, and announced with `<writing path="…"/>` lines.
+- The preview fills in while the AI writes: as soon as App.jsx exists, the page shows the real layout with shimmering
+  placeholders for sections not written yet (`buildCodeDocument(…, { stubs: true })`), and each section appears as it lands.
+  Errors from those half-written pages are ignored (every page message carries a `doc` id).
+- Anthropic prompt caching on the long instructions. The mic sends what was said as soon as speaking stops.
+- Measured locally against a stand-in tuned to a real key's speed (0.7s to first word, ~500 characters a second): layout at
+  about 4s, the whole first app rendered at about 7.4s (was 27s). Small edits take a few seconds.
+
 **Security.** AI-written code runs in `<iframe sandbox="allow-scripts allow-forms allow-popups allow-modals">` (no
 `allow-same-origin`), so it has an opaque origin and can't read TapAndLaunch cookies or storage or reach other apps. Published
 apps are served by `/app-code` with the header `Content-Security-Policy: sandbox ...` as well, so even opening that address
@@ -71,4 +89,5 @@ publish a phishing page under our name. Before opening this up widely, serve pub
 
 **Not built yet (stages 2 and 3):** a backend. Apps keep data in React state only (resets on reload). Stage 2 is letting the
 customer paste their own Supabase project URL and key so the AI can build tables, sign-in and real data against it. Stage 3:
-click an element in the preview to edit it, GitHub export, image upload. Also untested against a real Claude or ChatGPT key.
+click an element in the preview to edit it, GitHub export, image upload. First real-key runs (2026-10-05) looked good; the
+parallel first build has only been timed against a stand-in so far.
