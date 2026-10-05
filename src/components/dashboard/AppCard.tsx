@@ -10,6 +10,7 @@ import { ArrowUpRight, Eye, MoreHorizontal, Pencil } from "lucide-react";
 import type { Database } from "@/types/database";
 import { tileGradient, tileInitial } from "@/lib/apps/tile";
 import type { Checklist } from "@/lib/apps/checklist";
+import { DeleteAppDialog, DeleteAppMenuItem } from "@/components/dashboard/DeleteAppDialog";
 
 type AppRow = Database["public"]["Tables"]["apps"]["Row"];
 
@@ -32,7 +33,7 @@ export type DailyViews = number[];
  * One app on the dashboard: a cover in the app's own brand colour with its
  * last-7-days views drawn across it, then name, address and actions.
  */
-export function AppCard({ app, rootDomain, views, checklist }: { app: AppRow; rootDomain: string; views: DailyViews; checklist?: Checklist }) {
+export function AppCard({ app, rootDomain, views, checklist, canDelete = false }: { app: AppRow; rootDomain: string; views: DailyViews; checklist?: Checklist; canDelete?: boolean }) {
   const previewUrl = `//${app.slug}.${rootDomain}`;
   const published = app.status === "published";
   const iconUrl = app.manifest.icon_url;
@@ -156,10 +157,17 @@ export function AppCard({ app, rootDomain, views, checklist }: { app: AppRow; ro
               ))}
               <DropdownMenuSeparator />
               <DropdownMenuItem render={<a href={previewUrl} target="_blank" rel="noreferrer" />}>Visit app</DropdownMenuItem>
+              {canDelete && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DeleteAppMenuItem appId={app.id} />
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
+      {canDelete && <DeleteAppDialog appId={app.id} appName={app.name} />}
     </article>
   );
 }

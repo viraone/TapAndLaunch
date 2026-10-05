@@ -15,7 +15,7 @@ export default async function AdminPage() {
   const [{ data: orgs }, { data: memberships }, { data: apps }, usersResult] = await Promise.all([
     admin.from("organizations").select("id, name, slug, maps_enabled, created_at").order("created_at", { ascending: false }),
     admin.from("memberships").select("organization_id, user_id, role"),
-    admin.from("apps").select("organization_id, status"),
+    admin.from("apps").select("organization_id, status").is("deleted_at", null),
     admin.auth.admin.listUsers({ perPage: 1000 }),
   ]);
   const emailById = new Map((usersResult.data?.users ?? []).map((u) => [u.id, u.email ?? ""]));

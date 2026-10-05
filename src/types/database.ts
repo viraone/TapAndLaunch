@@ -356,6 +356,9 @@ export interface Database {
           slug: string;
           status: AppStatus;
           custom_domain: string | null;
+          /** Set when an admin deletes the app; it is hidden at once and erased 30 days later. */
+          deleted_at: string | null;
+          deleted_by: string | null;
           custom_domain_status: CustomDomainStatus | null;
           custom_domain_verification: DomainVerificationRecord[];
           theme: ThemeConfig;

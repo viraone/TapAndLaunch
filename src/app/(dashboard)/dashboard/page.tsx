@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getRootDomain } from "@/lib/tenant";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 import { getChecklists } from "@/lib/apps/signals";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { restoreDaysLeft } from "@/lib/apps/deletion";
+import { RecentlyDeleted, type DeletedApp } from "@/components/dashboard/RecentlyDeleted";
 
 const DAYS = 7;
 
@@ -23,6 +26,22 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false });
 
   const orgName = memberships.find((m) => m.organization_id === organizationId)?.name;
+  const isAdmin = memberships.find((m) => m.organization_id === organizationId)?.role === "admin";
+
+  // Deleted apps are hidden from the user's own session by the database, so admins see them via the server.
+  let deletedApps: DeletedApp[] = [];
+  if (isAdmin) {
+    const { data } = await createAdminClient()
+      .from("apps")
+      .select("id, name, slug, deleted_at")
+      .eq("organization_id", organizationId)
+      .not("deleted_at", "is", null)
+      .order("deleted_at", { ascending: false });
+    const now = new Date();
+    deletedApps = (data ?? [])
+      .map((a) => ({ id: a.id, name: a.name, slug: a.slug, daysLeft: restoreDaysLeft(a.deleted_at as string, now) }))
+      .filter((a) => a.daysLeft > 0);
+  }
   const rootDomain = getRootDomain();
   const [{ perApp, views, installs }, checklists] = await Promise.all([
     weeklyActivity(supabase, (apps ?? []).map((a) => a.id)),
@@ -84,7 +103,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {apps.map((app) => (
-              <AppCard key={app.id} app={app} rootDomain={rootDomain} views={perApp.get(app.id) ?? new Array(DAYS).fill(0)} checklist={checklists.get(app.id)} />
+              <AppCard key={app.id} app={app} rootDomain={rootDomain} views={perApp.get(app.id) ?? new Array(DAYS).fill(0)} checklist={checklists.get(app.id)} canDelete={isAdmin} />
             ))}
             <Link
               href="/dashboard/apps/new"
@@ -97,6 +116,7 @@ export default async function DashboardPage() {
             </Link>
           </div>
         )}
+      <RecentlyDeleted apps={deletedApps} rootDomain={rootDomain} />
       </div>
     </main>
   );

@@ -78,3 +78,18 @@ npm run dev -- -p 3100             # http://localhost:3100 and http://{slug}.loc
 ```
 
 If pages suddenly return 500 with "Parsing CSS source code failed", see [known-issues.md](known-issues.md).
+
+## Deleting and restoring an app
+Admins delete from the app card's ... menu (type the app's name to confirm). The app is **unpublished and hidden at once**
+(`apps.deleted_at` set, status `draft`, custom domain detached from Vercel and cleared), and the `purge-deleted-apps`
+pg_cron job erases it for good once `deleted_at` is over 30 days old (cascades to its pages, members, orders, submissions...;
+uploaded files in storage are not removed). Until then an admin sees it under **Recently deleted** on the dashboard and can
+**Restore** it (it comes back as a draft; the domain has to be added again).
+
+- The database read policy hides deleted apps from everyone, so every dashboard page 404s for them. Only server code (service
+  role) can see or restore them.
+- The app's slug stays reserved during the 30 days, so a new app can't take it.
+- Restore by hand: `update apps set deleted_at = null, deleted_by = null where id = '...';`
+- Check or change the job: `select * from cron.job;` then `select cron.unschedule('purge-deleted-apps');`
+- Code: `DELETE /api/apps/{id}`, `POST /api/apps/{id}/restore`, `src/lib/apps/deletion.ts`.
+

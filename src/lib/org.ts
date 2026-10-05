@@ -80,6 +80,26 @@ export async function getActiveOrganizationId(
  * are still RLS-scoped — a non-member gets `null`/no rows the same as a
  * genuinely missing app, never a distinguishable "forbidden".
  */
+/** Whether the current user is an `admin` of the organization that owns `appId` (the only role that may delete or restore an app). */
+export async function isAppAdmin(supabase: SupabaseClient<Database>, appId: string): Promise<boolean> {
+  const { data: app } = await supabase.from("apps").select("organization_id").eq("id", appId).maybeSingle();
+  if (!app) return false;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("organization_id", app.organization_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  return membership?.role === "admin";
+}
+
 export async function isAppEditor(supabase: SupabaseClient<Database>, appId: string): Promise<boolean> {
   const { data: app } = await supabase.from("apps").select("organization_id").eq("id", appId).maybeSingle();
   if (!app) return false;
