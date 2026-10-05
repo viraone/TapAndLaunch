@@ -39,7 +39,10 @@ function structuredData() {
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
         description: SITE_DESCRIPTION,
-        offers: { "@type": "Offer", name: LISTED_PRICE.name, price: LISTED_PRICE.dollarsPerMonth.toFixed(2), priceCurrency: "USD" },
+        offers: [
+          { "@type": "Offer", name: `${LISTED_PRICE.name}, billed yearly`, price: LISTED_PRICE.dollarsPerYear.toFixed(2), priceCurrency: "USD" },
+          { "@type": "Offer", name: `${LISTED_PRICE.name}, billed monthly`, price: LISTED_PRICE.dollarsPerMonth.toFixed(2), priceCurrency: "USD" },
+        ],
         publisher: { "@id": `${origin}/#org` },
       },
       {
@@ -192,6 +195,9 @@ export default async function Home() {
                 <p className="mt-1 flex items-baseline gap-1">
                   <span className="text-5xl font-semibold tracking-tight">${LISTED_PRICE.dollarsPerMonth}</span>
                   <span className="text-neutral-400">/month</span>
+                </p>
+                <p className="mt-1 text-sm text-neutral-400">
+                  or ${LISTED_PRICE.dollarsPerYear}/year, save ${LISTED_PRICE.dollarsSavedPerYear}
                 </p>
                 <p className="mt-2 max-w-sm text-sm leading-relaxed text-neutral-300">{LISTED_PRICE.pitch}</p>
               </div>

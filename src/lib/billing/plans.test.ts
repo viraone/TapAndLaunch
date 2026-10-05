@@ -100,8 +100,8 @@ describe("planChip", () => {
 });
 
 describe("formatPlanPrice", () => {
-  it("shows the yearly plan as a monthly price", () => {
-    expect(formatPlanPrice("month")).toBe("$36/month");
-    expect(formatPlanPrice("year")).toBe("$30/month, billed yearly ($360)");
+  it("shows the monthly and yearly prices, and what the yearly plan saves", () => {
+    expect(formatPlanPrice("month")).toBe("$10/month");
+    expect(formatPlanPrice("year")).toBe("$100/year (save $20)");
   });
 });

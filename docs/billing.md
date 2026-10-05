@@ -3,17 +3,19 @@
 _Last checked: 2026-10-05._ Not to be confused with `stripe-payments.md`, which is about shoppers paying our customers.
 
 ## The plan
-One plan, modelled on GoodBarber Standard (constants in `src/lib/billing/plans.ts`):
+One plan (constants in `src/lib/billing/plans.ts`):
 
 | | |
 |---|---|
 | Name | Standard |
-| Price | **$30/month billed yearly ($360)** or **$36/month** month to month |
+| Price | **$10/month**, or **$100/year** (saves $20). Set in `PLAN` in `src/lib/billing/plans.ts` |
 | Trial | 30 days, no card, starts when an organization is created |
 | Included | Everything (no limits are enforced yet) |
 
 Prices are Stripe Prices found by **lookup key** (`tapandlaunch_standard_monthly` / `_yearly`) and created on first use
-(`ensurePrices`), so sandbox and live both work from the same code with no price ids to copy.
+(`ensurePrices`), so sandbox and live both work from the same code with no price ids to copy. If the amount in `PLAN`
+changes, `ensurePrices` creates a new Stripe Price and moves the lookup key to it (Stripe prices can't be edited);
+people already subscribed keep the price they signed up at.
 
 ## Data
 `org_billing` (migration 0025), one row per organization: `status` (`trialing`, `active`, `past_due`, `canceled`,

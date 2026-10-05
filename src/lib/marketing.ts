@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { TRIAL_DAYS } from "@/lib/billing/plans";
+import { PLAN, TRIAL_DAYS } from "@/lib/billing/plans";
 
 /** Search-engine facing text for the home page. Kept in one place so the page, the preview card and the structured data agree. */
 export const SITE_NAME = "TapAndLaunch";
@@ -10,9 +10,11 @@ export const SITE_DESCRIPTION =
 
 /** The price as the public site shows it. The pricing card, the FAQ and the search-engine data all read this. */
 export const LISTED_PRICE = {
-  name: "Standard",
-  dollarsPerMonth: 10,
-  headline: "Standard: $10/month",
+  name: PLAN.name,
+  dollarsPerMonth: PLAN.monthlyCents / 100,
+  dollarsPerYear: PLAN.yearlyCents / 100,
+  dollarsSavedPerYear: (PLAN.monthlyCents * 12 - PLAN.yearlyCents) / 100,
+  headline: `${PLAN.name}: $${PLAN.monthlyCents / 100}/month`,
   pitch: "Everything included, no feature locks. Bring your own AI key.",
 } as const;
 
@@ -39,7 +41,7 @@ export const FAQ: Array<{ q: string; a: string }> = [
   },
   {
     q: "How much does it cost?",
-    a: `Every new account starts with a ${TRIAL_DAYS}-day free trial and no card is needed. After that the ${LISTED_PRICE.name} plan is $${LISTED_PRICE.dollarsPerMonth} a month. ${LISTED_PRICE.pitch} You can cancel any time.`,
+    a: `Every new account starts with a ${TRIAL_DAYS}-day free trial and no card is needed. After that the ${LISTED_PRICE.name} plan is $${LISTED_PRICE.dollarsPerMonth} a month, or $${LISTED_PRICE.dollarsPerYear} a year (you save $${LISTED_PRICE.dollarsSavedPerYear}). ${LISTED_PRICE.pitch} You can cancel any time.`,
   },
 ];
 

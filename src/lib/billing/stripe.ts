@@ -18,23 +18,26 @@ const MIN_TRIAL_CARRY_MS = 49 * 60 * 60 * 1000;
 export async function ensurePrices(): Promise<Record<Interval, string>> {
   const stripe = getStripe();
   const found = await stripe.prices.list({ lookup_keys: [PRICE_LOOKUP_KEYS.month, PRICE_LOOKUP_KEYS.year], active: true, limit: 10 });
+  const wanted: Record<Interval, number> = { month: PLAN.monthlyCents, year: PLAN.yearlyCents };
   const ids: Partial<Record<Interval, string>> = {};
   let productId: string | null = null;
   for (const price of found.data) {
     productId ??= typeof price.product === "string" ? price.product : price.product.id;
-    if (price.lookup_key === PRICE_LOOKUP_KEYS.month) ids.month = price.id;
-    if (price.lookup_key === PRICE_LOOKUP_KEYS.year) ids.year = price.id;
+    const interval: Interval | null = price.lookup_key === PRICE_LOOKUP_KEYS.month ? "month" : price.lookup_key === PRICE_LOOKUP_KEYS.year ? "year" : null;
+    // A price whose amount no longer matches the plan is left alone (people may still be on it) and replaced below.
+    if (interval && price.unit_amount === wanted[interval] && price.currency === PLAN.currency) ids[interval] = price.id;
   }
-  if (!productId && (!ids.month || !ids.year)) {
+  if (!productId) {
     productId = (await stripe.products.create({ name: `TapAndLaunch ${PLAN.name}` })).id;
   }
-  if (!ids.month) {
-    ids.month = (await stripe.prices.create({ product: productId!, currency: PLAN.currency, unit_amount: PLAN.monthlyCents, recurring: { interval: "month" }, lookup_key: PRICE_LOOKUP_KEYS.month })).id;
+  for (const interval of ["month", "year"] as const) {
+    if (ids[interval]) continue;
+    // Stripe prices can't be edited, so a new one takes over the lookup key; existing subscribers keep their old price.
+    ids[interval] = (
+      await stripe.prices.create({ product: productId, currency: PLAN.currency, unit_amount: wanted[interval], recurring: { interval }, lookup_key: PRICE_LOOKUP_KEYS[interval], transfer_lookup_key: true })
+    ).id;
   }
-  if (!ids.year) {
-    ids.year = (await stripe.prices.create({ product: productId!, currency: PLAN.currency, unit_amount: PLAN.yearlyCents, recurring: { interval: "year" }, lookup_key: PRICE_LOOKUP_KEYS.year })).id;
-  }
-  return { month: ids.month, year: ids.year };
+  return { month: ids.month as string, year: ids.year as string };
 }
 
 async function customerFor(admin: Admin, organizationId: string, orgName: string, email: string | undefined): Promise<string> {

@@ -2,12 +2,12 @@ import type { Database } from "@/types/database";
 
 export type BillingRow = Database["public"]["Tables"]["org_billing"]["Row"];
 
-/** The one plan, modelled on GoodBarber's Standard: $30 a month billed yearly, or $36 month to month. */
+/** The one plan: $10 a month, or $100 a year (two months cheaper than paying monthly). */
 export const PLAN = {
   name: "Standard",
   currency: "usd",
-  monthlyCents: 3600,
-  yearlyCents: 36000,
+  monthlyCents: 1000,
+  yearlyCents: 10000,
 } as const;
 
 /** Must match the 30 in migration 0025 (the trigger that starts a new organization's trial). */
@@ -141,5 +141,6 @@ export function planChip(state: BillingState): string {
 
 export function formatPlanPrice(interval: "month" | "year"): string {
   const money = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: PLAN.currency.toUpperCase(), maximumFractionDigits: 0 }).format(cents / 100);
-  return interval === "year" ? `${money(PLAN.yearlyCents / 12)}/month, billed yearly (${money(PLAN.yearlyCents)})` : `${money(PLAN.monthlyCents)}/month`;
+  const saved = money(PLAN.monthlyCents * 12 - PLAN.yearlyCents);
+  return interval === "year" ? `${money(PLAN.yearlyCents)}/year (save ${saved})` : `${money(PLAN.monthlyCents)}/month`;
 }
