@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/marketing";
 import { Doc, List, Section } from "@/components/legal/Doc";
 import { BRAND, LEGAL_UPDATED, SUPPORT_EMAIL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: `Refund Policy · ${BRAND}` };
+export const metadata: Metadata = pageMetadata({
+  title: "Refund and Cancellation Policy | TapAndLaunch",
+  description: "How cancellations and refunds work for TapAndLaunch plans, and how refunds work for payments your own customers make in your apps.",
+  path: "/refunds",
+});
 
 export default function RefundsPage() {
   return (

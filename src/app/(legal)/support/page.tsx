@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/marketing";
 import Link from "next/link";
 import { Doc, List, Section } from "@/components/legal/Doc";
 import { BRAND, SUPPORT_EMAIL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: `Support · ${BRAND}` };
+export const metadata: Metadata = pageMetadata({
+  title: "Support and Contact | TapAndLaunch",
+  description: "Get help with TapAndLaunch: how to reach support, what to include in your message, and how quickly we reply.",
+  path: "/support",
+});
 
 export default function SupportPage() {
   return (

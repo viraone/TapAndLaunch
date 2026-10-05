@@ -1,10 +1,11 @@
+import type { Metadata } from "next";
 import { PLAN, TRIAL_DAYS } from "@/lib/billing/plans";
 
 /** Search-engine facing text for the home page. Kept in one place so the page, the preview card and the structured data agree. */
 export const SITE_NAME = "TapAndLaunch";
 export const SITE_TITLE = "TapAndLaunch: build your own app in minutes, no code";
 export const SITE_DESCRIPTION =
-  "Build an installable app for your restaurant, gym, shop or event without writing code. Share it with a link or QR code, take card payments and send push notifications. Free for 30 days.";
+  "Build an app for your restaurant, gym, shop or event, no code needed. Share it by link or QR code, take payments and send push notifications. Free for 30 days.";
 
 const money = (cents: number) => `$${Math.round(cents / 100)}`;
 
@@ -51,3 +52,18 @@ export const STEPS = [
 ] as const;
 
 export const AUDIENCES = ["Restaurants and cafés", "Gyms and studios", "Venues and events", "Shops", "Clubs and communities"] as const;
+
+/**
+ * Metadata for one of the main site's own pages: its title and description, canonical address, and the share card.
+ * (The home page spells its own out.) `index: false` keeps a page out of search results, for log-in and account pages.
+ */
+export function pageMetadata({ title, description, path, index = true }: { title: string; description: string; path: string; index?: boolean }): Metadata {
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    robots: index ? undefined : { index: false, follow: true },
+    openGraph: { type: "website", url: path, siteName: SITE_NAME, title, description, images: [{ url: "/og", width: 1200, height: 630, alt: "TapAndLaunch: your app, one tap from launch" }] },
+    twitter: { card: "summary_large_image", title, description, images: ["/og"] },
+  };
+}

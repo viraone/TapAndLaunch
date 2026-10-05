@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/marketing";
 import { Doc, List, Section } from "@/components/legal/Doc";
 import { BRAND, LEGAL_NAME, LEGAL_UPDATED, SUPPORT_EMAIL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: `Terms of Service · ${BRAND}` };
+export const metadata: Metadata = pageMetadata({
+  title: "Terms of Service | TapAndLaunch",
+  description: "The terms of service for TapAndLaunch: your account, your apps and content, payments, and what we each agree to when you build with us.",
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return (

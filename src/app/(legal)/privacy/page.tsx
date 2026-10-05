@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/marketing";
 import { Doc, List, Section } from "@/components/legal/Doc";
 import { BRAND, LEGAL_NAME, LEGAL_UPDATED, SUPPORT_EMAIL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: `Privacy Policy · ${BRAND}` };
+export const metadata: Metadata = pageMetadata({
+  title: "Privacy Policy: how TapAndLaunch uses your data",
+  description: "How TapAndLaunch collects, uses and protects information about you and the people who use the apps you build, and the choices you have.",
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (
