@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { resolveAppSlugForHost } from "@/lib/tenant";
+import { extractAppSlug, getRootDomain, hostRoot, resolveAppSlugForHost } from "@/lib/tenant";
 import { updateSession } from "@/lib/supabase/middleware";
 
 /**
@@ -22,9 +22,19 @@ import { updateSession } from "@/lib/supabase/middleware";
  * doing the authorization itself.
  */
 export async function proxy(request: NextRequest) {
+  const host = request.headers.get("host");
+  // The AI-apps domain only ever serves apps: its bare address (and anything that isn't one app) goes to the main site,
+  // so the website, sign-in and dashboard live on one domain only.
+  if (hostRoot(host) === "code" && !extractAppSlug(host)) {
+    const main = getRootDomain();
+    const local = /(^|\.)localhost(:\d+)?$/.test(main);
+    // A plain Response: NextResponse.redirect rewrites a `localhost` target to the incoming host.
+    const target = `${local ? "http" : "https"}://${main}${request.nextUrl.pathname}${request.nextUrl.search}`;
+    return new Response(null, { status: 308, headers: { Location: target } });
+  }
+
   const sessionResponse = await updateSession(request);
 
-  const host = request.headers.get("host");
   // A DB hiccup on the custom-domain lookup degrades to "no tenant" (falls
   // through to the marketing/dashboard routes) rather than a 500 — every
   // ordinary `{slug}.$ROOT_DOMAIN` request never reaches this catch at all

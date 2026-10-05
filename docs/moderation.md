@@ -13,10 +13,17 @@ the main site isn't affected. (The app's code also runs sandboxed with no access
   domains. Unset = everything stays on the main domain, exactly as before.
 - An AI app opened at its old `.tapandlaunch.com` address redirects to the new domain (page: `[[...path]]/page.tsx`;
   its code: `app-code/route.ts`, 308). Block apps are not served from the AI-apps domain (`layout.tsx`, 404).
+- The AI-apps domain's bare address (and anything that isn't one app) redirects to the main site (`proxy.ts`), so the
+  website, sign-in and dashboard only live on one domain. (Locally the dev server shortens a redirect to its own address
+  to a path, so this one can only be checked on the real domains.)
 - Links use the right domain: `appLiveUrl` (takes `kind`), the code builder, dashboard app cards, email/push links.
   Neither domain can be added by a customer as a custom domain (`validateCustomDomain`).
 
-### Turning it on (once the domain is bought)
+### Turned on 2026-10-05
+`tapandlaunch.app` was bought in Vercel (registrar Name.com, Vercel nameservers, renews 2027-10-05), attached to the
+project with `*.tapandlaunch.app`, and `NEXT_PUBLIC_CODE_APPS_DOMAIN=tapandlaunch.app` set for Production.
+
+### Turning it on (how it was done)
 1. Buy the domain in Vercel (Domains > Buy) so it uses Vercel's nameservers; wildcard certificates need that.
 2. Add `tapandlaunch.app` and `*.tapandlaunch.app` to the `tap-and-launch` project (Settings > Domains, or the API).
 3. Set `NEXT_PUBLIC_CODE_APPS_DOMAIN=tapandlaunch.app` (Production) and redeploy (it's a `NEXT_PUBLIC_` value, read at build).
