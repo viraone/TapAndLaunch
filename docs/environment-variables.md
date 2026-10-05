@@ -27,7 +27,7 @@ _Last checked: 2026-10-03 (production list read from the Vercel dashboard)._ Val
 | `RESEND_API_KEY` | App-level email (the Email channel on the Notifications page) | **Yes** | Set (2026-10-05) | Email channel shows "not configured". Sign-in emails still work (they go through Supabase SMTP) |
 | `RESEND_FROM_EMAIL` | The sending address for app-level email, e.g. `TapAndLaunch <noreply@tapandlaunch.com>`; each email shows the app's name in front of this address | No | Set (2026-10-05) | As above |
 | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | Text messages from the Notifications page | Token is **secret** | Not set | SMS channel shows "not configured" |
-| `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID` | Connecting customers' own domains through the Vercel API | Token is **secret** | Not set | Custom domains cannot be added |
+| `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID` | Connecting customers' own domains through the Vercel API | Token is **secret** | Set (2026-10-05, token expires 2027-10-05) | Custom domains cannot be added |
 | `DEV_APP_SLUG`, `DEV_ORIGINS`, `NEXT_DIST_DIR` | Local phone preview only (`npm run dev:phone`) | No | Never | Ignored in production |
 | `VERCEL_GIT_COMMIT_SHA` | Set by Vercel automatically; goes into the service worker so each deploy installs fresh | No | Automatic | Falls back to "dev" |
 

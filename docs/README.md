@@ -10,6 +10,7 @@ accounts, card payments, push notifications, email and the StageTime sign-up.
 | [database.md](database.md) | The Supabase projects, the migrations, access rules, and the auth settings |
 | [deploying.md](deploying.md) | How code gets to production (`/push`), checks, rollbacks |
 | [stripe-payments.md](stripe-payments.md) | Card payments for stores: design, data, webhooks, testing, going live |
+| [custom-domains.md](custom-domains.md) | Customers' own domains: Vercel setup, how "Connected" is decided |
 | [billing.md](billing.md) | What customers pay TapAndLaunch: the plan, trial, Stripe Billing, enforcement switch |
 | [email.md](email.md) | Sending email (Resend), receiving email (support@), and the DNS records behind both |
 | [push-notifications.md](push-notifications.md) | Web push: keys, service worker, click handling, testing |
