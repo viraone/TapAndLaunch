@@ -30,7 +30,7 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
       }
       onUpdated(body.app);
       setDomain("");
-      toast.success(body.app.custom_domain_status === "verified" ? "Domain verified" : "Domain added — add the DNS records below to verify it");
+      toast.success(body.app.custom_domain_status === "verified" ? "Domain verified" : "Domain added. Now add the DNS record below where you bought the domain.");
     } finally {
       setBusy(false);
     }
@@ -46,7 +46,7 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
         return;
       }
       onUpdated(body.app);
-      toast.success(body.app.custom_domain_status === "verified" ? "Domain verified" : "Still pending — DNS can take a while to propagate");
+      toast.success(body.app.custom_domain_status === "verified" ? "Domain verified" : "Not working yet. DNS changes can take from a few minutes to a few hours.");
     } finally {
       setBusy(false);
     }
@@ -97,13 +97,13 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
       <div className="flex items-center gap-2">
         <span className="font-medium">{app.custom_domain}</span>
         <Badge variant={app.custom_domain_status === "verified" ? "default" : "secondary"}>
-          {app.custom_domain_status === "verified" ? "Verified" : app.custom_domain_status === "error" ? "Error" : "Pending"}
+          {app.custom_domain_status === "verified" ? "Connected" : app.custom_domain_status === "error" ? "Error" : "Waiting for DNS"}
         </Badge>
       </div>
 
       {app.custom_domain_status !== "verified" && app.custom_domain_verification.length > 0 && (
         <div className="space-y-1 rounded-md border p-3 text-xs">
-          <p className="font-medium">Add these DNS records at your domain registrar:</p>
+          <p className="font-medium">Add this at the company where you bought your domain (GoDaddy, Namecheap, Google, ...), in its DNS settings:</p>
           <table className="w-full">
             <tbody>
               {app.custom_domain_verification.map((record, i) => (
@@ -115,13 +115,14 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
               ))}
             </tbody>
           </table>
+          <p className="text-muted-foreground">Type = the kind of record, then its name (host), then its value. Once it works, tap Check again; the secure padlock (SSL) turns on by itself.</p>
         </div>
       )}
 
       <div className="flex gap-2">
         {app.custom_domain_status !== "verified" && (
           <Button type="button" variant="outline" size="sm" disabled={busy} onClick={handleVerify}>
-            Check verification
+            Check again
           </Button>
         )}
         <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={handleRemove}>
