@@ -1,0 +1,15 @@
+{
+  "name": "Bueno Pilates",
+  "kind": "pilates",
+  "site": "https://www.bueno-pilates.com/",
+  "tried": [
+    "https://www.bueno-pilates.com/appointments",
+    "https://www.bueno-pilates.com/"
+  ],
+  "scheduleUrl": null,
+  "platform": null,
+  "status": "no_schedule",
+  "classes": [],
+  "dropped": [],
+  "seconds": 49
+}

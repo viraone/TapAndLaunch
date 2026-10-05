@@ -1,0 +1,7 @@
+{
+  "name": "Club Pilates (South Lake Union)",
+  "kind": "pilates",
+  "status": "error",
+  "error": "browser.newContext: Target page, context or browser has been closed",
+  "classes": []
+}

@@ -11,6 +11,7 @@ const [studiosFile, outDir] = process.argv.slice(2);
 const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1].toLowerCase() : null;
 fs.mkdirSync(outDir, { recursive: true });
 const MODEL = "qwen3.8:27b";
+const dbg = (...a) => process.env.FN_DEBUG && console.error("  [debug]", ...a);
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 FitnessNavBot/0.1";
 // "Monday, October 5, 2026" in Seattle time: the model needs it to turn "Today" / "Tomorrow" into dates.
 const TODAY = new Date().toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", year: "numeric", month: "long", day: "numeric" });
@@ -57,6 +58,7 @@ function scheduleLinks(links, base, places = []) {
 }
 
 async function render(browser, url, { settle = 7000 } = {}) {
+  dbg("render", url.slice(0, 90));
   const ctx = await browser.newContext({ userAgent: UA, viewport: { width: 1280, height: 1000 }, locale: "en-US", timezoneId: "America/Los_Angeles" });
   await ctx.route("**/*", (r) => (["image", "font", "media"].includes(r.request().resourceType()) ? r.abort() : r.continue()));
   const page = await ctx.newPage();
@@ -71,27 +73,45 @@ async function render(browser, url, { settle = 7000 } = {}) {
     await page.waitForTimeout(3000);
     // Text of the page AND every frame (schedules usually live in a booking widget's iframe).
     const parts = [];
-    // Widgets that show one day at a time (Mindbody, Wix agenda): click each day tab ("Mon 5" ... "Sat 10") and read every day.
+    // Widgets that show one day at a time (Mindbody, Mariana Tek, Wix agenda): click each day tab and read every day.
+    // Day tabs read "Mon 5", "5 Mon", "Oct 1 THU" or "Today SUN"; a "next week" arrow, when there is one, gets the week after.
     for (const f of page.frames()) {
-      let n = 0;
-      try {
-        n = await f.evaluate(() => {
-          const re = /^(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?\s*\d{1,2}$/i;
-          const els = Array.from(document.querySelectorAll("button, a, [role=button], [role=tab], li, td, div, span"))
-            .filter((e) => re.test((e.innerText || "").replace(/\s+/g, " ").trim()) && e.getBoundingClientRect().width > 0);
-          const leaves = els.filter((e) => !els.some((o) => o !== e && e.contains(o)));
-          leaves.slice(0, 8).forEach((e, i) => e.setAttribute("data-fn-day", String(i)));
-          return Math.min(leaves.length, 8);
-        });
-      } catch {}
-      if (n < 3) continue; // not a day strip
-      for (let i = 0; i < n; i++) {
-        try {
-          await f.locator(`[data-fn-day="${i}"]`).first().click({ timeout: 4000 });
+      const dayTabs = () => f.evaluate(() => {
+        const WD = "(sun|mon|tue|wed|thu|fri|sat)[a-z]*\\.?", MO = "(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?";
+        const res = [new RegExp(`^${WD}\\s*\\d{1,2}$`, "i"), new RegExp(`^\\d{1,2}\\s*${WD}$`, "i"), new RegExp(`^${MO}\\s*\\d{1,2}\\s+${WD}$`, "i"), new RegExp(`^(today|tomorrow)\\s+${WD}$`, "i")];
+        const label = (e) => (e.innerText || "").replace(/\s+/g, " ").trim();
+        const els = Array.from(document.querySelectorAll("button, a, [role=button], [role=tab], li, td, div, span")).filter((e) => e.getBoundingClientRect().width > 0 && res.some((re) => re.test(label(e))));
+        return els.filter((e) => !els.some((o) => o !== e && e.contains(o))).slice(0, 8).map(label);
+      }).catch(() => []);
+      const clickTab = (label) => f.evaluate((want) => {
+        const els = Array.from(document.querySelectorAll("button, a, [role=button], [role=tab], li, td, div, span")).filter((e) => (e.innerText || "").replace(/\s+/g, " ").trim() === want && e.getBoundingClientRect().width > 0);
+        const leaf = els.find((e) => !els.some((o) => o !== e && e.contains(o)));
+        if (!leaf) return false;
+        leaf.click();
+        return true;
+      }, label).catch(() => false);
+      const walk = async () => {
+        const tabs = await dayTabs();
+        if (tabs.length < 3) return false; // not a day strip
+        for (const label of tabs) {
+          if (!(await clickTab(label))) continue;
           await page.waitForTimeout(2500);
-          const t = await f.evaluate(() => document.body?.innerText ?? "");
-          if (t.trim()) parts.push(t);
-        } catch {}
+          const t = await f.evaluate(() => document.body?.innerText ?? "").catch(() => "");
+          if (t.trim()) parts.push(`[Day tab shown: ${label}]\n${t}`);
+        }
+        return true;
+      };
+      if (!(await walk())) continue;
+      for (let week = 0; week < 1; week++) {
+        const clicked = await f.evaluate(() => {
+          const next = Array.from(document.querySelectorAll("button, a, [role=button]")).find((e) => /next[- ]week|next-arrow/i.test((e.getAttribute("aria-label") || "") + " " + (e.getAttribute("data-hook") || "")) && e.getBoundingClientRect().width > 0);
+          if (!next) return false;
+          next.click();
+          return true;
+        }).catch(() => false);
+        if (!clicked) break;
+        await page.waitForTimeout(2500);
+        await walk();
       }
     }
     const frameUrls = [];
@@ -125,8 +145,24 @@ Rules:
 PAGE TEXT:
 ${text}`;
 async function ask(studio, text) {
-  const res = await fetch("http://localhost:11434/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: MODEL, stream: false, think: false, format: SCHEMA, options: { temperature: 0, num_ctx: 24576 }, messages: [{ role: "user", content: prompt(studio, text) }] }), signal: AbortSignal.timeout(15 * 60 * 1000) });
-  try { const j = JSON.parse((await res.json()).message.content); return { is: !!j.is_schedule, classes: j.classes ?? [] }; } catch { return { is: false, classes: [] }; }
+  // Streamed: Node's fetch gives up after 5 minutes of silence before the first byte, which happens when this waits in line
+  // behind another request to the model. With streaming the first bytes arrive straight away.
+  const res = await fetch("http://localhost:11434/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: MODEL, stream: true, think: false, format: SCHEMA, options: { temperature: 0, num_ctx: 24576, num_predict: 6000 }, messages: [{ role: "user", content: prompt(studio, text) }] }), signal: AbortSignal.timeout(6 * 60 * 1000) });
+  if (!res.ok || !res.body) return { is: false, classes: [] };
+  let content = "";
+  let buf = "";
+  const decoder = new TextDecoder();
+  for await (const chunk of res.body) {
+    buf += decoder.decode(chunk, { stream: true });
+    let nl;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (!line) continue;
+      try { content += JSON.parse(line).message?.content ?? ""; } catch {}
+    }
+  }
+  try { const j = JSON.parse(content); return { is: !!j.is_schedule, classes: j.classes ?? [] }; } catch { return { is: false, classes: [] }; }
 }
 
 // ---- checking the answer against the page ----
@@ -168,16 +204,22 @@ async function guessedSchedulePages(pageUrl) {
 }
 
 // ---- one studio ----
+const STUDIO_BUDGET_MS = 8 * 60 * 1000; // one slow or huge site must not hold up the rest
 async function readStudio(browser, s) {
   const t0 = Date.now();
   const r = { name: s.name, kind: s.kind, site: s.site, tried: [], scheduleUrl: null, platform: null, status: "no_schedule", classes: [], dropped: [] };
   if (!(await allowed(s.site))) return { ...r, status: "blocked_robots" };
   const home = await render(browser, s.site, { settle: 3000 });
-  const places = [...new Set([s.neighborhood, ...s.name.split(/\s[-|–]\s|[()]/).slice(1)].filter(Boolean).map((x) => x.toLowerCase().trim()).filter((x) => x.length >= 4))];
+  // "West Queen Anne" should still match a "Queen Anne" link.
+  const hood = s.neighborhood ? [s.neighborhood, s.neighborhood.replace(/^(north|south|east|west|upper|lower)\s+/i, "")] : [];
+  const places = [...new Set([...hood, ...s.name.split(/\s[-|–]\s|[()]/).slice(1)].filter(Boolean).map((x) => x.toLowerCase().trim()).filter((x) => x.length >= 4))];
   const linked = [...home.frameUrls.filter((u) => PLATFORM.test(u)), ...scheduleLinks(home.links, home.finalUrl, places)];
   // s.schedule: a schedule page confirmed by hand for a chain whose own pages don't say which location they show.
   const candidates = s.schedule ? [s.schedule] : [...new Set([...linked.slice(0, 3), ...(await guessedSchedulePages(home.finalUrl)), ...linked.slice(3)])].slice(0, 6);
-  for (const url of [...candidates, home.finalUrl]) {
+  // A studio page that already lists class times (Club Pilates' location page shows the day's classes) is read first.
+  const homeHasTimes = (home.text.match(/\b\d{1,2}(:\d{2})?\s*(am|pm)\b/gi) ?? []).length >= 5;
+  for (const url of homeHasTimes ? [home.finalUrl, ...candidates] : [...candidates, home.finalUrl]) {
+    if (Date.now() - t0 > STUDIO_BUDGET_MS) break;
     if (r.tried.includes(url)) continue;
     r.tried.push(url);
     if (!(await allowed(url))) { r.status = "blocked_robots"; continue; }
@@ -185,7 +227,15 @@ async function readStudio(browser, s) {
     if (!pg || pg.text.length < 200) continue;
     const all = [];
     let anySchedule = false;
-    for (const part of chunk(pg.text).slice(0, 8)) { const a = await ask(s.name, part); if (a.is) anySchedule = true; all.push(...a.classes); }
+    const withTimes = chunk(pg.text).filter((c) => /\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b/i.test(c)).slice(0, 8);
+    for (const part of withTimes) {
+      if (Date.now() - t0 > STUDIO_BUDGET_MS) break;
+      dbg("ask model, chars", part.length);
+      const a = await ask(s.name, part);
+      dbg("model answered", a.classes.length, "classes");
+      if (a.is) anySchedule = true;
+      all.push(...a.classes);
+    }
     if (!anySchedule || all.length === 0) continue;
     const { kept, dropped } = verify(all, pg.text);
     if (kept.length >= 2) {

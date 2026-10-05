@@ -1,6 +1,6 @@
 // Builds the FitnessNav preview page from the reader's results (out/*.json + studios.json).
 import fs from "node:fs";
-import { classTypeOf, isOnlineClass } from "./classify.mjs";
+import { classTypeOf, isNotAGroupClass, isOnlineClass } from "./classify.mjs";
 const dir = process.argv[2] ?? ".";
 const studios = JSON.parse(fs.readFileSync(`${dir}/studios.json`, "utf8"));
 const results = fs.readdirSync(`${dir}/out`).filter((f) => f.endsWith(".json")).map((f) => JSON.parse(fs.readFileSync(`${dir}/out/${f}`, "utf8")));
@@ -11,7 +11,7 @@ for (const s of studios) {
   const r = results.find((x) => x.name === s.name);
   studioRows.push({ name: s.name, kind: s.kind, km: s.km, site: s.site, status: r?.status ?? "not_run", scheduleUrl: r?.scheduleUrl ?? null, count: r?.classes?.length ?? 0, platform: r?.platform ?? null });
   for (const c of r?.classes ?? []) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(c.date ?? "")) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(c.date ?? "") || isNotAGroupClass(c.name, c.start, c.end)) continue;
     classes.push({ date: c.date, start: c.start, end: c.end, name: c.name, instructor: c.instructor, spots: c.spots, type: classTypeOf(c.name, s.kind), online: isOnlineClass(c.name), studio: s.name, km: s.km, book: r.scheduleUrl ?? s.site });
   }
 }

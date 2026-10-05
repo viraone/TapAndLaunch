@@ -1,0 +1,33 @@
+{
+  "name": "Bodycenter Studios",
+  "kind": "pilates",
+  "site": "https://bodycenterstudios.com/",
+  "tried": [
+    "https://bodycenterstudios.com/for-clients/classes/"
+  ],
+  "scheduleUrl": "https://bodycenterstudios.com/for-clients/classes/",
+  "platform": "wellnessliving",
+  "status": "ok",
+  "classes": [
+    {
+      "date": "2026-10-09",
+      "start": "18:00",
+      "end": "20:00",
+      "name": "STOTT PILATES Flowing Sequences on the Vertical Frame",
+      "instructor": "Kristi Quinn",
+      "spots": null,
+      "why": ""
+    },
+    {
+      "date": "2026-10-10",
+      "start": "10:00",
+      "end": "13:30",
+      "name": "Live Stream STOTT PILATES® Programming Protocols for Breast Cancer Rehab",
+      "instructor": "Kristi Quinn",
+      "spots": null,
+      "why": ""
+    }
+  ],
+  "dropped": [],
+  "seconds": 36
+}

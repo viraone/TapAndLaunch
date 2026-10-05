@@ -1,0 +1,18 @@
+{
+  "name": "Studio Evolve",
+  "kind": "pilates",
+  "site": "http://www.studio-evolve.com/",
+  "tried": [
+    "https://www.studio-evolve.com/schedule",
+    "https://www.studio-evolve.com/essentials-classes",
+    "https://messenger.mindbodyonline.com/",
+    "https://www.studio-evolve.com/schedule/",
+    "https://www.studio-evolve.com/"
+  ],
+  "scheduleUrl": null,
+  "platform": null,
+  "status": "no_schedule",
+  "classes": [],
+  "dropped": [],
+  "seconds": 193
+}
