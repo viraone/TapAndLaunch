@@ -373,3 +373,170 @@ export function sameSite(websiteUrl, pageUrl) {
   const y = brandLabel(b);
   return x.length >= 4 && y.length >= 4 && (x.includes(y) || y.includes(x));
 }
+
+// ---- happy hour (read from the same pages as the menu; see run.mjs findHappyHour) ----
+
+export const MAX_HAPPY_WINDOWS = 6;
+/** Longest happy hour that is believable; longer is "all day" or a misread. */
+export const MAX_HAPPY_MINUTES = 9 * 60;
+
+/** True when a page mentions happy hour at all (so a page that doesn't never reaches the model). */
+export function mentionsHappyHour(text) {
+  return /happy[\s\-_]*hours?/i.test(String(text ?? ""));
+}
+
+/**
+ * The parts of a page around each "happy hour" mention (so the model reads ~1.5k characters per mention instead of
+ * a whole page). Overlapping parts are merged; capped at `maxChars` in total.
+ */
+export function happyHourExcerpts(text, { before = 400, after = 1200, maxChars = 6000 } = {}) {
+  const src = String(text ?? "");
+  const spans = [];
+  for (const m of src.matchAll(/happy[\s\-_]*hours?/gi)) {
+    const start = Math.max(0, m.index - before);
+    const end = Math.min(src.length, m.index + m[0].length + after);
+    const last = spans[spans.length - 1];
+    if (last && start <= last.end) last.end = Math.max(last.end, end);
+    else spans.push({ start, end });
+  }
+  let out = "";
+  for (const s of spans) {
+    const piece = src.slice(s.start, s.end).trim();
+    if (out.length + piece.length > maxChars) break;
+    out += (out ? "\n---\n" : "") + piece;
+  }
+  return out;
+}
+
+export function buildHappyHourPrompt(restaurantName, excerpt) {
+  return `You read text from a restaurant web page and extract its HAPPY HOUR schedule.
+Restaurant: ${restaurantName}
+
+Rules:
+- Only happy hours stated in the text (including "reverse happy hour" and "late night happy hour"). Not regular opening hours, brunch, daily specials or events unless the text calls them happy hour.
+- Never guess. If the text doesn't give both the days and the start time, leave that happy hour out. If there is no happy hour, return no windows.
+- days: the days it runs as numbers, Sunday = 0, Monday = 1 ... Saturday = 6. "Daily" or "every day" = [0,1,2,3,4,5,6]. "Weekdays" = [1,2,3,4,5]. "Mon-Thu" = [1,2,3,4].
+- start and end: 24-hour "HH:MM" local time ("4pm" = "16:00", "10pm" = "22:00"). If it runs "until close" or "till close", end is null. If the end time isn't stated and it isn't until close, leave that happy hour out.
+- deal: the offer in the text's own words, at most 100 characters (for example "$5 drafts and $7 wells"), or null.
+- evidence: copy the exact sentence or line from the text that states the days and times, word for word.
+- One entry per distinct schedule (different days or times are separate entries).
+
+TEXT:
+${excerpt}`;
+}
+
+export const HAPPY_HOUR_SCHEMA = {
+  type: "object",
+  properties: {
+    windows: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          days: { type: "array", items: { type: "integer" } },
+          start: { type: "string" },
+          end: { type: ["string", "null"] },
+          deal: { type: ["string", "null"] },
+          evidence: { type: "string" },
+        },
+        required: ["days", "start", "end", "deal", "evidence"],
+      },
+    },
+  },
+  required: ["windows"],
+};
+
+/** "16:00" → 960; anything else → null. */
+export function hhmmToMinutes(v) {
+  const m = typeof v === "string" ? /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(v.trim()) : null;
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+const pad2 = (n) => String(n).padStart(2, "0");
+export const minutesToHhmm = (m) => `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
+
+/**
+ * Whether a clock time (minutes after midnight) is written somewhere in `evidence`: "4", "4pm", "4:00 p.m.", "16:00".
+ * A number after "$" or before "%" is a price or a discount, not a time. With am/pm the hour must match exactly;
+ * a bare "4" (as in "4-6pm") matches 4 AM or 4 PM.
+ */
+export function timeAppearsIn(minutes, evidence) {
+  const hour24 = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  for (const m of String(evidence).matchAll(/(?<![$\d.:])(\d{1,2})(?::(\d{2}))?(?![\d%])\s*(?:([ap])\.?\s*m\b\.?)?/gi)) {
+    const h = Number(m[1]);
+    const min = m[2] ? Number(m[2]) : 0;
+    if (min !== minute || h > 24) continue;
+    const marker = m[3]?.toLowerCase();
+    if (marker) {
+      if (h < 1 || h > 12) continue;
+      const exact = marker === "p" ? (h % 12) + 12 : h % 12;
+      if (exact === hour24) return true;
+    } else if (h === hour24 || (h <= 12 && h % 12 === hour24 % 12)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const DAY_WORDS = /\b(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)[a-z]*\b|weekday|weekend|daily|every ?day|all week|7 days|seven days/i;
+
+/**
+ * The model's happy hours, kept only where the page backs them up. A window survives when:
+ *  - its evidence sentence really appears in the page text,
+ *  - its start time (and end time, unless "until close") is written in that sentence,
+ *  - its days are plausible (the sentence names days, or the window is every day),
+ *  - the length is believable.
+ * The deal wording is kept only if it appears on the page. Returns { windows } (possibly empty) in the stored shape.
+ */
+export function sanitizeHappyHour(windows, pageText) {
+  const pageNorm = normalizeForMatch(pageText);
+  const out = [];
+  const seen = new Set();
+  for (const w of Array.isArray(windows) ? windows : []) {
+    if (!w || typeof w !== "object") continue;
+    const days = [...new Set((Array.isArray(w.days) ? w.days : []).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort((a, b) => a - b);
+    const start = hhmmToMinutes(w.start);
+    const endGiven = w.end !== null && w.end !== undefined;
+    const end = endGiven ? hhmmToMinutes(w.end) : null;
+    if (days.length === 0 || start === null || (endGiven && end === null) || end === start) continue;
+    const evidence = String(w.evidence ?? "").trim();
+    const evNorm = normalizeForMatch(evidence);
+    if (evNorm.length < 8 || !pageNorm.includes(evNorm)) continue;
+    if (!timeAppearsIn(start, evidence)) continue;
+    if (end !== null && !timeAppearsIn(end, evidence)) continue;
+    if (!DAY_WORDS.test(evidence) && days.length !== 7) continue;
+    if (end !== null) {
+      const length = end > start ? end - start : end - start + 1440;
+      if (length > MAX_HAPPY_MINUTES) continue;
+    }
+    const dealRaw = w.deal === null || w.deal === undefined ? "" : String(w.deal).replace(/\s+/g, " ").trim();
+    const deal = dealRaw && dealRaw.length <= 140 && pageNorm.includes(normalizeForMatch(dealRaw)) ? dealRaw : null;
+    const key = `${days.join("")}|${start}|${end}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ days, start: minutesToHhmm(start), end: end === null ? null : minutesToHhmm(end), deal });
+    if (out.length >= MAX_HAPPY_WINDOWS) break;
+  }
+  return { windows: out };
+}
+
+/** The link on a page most likely to lead to its happy hour / specials, as an absolute URL, or null. */
+export function findHappyHourLink(html, baseUrl) {
+  let best = null;
+  for (const m of html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)) {
+    const href = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(m[1]);
+    if (!href) continue;
+    const raw = (href[1] ?? href[2] ?? "").trim();
+    if (!raw || raw.startsWith("#") || /^(javascript|mailto|tel):/i.test(raw)) continue;
+    const url = webUrl(raw, baseUrl);
+    if (!url || /\.(pdf|jpe?g|png|webp|gif)$/i.test(url.pathname)) continue;
+    const text = stripTags(m[2]);
+    let score = 0;
+    if (/happy[\s\-_]*hour/i.test(text)) score = 3;
+    else if (/happy[\s\-_]*hour/i.test(url.pathname)) score = 2;
+    else if (text.length <= 30 && /^(daily |weekly )?(specials?|deals?|promotions?)$/i.test(text)) score = 1;
+    if (score && (!best || score > best.score)) best = { url: url.toString(), score };
+  }
+  return best?.url ?? null;
+}

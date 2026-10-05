@@ -53,6 +53,16 @@ and reads that copy into dishes the same way as page text, still throwing away a
 Menus read from pictures are marked `fromPhoto` and the app says so ("a price can be misread from a photo"). Slower (about
 2 to 3 minutes a restaurant). `--no-photos` turns it off. Check a few against the real menu before trusting a new site.
 
+## Happy hour
+The same pass also reads **happy hours** for the app's "Happy Hour" button. It reuses the pages already opened for the menu (plus the
+site's own "Happy Hour" link if it has one). A page that doesn't say "happy hour" never reaches the model. Otherwise the model pulls out
+days, start/end times, the deal wording and the exact sentence it read them from, and **a happy hour is kept only if that sentence is really on the page,
+its times are written in that sentence, its days make sense, and the length is believable**. Deal wording not found on the page is dropped.
+Saved to `food_places.happy_hour` (migration 0026, apply it to the live database **before** running `--write` or re-running `install-nightly.sh`,
+or the job's restaurant query fails). Status per restaurant: `ok`, `none`, `unclear` (mentioned but nothing passed the checks) or `error`;
+a failure never replaces a good saved happy hour. Dry runs print `happy hour: …` per restaurant and put it in `out/<id>.json`.
+Check a few against the real page before trusting a new site: "not during special events" style small print is not captured.
+
 ## What it can't read
 Menus that are only pictures the model can't read well (very stylised, tiny or tall images), and sites whose `robots.txt` says no.
 Prices are only as current as the restaurant's page.

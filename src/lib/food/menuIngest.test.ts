@@ -218,3 +218,84 @@ describe("sameSite", () => {
     expect(sameSite("", "https://x.example.com")).toBe(false);
   });
 });
+
+// ---- happy hour ----
+import {
+  buildHappyHourPrompt,
+  findHappyHourLink,
+  happyHourExcerpts,
+  mentionsHappyHour,
+  sanitizeHappyHour,
+  timeAppearsIn,
+} from "../../../tools/menu-ingest/lib.mjs";
+
+describe("timeAppearsIn", () => {
+  it("finds times written the usual ways", () => {
+    expect(timeAppearsIn(16 * 60, "Happy hour Mon-Fri 4-6pm")).toBe(true);
+    expect(timeAppearsIn(18 * 60, "Happy hour Mon-Fri 4-6pm")).toBe(true);
+    expect(timeAppearsIn(16 * 60 + 30, "from 4:30 p.m. to 6:30 p.m.")).toBe(true);
+    expect(timeAppearsIn(22 * 60, "Reverse happy hour 22:00 till close")).toBe(true);
+  });
+  it("does not take prices, discounts or the wrong am/pm for a time", () => {
+    expect(timeAppearsIn(17 * 60, "$5 drafts 4-6pm")).toBe(false);
+    expect(timeAppearsIn(16 * 60, "50% off 4pm")).toBe(true); // the 4pm is real
+    expect(timeAppearsIn(10 * 60, "Mon-Fri 10% off")).toBe(false);
+    expect(timeAppearsIn(4 * 60, "Mon-Fri 4pm-6pm")).toBe(false); // 4 AM is not 4pm
+    expect(timeAppearsIn(16 * 60, "Mon-Fri 5-7pm")).toBe(false);
+  });
+});
+
+describe("sanitizeHappyHour", () => {
+  const page = "Welcome to the Bait Shop.\nHappy Hour Monday through Friday 4-6pm. $5 drafts and $7 wells.\nKitchen open until 10.";
+  const good = { days: [1, 2, 3, 4, 5], start: "16:00", end: "18:00", deal: "$5 drafts and $7 wells", evidence: "Happy Hour Monday through Friday 4-6pm." };
+
+  it("keeps a window the page backs up", () => {
+    expect(sanitizeHappyHour([good], page)).toEqual({ windows: [{ days: [1, 2, 3, 4, 5], start: "16:00", end: "18:00", deal: "$5 drafts and $7 wells" }] });
+  });
+  it("drops a window whose evidence isn't on the page, or whose times aren't in the evidence", () => {
+    expect(sanitizeHappyHour([{ ...good, evidence: "Happy hour every weekday 4-6pm" }], page).windows).toEqual([]);
+    expect(sanitizeHappyHour([{ ...good, start: "15:00" }], page).windows).toEqual([]);
+    expect(sanitizeHappyHour([{ ...good, end: "20:00" }], page).windows).toEqual([]);
+  });
+  it("keeps the window but drops deal wording that isn't on the page", () => {
+    const r = sanitizeHappyHour([{ ...good, deal: "Half-price oysters" }], page);
+    expect(r.windows[0].deal).toBeNull();
+  });
+  it("accepts 'until close' and requires day words unless it's every day", () => {
+    const p = "Happy hour Fri & Sat from 9pm till close.";
+    const w = { days: [5, 6], start: "21:00", end: null, deal: null, evidence: "Happy hour Fri & Sat from 9pm till close." };
+    expect(sanitizeHappyHour([w], p).windows).toEqual([{ days: [5, 6], start: "21:00", end: null, deal: null }]);
+    const p2 = "Happy hour 4-6pm.";
+    const noDays = { days: [1, 2], start: "16:00", end: "18:00", deal: null, evidence: "Happy hour 4-6pm." };
+    expect(sanitizeHappyHour([noDays], p2).windows).toEqual([]);
+    expect(sanitizeHappyHour([{ ...noDays, days: [0, 1, 2, 3, 4, 5, 6] }], p2).windows).toHaveLength(1);
+  });
+  it("drops malformed, too-long and duplicate windows", () => {
+    expect(sanitizeHappyHour([{ ...good, days: [] }, { ...good, start: "4pm" }, { ...good, end: "16:00" }], page).windows).toEqual([]);
+    const allDay = "Happy hour daily 7am-11pm";
+    expect(sanitizeHappyHour([{ days: [0, 1, 2, 3, 4, 5, 6], start: "07:00", end: "23:00", deal: null, evidence: "Happy hour daily 7am-11pm" }], allDay).windows).toEqual([]);
+    expect(sanitizeHappyHour([good, { ...good }], page).windows).toHaveLength(1);
+    expect(sanitizeHappyHour(null, page)).toEqual({ windows: [] });
+  });
+});
+
+describe("happy hour page reading", () => {
+  it("spots mentions and cuts excerpts around them", () => {
+    expect(mentionsHappyHour("Join us for Happy-Hour!")).toBe(true);
+    expect(mentionsHappyHour("Great hours, happy customers")).toBe(false);
+    const text = `${"x ".repeat(2000)}HAPPY HOUR Mon-Fri 4-6pm${" y".repeat(2000)}`;
+    const ex = happyHourExcerpts(text);
+    expect(ex).toContain("HAPPY HOUR Mon-Fri 4-6pm");
+    expect(ex.length).toBeLessThan(2000);
+  });
+  it("finds a happy hour link", () => {
+    const html = '<a href="/about">About</a><a href="/specials">Specials</a><a href="/happy-hour">Happy Hour</a>';
+    expect(findHappyHourLink(html, "https://bar.example/")).toBe("https://bar.example/happy-hour");
+    expect(findHappyHourLink('<a href="/menu">Menu</a>', "https://bar.example/")).toBeNull();
+  });
+  it("puts the restaurant and text in the prompt", () => {
+    const p = buildHappyHourPrompt("Bait Shop", "Happy hour 4-6pm");
+    expect(p).toContain("Bait Shop");
+    expect(p).toContain("Happy hour 4-6pm");
+  });
+});

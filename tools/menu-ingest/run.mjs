@@ -14,7 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import robotsParser from "robots-parser";
-import { buildPrompt, chunkText, findMenuLink, findPdfMenuLinks, joinTranscripts, MENU_SCHEMA, mergePhotoReadings, mergeSections, pdfItemsToLines, sameSite, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, tileGrid, webUrl } from "./lib.mjs";
+import { buildHappyHourPrompt, buildPrompt, chunkText, findHappyHourLink, findMenuLink, findPdfMenuLinks, HAPPY_HOUR_SCHEMA, happyHourExcerpts, joinTranscripts, MENU_SCHEMA, mentionsHappyHour, mergePhotoReadings, mergeSections, pdfItemsToLines, sameSite, sanitizeHappyHour, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, tileGrid, webUrl } from "./lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -82,7 +82,7 @@ async function rest(path, { method = "GET", body } = {}) {
 async function candidates() {
   let rows;
   if (HAVE_DB) {
-    const cols = ["id", "name", "website", "address", "rating_count", "menu_items_status", "menu_items_at"];
+    const cols = ["id", "name", "website", "address", "rating_count", "menu_items_status", "menu_items_at", "happy_hour_status", "happy_hour_at"];
     let q = `food_places?select=${cols.join(",")}&website=not.is.null&order=rating_count.desc.nullslast&limit=${opts.ids || opts.names ? 1000 : Math.max(opts.limit * 4, 50)}`;
     if (opts.ids) q += `&id=in.(${opts.ids.join(",")})`;
     // --near: only restaurants within about 2.5 miles of --lat/--lng (a box, not a circle).
@@ -104,7 +104,8 @@ async function candidates() {
   if (opts.names) rows = rows.filter((r) => opts.names.some((n) => r.name.toLowerCase().includes(n)));
   if (opts.write && !opts.force) {
     const cutoff = Date.now() - opts.refreshDays * 86400000;
-    rows = rows.filter((r) => !r.menu_items_at || new Date(r.menu_items_at).getTime() < cutoff);
+    const stale = (at) => !at || new Date(at).getTime() < cutoff;
+    rows = rows.filter((r) => stale(r.menu_items_at) || stale(r.happy_hour_at));
   }
   // One row per website (the same restaurant can be stored once per app).
   const seen = new Set();
@@ -329,7 +330,7 @@ async function extractMenu(name, text) {
 }
 
 // ---------- one restaurant ----------
-async function processPlace(browser, place) {
+async function processMenu(browser, place, seen) {
   const started = Date.now();
   const result = { id: place.id, name: place.name, website: place.website, sourceUrl: null, status: "error", itemCount: 0, sections: [], model: opts.model };
   try {
@@ -339,6 +340,7 @@ async function processPlace(browser, place) {
 
     const home = await render(browser, site.toString());
     if (/pdf/i.test(home.contentType)) return { ...result, status: "pdf" };
+    seen.push({ url: home.finalUrl, html: home.html, text: home.text });
 
     const pdfLinks = findPdfMenuLinks(home.html, home.finalUrl);
     const targets = [];
@@ -360,6 +362,7 @@ async function processPlace(browser, place) {
         }
         pageText = menuPage.text;
         sourceUrl = menuPage.finalUrl;
+        seen.push({ url: menuPage.finalUrl, html: menuPage.html, text: menuPage.text });
         triedPages.push(menuPage.finalUrl);
         for (const u of findPdfMenuLinks(menuPage.html, menuPage.finalUrl)) if (!pdfLinks.includes(u)) pdfLinks.push(u);
       }
@@ -427,6 +430,64 @@ async function processPlace(browser, place) {
   }
 }
 
+// ---------- happy hour ----------
+async function askHappyHour(name, excerpt) {
+  const body = {
+    model: opts.model,
+    stream: false,
+    think: false,
+    format: HAPPY_HOUR_SCHEMA,
+    options: { temperature: 0, num_ctx: 16384 },
+    messages: [{ role: "user", content: buildHappyHourPrompt(name, excerpt) }],
+  };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch(`${opts.ollama}/api/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(10 * 60 * 1000) });
+    if (!res.ok) throw new Error(`Model error ${res.status}`);
+    try {
+      const parsed = JSON.parse((await res.json()).message.content);
+      return Array.isArray(parsed.windows) ? parsed.windows : [];
+    } catch {
+      // malformed JSON: ask once more
+    }
+  }
+  return [];
+}
+
+/**
+ * Happy hour from the pages already opened for the menu (plus the site's own "Happy Hour" link when it has one).
+ * Pages that don't say "happy hour" never reach the model. Status: ok | none (pages read, no happy hour) |
+ * unclear (it is mentioned but no schedule survived the checks) | error. null = nothing could be read, leave it alone.
+ */
+async function findHappyHour(browser, place, seen) {
+  const readable = seen.filter((p) => p.text.length >= 300);
+  if (readable.length === 0) return null;
+  try {
+    const home = seen[0];
+    const link = findHappyHourLink(home.html, home.url);
+    if (link && !seen.some((p) => p.url === link) && sameSite(place.website, link) && (await allowed(link))) {
+      const page = await render(browser, link);
+      if (sameSite(place.website, page.finalUrl) && !/pdf/i.test(page.contentType) && page.text.length >= 100) seen.push({ url: page.finalUrl, html: page.html, text: page.text });
+    }
+    let mentioned = false;
+    for (const page of seen) {
+      if (!mentionsHappyHour(page.text)) continue;
+      mentioned = true;
+      const windows = sanitizeHappyHour(await askHappyHour(place.name, happyHourExcerpts(page.text)), page.text).windows;
+      if (windows.length > 0) return { status: "ok", windows, sourceUrl: page.url };
+    }
+    return { status: mentioned ? "unclear" : "none", windows: [], sourceUrl: null };
+  } catch (e) {
+    return { status: "error", windows: [], sourceUrl: null, error: String(e.message ?? e).slice(0, 160) };
+  }
+}
+
+async function processPlace(browser, place) {
+  const seen = [];
+  const result = await processMenu(browser, place, seen);
+  const happy = await findHappyHour(browser, place, seen);
+  return happy ? { ...result, happy } : result;
+}
+
 async function save(place, r) {
   if (r.status === "ok") {
     await rest(`food_places?id=eq.${place.id}`, {
@@ -436,6 +497,23 @@ async function save(place, r) {
   } else if (place.menu_items_status !== "ok") {
     // Remember the miss so we don't retry for a while; never replace a good saved menu with a failure.
     await rest(`food_places?id=eq.${place.id}`, { method: "PATCH", body: { menu_items_at: new Date().toISOString(), menu_items_status: r.status } });
+  }
+  await saveHappyHour(place, r.happy);
+}
+
+async function saveHappyHour(place, h) {
+  if (!h) return; // nothing could be read: leave whatever is saved
+  const now = new Date().toISOString();
+  if (h.status === "ok") {
+    await rest(`food_places?id=eq.${place.id}`, { method: "PATCH", body: { happy_hour: { windows: h.windows }, happy_hour_source_url: h.sourceUrl, happy_hour_at: now, happy_hour_status: "ok" } });
+  } else if (h.status === "none") {
+    // The pages were read and don't mention it: the restaurant dropped it (or never had one).
+    await rest(`food_places?id=eq.${place.id}`, { method: "PATCH", body: { happy_hour: null, happy_hour_source_url: null, happy_hour_at: now, happy_hour_status: "none" } });
+  } else if (place.happy_hour_status !== "ok") {
+    await rest(`food_places?id=eq.${place.id}`, { method: "PATCH", body: { happy_hour_at: now, happy_hour_status: h.status } });
+  } else {
+    // Never replace a good saved happy hour with a failure to read; just try again at the next refresh.
+    await rest(`food_places?id=eq.${place.id}`, { method: "PATCH", body: { happy_hour_at: now } });
   }
 }
 
@@ -468,7 +546,7 @@ async function main() {
       tally[r.status] = (tally[r.status] ?? 0) + 1;
       writeFileSync(join(here, "out", `${place.id}.json`), JSON.stringify(r, null, 2));
       if (opts.write) await save(place, r).catch((e) => console.log(`   (save failed: ${e.message})`));
-      console.log(`[${i + 1}/${places.length}] ${place.name.slice(0, 34).padEnd(34)} ${r.status.padEnd(12)} ${r.status === "ok" ? `${r.itemCount} items in ${r.sections.length} sections` : r.error ?? ""} ${r.seconds ? `(${r.seconds}s)` : ""}`);
+      console.log(`[${i + 1}/${places.length}] ${place.name.slice(0, 34).padEnd(34)} ${r.status.padEnd(12)} ${r.status === "ok" ? `${r.itemCount} items in ${r.sections.length} sections` : r.error ?? ""} ${r.seconds ? `(${r.seconds}s)` : ""} | happy hour: ${r.happy ? (r.happy.status === "ok" ? `${r.happy.windows.length} found` : r.happy.status) : "-"}`);
       await new Promise((res) => setTimeout(res, opts.delayMs));
     }
   } finally {

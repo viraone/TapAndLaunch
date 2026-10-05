@@ -4,7 +4,8 @@ import { calculateHaversineMiles } from "@/lib/listings/travel";
 import { fetchGooglePlaces, isGoogleConfigured, type GooglePlace } from "@/lib/food/google";
 import { CUISINE_BY_KEY, cuisineLabelFor, cuisineOf } from "@/lib/food/cuisines";
 import { isCellFresh } from "@/lib/food/cellFreshness";
-import type { CuisineKey, Database, OpeningPeriod } from "@/types/database";
+import { parseHappyHour } from "@/lib/food/happyHour";
+import type { CuisineKey, Database, HappyHourWindow, OpeningPeriod } from "@/types/database";
 
 type PlaceRow = Database["public"]["Tables"]["food_places"]["Row"];
 
@@ -30,6 +31,8 @@ export interface NearbyPlace {
   phoneNational: string | null;
   phoneInternational: string | null;
   website: string | null;
+  /** Happy hours read from the restaurant's own website (tools/menu-ingest); empty when none were found. */
+  happyHour: HappyHourWindow[];
   /** Most recent crowd-sourced wait report within WAIT_REPORT_TTL_MS. */
   wait: { minutes: number; reportedAt: string } | null;
 }
@@ -210,6 +213,7 @@ function toNearby(row: PlaceRow, distanceMiles: number, wait: NearbyPlace["wait"
     phoneNational: row.phone_national,
     phoneInternational: row.phone_international,
     website: row.website,
+    happyHour: parseHappyHour(row.happy_hour),
     wait,
   };
 }

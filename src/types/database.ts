@@ -207,6 +207,15 @@ export interface OpeningPeriod {
 /** LiveBites. Restaurants around the *viewer's* live position with
  * open / closing-soon / closed computed live from Google's hours;
  * `fallback_*` is only used when the browser can't provide a position. */
+/** One happy hour as the restaurant's website states it: which days (0 = Sunday), local start/end as "HH:MM",
+ * and the deal in the restaurant's own words. `end` null = "until close". Read by tools/menu-ingest, shown by lib/food/happyHour.ts. */
+export interface HappyHourWindow {
+  days: number[];
+  start: string;
+  end: string | null;
+  deal: string | null;
+}
+
 export interface FoodDirectoryBlockConfig {
   title?: string;
   subtitle?: string;
@@ -668,6 +677,10 @@ export interface Database {
           menu_items_at: string | null;
           menu_items_status: string | null;
           menu_items_model: string | null;
+          happy_hour: { windows: HappyHourWindow[] } | null;
+          happy_hour_source_url: string | null;
+          happy_hour_at: string | null;
+          happy_hour_status: string | null;
           google_synced_at: string;
           created_at: string;
           updated_at: string;

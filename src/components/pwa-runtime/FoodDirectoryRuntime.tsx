@@ -6,6 +6,7 @@ import type { CuisineKey, FoodDirectoryBlockConfig } from "@/types/database";
 import type { NearbyPlace } from "@/lib/food/nearby";
 import { CUISINES, CUISINE_BY_KEY } from "@/lib/food/cuisines";
 import { computeOpenStatus, type OpenStatus } from "@/lib/food/hours";
+import { computeHappyHour, daysLabel, windowTimeLabel, type CloseInfo, type HappyHourStatus } from "@/lib/food/happyHour";
 import { driveMinutes, travelEstimate, walkLabel, walkMinutes, type TravelMode } from "@/lib/food/walk";
 import { hoursRows, mapsPlaceUrl, menuSearchUrl, safeWebsite, telHref } from "@/lib/food/placeSheet";
 import type { PopularDish } from "@/lib/food/dishes";
@@ -13,6 +14,18 @@ import { filterMenu, type MenuSection } from "@/lib/food/menuItems";
 
 type Position = { latitude: number; longitude: number; label: string; live: boolean };
 type Filter = "all" | CuisineKey;
+type Sort = "open" | "distance" | "happy";
+
+/** What a place's own hours say about closing, for happy hours that run "until close"; null when it isn't open now. */
+function closeInfoOf(status: OpenStatus): CloseInfo {
+  return status.state === "open" || status.state === "closing_soon" ? { closesInMinutes: status.closesInMinutes, closesAtLabel: status.closesAtLabel } : null;
+}
+
+/** "Ends in 12 min" under an hour, else "Until 6 PM". */
+function happyEndsLabel(h: Extract<HappyHourStatus, { state: "active" }>): string {
+  if (h.endsInMinutes !== null && h.endsInMinutes <= 60) return `ends in ${h.endsInMinutes} min`;
+  return h.endsAtLabel ? `until ${h.endsAtLabel}` : "now";
+}
 
 /** Cuisine tiles shown before "More": All + this many, then the More tile (two rows of four). */
 const COLLAPSED_TILES = 6;
@@ -61,7 +74,7 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
   /** Cuisines whose own Google search is confirmed for the current position. */
   const [fetchedCuisines, setFetchedCuisines] = useState<Set<CuisineKey>>(() => new Set());
   const [loadingCuisine, setLoadingCuisine] = useState<CuisineKey | null>(null);
-  const [sort, setSort] = useState<"distance" | "open">(config.default_sort ?? "open");
+  const [sort, setSort] = useState<Sort>(config.default_sort ?? "open");
   const [now, setNow] = useState(() => new Date());
 
   function applyFallback() {
@@ -181,10 +194,21 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
     const withStatus = places
       .filter((p) => filter === "all" || p.cuisine === filter)
       .filter((p) => !q || p.name.toLowerCase().includes(q) || p.cuisineLabel.toLowerCase().includes(q))
-      .map((p) => ({ place: p, status: computeOpenStatus(p.openingPeriods, p.utcOffsetMinutes, now) }));
+      .map((p) => {
+        const status = computeOpenStatus(p.openingPeriods, p.utcOffsetMinutes, now);
+        return { place: p, status, happy: computeHappyHour(p.happyHour, p.utcOffsetMinutes, now, closeInfoOf(status)) };
+      })
+      // Happy Hour shows only places with one running now or starting later today.
+      .filter((x) => sort !== "happy" || x.happy.state !== "none");
     const rank = (s: OpenStatus) => (s.state === "open" ? 0 : s.state === "closing_soon" ? 1 : s.state === "unknown" ? 2 : 3);
     withStatus.sort((a, b) => {
-      if (sort === "open") {
+      if (sort === "happy") {
+        // Running now first (nearest first), then the ones starting later today, soonest first.
+        if (a.happy.state !== b.happy.state) return a.happy.state === "active" ? -1 : 1;
+        if (a.happy.state === "later" && b.happy.state === "later" && a.happy.startsInMinutes !== b.happy.startsInMinutes) {
+          return a.happy.startsInMinutes - b.happy.startsInMinutes;
+        }
+      } else if (sort === "open") {
         const d = rank(a.status) - rank(b.status);
         if (d !== 0) return d;
       }
@@ -310,7 +334,8 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search restaurants"
+              placeholder="Search"
+              aria-label="Search restaurants"
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
             {query && (
@@ -320,14 +345,14 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
             )}
           </label>
           <div className="flex shrink-0 rounded-full bg-muted p-0.5 text-xs font-medium">
-            {(["open", "distance"] as const).map((s) => (
+            {(["open", "distance", "happy"] as const).map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setSort(s)}
-                className={`rounded-full px-3 py-1.5 transition ${sort === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+                className={`whitespace-nowrap rounded-full px-2.5 py-1.5 transition min-[380px]:px-3 ${sort === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
               >
-                {s === "open" ? "Open" : "Nearest"}
+                {s === "open" ? "Open" : s === "distance" ? "Nearest" : "Happy Hour"}
               </button>
             ))}
           </div>
@@ -382,23 +407,29 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
           <div className="mt-4 rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
             {query
               ? `Nothing matches "${query}".`
-              : activeCuisine
-                ? `No ${activeCuisine.label} spots within ${radius} miles.`
-                : `No restaurants within ${radius} miles.`}
+              : sort === "happy"
+                ? `No happy hours running right now${activeCuisine ? ` in ${activeCuisine.label}` : ""}. We list the ones restaurants post on their own websites, so some places may be missing.`
+                : activeCuisine
+                  ? `No ${activeCuisine.label} spots within ${radius} miles.`
+                  : `No restaurants within ${radius} miles.`}
           </div>
         ) : null}
 
         {/* ── Place list ────────────────────────────────────────────── */}
         <ul className="mt-3 space-y-2">
-          {ranked.map(({ place, status }, i) => {
-            const prev = ranked[i - 1]?.status.state;
-            const showClosedHeader = sort === "open" && status.state === "closed" && prev !== "closed";
+          {ranked.map(({ place, status, happy }, i) => {
+            const prev = ranked[i - 1];
+            const showClosedHeader = sort === "open" && status.state === "closed" && prev?.status.state !== "closed";
+            const showLaterHeader = sort === "happy" && happy.state === "later" && prev?.happy.state !== "later";
             return (
               <li key={place.id}>
                 {showClosedHeader && (
                   <p className="mb-2 mt-5 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Closed now</p>
                 )}
-                <PlaceCard place={place} status={status} onOpen={() => setOpenPlaceId(place.id)} />
+                {showLaterHeader && (
+                  <p className="mb-2 mt-5 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Later today</p>
+                )}
+                <PlaceCard place={place} status={status} happy={sort === "happy" || happy.state === "active" ? happy : null} onOpen={() => setOpenPlaceId(place.id)} />
               </li>
             );
           })}
@@ -474,7 +505,7 @@ function directionsUrl(place: NearbyPlace, mode: TravelMode): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&destination_place_id=${encodeURIComponent(place.googlePlaceId)}&travelmode=${mode}`;
 }
 
-function PlaceCard({ place, status, onOpen }: { place: NearbyPlace; status: OpenStatus; onOpen: () => void }) {
+function PlaceCard({ place, status, happy, onOpen }: { place: NearbyPlace; status: OpenStatus; happy: HappyHourStatus | null; onOpen: () => void }) {
   const closed = status.state === "closed";
   const emoji = place.cuisine ? CUISINE_BY_KEY[place.cuisine].emoji : "🍽️";
   // Like Apple Maps' travel-time button: walk when it's short, otherwise drive. Both are estimates.
@@ -511,6 +542,15 @@ function PlaceCard({ place, status, onOpen }: { place: NearbyPlace; status: Open
           <span aria-hidden>·</span>
           <span className="shrink-0 tabular-nums">{distanceLabel(place.distanceMiles)}</span>
         </p>
+        {happy && happy.state !== "none" && (
+          <p className="mt-1 flex min-w-0 items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+            <span aria-hidden>🍻</span>
+            <span className="min-w-0 truncate">
+              {happy.state === "active" ? `Happy hour ${happyEndsLabel(happy)}` : `Happy hour at ${happy.startsAtLabel}`}
+              {happy.deal && <span className="font-normal text-muted-foreground"> · {happy.deal}</span>}
+            </span>
+          </p>
+        )}
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <StatusLine status={status} />
           <a
@@ -734,6 +774,25 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
               <MapPin className="h-5 w-5" aria-hidden /> Maps
             </a>
           </div>
+
+          {/* Happy hours the restaurant posts on its own website (read by the menu job); left out when none were found. */}
+          {place.happyHour.length > 0 && (
+            <section className="mt-6">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Happy hour</h3>
+              <ul className="mt-2 divide-y rounded-2xl border bg-card">
+                {place.happyHour.map((w, i) => (
+                  <li key={i} className="px-4 py-2.5 text-[15px]">
+                    <div className="flex items-center justify-between gap-3 tabular-nums">
+                      <span className="font-semibold">{daysLabel(w.days)}</span>
+                      <span>{windowTimeLabel(w)}</span>
+                    </div>
+                    {w.deal && <p className="mt-0.5 text-sm text-muted-foreground">{w.deal}</p>}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-xs text-muted-foreground">From the restaurant&apos;s website · may be out of date</p>
+            </section>
+          )}
 
           {/* Dishes reviewers mention. Skeleton while it loads; the whole section goes away if there's nothing to show. */}
           {dishes === undefined && (
