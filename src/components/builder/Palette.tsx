@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Lock, Plus, Search } from "lucide-react";
-import { toast } from "sonner";
-import { MAPS_LOCKED_MESSAGE, isMapsBlock } from "@/lib/platform/maps-shared";
+import { Plus, Search } from "lucide-react";
+import { isMapsBlock } from "@/lib/platform/maps-shared";
 import { BLOCK_TYPE_LABELS } from "@/lib/builder/block-defaults";
 import { BLOCK_ACCENTS, BLOCK_DESCRIPTIONS, BLOCK_GROUPS, BLOCK_ICONS } from "@/components/builder/blockMeta";
 import type { BlockType } from "@/types/database";
@@ -17,8 +16,10 @@ import type { BlockType } from "@/types/database";
 export function Palette({ onAdd, mapsEnabled = true }: { onAdd: (type: BlockType) => void; mapsEnabled?: boolean }) {
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
+  // Live food and Gas prices need maps switched on for the account; everyone else never sees them, like the template picker.
+  const available = (type: BlockType) => mapsEnabled || !isMapsBlock(type);
   const matches = (type: BlockType) =>
-    !q || BLOCK_TYPE_LABELS[type].toLowerCase().includes(q) || BLOCK_DESCRIPTIONS[type].toLowerCase().includes(q);
+    available(type) && (!q || BLOCK_TYPE_LABELS[type].toLowerCase().includes(q) || BLOCK_DESCRIPTIONS[type].toLowerCase().includes(q));
   const groups = BLOCK_GROUPS.map((g) => ({ ...g, types: g.types.filter(matches) })).filter((g) => g.types.length);
 
   return (
@@ -44,29 +45,23 @@ export function Palette({ onAdd, mapsEnabled = true }: { onAdd: (type: BlockType
           <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{group.label}</p>
           {group.types.map((type) => {
             const Icon = BLOCK_ICONS[type];
-            const locked = !mapsEnabled && isMapsBlock(type);
             return (
               <button
                 key={type}
                 type="button"
-                aria-disabled={locked}
-                onClick={() => (locked ? toast.error(MAPS_LOCKED_MESSAGE) : onAdd(type))}
-                className={`group flex w-full items-center gap-3 rounded-2xl border border-transparent p-2 text-left transition ${locked ? "opacity-50" : ""}  hover:border-white/10 hover:bg-white/[0.05] focus-visible:border-white/20 focus-visible:outline-none`}
+                onClick={() => onAdd(type)}
+                className={`group flex w-full items-center gap-3 rounded-2xl border border-transparent p-2 text-left transition hover:border-white/10 hover:bg-white/[0.05] focus-visible:border-white/20 focus-visible:outline-none`}
               >
                 <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br shadow-md ${BLOCK_ACCENTS[type]}`}>
                   <Icon className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] font-medium text-neutral-100">{BLOCK_TYPE_LABELS[type]}</span>
-                  <span className="block text-[11px] leading-snug text-neutral-500">{locked ? "Not switched on for your account" : BLOCK_DESCRIPTIONS[type]}</span>
+                  <span className="block text-[11px] leading-snug text-neutral-500">{BLOCK_DESCRIPTIONS[type]}</span>
                 </span>
-                {locked ? (
-                  <Lock className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden />
-                ) : (
-                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white text-neutral-950 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
-                    <Plus className="h-3.5 w-3.5" />
-                  </span>
-                )}
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white text-neutral-950 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <Plus className="h-3.5 w-3.5" />
+                </span>
               </button>
             );
           })}
