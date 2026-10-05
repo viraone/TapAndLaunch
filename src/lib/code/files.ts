@@ -43,10 +43,54 @@ export function applyChanges(files: CodeFiles, changes: CodeChanges): CodeFiles 
   return next;
 }
 
+/** A small change inside one file: this exact text becomes that text. Much faster for the AI to write than the whole file. */
+export interface CodeEdit {
+  path: string;
+  find: string;
+  replace: string;
+}
+
+export interface EditFailure {
+  path: string;
+  reason: string;
+}
+
+/**
+ * Applies small edits to the files. Each `find` must match exactly one place; an edit that doesn't is reported, not
+ * guessed at, so the caller can ask for the whole file instead. Edits to the same file apply in order.
+ */
+export function applyEdits(files: CodeFiles, edits: CodeEdit[]): { files: CodeFiles; failed: EditFailure[] } {
+  const next: CodeFiles = { ...files };
+  const failed: EditFailure[] = [];
+  for (const edit of edits) {
+    const current = next[edit.path];
+    if (current === undefined) {
+      failed.push({ path: edit.path, reason: "that file doesn't exist" });
+      continue;
+    }
+    if (!edit.find) {
+      failed.push({ path: edit.path, reason: "the text to find was empty" });
+      continue;
+    }
+    const first = current.indexOf(edit.find);
+    if (first === -1) {
+      failed.push({ path: edit.path, reason: "the text to find isn't in the file" });
+      continue;
+    }
+    if (current.indexOf(edit.find, first + 1) !== -1) {
+      failed.push({ path: edit.path, reason: "the text to find appears more than once" });
+      continue;
+    }
+    next[edit.path] = current.slice(0, first) + edit.replace + current.slice(first + edit.find.length);
+  }
+  return { files: next, failed };
+}
+
 export interface ParsedReply {
   /** What to tell the owner, in plain words. */
   reply: string;
   changes: CodeChanges;
+  edits: CodeEdit[];
   /** Files whose closing tag hasn't arrived yet (the reply is still streaming, or got cut off). */
   incomplete: string[];
 }
@@ -56,10 +100,12 @@ export interface ParsedReply {
  * read while it is still arriving:
  *   <reply>Short message to the owner</reply>
  *   <file path="src/App.jsx">...whole file...</file>
+ *   <edit path="src/App.jsx"><find>exact old text</find><with>new text</with></edit>
  *   <delete path="src/old.jsx" />
  */
 export function parseReply(text: string): ParsedReply {
   const changes: CodeChanges = {};
+  const edits: CodeEdit[] = [];
   const incomplete: string[] = [];
 
   const replyMatch = /<reply>([\s\S]*?)(?:<\/reply>|$)/.exec(text);
@@ -70,9 +116,19 @@ export function parseReply(text: string): ParsedReply {
     if (close === "</file>") changes[path] = stripFence(body).replace(/\n$/, "");
     else incomplete.push(path);
   }
+  for (const m of text.matchAll(/<edit\s+path="([^"]+)"\s*>([\s\S]*?)(<\/edit>|$)/g)) {
+    const [, path, body, close] = m as unknown as [string, string, string, string];
+    if (close !== "</edit>") {
+      incomplete.push(path);
+      continue;
+    }
+    for (const pair of body.matchAll(/<find>\n?([\s\S]*?)\n?<\/find>\s*<with>\n?([\s\S]*?)\n?<\/with>/g)) {
+      edits.push({ path, find: pair[1] as string, replace: pair[2] as string });
+    }
+  }
   for (const m of text.matchAll(/<delete\s+path="([^"]+)"\s*\/?>/g)) changes[m[1] as string] = null;
 
-  return { reply, changes, incomplete };
+  return { reply, changes, edits, incomplete };
 }
 
 /** Models sometimes wrap code in a markdown fence inside the tag; drop it. */

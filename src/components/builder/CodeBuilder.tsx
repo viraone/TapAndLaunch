@@ -71,6 +71,7 @@ export function CodeBuilder({
   const [live, setLive] = useState<{ reply: string; written: string[]; writing: string | null } | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const listEnd = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const autoFixes = useRef(0);
@@ -94,6 +95,14 @@ export function CodeBuilder({
     listEnd.current?.scrollIntoView({ block: "end" });
   }, [messages, live]);
 
+  // A running clock while the AI writes, so waiting feels like progress.
+  useEffect(() => {
+    if (!busy) return;
+    const started = Date.now();
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [busy]);
+
   const send = useCallback(
     async (text: string, opts: { hidden?: boolean } = {}) => {
       const message = text.trim();
@@ -103,6 +112,7 @@ export function CodeBuilder({
       setMessages((m) => [...m, { role: "user", content: opts.hidden ? "The preview hit an error. Fixing it…" : message }]);
       setInput("");
       setBusy(true);
+      setElapsed(0);
       setViewing(null);
       setLive({ reply: "", written: [], writing: null });
       setTab("chat");
@@ -117,13 +127,18 @@ export function CodeBuilder({
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let text = "";
+        let lastPaint = 0;
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
           text += decoder.decode(value, { stream: true });
+          // Update the screen about 8 times a second, not for every few characters.
+          const now = Date.now();
+          if (now - lastPaint < 120) continue;
+          lastPaint = now;
           const { answer } = splitStream(text);
           const parsed = parseReply(answer);
-          setLive({ reply: parsed.reply, written: Object.keys(parsed.changes), writing: parsed.incomplete.at(-1) ?? null });
+          setLive({ reply: parsed.reply, written: [...new Set([...Object.keys(parsed.changes), ...parsed.edits.map((e) => e.path)])], writing: parsed.incomplete.at(-1) ?? null });
         }
         const { answer, result } = splitStream(text);
         const parsed = parseReply(answer);
@@ -308,12 +323,12 @@ export function CodeBuilder({
                 {live && (
                   <div className="flex justify-start">
                     <div className="max-w-[88%] space-y-2 rounded-2xl bg-white/[0.07] px-3.5 py-2.5 text-sm leading-relaxed">
-                      {live.reply ? <p>{live.reply}</p> : <p className="flex items-center gap-2 text-neutral-400"><Loader2 className="h-4 w-4 animate-spin" /> Thinking…</p>}
+                      {live.reply ? <p>{live.reply}</p> : <p className="flex items-center gap-2 text-neutral-400"><Loader2 className="h-4 w-4 animate-spin" /> Thinking… {elapsed}s</p>}
                       {live.written.map((p) => (
                         <p key={p} className="flex items-center gap-2 font-mono text-xs text-emerald-300"><FileCode2 className="h-3.5 w-3.5" /> {p}</p>
                       ))}
                       {live.writing && (
-                        <p className="flex items-center gap-2 font-mono text-xs text-indigo-200"><Loader2 className="h-3.5 w-3.5 animate-spin" /> writing {live.writing}…</p>
+                        <p className="flex items-center gap-2 font-mono text-xs text-indigo-200"><Loader2 className="h-3.5 w-3.5 animate-spin" /> writing {live.writing}… {elapsed}s</p>
                       )}
                     </div>
                   </div>
@@ -346,7 +361,7 @@ export function CodeBuilder({
                   placeholder={messages.length ? "Ask for a change…" : "Describe your app…"}
                   className="max-h-40 min-h-12 flex-1 resize-none rounded-2xl bg-white/[0.06] px-3.5 py-2.5 text-sm outline-none placeholder:text-neutral-500 focus:ring-2 focus:ring-indigo-400/50 disabled:opacity-50"
                 />
-                <DictationButton large value={input} onChange={setInput} disabled={busy} maxLength={4000} />
+                <DictationButton large value={input} onChange={setInput} disabled={busy} maxLength={4000} onDone={(text) => void send(text)} />
                 <button type="submit" disabled={busy || !input.trim()} aria-label="Send" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-neutral-950 disabled:opacity-40">
                   {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
                 </button>

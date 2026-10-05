@@ -42,6 +42,7 @@ export function DictationButton({
   disabled,
   maxLength,
   large,
+  onDone,
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -49,21 +50,33 @@ export function DictationButton({
   maxLength: number;
   /** 48px instead of 44px, to sit next to a bigger send button. */
   large?: boolean;
+  /** Called with the final text when speaking ends (the owner tapped stop, or went quiet) and something was said. */
+  onDone?: (text: string) => void;
 }) {
   const supported = useSyncExternalStore(noSubscribe, () => recognitionCtor() !== undefined, () => false);
   const [listening, setListening] = useState(false);
   const recognition = useRef<Recognition | null>(null);
   const base = useRef("");
-  const latest = useRef({ onChange, maxLength });
+  const heard = useRef(false);
+  const latest = useRef({ onChange, maxLength, onDone, value });
   useEffect(() => {
-    latest.current = { onChange, maxLength };
+    latest.current = { onChange, maxLength, onDone, value };
   });
 
   // Stop when the box is turned off (a message is being sent) or the panel closes.
   useEffect(() => {
-    if (disabled) recognition.current?.stop();
+    if (disabled) {
+      heard.current = false;
+      recognition.current?.stop();
+    }
   }, [disabled]);
-  useEffect(() => () => recognition.current?.stop(), []);
+  useEffect(
+    () => () => {
+      heard.current = false;
+      recognition.current?.stop();
+    },
+    []
+  );
 
   if (!supported) return null;
 
@@ -78,8 +91,10 @@ export function DictationButton({
     r.continuous = true;
     r.interimResults = true;
     r.lang = navigator.language || "en-US";
+    heard.current = false;
     base.current = value && !/\s$/.test(value) ? `${value} ` : value;
     r.onresult = (e) => {
+      heard.current = true;
       let said = "";
       for (let i = 0; i < e.results.length; i++) said += e.results[i]?.[0]?.transcript ?? "";
       latest.current.onChange((base.current + said.trimStart()).slice(0, latest.current.maxLength));
@@ -91,6 +106,15 @@ export function DictationButton({
     r.onend = () => {
       setListening(false);
       recognition.current = null;
+      // Hands-free: when speaking ends, send what was said straight away (the version list makes any change easy to undo).
+      if (heard.current) {
+        heard.current = false;
+        // A moment later, so the last words have reached the box.
+        setTimeout(() => {
+          const text = latest.current.value.trim();
+          if (text) latest.current.onDone?.(text);
+        }, 200);
+      }
     };
     try {
       r.start();
@@ -108,6 +132,7 @@ export function DictationButton({
       disabled={disabled}
       aria-pressed={listening}
       aria-label={listening ? "Stop voice typing" : "Talk instead of typing"}
+      title={onDone ? (listening ? "Tap to stop and send" : "Talk, then tap again to send") : undefined}
       className={`relative grid ${large ? "h-12 w-12" : "h-11 w-11"} shrink-0 place-items-center rounded-full transition disabled:opacity-40 ${
         listening ? "bg-red-500 text-white" : "bg-white/[0.06] text-neutral-300 ring-1 ring-white/10 hover:bg-white/10"
       }`}
