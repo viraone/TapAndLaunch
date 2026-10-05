@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clockToMinutes, computeHappyHour, daysLabel, parseHappyHour, windowTimeLabel } from "@/lib/food/happyHour";
+import { clockToMinutes, computeHappyHour, daysLabel, happyHourFor, parseHappyHour, windowTimeLabel } from "@/lib/food/happyHour";
 import type { HappyHourWindow } from "@/types/database";
 
 // Seattle in PDT: UTC-7.
@@ -93,5 +93,17 @@ describe("labels", () => {
     expect(daysLabel([6])).toBe("Sat");
     expect(windowTimeLabel({ days: [1], start: "16:00", end: "18:30", deal: null })).toBe("4 PM – 6:30 PM");
     expect(windowTimeLabel({ days: [1], start: "16:00", end: null, deal: null })).toBe("4 PM – close");
+  });
+});
+
+describe("happyHourFor", () => {
+  const raw = { windows: [{ days: [1], start: "16:00", end: "18:00", deal: null }] };
+  const now = Date.UTC(2026, 9, 5);
+  it("shows windows confirmed within 45 days and hides older or undated ones", () => {
+    expect(happyHourFor(raw, new Date(now - 10 * 86400000).toISOString(), now)).toHaveLength(1);
+    expect(happyHourFor(raw, new Date(now - 46 * 86400000).toISOString(), now)).toEqual([]);
+    expect(happyHourFor(raw, null, now)).toEqual([]);
+    expect(happyHourFor(raw, "not a date", now)).toEqual([]);
+    expect(happyHourFor(null, new Date(now).toISOString(), now)).toEqual([]);
   });
 });

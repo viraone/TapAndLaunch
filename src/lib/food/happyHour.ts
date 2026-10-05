@@ -106,3 +106,14 @@ export function windowTimeLabel(w: HappyHourWindow): string {
   const e = w.end === null ? null : clockToMinutes(w.end);
   return `${s === null ? w.start : formatClock(s)} – ${e === null ? "close" : formatClock(e)}`;
 }
+
+/** A happy hour nobody has re-confirmed from the restaurant's website for this long is hidden rather than risk sending someone to one that ended. */
+export const HAPPY_HOUR_MAX_AGE_MS = 45 * 24 * 60 * 60 * 1000;
+
+/** Stored windows for a place, or none when they were last confirmed too long ago (or never dated). */
+export function happyHourFor(raw: unknown, checkedAt: string | null | undefined, now: number = Date.now()): HappyHourWindow[] {
+  if (!checkedAt) return [];
+  const at = new Date(checkedAt).getTime();
+  if (!Number.isFinite(at) || now - at > HAPPY_HOUR_MAX_AGE_MS) return [];
+  return parseHappyHour(raw);
+}

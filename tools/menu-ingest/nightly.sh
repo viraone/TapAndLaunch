@@ -16,9 +16,20 @@ NODE="$(command ls -d "$HOME"/.nvm/versions/node/*/bin/node 2>/dev/null | sort -
     open -a Ollama 2>/dev/null || (nohup ollama serve >/dev/null 2>&1 &)
     for i in $(seq 1 30); do sleep 2; curl -s -m 3 http://localhost:11434/api/tags >/dev/null && break; done
   fi
-  # caffeinate -i keeps the Mac from sleeping while the job runs; the job stops itself after 4 hours.
+  # caffeinate -i keeps the Mac from sleeping while the job runs; each step stops itself.
   [ -x "$NODE" ] || { echo "node not found"; exit 1; }
   [ -d node_modules/playwright ] || { echo "Packages missing in $(pwd): run ./install-nightly.sh again."; exit 1; }
-  caffeinate -i "$NODE" run.mjs --write --limit "${MENU_LIMIT:-60}" --max-minutes 240
-  echo "finished with code $?"
+  # One run does, in order (each step carries on even if an earlier one failed):
+  #  1. seed.mjs     open the next not-yet-covered Seattle neighborhoods in the app (budget-capped), so their restaurants exist
+  #  2. run.mjs --happy-only   quick pass over every place with a website: bars first, chains skipped (~10-20 s a place)
+  #  3. run.mjs      the slow menu pass (menus + happy hours) for what is due
+  #  4. report.mjs   push notification to the owner's phone with how it went
+  # caffeinate -i keeps the Mac from sleeping while it works; the steps stop themselves (about 3.5 hours in all).
+  caffeinate -i bash -c '
+    "$0" seed.mjs --limit "${SEED_LIMIT:-8}"; echo "seed finished with code $?"
+    "$0" run.mjs --write --happy-only --limit "${HAPPY_LIMIT:-200}" --max-minutes 120; echo "happy hour pass finished with code $?"
+    "$0" run.mjs --write --limit "${MENU_LIMIT:-40}" --max-minutes 90; echo "menu pass finished with code $?"
+    "$0" report.mjs; echo "report finished with code $?"
+  ' "$NODE"
+  echo "finished"
 } >> "$LOG" 2>&1

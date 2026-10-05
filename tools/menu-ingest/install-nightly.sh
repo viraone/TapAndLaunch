@@ -20,7 +20,7 @@ if [ "${1:-}" = "remove" ]; then
 fi
 [ -f "$SRC/.env" ] || [ -f "$DEST/.env" ] || { echo "Create $SRC/.env first (see README.md)."; exit 1; }
 mkdir -p "$DEST" "$HOME/Library/LaunchAgents"
-for f in run.mjs lib.mjs nightly.sh package.json package-lock.json; do cp "$SRC/$f" "$DEST/$f"; done
+for f in run.mjs lib.mjs seed.mjs neighborhoods.mjs report.mjs nightly.sh package.json package-lock.json; do cp "$SRC/$f" "$DEST/$f"; done
 [ -f "$SRC/.env" ] && cp "$SRC/.env" "$DEST/.env" && chmod 600 "$DEST/.env"
 chmod +x "$DEST/nightly.sh"
 echo "Copied the job to $DEST; installing its packages…"

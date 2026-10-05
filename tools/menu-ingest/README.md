@@ -63,6 +63,26 @@ or the job's restaurant query fails). Status per restaurant: `ok`, `none`, `uncl
 a failure never replaces a good saved happy hour. Dry runs print `happy hour: …` per restaurant and put it in `out/<id>.json`.
 Check a few against the real page before trusting a new site: "not during special events" style small print is not captured.
 
+## The daily system (what the 10 AM run does, in order)
+1. **`seed.mjs` covers the city.** Restaurants only exist in the database once somebody has opened that spot in the app, so this opens the next
+   not-yet-covered points of `neighborhoods.mjs` (about 50 Seattle neighborhoods, ~45 one-mile cells; add or fix a neighborhood by editing that list)
+   through the app's own `/food/nearby`: a general search plus a **bars** search, then the app adds popular cuisines where an area is busy. A point is
+   skipped for 60 days once covered. **Google budget, hard limits:** at most 8 points a run, stops at 100 calls counted for the app today and 600 this
+   month (Google's free allowance is 1,000 a month and phones share it); change with `SEED_LIMIT`, `SEED_DAILY_CEILING`, `SEED_MONTHLY_CEILING`
+   (in `.env`). `node seed.mjs --dry` shows what it would do.
+2. **`run.mjs --happy-only`** is the fast pass (about 10 to 20 seconds a place): home page, plus the menu page if the home page doesn't mention happy hour, then the
+   model only if a page says "happy hour". Order: places never checked first, then the oldest checks; bars and pubs before other restaurants; chains and
+   quick-service spots (McDonald's, coffee shops, bakeries…) are skipped.
+3. **`run.mjs`** is the slow menu pass (menus + happy hours) for what is due.
+4. **`report.mjs`** sends a push notification to the owner's phone ("LiveBites: 9 happy hours found. Read 120 places… 31 places have a happy hour now").
+   `node report.mjs --print` shows it without sending.
+
+**Getting the report on your phone (one time):** open the LiveBites app on the phone, **Sign in** with your own member account, tap **Enable notifications**,
+then put that member in the private tier: `update app_members set tier = 'owner' where email = '<your email>' and app_id = '<LiveBites app id>'`.
+Only members of the `owner` tier get the report; visitors never do.
+
+The app hides a happy hour that hasn't been re-confirmed from the restaurant's website for 45 days.
+
 ## What it can't read
 Menus that are only pictures the model can't read well (very stylised, tiny or tall images), and sites whose `robots.txt` says no.
 Prices are only as current as the restaurant's page.

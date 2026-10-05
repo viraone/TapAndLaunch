@@ -14,13 +14,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import robotsParser from "robots-parser";
-import { buildHappyHourPrompt, buildPrompt, chunkText, findHappyHourLink, findMenuLink, findPdfMenuLinks, HAPPY_HOUR_SCHEMA, happyHourExcerpts, joinTranscripts, MENU_SCHEMA, mentionsHappyHour, mergePhotoReadings, mergeSections, pdfItemsToLines, sameSite, sanitizeHappyHour, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, tileGrid, webUrl } from "./lib.mjs";
+import { buildHappyHourPrompt, buildPrompt, chunkText, findHappyHourLink, findMenuLink, findPdfMenuLinks, HAPPY_HOUR_SCHEMA, happyHourExcerpts, joinTranscripts, MENU_SCHEMA, mentionsHappyHour, orderQueue, mergePhotoReadings, mergeSections, pdfItemsToLines, sameSite, sanitizeHappyHour, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, tileGrid, webUrl } from "./lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
 // ---------- options ----------
 function parseArgs(argv) {
-  const o = { near: false, lat: 47.7063, lng: -122.3254, site: "https://livebitesnow.tapandlaunch.com", limit: 20, write: false, force: false, model: "qwen3.8:27b", maxMinutes: 180, ollama: "http://localhost:11434", delayMs: 2500, ids: null, names: null, refreshDays: 14, photos: true };
+  const o = { near: false, lat: 47.7063, lng: -122.3254, site: "https://livebitesnow.tapandlaunch.com", limit: 20, write: false, force: false, model: "qwen3.8:27b", maxMinutes: 180, ollama: "http://localhost:11434", delayMs: 2500, ids: null, names: null, refreshDays: 14, photos: true, happyOnly: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
@@ -36,8 +36,9 @@ function parseArgs(argv) {
     else if (a === "--names") o.names = next().split(",").map((s) => s.trim().toLowerCase());
     else if (a === "--refresh-days") o.refreshDays = Number(next());
     else if (a === "--no-photos") o.photos = false;
+    else if (a === "--happy-only") o.happyOnly = true;
     else if (a === "--help") {
-      console.log("node run.mjs [--limit 20] [--near --lat 47.70 --lng -122.32] [--names 'pho an,taco del mar'] [--ids uuid,uuid] [--write] [--force] [--model qwen3.8:27b] [--max-minutes 180] [--no-photos]\nWithout --write nothing is saved to the database (results are written to out/ for review).");
+      console.log("node run.mjs [--limit 20] [--near --lat 47.70 --lng -122.32] [--names 'pho an,taco del mar'] [--ids uuid,uuid] [--write] [--force] [--model qwen3.8:27b] [--max-minutes 180] [--no-photos] [--happy-only]\nWithout --write nothing is saved to the database (results are written to out/ for review).");
       process.exit(0);
     } else throw new Error(`Unknown option ${a}`);
   }
@@ -82,8 +83,8 @@ async function rest(path, { method = "GET", body } = {}) {
 async function candidates() {
   let rows;
   if (HAVE_DB) {
-    const cols = ["id", "name", "website", "address", "rating_count", "menu_items_status", "menu_items_at", "happy_hour_status", "happy_hour_at"];
-    let q = `food_places?select=${cols.join(",")}&website=not.is.null&order=rating_count.desc.nullslast&limit=${opts.ids || opts.names ? 1000 : Math.max(opts.limit * 4, 50)}`;
+    const cols = ["id", "name", "website", "address", "rating_count", "menu_items_status", "menu_items_at", "happy_hour_status", "happy_hour_at", "primary_type", "types", "app_id"];
+    let q = `food_places?select=${cols.join(",")}&website=not.is.null&order=rating_count.desc.nullslast&limit=${opts.ids || opts.names ? 1000 : 1500}`;
     if (opts.ids) q += `&id=in.(${opts.ids.join(",")})`;
     // --near: only restaurants within about 2.5 miles of --lat/--lng (a box, not a circle).
     if (opts.near) q += `&latitude=gte.${opts.lat - 0.035}&latitude=lte.${opts.lat + 0.035}&longitude=gte.${opts.lng - 0.05}&longitude=lte.${opts.lng + 0.05}`;
@@ -105,11 +106,14 @@ async function candidates() {
   if (opts.write && !opts.force) {
     const cutoff = Date.now() - opts.refreshDays * 86400000;
     const stale = (at) => !at || new Date(at).getTime() < cutoff;
-    rows = rows.filter((r) => stale(r.menu_items_at) || stale(r.happy_hour_at));
+    // Happy-hour-only runs care only about the happy hour check; full runs read a place when either is due.
+    rows = rows.filter((r) => (opts.happyOnly ? stale(r.happy_hour_at) : stale(r.menu_items_at) || stale(r.happy_hour_at)));
   }
   // One row per website (the same restaurant can be stored once per app).
   const seen = new Set();
   rows = rows.filter((r) => (seen.has(r.website) ? false : seen.add(r.website)));
+  // Bars and never-checked places first (the live-database rows carry what the ordering needs; the public dry-run list keeps its order).
+  if (HAVE_DB) rows = orderQueue(rows, { happyOnly: opts.happyOnly });
   return rows.slice(0, opts.limit);
 }
 
@@ -481,7 +485,33 @@ async function findHappyHour(browser, place, seen) {
   }
 }
 
+/** The fast pass: just the home page (and the menu page when the home page doesn't mention happy hour), no menu reading. */
+async function processHappyOnly(browser, place) {
+  const started = Date.now();
+  const result = { id: place.id, name: place.name, website: place.website, status: "read" };
+  try {
+    const site = webUrl(place.website);
+    if (!site) return { ...result, status: "bad_url" };
+    if (!(await allowed(site.toString()))) return { ...result, status: "blocked_robots" };
+    const home = await render(browser, site.toString());
+    if (/pdf/i.test(home.contentType)) return { ...result, status: "pdf" };
+    const seen = [{ url: home.finalUrl, html: home.html, text: home.text }];
+    if (!mentionsHappyHour(home.text) && !findHappyHourLink(home.html, home.finalUrl)) {
+      const link = findMenuLink(home.html, home.finalUrl);
+      if (link && link !== home.finalUrl && sameSite(place.website, link) && (await allowed(link))) {
+        const page = await render(browser, link);
+        if (sameSite(place.website, page.finalUrl) && !/pdf/i.test(page.contentType)) seen.push({ url: page.finalUrl, html: page.html, text: page.text });
+      }
+    }
+    const happy = await findHappyHour(browser, place, seen);
+    return { ...result, ...(happy ? { happy } : { status: "unreadable" }), seconds: Math.round((Date.now() - started) / 1000) };
+  } catch (e) {
+    return { ...result, status: "error", error: String(e.message ?? e).slice(0, 160), seconds: Math.round((Date.now() - started) / 1000) };
+  }
+}
+
 async function processPlace(browser, place) {
+  if (opts.happyOnly) return processHappyOnly(browser, place);
   const seen = [];
   const result = await processMenu(browser, place, seen);
   const happy = await findHappyHour(browser, place, seen);
@@ -489,6 +519,7 @@ async function processPlace(browser, place) {
 }
 
 async function save(place, r) {
+  if (opts.happyOnly) return saveHappyHour(place, r.happy);
   if (r.status === "ok") {
     await rest(`food_places?id=eq.${place.id}`, {
       method: "PATCH",
@@ -530,6 +561,7 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   const deadline = Date.now() + opts.maxMinutes * 60000;
   const tally = {};
+  const found = [];
   let stop = false;
   process.on("SIGINT", () => {
     stop = true;
@@ -543,7 +575,9 @@ async function main() {
         break;
       }
       const r = await processPlace(browser, place);
-      tally[r.status] = (tally[r.status] ?? 0) + 1;
+      const tallyKey = opts.happyOnly && r.happy ? `happy_${r.happy.status}` : r.status;
+      tally[tallyKey] = (tally[tallyKey] ?? 0) + 1;
+      if (r.happy?.status === "ok") found.push(place.name);
       writeFileSync(join(here, "out", `${place.id}.json`), JSON.stringify(r, null, 2));
       if (opts.write) await save(place, r).catch((e) => console.log(`   (save failed: ${e.message})`));
       console.log(`[${i + 1}/${places.length}] ${place.name.slice(0, 34).padEnd(34)} ${r.status.padEnd(12)} ${r.status === "ok" ? `${r.itemCount} items in ${r.sections.length} sections` : r.error ?? ""} ${r.seconds ? `(${r.seconds}s)` : ""} | happy hour: ${r.happy ? (r.happy.status === "ok" ? `${r.happy.windows.length} found` : r.happy.status) : "-"}`);
@@ -553,6 +587,7 @@ async function main() {
     await browser.close();
   }
   console.log("\nSummary:", JSON.stringify(tally));
+  writeFileSync(join(here, "out", opts.happyOnly ? "summary-happy.json" : "summary-full.json"), JSON.stringify({ step: opts.happyOnly ? "happy" : "full", write: opts.write, read: places.length, tally, foundHappyHours: found, appIds: [...new Set(places.map((p) => p.app_id).filter(Boolean))], at: new Date().toISOString() }, null, 2));
   console.log(opts.write ? "Saved to the database." : "Dry run only: look at tools/menu-ingest/out/*.json, then run again with --write.");
 }
 

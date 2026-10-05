@@ -540,3 +540,77 @@ export function findHappyHourLink(html, baseUrl) {
   }
   return best?.url ?? null;
 }
+
+// ---- which restaurants to read first (the daily queue) ----
+
+const LOW_VALUE_TYPES = new Set(["fast_food_restaurant", "coffee_shop", "cafe", "bakery", "ice_cream_shop", "donut_shop", "meal_takeaway", "juice_shop", "sandwich_shop", "convenience_store"]);
+const CHAIN_NAMES = /\b(mcdonald'?s|burger king|wendy'?s|taco bell|kfc|subway|starbucks|dunkin|chipotle|panda express|domino'?s|papa john'?s|pizza hut|little caesars|jack in the box|chick-?fil-?a|dick'?s drive-?in|jimmy john'?s|jersey mike'?s|popeyes|arby'?s|krispy kreme|panera|qdoba|cold stone|baskin|tim hortons|7-?eleven|safeway|whole foods)\b/i;
+const BAR_WORDS = /\b(bar|pub|brew\w*|tavern|taproom|tap house|lounge|saloon|izakaya|speakeasy|cocktail|wine bar|alehouse|distill\w*|sports bar)\b|bar_and_grill|night_club/i;
+
+/**
+ * Where a place goes in the queue. `lowValue` = chains and quick-service spots that essentially never have a happy hour
+ * (the happy-hour-only pass skips them); `tier` 0 = bars and pubs, 1 = other sit-down restaurants, 2 = everything else.
+ * `row` = { name, primary_type, types }.
+ */
+export function queueTier(row) {
+  const types = Array.isArray(row.types) ? row.types : [];
+  const typeText = [row.primary_type, ...types].filter(Boolean).join(" ");
+  const barish = BAR_WORDS.test(row.name ?? "") || BAR_WORDS.test(typeText);
+  if (barish) return { lowValue: false, tier: 0 };
+  const lowValue = CHAIN_NAMES.test(row.name ?? "") || LOW_VALUE_TYPES.has(row.primary_type ?? "");
+  return { lowValue, tier: lowValue ? 2 : 1 };
+}
+
+/**
+ * Orders candidate rows for a run: places never checked for happy hour first, then the oldest checks; within each, bars,
+ * then restaurants, then the rest, most-reviewed first. `happyOnly` drops chains and quick-service spots.
+ * Rows need: name, primary_type, types, rating_count, happy_hour_at.
+ */
+export function orderQueue(rows, { happyOnly = false } = {}) {
+  const scored = rows.map((r) => ({ r, ...queueTier(r) })).filter((x) => !(happyOnly && x.lowValue));
+  scored.sort((a, b) => {
+    const aNever = a.r.happy_hour_at ? 1 : 0;
+    const bNever = b.r.happy_hour_at ? 1 : 0;
+    if (aNever !== bNever) return aNever - bNever;
+    if (aNever === 1 && a.r.happy_hour_at !== b.r.happy_hour_at) return new Date(a.r.happy_hour_at) - new Date(b.r.happy_hour_at);
+    if (a.tier !== b.tier) return a.tier - b.tier;
+    return (b.r.rating_count ?? 0) - (a.r.rating_count ?? 0);
+  });
+  return scored.map((x) => x.r);
+}
+
+// ---- the report sent to the owner's phone after each daily run (report.mjs) ----
+
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/**
+ * The push notification text for one daily run. `summaries` = { seed?, happy?, full? } as written by seed.mjs / run.mjs;
+ * `totals` = { withHappyHour, neverChecked } from the database (either may be undefined if it couldn't be read).
+ */
+export function composeReport(summaries, totals = {}) {
+  const { seed, happy, full } = summaries;
+  const tally = (s) => s?.tally ?? {};
+  const foundNow = [...new Set([...(happy?.foundHappyHours ?? []), ...(full?.foundHappyHours ?? [])])];
+  const unclear = (tally(happy).happy_unclear ?? 0) + (tally(full).happy_unclear ?? 0);
+  const errors = (tally(happy).error ?? 0) + (tally(full).error ?? 0) + (tally(happy).happy_error ?? 0);
+  const read = (happy?.read ?? 0) + (full?.read ?? 0);
+
+  const lines = [];
+  if (seed) {
+    lines.push(
+      `Coverage: ${plural(seed.pointsDone, "area")} added${seed.dry ? " (dry run)" : ""}, ${seed.callsUsed} Google calls${seed.stopped && seed.stopped !== "limit" ? `, stopped at ${seed.stopped}` : ""}.`
+    );
+  }
+  if (happy || full) {
+    lines.push(`Read ${plural(read, "place")}: ${plural(foundNow.length, "new happy hour")}, ${unclear} unclear${errors ? `, ${plural(errors, "error")}` : ""}.`);
+  }
+  if (typeof totals.withHappyHour === "number") {
+    lines.push(`${totals.withHappyHour} places have a happy hour now${typeof totals.neverChecked === "number" ? `, ${totals.neverChecked} not checked yet` : ""}.`);
+  }
+  if (lines.length === 0) lines.push("The job ran but had nothing to report.");
+
+  const title = foundNow.length > 0 ? `LiveBites: ${plural(foundNow.length, "happy hour")} found` : "LiveBites job finished";
+  const names = foundNow.slice(0, 3).join(", ") + (foundNow.length > 3 ? ` +${foundNow.length - 3} more` : "");
+  const body = [foundNow.length > 0 ? names : null, ...lines].filter(Boolean).join(" ").slice(0, 390);
+  return { title, body };
+}
