@@ -175,7 +175,24 @@ export type FirstBuildResult = { reply: string; changes: Record<string, string> 
  * written, a <writing path="..."/> line as each section starts, and each section's <file> once it is done. Sections
  * start the moment their plan line arrives, so they are written while the plan step is still writing App.jsx.
  */
-type BuildOptions = { files: CodeFiles; message: string; history: Array<{ role: "user" | "assistant"; content: string }>; ask: Ask; send: (text: string) => void };
+/** When things happened during a build, in milliseconds from its start, for tuning speed. */
+export interface BuildTimeline {
+  planFirstText?: number;
+  planDone?: number;
+  sections: Record<string, { start: number; firstText?: number; done?: number; chars?: number }>;
+}
+
+type BuildOptions = {
+  files: CodeFiles;
+  message: string;
+  history: Array<{ role: "user" | "assistant"; content: string }>;
+  ask: Ask;
+  send: (text: string) => void;
+  /** Filled in as the build runs. */
+  timeline?: BuildTimeline;
+  /** The moment the request started, so the timeline counts from there. */
+  startedAt?: number;
+};
 
 export async function firstBuild(opts: BuildOptions): Promise<FirstBuildResult> {
   const timers: Array<ReturnType<typeof setInterval>> = [];
@@ -222,7 +239,12 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     buffers.clear();
   };
   timers.push(setInterval(flushPieces, 100));
+  const started = opts.startedAt ?? Date.now();
+  const at = () => Date.now() - started;
+  const timeline = opts.timeline;
   const piece = (path: string, text: string, reset: boolean) => {
+    const t = timeline?.sections[path];
+    if (t && t.firstText === undefined) t.firstText = at();
     const b = buffers.get(path) ?? { text: "", reset: false };
     if (reset) {
       b.text = "";
@@ -234,11 +256,17 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
 
   const launch = (path: string, usedAs: string[], plan: string | undefined, app?: string) => {
     if (launched.has(path) || launched.size >= MAX_PARTS) return;
+    if (timeline) timeline.sections[path] = { start: at() };
     emit(`\n<writing path="${path}" />`);
     launched.set(
       path,
       writePart(opts.ask, partMessage({ message: opts.message, design, app, path, plan, usedAs }), path, (text, reset) => piece(path, text, reset)).then(
         (content) => {
+          const t = timeline?.sections[path];
+          if (t) {
+            t.done = at();
+            t.chars = content?.length ?? 0;
+          }
           if (content !== null) emit(`\n<file path="${path}">\n${content}\n</file>`);
           return { path, content };
         },
@@ -264,6 +292,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
 
   try {
     planText = await opts.ask([...opts.history, { role: "user", content: planMessage(opts.files, opts.message) }], (piece) => {
+      if (timeline && timeline.planFirstText === undefined) timeline.planFirstText = at();
       planText += piece;
       opts.send(piece);
       watchPlan();
@@ -271,6 +300,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     });
   } finally {
     planDone = true;
+    if (timeline) timeline.planDone = at();
     flush();
   }
   watchPlan();

@@ -393,7 +393,7 @@ export interface Database {
         Relationships: [];
       };
       ai_generations: {
-        Row: { id: string; user_id: string; organization_id: string | null; kind: "describe" | "chat" | "code"; created_at: string };
+        Row: { id: string; user_id: string; organization_id: string | null; kind: "describe" | "chat" | "code"; created_at: string; details: Record<string, unknown> | null };
         Insert: Partial<Database["public"]["Tables"]["ai_generations"]["Row"]> & { user_id: string };
         Update: Partial<Database["public"]["Tables"]["ai_generations"]["Row"]>;
         Relationships: [];

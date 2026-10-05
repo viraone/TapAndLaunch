@@ -6,7 +6,7 @@ import { decryptSecret } from "@/lib/ai/keys";
 import { ProviderError, fastModel, streamText, type AiProvider } from "@/lib/ai/providers";
 import { CODE_SYSTEM_PROMPT, userMessage } from "@/lib/code/prompt";
 import { applyChanges, applyEdits, parseReply, summarize, validateFiles, type CodeFiles } from "@/lib/code/files";
-import { firstBuild, isFreshApp, SlowDown, type Ask } from "@/lib/code/first-build";
+import { firstBuild, isFreshApp, SlowDown, type Ask, type BuildTimeline } from "@/lib/code/first-build";
 import { latestVersion, saveVersion } from "@/lib/code/store";
 import { RESULT_MARK } from "@/lib/code/protocol";
 
@@ -27,6 +27,7 @@ export const maxDuration = 300;
  * own session (so the database's rules apply), and a final line tells the browser the result.
  */
 export async function POST(request: Request, context: { params: Promise<{ appId: string }> }) {
+  const startedAt = Date.now();
   const { appId } = await context.params;
   const supabase = await createClient();
   const {
@@ -55,7 +56,7 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
   if ((count ?? 0) >= CODE_HOURLY_LIMIT) return Response.json({ error: `That's ${CODE_HOURLY_LIMIT} builds this hour. Take a short break and try again.` }, { status: 429 });
   if (!current) return Response.json({ error: "This app has no code yet." }, { status: 400 });
   // Counted for the hourly limit. Supabase only sends a query once something waits for it, so it's awaited (about 50ms).
-  await admin.from("ai_generations").insert({ user_id: user.id, organization_id: app.organization_id, kind: "code" });
+  const { data: usage } = await admin.from("ai_generations").insert({ user_id: user.id, organization_id: app.organization_id, kind: "code" }).select("id").maybeSingle();
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -67,7 +68,20 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
           // the browser went away; the build carries on and still saves
         }
       };
+      // How this build went (the model that answered, and when each part happened), kept for tuning speed.
+      const timeline: BuildTimeline = { sections: {} };
+      const models = new Set<string>();
+      let mode = "change";
+      const record = (result: Record<string, unknown>) => {
+        if (!usage) return;
+        const details = { mode, models: [...models], total: Date.now() - startedAt, ok: !result.error, error: result.error ?? null, ...timeline };
+        void admin.from("ai_generations").update({ details }).eq("id", usage.id).then(
+          () => {},
+          () => {}
+        );
+      };
       const finish = (result: Record<string, unknown>) => {
+        record(result);
         send(`${RESULT_MARK}${JSON.stringify(result)}`);
         try {
           controller.close();
@@ -80,11 +94,14 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
         let model = fastModel(provider, keyRow.model);
         const ask: Ask = async (turns, onText = () => {}) => {
           try {
+            models.add(model);
             return await streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, onText);
           } catch (error) {
             if (error instanceof ProviderError && error.status === 429) throw new SlowDown(error.message);
             if (model === keyRow.model || !(error instanceof ProviderError) || ![400, 404].includes(error.status)) throw error;
+            models.add(`${model} (not available)`);
             model = keyRow.model;
+            models.add(model);
             return streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, onText);
           }
         };
@@ -94,7 +111,8 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
         let changed: Set<string>;
         if (isFreshApp(current.files)) {
           // A new app: a short plan first, then every section written at the same time.
-          const built = await firstBuild({ files: current.files, message: parsed.data.message, history: parsed.data.history, ask, send });
+          mode = "new app";
+          const built = await firstBuild({ files: current.files, message: parsed.data.message, history: parsed.data.history, ask, send, timeline, startedAt });
           if ("error" in built) {
             finish({ error: built.error });
             return;
