@@ -15,6 +15,19 @@ commercial use, no attribution required. Credit is kept here so we know where ea
 | restaurant-room.jpg | Wzo_34cS5bA |
 | restaurant-latte.jpg | itn9f78amso |
 | restaurant-cafe.jpg | 0i5clWZBit0 |
+| salon-hero.jpg | wSpkThmoZQc |
+| salon-interior.jpg | LGXN4OSQSa4 |
+| salon-blowdry.jpg | FkAZqQJTbXM |
+| salon-wash.jpg | Md_DhaFsnCQ |
+| community-hero.jpg | Ib0KLrAfb-E |
+| community-workshop.jpg | TdpSX7XAcKo |
+| community-market.jpg | 3NrS7gps6fM |
+| community-volunteers.jpg | StrmusT8d9Y |
+| community-books.jpg | 7C2JUQRJ5hE |
+| store-hero.jpg, store-giftset.jpg | KLU0scqbKQ0 |
+| store-shop.jpg | nzisN6dYiV8 |
+| store-set.jpg | n813OpXE59s |
+| store-amber.jpg | CUoyo6Pz0pU |
 
 Some Unsplash results are "Unsplash+" (paid licence); their download link returns 403. Only use photos whose free download works.
 Customers replace these with their own photos in the builder.

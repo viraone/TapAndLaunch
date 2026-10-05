@@ -75,6 +75,12 @@ export async function createAppFromStarter(
     const { error: eventError } = await supabase.from("events").insert(sampleEventRows(created.id, starter.events));
     if (eventError) return fail(eventError.message);
   }
+  if (starter.products?.length) {
+    const { error: productError } = await supabase.from("products").insert(
+      starter.products.map((p, position) => ({ app_id: created.id, name: p.name, description: p.description, price_cents: p.priceCents, image_url: p.image, position }))
+    );
+    if (productError) return fail(productError.message);
+  }
 
   return { app: created };
 }

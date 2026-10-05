@@ -49,10 +49,10 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     id: "store",
     name: "Online store",
-    tagline: "Show your products and take orders from your customers' phones.",
+    tagline: "A beautiful little shop with sample products, card payments and pickup info.",
     icon: "shopping-bag",
-    color: "#10b981",
-    includes: ["Welcome", "Product list"],
+    color: "#a16207",
+    includes: ["Photo banner", "Products", "Gallery", "Reviews", "Hours"],
     category: "shops",
   },
   {
@@ -112,19 +112,19 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     id: "salon",
     name: "Salon or services",
-    tagline: "List your services and let clients book an appointment.",
+    tagline: "An elegant look with your services and prices, gallery, reviews and online booking.",
     icon: "sparkles",
-    color: "#ec4899",
-    includes: ["Welcome", "Services", "Booking", "Contact form"],
+    color: "#be185d",
+    includes: ["Photo banner", "Services & prices", "Booking", "Gallery", "Reviews"],
     category: "shops",
   },
   {
     id: "community",
     name: "Club or community",
-    tagline: "A home for your group: news, upcoming events and a way to join.",
+    tagline: "A warm home for your group: upcoming events, photos and a free sign-up.",
     icon: "users",
-    color: "#14b8a6",
-    includes: ["Welcome", "Events", "Join form"],
+    color: "#0f766e",
+    includes: ["Photo banner", "Events", "Gallery", "Reviews", "Join form"],
     category: "venues",
   },
   {
@@ -171,11 +171,20 @@ export interface StarterEvent {
   capacity: number;
 }
 
+/** A sample product created with the app, so a shop isn't empty on first open. */
+export interface StarterProduct {
+  name: string;
+  description: string;
+  priceCents: number;
+  image: string;
+}
+
 export interface Starter {
   theme: ThemeConfig;
   manifest: ManifestConfig;
   pages: StarterPage[];
   events?: StarterEvent[];
+  products?: StarterProduct[];
 }
 
 /** A photo that ships with TapAndLaunch (public/templates), as a full address so it also loads inside customers' apps. */
@@ -243,9 +252,77 @@ function buildStarterBody(templateId: string, appName: string): Starter {
       };
     case "store":
       return {
-        manifest,
-        theme,
-        pages: [home([welcome("Browse what we have and order right from your phone."), block("product_list", { title: "Shop" })])],
+        manifest: { ...manifest, background_color: "#faf7f2" },
+        theme: {
+          ...theme,
+          background_color: "#faf7f2",
+          bottom_nav_style: "tabs",
+          bottom_nav: [
+            { label: "Home", icon: "home", page_path: "home" },
+            { label: "Shop", icon: "shop", page_path: "shop" },
+            { label: "Contact", icon: "mail", page_path: "contact" },
+          ],
+        },
+        pages: [
+          home([
+            block("hero", {
+              image_url: templatePhoto("store-hero"),
+              eyebrow: "Small batch · Made by hand",
+              headline: "Little things that make a home.",
+              subtext: "Hand-poured candles and home goods, made in small batches in our studio.",
+              button_label: "Shop now",
+              button_page: "shop",
+            }),
+            block("stats", {
+              items: [
+                { value: "100%", label: "Natural soy wax" },
+                { value: "Free", label: "Local pickup" },
+                { value: "4.9★", label: "From 300+ orders" },
+              ],
+            }),
+            block("product_list", { title: "Bestsellers" }),
+            block("gallery", {
+              title: "From the studio",
+              images: [
+                { src: templatePhoto("store-shop"), alt: "Shelves of products in our shop" },
+                { src: templatePhoto("store-amber"), alt: "A candle glowing in an amber jar" },
+                { src: templatePhoto("store-set"), alt: "A set of scented candles on a wooden table" },
+              ],
+            }),
+            block("reviews", {
+              title: "Loved by customers",
+              items: [
+                { quote: "The cedar candle makes my whole apartment smell amazing. Already ordered two more.", name: "Hannah L.", rating: 5 },
+                { quote: "Beautiful packaging, perfect gift. Picked it up the same day.", name: "Marcus P.", rating: 5 },
+                { quote: "Burns clean and lasts forever. My favourite little shop.", name: "Ana R.", rating: 5 },
+              ],
+            }),
+          ]),
+          { name: "Shop", path: "shop", isHome: false, blocks: [block("text", { heading: "Shop everything", body: "Order from your phone and pay by card, or pick up for free at the studio." }), block("product_list", { title: "All products" })] },
+          {
+            name: "Contact",
+            path: "contact",
+            isHome: false,
+            blocks: [
+              block("hours", {
+                title: "Studio hours",
+                rows: [
+                  { label: "Wed to Fri", value: "11am to 6pm" },
+                  { label: "Saturday", value: "10am to 5pm" },
+                  { label: "Sun to Tue", value: "Closed" },
+                ],
+                address: "",
+                phone: "",
+              }),
+              block("contact_form", { title: "Questions or custom orders?", submit_label: "Send message", fields: CONTACT_FIELDS }),
+            ],
+          },
+        ],
+        products: [
+          { name: "Cedar & Smoke candle", description: "Warm cedarwood and a hint of campfire. 8 oz, about 45 hours. (Sample product: edit it under Manage, Products.)", priceCents: 2800, image: templatePhoto("store-amber") },
+          { name: "Gift set of four", description: "Four mini candles in our bestselling scents, ready to give. (Sample product.)", priceCents: 4800, image: templatePhoto("store-giftset") },
+          { name: "Sunday Morning candle", description: "Fresh linen and orange blossom. 8 oz, about 45 hours. (Sample product.)", priceCents: 2600, image: templatePhoto("store-set") },
+        ],
       };
     case "events":
       return {
@@ -482,58 +559,204 @@ function buildStarterBody(templateId: string, appName: string): Starter {
       };
     case "salon":
       return {
-        manifest,
+        manifest: { ...manifest, background_color: "#fdf6f4" },
         theme: {
           ...theme,
+          background_color: "#fdf6f4",
+          bottom_nav_style: "tabs",
           bottom_nav: [
             { label: "Home", icon: "home", page_path: "home" },
+            { label: "Services", icon: "info", page_path: "services" },
             { label: "Book", icon: "calendar", page_path: "book" },
-            { label: "Contact", icon: "mail", page_path: "contact" },
           ],
         },
         pages: [
           home([
-            welcome("Look and feel your best. See what we offer and book your next appointment."),
-            block("text", { heading: "Services", body: "Add each service with how long it takes and the price.\n\nHaircut\nColour\nStyling" }),
+            block("hero", {
+              image_url: templatePhoto("salon-hero"),
+              eyebrow: "Hair · Colour · Styling",
+              headline: "Leave feeling like you.",
+              subtext: "Cuts, colour and styling by a team that listens first. Book in seconds from your phone.",
+              button_label: "Book an appointment",
+              button_page: "book",
+            }),
+            block("stats", {
+              items: [
+                { value: "4.9★", label: "200+ reviews" },
+                { value: "12 yrs", label: "Experience" },
+                { value: "Same", label: "Week booking" },
+              ],
+            }),
+            block("gallery", {
+              title: "Inside the salon",
+              images: [
+                { src: templatePhoto("salon-interior"), alt: "Our bright salon with round mirrors" },
+                { src: templatePhoto("salon-blowdry"), alt: "A stylist giving a blow-dry" },
+                { src: templatePhoto("salon-wash"), alt: "A relaxing hair wash" },
+              ],
+            }),
+            block("reviews", {
+              title: "Happy clients",
+              items: [
+                { quote: "Best colour I've ever had. They actually listened to what I wanted.", name: "Chloe W.", rating: 5 },
+                { quote: "Booked from the app on my lunch break and was in the chair two days later.", name: "Tasha B.", rating: 5 },
+                { quote: "Relaxing, friendly and my cut still looks great a month later.", name: "Emily J.", rating: 5 },
+              ],
+            }),
+            block("hours", {
+              title: "Hours",
+              rows: [
+                { label: "Tue to Fri", value: "10am to 7pm" },
+                { label: "Saturday", value: "9am to 5pm" },
+                { label: "Sun and Mon", value: "Closed" },
+              ],
+              address: "",
+              phone: "",
+            }),
           ]),
-          { name: "Book", path: "book", isHome: false, blocks: [block("event_calendar", { title: "Book an appointment" })] },
           {
-            name: "Contact",
-            path: "contact",
+            name: "Services",
+            path: "services",
             isHome: false,
-            blocks: [block("contact_form", { title: "Questions? Ask us", submit_label: "Send message", fields: CONTACT_FIELDS })],
+            blocks: [
+              block("price_list", {
+                title: "Services",
+                subtitle: "Prices are a starting point and depend on hair length. We'll confirm at your consultation.",
+                sections: [
+                  {
+                    name: "Cuts",
+                    items: [
+                      { name: "Women's cut & style", description: "Wash, cut and blow-dry, about 60 minutes", price: "from $65", badge: "Popular" },
+                      { name: "Men's cut", description: "Wash, cut and style, about 30 minutes", price: "from $40" },
+                      { name: "Kids' cut", description: "Under 12", price: "$30" },
+                    ],
+                  },
+                  {
+                    name: "Colour",
+                    items: [
+                      { name: "Full colour", description: "Root to tip, includes toner", price: "from $110" },
+                      { name: "Balayage", description: "Hand-painted, natural-looking highlights", price: "from $180", badge: "Signature" },
+                      { name: "Root touch-up", description: "Up to 6 weeks of regrowth", price: "from $75" },
+                    ],
+                  },
+                  {
+                    name: "Styling",
+                    items: [
+                      { name: "Blow-dry", description: "Smooth, bouncy or beach waves", price: "$45" },
+                      { name: "Event hair", description: "Weddings, parties and photoshoots", price: "from $85" },
+                    ],
+                  },
+                ],
+              }),
+            ],
           },
+          {
+            name: "Book",
+            path: "book",
+            isHome: false,
+            blocks: [
+              block("text", { heading: "Book an appointment", body: "Pick a time that suits you. Need something different? Send us a message below." }),
+              block("event_calendar", { title: "Open appointments" }),
+              block("contact_form", { title: "Ask a question", submit_label: "Send message", fields: CONTACT_FIELDS }),
+            ],
+          },
+        ],
+        events: [
+          { title: "Cut & style with Mia", description: `60 minutes. ${SAMPLE_NOTE}`, dayOffset: 1, time: "10:00", minutes: 60, capacity: 1 },
+          { title: "Colour consultation", description: `Free, 20 minutes. Find the right shade for you. ${SAMPLE_NOTE}`, dayOffset: 1, time: "14:30", minutes: 20, capacity: 1 },
+          { title: "Balayage with Jordan", description: `About 3 hours. ${SAMPLE_NOTE}`, dayOffset: 2, time: "11:00", minutes: 180, capacity: 1 },
+          { title: "Blow-dry", description: `45 minutes. ${SAMPLE_NOTE}`, dayOffset: 3, time: "16:00", minutes: 45, capacity: 1 },
+          { title: "Men's cut with Leo", description: `30 minutes. ${SAMPLE_NOTE}`, dayOffset: 4, time: "12:00", minutes: 30, capacity: 1 },
         ],
       };
     case "community":
       return {
-        manifest,
+        manifest: { ...manifest, background_color: "#f3faf8" },
         theme: {
           ...theme,
+          background_color: "#f3faf8",
+          bottom_nav_style: "tabs",
           bottom_nav: [
             { label: "Home", icon: "home", page_path: "home" },
             { label: "Events", icon: "calendar", page_path: "events" },
-            { label: "Join", icon: "mail", page_path: "join" },
+            { label: "Join", icon: "user", page_path: "join" },
           ],
         },
         pages: [
-          home([welcome("News, meetups and everything happening in our community, in one place.")]),
-          { name: "Events", path: "events", isHome: false, blocks: [block("event_calendar", { title: "What's coming up" })] },
+          home([
+            block("hero", {
+              image_url: templatePhoto("community-hero"),
+              eyebrow: "Neighbours · Friends · Volunteers",
+              headline: "Better together.",
+              subtext: "Meetups, workshops and good causes, all in one place. Everyone is welcome.",
+              button_label: "See what's on",
+              button_page: "events",
+            }),
+            block("stats", {
+              items: [
+                { value: "250+", label: "Members" },
+                { value: "4", label: "Events a month" },
+                { value: "Free", label: "To join" },
+              ],
+            }),
+            block("text", {
+              heading: "What we're about",
+              body: "We're a friendly group of neighbours who like to meet, learn and help out. Come to one event, bring a friend, and stay as long as you like.",
+            }),
+            block("gallery", {
+              title: "Recent gatherings",
+              images: [
+                { src: templatePhoto("community-workshop"), alt: "Members at a hands-on workshop" },
+                { src: templatePhoto("community-market"), alt: "Neighbours chatting at a market day" },
+                { src: templatePhoto("community-volunteers"), alt: "Volunteers at a community drive" },
+              ],
+            }),
+            block("reviews", {
+              title: "Why members stay",
+              items: [
+                { quote: "I moved here not knowing anyone. Six months later this group feels like family.", name: "Rosa D.", rating: 5 },
+                { quote: "The book circle is the highlight of my month.", name: "Ken O.", rating: 5 },
+                { quote: "Easy to find out what's on and sign up right from my phone.", name: "Liz M.", rating: 5 },
+              ],
+            }),
+          ]),
+          {
+            name: "Events",
+            path: "events",
+            isHome: false,
+            blocks: [
+              block("text", { heading: "Coming up", body: "Save your spot so we know how many to expect." }),
+              block("event_calendar", { title: "Upcoming events" }),
+            ],
+          },
           {
             name: "Join",
             path: "join",
             isHome: false,
             blocks: [
+              block("hero", {
+                image_url: templatePhoto("community-books"),
+                eyebrow: "Membership is free",
+                headline: "Come join us.",
+                subtext: "Get news and event reminders. No commitment, ever.",
+              }),
               block("contact_form", {
-                title: "Join us",
+                title: "Join the community",
                 submit_label: "Count me in",
                 fields: [
                   { name: "name", label: "Your name", type: "text", required: true },
                   { name: "email", label: "Email", type: "email", required: true },
+                  { name: "interests", label: "What are you interested in?", type: "textarea" },
                 ],
               }),
             ],
           },
+        ],
+        events: [
+          { title: "Monthly book circle", description: `This month: anything you loved reading lately. ${SAMPLE_NOTE}`, dayOffset: 2, time: "19:00", minutes: 90, capacity: 20 },
+          { title: "Saturday park clean-up", description: `Gloves and bags provided. Coffee after. ${SAMPLE_NOTE}`, dayOffset: 5, time: "10:00", minutes: 120, capacity: 40 },
+          { title: "Wreath-making workshop", description: `All materials included. ${SAMPLE_NOTE}`, dayOffset: 9, time: "18:30", minutes: 120, capacity: 16 },
+          { title: "Neighbourhood potluck", description: `Bring a dish to share. Families welcome. ${SAMPLE_NOTE}`, dayOffset: 13, time: "17:00", minutes: 180, capacity: 60 },
         ],
       };
     case "openmic":
