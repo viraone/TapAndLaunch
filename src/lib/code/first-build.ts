@@ -125,7 +125,7 @@ design: one line every section will follow: accent color (a Tailwind color name)
 src/components/Header.jsx: exactly what it shows and does (content, sample data, interactions), in one line
 src/components/Hero.jsx: ...
 (5 to 8 files in src/components/, one per section of the page, each small enough to write in about 50 lines)
-Anything that would run long is TWO sections: a booking or contact form becomes a picker (ServicePicker.jsx) and a details form (BookingDetails.jsx); a schedule with filters becomes the filters and the list; a menu becomes categories and items.
+Keep each section's content small (a form: at most 4 fields; lists: at most 4 items). Anything that would still run long is TWO sections: a booking or contact form becomes a picker (ServicePicker.jsx) and a details form (BookingDetails.jsx); a schedule with filters becomes the filters and the list; a menu becomes categories and items.
 When two sections must share something (the chosen service, a selected day, a cart), end both of their lines with "shares: <key>", using the same key.
 </plan>
 <reply>One friendly sentence about what you're building.</reply>
@@ -155,7 +155,8 @@ ${input.usedAs.join("\n")}
 ${name ? `Write it as \`export default function ${name}() { ... }\` and add \`export { ${name} };\` at the end, so either kind of import works.` : ""}
 
 Answer with ONLY <file path="${input.path}">...the complete file...</file>. No <reply>.
-- About 50 lines, never more than 80. Speed matters: the owner is watching.
+- About 50 lines, never more than 80. Speed matters: the owner is watching, and the slowest file holds up the whole app.
+- Keep the content small: a form has at most 4 fields and uses the browser's \`required\` (and \`type="email"\`) instead of validation code or per-field error messages; at most 4 cards or list items; at most 3 FAQ entries; no long arrays of options. The owner can ask for more later.
 - Self-contained: keep its sample data inside this file. Do NOT import other files from src/ (they are being written right now). Import only react and the allowed libraries.
 - One exception: src/lib/shared.js already exists. If your plan line says "shares: <key>", share that value with \`import { useShared } from '@/lib/shared'\` and \`const [value, setValue] = useShared('<key>', initialValue)\`; it works like useState, shared with the other section by that key. Sample data both sections need (like the list of services) must be written the same way in both.
 - A complete, polished, responsive section that looks great on a phone, following the design line exactly so it matches the rest of the app.`;
