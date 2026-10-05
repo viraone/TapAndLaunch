@@ -82,7 +82,11 @@ export function AppCard({ app, rootDomain, views, checklist }: { app: AppRow; ro
             </span>
           )}
         </div>
-        <h2 className="truncate text-lg font-semibold tracking-tight text-neutral-950">{app.name}</h2>
+        <h2 className="truncate text-lg font-semibold tracking-tight text-neutral-950">
+          <Link href={`/dashboard/apps/${app.id}`} className="hover:underline">
+            {app.name}
+          </Link>
+        </h2>
         <a
           href={previewUrl}
           target="_blank"
@@ -143,6 +147,8 @@ export function AppCard({ app, rootDomain, views, checklist }: { app: AppRow; ro
               <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem render={<Link href={`/dashboard/apps/${app.id}`} />}>Overview and QR code</DropdownMenuItem>
+              <DropdownMenuSeparator />
               {MANAGE_LINKS.map((item) => (
                 <DropdownMenuItem key={item.path} render={<Link href={`/dashboard/apps/${app.id}/${item.path}`} />}>
                   {item.label}
