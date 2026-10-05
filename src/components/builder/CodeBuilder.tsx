@@ -10,6 +10,7 @@ import { splitStream } from "@/lib/code/protocol";
 import { CODE_EXAMPLES } from "@/lib/code/prompt";
 import { createClient } from "@/lib/supabase/client";
 import { KeyForm, type SavedKey } from "@/components/builder/AiChatPanel";
+import { DictationButton } from "@/components/builder/DictationButton";
 
 interface Message {
   role: "user" | "assistant";
@@ -345,6 +346,7 @@ export function CodeBuilder({
                   placeholder={messages.length ? "Ask for a change…" : "Describe your app…"}
                   className="max-h-40 min-h-12 flex-1 resize-none rounded-2xl bg-white/[0.06] px-3.5 py-2.5 text-sm outline-none placeholder:text-neutral-500 focus:ring-2 focus:ring-indigo-400/50 disabled:opacity-50"
                 />
+                <DictationButton large value={input} onChange={setInput} disabled={busy} maxLength={4000} />
                 <button type="submit" disabled={busy || !input.trim()} aria-label="Send" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-neutral-950 disabled:opacity-40">
                   {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
                 </button>

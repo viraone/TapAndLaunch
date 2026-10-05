@@ -1,5 +1,6 @@
 "use client";
 
+import { DictationButton } from "@/components/builder/DictationButton";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUp, Bot, KeyRound, Loader2, X } from "lucide-react";
@@ -180,6 +181,7 @@ export function AiChatPanel({ appId, appName, initiallyOpen = false }: { appId: 
               placeholder="Add a menu page…"
               className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl bg-white/[0.06] px-3.5 py-2.5 text-sm outline-none placeholder:text-neutral-500 focus:ring-2 focus:ring-indigo-400/50 disabled:opacity-50"
             />
+            <DictationButton value={input} onChange={setInput} disabled={busy || dirty} maxLength={1000} />
             <button type="submit" disabled={busy || dirty || !input.trim()} aria-label="Send" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-neutral-950 disabled:opacity-40">
               <ArrowUp className="h-5 w-5" />
             </button>
