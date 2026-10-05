@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { CUISINES, CUISINE_KEYS, cuisineLabelFor, cuisineOf } from "@/lib/food/cuisines";
 
 describe("cuisines", () => {
-  it("offers the fourteen quick-filters in display order", () => {
+  it("offers the fifteen quick-filters in display order", () => {
     expect(CUISINE_KEYS).toEqual([
-      "ramen", "vietnamese", "thai", "korean", "japanese",
+      "ramen", "vietnamese", "thai", "korean", "taiwanese", "japanese",
       "mexican", "pizza", "burgers", "mediterranean", "ethiopian", "indian", "bars", "ice_cream", "dessert",
     ]);
     expect(new Set(CUISINES.map((c) => c.emoji)).size).toBe(CUISINES.length);
@@ -20,6 +20,9 @@ describe("cuisines", () => {
     // With no Google type to go on, the name decides.
     expect(cuisineOf({ types: ["food"], name: "Seattle Gelato Co" })).toBe("ice_cream");
     expect(cuisineOf({ types: ["pizza_restaurant", "italian_restaurant"], name: "Big Mario's" })).toBe("pizza");
+    // Din Tai Fung is tagged taiwanese, dim sum, cantonese and chinese: Google's primary type decides.
+    expect(cuisineOf({ types: ["taiwanese_restaurant", "dim_sum_restaurant", "chinese_restaurant"], primaryType: "taiwanese_restaurant", name: "Din Tai Fung" })).toBe("taiwanese");
+    expect(cuisineOf({ types: ["restaurant", "food"], name: "Taipei Noodle House" })).toBe("taiwanese");
     expect(cuisineOf({ types: ["greek_restaurant"], name: "The Golden Olive" })).toBe("mediterranean");
   });
 

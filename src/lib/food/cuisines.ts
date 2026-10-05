@@ -27,6 +27,7 @@ export const CUISINES: CuisineDef[] = [
   { key: "vietnamese", label: "Pho / Vietnamese", emoji: "🍜", types: ["vietnamese_restaurant"], keywords: ["pho", "phở", "vietnam", "banh mi", "bánh mì"] },
   { key: "thai", label: "Thai", emoji: "🍲", types: ["thai_restaurant"], keywords: ["thai"] },
   { key: "korean", label: "Korean", emoji: "🥘", types: ["korean_restaurant"], keywords: ["korean", "kbbq", "k-bbq", "bibimbap", "tofu house"] },
+  { key: "taiwanese", label: "Taiwanese", emoji: "🥟", types: ["taiwanese_restaurant"], keywords: ["taiwan", "taipei", "din tai fung", "xiao long bao", "beef noodle", "gua bao", "bubble waffle"] },
   { key: "japanese", label: "Japanese", emoji: "🍣", types: ["japanese_restaurant", "sushi_restaurant"], keywords: ["sushi", "izakaya", "japanese", "teriyaki", "udon", "tonkatsu", "yakitori"] },
   { key: "mexican", label: "Mexican / Tacos", emoji: "🌮", types: ["mexican_restaurant"], keywords: ["taco", "taqueria", "birria", "burrito", "mexican", "cantina"] },
   { key: "pizza", label: "Pizza", emoji: "🍕", types: ["pizza_restaurant"], keywords: ["pizza", "pizzeria"] },

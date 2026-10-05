@@ -182,6 +182,7 @@ export type CuisineKey =
   | "vietnamese"
   | "thai"
   | "korean"
+  | "taiwanese"
   | "japanese"
   | "mexican"
   | "pizza"
