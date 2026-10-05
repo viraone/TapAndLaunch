@@ -49,6 +49,91 @@ export function useShared(key, initial) {
 }
 `;
 
+/**
+ * Ready-made building blocks every new app gets (written by us, not the AI, so they cost no time), styled in the app's
+ * accent color. A form field is one short line instead of a label, an input and 250 characters of classes, which makes
+ * the slowest sections (forms, lists) much quicker to write, and keeps sections that are written separately matching.
+ */
+export const UI_PATH = "src/lib/ui.jsx";
+
+const PALETTE = ["red", "orange", "amber", "yellow", "lime", "green", "emerald", "teal", "cyan", "sky", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose", "slate", "gray", "zinc", "neutral", "stone"];
+
+/** The accent color family named in the plan's design line ("accent teal-600, ..." -> "teal"). */
+export function accentOf(design: string): string {
+  const words = design.toLowerCase().match(/[a-z]+/g) ?? [];
+  const colors = words.filter((w) => PALETTE.includes(w));
+  return colors.find((c) => !["slate", "gray", "zinc", "neutral", "stone"].includes(c)) ?? colors[0] ?? "indigo";
+}
+
+export function uiKit(accent: string): string {
+  const a = PALETTE.includes(accent) ? accent : "indigo";
+  return `import { Check } from 'lucide-react';
+
+// Building blocks in this app's style. Use them for the common pieces; plain Tailwind for everything else.
+export const cx = (...classes) => classes.filter(Boolean).join(' ');
+
+export function Section({ id, className, children }) {
+  return <section id={id} className={cx('mx-auto w-full max-w-6xl px-6 py-16 sm:py-20', className)}>{children}</section>;
+}
+
+export function Heading({ eyebrow, title, subtitle, center }) {
+  return (
+    <div className={cx('max-w-2xl', center && 'mx-auto text-center')}>
+      {eyebrow && <p className="text-sm font-semibold uppercase tracking-widest text-${a}-600">{eyebrow}</p>}
+      <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">{title}</h2>
+      {subtitle && <p className="mt-4 text-lg text-slate-600">{subtitle}</p>}
+    </div>
+  );
+}
+
+export function Button({ href, variant = 'primary', className, children, ...props }) {
+  const style = cx(
+    'inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold transition active:scale-[.98] disabled:opacity-50',
+    variant === 'primary' && 'bg-${a}-600 text-white shadow-lg shadow-${a}-600/25 hover:bg-${a}-700',
+    variant === 'secondary' && 'border border-slate-300 bg-white text-slate-800 hover:border-slate-400',
+    variant === 'ghost' && 'text-${a}-700 hover:bg-${a}-50',
+    className
+  );
+  return href ? <a href={href} className={style} {...props}>{children}</a> : <button className={style} {...props}>{children}</button>;
+}
+
+export function Card({ className, children, ...props }) {
+  return <div className={cx('rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm', className)} {...props}>{children}</div>;
+}
+
+export function Badge({ className, children }) {
+  return <span className={cx('inline-flex items-center gap-1.5 rounded-full bg-${a}-50 px-3 py-1 text-sm font-semibold text-${a}-700 ring-1 ring-${a}-100', className)}>{children}</span>;
+}
+
+// A labelled form control: <Field label="Dog's name" name="dog" required />, as="select" with options, or as="textarea".
+export function Field({ label, as = 'input', options = [], className, ...props }) {
+  const control = 'mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-${a}-500 focus:ring-2 focus:ring-${a}-500/30';
+  return (
+    <label className={cx('block text-sm font-medium text-slate-700', className)}>
+      {label}
+      {as === 'select' ? (
+        <select className={control} {...props}>{options.map((o) => <option key={o}>{o}</option>)}</select>
+      ) : as === 'textarea' ? (
+        <textarea rows={3} className={control} {...props} />
+      ) : (
+        <input className={control} {...props} />
+      )}
+    </label>
+  );
+}
+
+export function Success({ title, children }) {
+  return (
+    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
+      <Check className="mx-auto h-10 w-10 text-emerald-600" />
+      <h3 className="mt-3 text-xl font-bold text-slate-900">{title}</h3>
+      {children && <p className="mt-1 text-slate-600">{children}</p>}
+    </div>
+  );
+}
+`;
+}
+
 /** True while the app is still the placeholder it was created with. */
 export function isFreshApp(files: CodeFiles): boolean {
   const paths = Object.keys(files);
@@ -122,9 +207,10 @@ ${filesContext(files)}
 This is a NEW app. To build it fast, answer with ONLY these three things, in this order:
 <plan>
 design: one line every section will follow: accent color (a Tailwind color name), backgrounds, headline style, corner radius, mood
-src/components/Header.jsx: exactly what it shows and does (content, sample data, interactions), in one line
+src/components/BookingForm.jsx: what it shows and does, in under 15 words
 src/components/Hero.jsx: ...
 (5 to 8 files in src/components/, one per section of the page, each small enough to write in about 50 lines)
+List the sections that need the most code FIRST (forms, schedules, lists, galleries) and the simplest LAST (header, footer): each one starts being written the moment its line appears. App.jsx decides the order on the page.
 Keep each section's content small (a form: at most 4 fields; lists: at most 4 items). Anything that would still run long is TWO sections: a booking or contact form becomes a picker (ServicePicker.jsx) and a details form (BookingDetails.jsx); a schedule with filters becomes the filters and the list; a menu becomes categories and items.
 When two sections must share something (the chosen service, a selected day, a cart), end both of their lines with "shares: <key>", using the same key.
 </plan>
@@ -157,8 +243,9 @@ ${name ? `Write it as \`export default function ${name}() { ... }\` and add \`ex
 Answer with ONLY <file path="${input.path}">...the complete file...</file>. No <reply>.
 - About 50 lines, never more than 80. Speed matters: the owner is watching, and the slowest file holds up the whole app.
 - Keep the content small: a form has at most 4 fields and uses the browser's \`required\` (and \`type="email"\`) instead of validation code or per-field error messages; at most 4 cards or list items; at most 3 FAQ entries; no long arrays of options. The owner can ask for more later.
-- Self-contained: keep its sample data inside this file. Do NOT import other files from src/ (they are being written right now). Import only react and the allowed libraries.
-- One exception: src/lib/shared.js already exists. If your plan line says "shares: <key>", share that value with \`import { useShared } from '@/lib/shared'\` and \`const [value, setValue] = useShared('<key>', initialValue)\`; it works like useState, shared with the other section by that key. Sample data both sections need (like the list of services) must be written the same way in both.
+- Self-contained: keep its sample data inside this file. Do NOT import other files from src/ (they are being written right now), except the two below. Import only react, the allowed libraries, '@/lib/ui' and '@/lib/shared'.
+- src/lib/ui.jsx already exists and matches the design: \`import { Section, Heading, Button, Card, Badge, Field, Success } from '@/lib/ui'\`. Use it for the common pieces, ESPECIALLY \`<Field label="Your email" name="email" type="email" required />\` for every form control (as="select" with options={[...]}, or as="textarea"), \`<Button>\` / \`<Button href="#book" variant="secondary">\` for buttons, \`<Section id="...">\` + \`<Heading eyebrow title subtitle />\` for a section's frame, and \`<Success title="...">\` after a form is sent. Plain Tailwind for everything else.
+- One exception to "don't import other files": src/lib/shared.js already exists. If your plan line says "shares: <key>", share that value with \`import { useShared } from '@/lib/shared'\` and \`const [value, setValue] = useShared('<key>', initialValue)\`; it works like useState, shared with the other section by that key. Sample data both sections need (like the list of services) must be written the same way in both.
 - A complete, polished, responsive section that looks great on a phone, following the design line exactly so it matches the rest of the app.`;
 }
 
@@ -209,7 +296,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
   const launched = new Map<string, Promise<{ path: string; content: string | null; error?: unknown }>>();
   let planText = "";
   // The shared-state file goes first, so it's in place (and in the preview) before any section needs it.
-  const seeded = { ...opts.files, [SHARED_PATH]: SHARED_FILE };
+  const seeded: CodeFiles = { ...opts.files, [SHARED_PATH]: SHARED_FILE };
   opts.send(`<file path="${SHARED_PATH}">\n${SHARED_FILE}\n</file>\n`);
   let design = "";
   let planDone = false;
@@ -254,8 +341,15 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     buffers.set(path, b);
   };
 
+  // The building blocks go out just before the first section starts, in the accent the plan chose.
+  const built: { kit: string | null } = { kit: null };
   const launch = (path: string, usedAs: string[], plan: string | undefined, app?: string) => {
     if (launched.has(path) || launched.size >= MAX_PARTS) return;
+    if (built.kit === null) {
+      built.kit = uiKit(accentOf(design));
+      seeded[UI_PATH] = built.kit;
+      emit(`\n<file path="${UI_PATH}">\n${built.kit}\n</file>`);
+    }
     if (timeline) timeline.sections[path] = { start: at() };
     emit(`\n<writing path="${path}" />`);
     launched.set(
@@ -307,7 +401,7 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
 
   const first = parseReply(planText);
   if (first.incomplete.length) return { error: `The AI's answer was cut off while writing ${first.incomplete[0]}. Nothing was changed. Try again.` };
-  const changes: Record<string, string> = { [SHARED_PATH]: SHARED_FILE };
+  const changes: Record<string, string> = { [SHARED_PATH]: SHARED_FILE, ...(built.kit === null ? {} : { [UI_PATH]: built.kit }) };
   for (const [path, content] of Object.entries(first.changes)) if (typeof content === "string") changes[path] = content;
   // Only a question back (no plan, no files): nothing changes, not even the shared-state file.
   if (Object.keys(first.changes).length === 0 && launched.size === 0) return { reply: first.reply, changes: {} };
@@ -317,6 +411,11 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
   for (let round = 0; round < MAX_ROUNDS; round++) {
     // Anything App.jsx (or a finished section) imports that nobody is writing yet.
     for (const m of missingImports(files)) if (!launched.has(m.path)) launch(m.path, m.usedAs, parts[m.path], files["src/App.jsx"]);
+    // Building blocks made only now (no section started during the plan) are saved with the app too.
+    if (built.kit !== null) {
+      changes[UI_PATH] = built.kit;
+      files = { ...files, [UI_PATH]: built.kit };
+    }
     const pending = [...launched.entries()].filter(([path]) => !(path in changes));
     if (pending.length === 0) break;
     const written = await Promise.all(pending.map(([, p]) => p));

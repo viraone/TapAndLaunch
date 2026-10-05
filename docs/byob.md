@@ -73,7 +73,13 @@ writes a React app, shown live next to the chat. The block-based chat above stil
   missing after that (`missingImports`) gets one more round. Sections are asked to be self-contained and ~50 lines; the
   slowest section sets the total, so the plan splits anything long (a booking form becomes a picker and a details form).
   Split sections share values through `src/lib/shared.js` (`useShared(key, initial)`, written by us, not the AI, and added
-  to every new app), named in the plan as "shares: <key>". Their
+  to every new app), named in the plan as "shares: <key>".
+- Every new app also gets `src/lib/ui.jsx` (`uiKit`, written by us in the plan's accent color, `accentOf`): `Section`,
+  `Heading`, `Button`, `Card`, `Badge`, `Field`, `Success`. A form field is one line instead of ~400 characters, which
+  matters because the slowest section (usually a form) sets the build time; measured on a real build, a 4-field form was
+  4 KB, 36% of it class names. The plan lists the heaviest sections first, in short lines, so they start earliest.
+- Each build's timeline is saved in `ai_generations.details` (migration 0032): the model that answered, total time,
+  when the plan finished, and each section's start / first text / done / size. Read it to see where time goes. Their
   output is streamed to the browser as whole `<file>` blocks, held back while the plan step is inside a `<file>` or
   `<reply>`, and announced with `<writing path="…"/>` lines.
 - Sections stream onto the screen while they are written (added 2026-10-05). Each section's text is forwarded as

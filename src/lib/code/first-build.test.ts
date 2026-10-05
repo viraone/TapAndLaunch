@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { firstBuild, isFreshApp, missingImports, parsePlan, SlowDown, type Ask } from "./first-build";
+import { accentOf, firstBuild, isFreshApp, missingImports, parsePlan, SlowDown, uiKit, type Ask } from "./first-build";
+import { parse } from "@babel/parser";
 import { starterFiles } from "./prompt";
 import { parseReply } from "./files";
 import { demux } from "./protocol";
@@ -73,7 +74,7 @@ describe("the two-step build", () => {
     expect("error" in result).toBe(false);
     if ("error" in result) return;
     expect(result.reply).toBe("Building a gym app.");
-    expect(Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx", "src/data/classes.js", "src/lib/shared.js"]);
+    expect(Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx", "src/data/classes.js", "src/lib/shared.js", "src/lib/ui.jsx"]);
     expect(asked.sort()).toEqual(["src/components/Header.jsx", "src/components/Hero.jsx", "src/data/classes.js"]);
     // All three were written at once: about one section's time, not three.
     expect(most).toBe(3);
@@ -92,7 +93,7 @@ describe("the two-step build", () => {
       return `<file path="${path}">\n${body}\n</file>`;
     };
     const result = await firstBuild({ files: starterFiles("x"), message: "x", history: [], ask, send: () => {} });
-    expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Card.jsx", "src/components/Hero.jsx", "src/lib/shared.js"]);
+    expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Card.jsx", "src/components/Hero.jsx", "src/lib/shared.js", "src/lib/ui.jsx"]);
   });
 
   it("tries a section again after a slow-down, and reports one it can't write", async () => {
@@ -133,7 +134,7 @@ describe("the two-step build", () => {
     };
     const sent: string[] = [];
     const result = await firstBuild({ files: starterFiles("Gym"), message: "gym", history: [], ask, send: (t) => sent.push(t) });
-    expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx", "src/lib/shared.js"]);
+    expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx", "src/lib/shared.js", "src/lib/ui.jsx"]);
     expect(events.indexOf("start src/components/Hero.jsx")).toBeLessThan(events.indexOf("plan done"));
     // What the browser got still reads cleanly: App.jsx is whole, and each section arrived as its own file.
     const parsed = parseReply(sent.join(""));
@@ -141,7 +142,7 @@ describe("the two-step build", () => {
     expect(parsed.changes["src/App.jsx"]).not.toContain("<file");
     expect(parsed.reply).toBe("Gym!");
     expect(sent.join("")).toContain("<reply>Gym!</reply>");
-    expect(Object.keys(parsed.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx", "src/lib/shared.js"]);
+    expect(Object.keys(parsed.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx", "src/lib/shared.js", "src/lib/ui.jsx"]);
   });
 
   it("reports a provider failure in a section as that failure, without an unhandled rejection", async () => {
@@ -167,7 +168,7 @@ describe("the two-step build", () => {
       return `<file path="${path}">\nimport { useShared } from '@/lib/shared';\nexport default function X() { const [s] = useShared('service', null); return s; }\n</file>`;
     };
     const result = await firstBuild({ files: starterFiles("x"), message: "x", history: [], ask, send: () => {} });
-    expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Details.jsx", "src/components/Picker.jsx", "src/lib/shared.js"]);
+    expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Details.jsx", "src/components/Picker.jsx", "src/lib/shared.js", "src/lib/ui.jsx"]);
     expect("changes" in result && result.changes["src/lib/shared.js"]).toContain("export function useShared");
   });
 
@@ -193,5 +194,16 @@ describe("the two-step build", () => {
     // Half-way through, the pieces received so far are the start of the section.
     const half = demux(all.slice(0, all.indexOf("Fresh") + 20)).streams["src/components/Hero.jsx"] ?? "";
     expect(heroText.startsWith(half)).toBe(true);
+  });
+
+  it("gives every new app building blocks in the accent the plan chose", async () => {
+    expect(accentOf("accent teal-600, white and slate-50 backgrounds")).toBe("teal");
+    expect(accentOf("slate neutrals, warm amber highlights")).toBe("amber");
+    expect(accentOf("clean and calm")).toBe("indigo");
+    const kit = uiKit("teal");
+    expect(kit).toContain("bg-teal-600");
+    expect(kit).toContain("export function Field(");
+    expect(parse(kit, { sourceType: "module", plugins: ["jsx"] })).toBeTruthy();
+    expect(uiKit("not-a-color")).toContain("bg-indigo-600");
   });
 });
