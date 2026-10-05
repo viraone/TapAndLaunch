@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 export interface RuntimeEvent {
   id: string;
@@ -13,16 +13,29 @@ export interface RuntimeEvent {
   bookedCount: number;
 }
 
-function formatRange(startsAt: string, endsAt: string | null): string {
+/** The page is drawn on the server first, which has no idea where the visitor is, so it uses US Pacific time (where
+ * most apps are) and the browser then switches to the visitor's own time zone. Formatting once in each place with
+ * different zones is what made React report a mismatch before. */
+const SERVER_TIME_ZONE = "America/Los_Angeles";
+const noopSubscribe = () => () => {};
+
+export function formatRange(startsAt: string, endsAt: string | null, timeZone?: string): string {
   const start = new Date(startsAt);
-  const startLabel = start.toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone, dateStyle: "short" }).format(d);
+  const startLabel = start.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", timeZone });
   if (!endsAt) return startLabel;
   const end = new Date(endsAt);
-  const sameDay = start.toDateString() === end.toDateString();
-  return `${startLabel} – ${end.toLocaleString(undefined, sameDay ? { timeStyle: "short" } : { dateStyle: "medium", timeStyle: "short" })}`;
+  const sameDay = day(start) === day(end);
+  return `${startLabel} – ${end.toLocaleString(undefined, sameDay ? { timeStyle: "short", timeZone } : { dateStyle: "medium", timeStyle: "short", timeZone })}`;
+}
+
+function EventTime({ startsAt, endsAt }: { startsAt: string; endsAt: string | null }) {
+  const text = useSyncExternalStore(
+    noopSubscribe,
+    () => formatRange(startsAt, endsAt),
+    () => formatRange(startsAt, endsAt, SERVER_TIME_ZONE)
+  );
+  return <time dateTime={startsAt}>{text}</time>;
 }
 
 export function EventBookRuntime({ event }: { event: RuntimeEvent }) {
@@ -63,7 +76,9 @@ export function EventBookRuntime({ event }: { event: RuntimeEvent }) {
   return (
     <div className="space-y-2 rounded-md border p-4">
       <h3 className="font-medium">{event.title}</h3>
-      <p className="text-sm text-muted-foreground">{formatRange(event.starts_at, event.ends_at)}</p>
+      <p className="text-sm text-muted-foreground">
+        <EventTime startsAt={event.starts_at} endsAt={event.ends_at} />
+      </p>
       {event.location && <p className="text-sm text-muted-foreground">{event.location}</p>}
       {event.description && <p className="text-sm">{event.description}</p>}
 

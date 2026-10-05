@@ -12,6 +12,12 @@ import type {
   TextBlockConfig,
   VideoBlockConfig,
   ZoomMeetingBlockConfig,
+  HeroBlockConfig,
+  PriceListBlockConfig,
+  HoursBlockConfig,
+  ReviewsBlockConfig,
+  StatsBlockConfig,
+  GalleryBlockConfig,
 } from "@/types/database";
 
 /**
@@ -37,4 +43,10 @@ export type BuilderBlock =
   | { id: string; type: "gas_directory"; config: GasDirectoryBlockConfig; minTier: string | null }
   | { id: string; type: "food_directory"; config: FoodDirectoryBlockConfig; minTier: string | null }
   | { id: string; type: "open_mic_signup"; config: OpenMicSignupBlockConfig; minTier: string | null }
-  | { id: string; type: "class_finder"; config: ClassFinderBlockConfig; minTier: string | null };
+  | { id: string; type: "class_finder"; config: ClassFinderBlockConfig; minTier: string | null }
+  | { id: string; type: "hero"; config: HeroBlockConfig; minTier: string | null }
+  | { id: string; type: "price_list"; config: PriceListBlockConfig; minTier: string | null }
+  | { id: string; type: "hours"; config: HoursBlockConfig; minTier: string | null }
+  | { id: string; type: "reviews"; config: ReviewsBlockConfig; minTier: string | null }
+  | { id: string; type: "stats"; config: StatsBlockConfig; minTier: string | null }
+  | { id: string; type: "gallery"; config: GalleryBlockConfig; minTier: string | null };

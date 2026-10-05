@@ -16,6 +16,14 @@ _Last checked: 2026-10-05._ What a brand-new customer sees, and how the app-from
    icon** (ticks when an icon is uploaded or colors are saved in App settings: `theme.looks_confirmed`), Publish, **Scan the QR
    code** (opens the app's page, which has the QR code; ticks when someone opens the app).
 
+## Showcase templates
+"Gym or studio" and "Restaurant or café" open as finished-looking apps: a photo banner with a button, a strip of highlights,
+a menu or membership price list, a photo gallery, reviews and opening hours, in a style of their own (the gym is dark with a
+red accent, the restaurant warm cream with burnt orange), with a tab bar. The gym also creates six sample classes for the next
+week (`StarterEvent`, `sampleEventRows`, placed in Pacific time), each marked as a sample. The six showcase blocks are in
+`src/components/pwa-runtime/ShowcaseBlocks.tsx` (editors in `builder/blocks/ShowcaseEditors.tsx`), photos in
+`template-photos.md`. The other nine templates still use the plain blocks.
+
 ## Describe your app
 `POST /api/apps/generate` takes a sentence (10 to 500 characters) and an optional name, designs a first version and creates it
 exactly like the template picker does (`createAppFromStarter`, shared with `POST /api/apps`).

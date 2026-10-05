@@ -14,7 +14,14 @@ import type {
   TextBlockConfig,
   VideoBlockConfig,
   ZoomMeetingBlockConfig,
+  HeroBlockConfig,
+  PriceListBlockConfig,
+  HoursBlockConfig,
+  ReviewsBlockConfig,
+  StatsBlockConfig,
+  GalleryBlockConfig,
 } from "@/types/database";
+import { GalleryBlockView, HeroBlockView, HoursBlockView, PriceListBlockView, ReviewsBlockView, StatsBlockView } from "@/components/pwa-runtime/ShowcaseBlocks";
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
 import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
@@ -94,6 +101,18 @@ export function BlockRenderer({
       );
     case "class_finder":
       return live ? <ClassFinderRuntime config={block.config as ClassFinderBlockConfig} /> : <ClassFinderBlockView config={block.config as ClassFinderBlockConfig} />;
+    case "hero":
+      return <HeroBlockView config={block.config as HeroBlockConfig} live={live} />;
+    case "price_list":
+      return <PriceListBlockView config={block.config as PriceListBlockConfig} />;
+    case "hours":
+      return <HoursBlockView config={block.config as HoursBlockConfig} live={live} />;
+    case "reviews":
+      return <ReviewsBlockView config={block.config as ReviewsBlockConfig} />;
+    case "stats":
+      return <StatsBlockView config={block.config as StatsBlockConfig} />;
+    case "gallery":
+      return <GalleryBlockView config={block.config as GalleryBlockConfig} live={live} />;
     default:
       return <UnknownBlockView type={block.type} />;
   }

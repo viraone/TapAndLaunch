@@ -57,6 +57,29 @@ export function defaultConfigFor(type: BlockType): BlockConfig {
         area_longitude: -122.3505,
         class_types: ["pilates", "yoga", "spin", "lifting", "climbing"],
       };
+    case "hero":
+      return { image_url: "", eyebrow: "", headline: "Your big headline", subtext: "One line about what makes you special.", button_label: "", button_page: "" };
+    case "price_list":
+      return {
+        title: "Menu",
+        sections: [{ name: "Favourites", items: [{ name: "Item name", description: "A short description", price: "$10" }] }],
+      };
+    case "hours":
+      return {
+        title: "Hours & location",
+        rows: [
+          { label: "Mon to Fri", value: "9am to 6pm" },
+          { label: "Sat and Sun", value: "10am to 4pm" },
+        ],
+        address: "",
+        phone: "",
+      };
+    case "reviews":
+      return { title: "What people say", items: [{ quote: "Absolutely love this place.", name: "A happy customer", rating: 5 }] };
+    case "stats":
+      return { items: [{ value: "4.9★", label: "Rating" }, { value: "10+", label: "Years open" }, { value: "1,000+", label: "Happy customers" }] };
+    case "gallery":
+      return { title: "", images: [] };
     case "open_mic_signup":
       return {
         title: "Open Mic Sign-Up",
@@ -88,6 +111,12 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   food_directory: "Live food",
   open_mic_signup: "Open mic sign-up",
   class_finder: "Fitness classes",
+  hero: "Banner",
+  price_list: "Menu & prices",
+  hours: "Hours & location",
+  reviews: "Reviews",
+  stats: "Highlights",
+  gallery: "Photo gallery",
 };
 
 export const BLOCK_TYPES: BlockType[] = [
@@ -104,4 +133,10 @@ export const BLOCK_TYPES: BlockType[] = [
   "food_directory",
   "open_mic_signup",
   "class_finder",
+  "hero",
+  "price_list",
+  "hours",
+  "reviews",
+  "stats",
+  "gallery",
 ];

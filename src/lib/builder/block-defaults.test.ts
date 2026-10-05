@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { BLOCK_TYPES, BLOCK_TYPE_LABELS, defaultConfigFor } from "@/lib/builder/block-defaults";
 
 describe("block defaults", () => {
-  it("lists exactly thirteen distinct block types ending in class_finder", () => {
-    expect(BLOCK_TYPES).toHaveLength(13);
+  it("lists exactly nineteen distinct block types, the showcase blocks last", () => {
+    expect(BLOCK_TYPES).toHaveLength(19);
     expect(new Set(BLOCK_TYPES).size).toBe(BLOCK_TYPES.length);
-    expect(BLOCK_TYPES[BLOCK_TYPES.length - 1]).toBe("class_finder");
+    expect(BLOCK_TYPES.slice(-6)).toEqual(["hero", "price_list", "hours", "reviews", "stats", "gallery"]);
   });
 
   it("has a non-empty label and an object default config for every block type", () => {

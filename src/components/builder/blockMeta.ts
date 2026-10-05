@@ -12,6 +12,12 @@ import {
   UtensilsCrossed,
   Ticket,
   Dumbbell,
+  GalleryHorizontalEnd,
+  Clock,
+  Star,
+  ListOrdered,
+  PanelTop,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import type { BlockType } from "@/types/database";
@@ -31,6 +37,12 @@ export const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   listing_directory: Mic,
   open_mic_signup: Ticket,
   class_finder: Dumbbell,
+  hero: PanelTop,
+  price_list: ListOrdered,
+  hours: Clock,
+  reviews: Star,
+  stats: Sparkles,
+  gallery: GalleryHorizontalEnd,
 };
 
 /** Each block gets its own accent so the library reads as a set of tools,
@@ -49,6 +61,12 @@ export const BLOCK_ACCENTS: Record<BlockType, string> = {
   listing_directory: "from-orange-400 to-rose-500 text-white",
   open_mic_signup: "from-red-500 to-rose-600 text-white",
   class_finder: "from-orange-500 to-pink-600 text-white",
+  hero: "from-indigo-400 to-pink-500 text-white",
+  price_list: "from-lime-300 to-emerald-500 text-emerald-950",
+  hours: "from-cyan-300 to-sky-500 text-sky-950",
+  reviews: "from-yellow-300 to-amber-500 text-amber-950",
+  stats: "from-purple-400 to-indigo-500 text-white",
+  gallery: "from-pink-300 to-rose-500 text-white",
 };
 
 export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
@@ -65,10 +83,17 @@ export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
   food_directory: "What's open to eat right now",
   open_mic_signup: "Request a spot with a code",
   class_finder: "Every fitness class nearby, by day",
+  hero: "A big photo, headline and button",
+  price_list: "A menu, services or price list",
+  hours: "Opening hours, address and phone",
+  reviews: "Quotes from happy customers",
+  stats: "Short facts that build trust",
+  gallery: "A grid of photos",
 };
 
 export const BLOCK_GROUPS: Array<{ label: string; types: BlockType[] }> = [
-  { label: "Content", types: ["text", "image", "video"] },
+  { label: "Showcase", types: ["hero", "stats", "gallery", "reviews"] },
+  { label: "Content", types: ["text", "image", "video", "price_list", "hours"] },
   { label: "Engage", types: ["contact_form", "zoom_meeting", "canva_embed"] },
   { label: "Sell & book", types: ["product_list", "event_calendar"] },
   { label: "Live data", types: ["listing_directory", "gas_directory", "food_directory", "open_mic_signup", "class_finder"] },

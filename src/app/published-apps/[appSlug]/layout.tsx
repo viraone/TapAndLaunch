@@ -7,6 +7,7 @@ import { MemberAccountBar } from "@/components/pwa-runtime/MemberAccountBar";
 import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { getCurrentMember } from "@/lib/pwa/get-current-member";
 import { orgInGoodStanding } from "@/lib/billing/standing";
+import { readableOn } from "@/lib/pwa/color";
 
 // `params` is typed manually (Promise<{...}>) rather than via the generated
 // `LayoutProps<'/published-apps/[appSlug]'>` helper: that helper only exists after
@@ -86,12 +87,11 @@ export default async function PublishedAppLayout({
   // usage in the subtree (Tailwind v4's `@theme inline` keeps those
   // utilities as `var(--primary)` references rather than baking the value
   // at build time — see globals.css) — this is the one CSS variable this
-  // phase re-themes; `--primary-foreground` isn't recomputed for contrast
-  // against a light `primary_color`, a known limitation until theming gets
-  // a proper contrast-aware palette generator.
+  // phase re-themes, along with `--primary-foreground`, which is white or
+  // near-black depending on which reads better on `primary_color`.
   const style: React.CSSProperties & Record<string, string | undefined> = {
     ...(dark ? { ...DARK_TOKENS, ...(theme.background_color ? { "--background": theme.background_color } : {}) } : {}),
-    ...(theme.primary_color ? { "--primary": theme.primary_color } : {}),
+    ...(theme.primary_color ? { "--primary": theme.primary_color, "--primary-foreground": readableOn(theme.primary_color) } : {}),
     ...(theme.background_color ? { backgroundColor: theme.background_color } : {}),
     ...(theme.font_family ? { fontFamily: theme.font_family } : {}),
   };

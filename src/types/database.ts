@@ -25,7 +25,13 @@ export type BlockType =
   | "gas_directory"
   | "food_directory"
   | "open_mic_signup"
-  | "class_finder";
+  | "class_finder"
+  | "hero"
+  | "price_list"
+  | "hours"
+  | "reviews"
+  | "stats"
+  | "gallery";
 export type AnalyticsEventType =
   | "view"
   | "install"
@@ -107,7 +113,56 @@ export type BlockConfig =
   | GasDirectoryBlockConfig
   | FoodDirectoryBlockConfig
   | OpenMicSignupBlockConfig
-  | ClassFinderBlockConfig;
+  | ClassFinderBlockConfig
+  | HeroBlockConfig
+  | PriceListBlockConfig
+  | HoursBlockConfig
+  | ReviewsBlockConfig
+  | StatsBlockConfig
+  | GalleryBlockConfig;
+
+/** A full-width photo with a headline and an optional button that opens another page of the app. */
+export interface HeroBlockConfig {
+  image_url?: string;
+  eyebrow?: string;
+  headline?: string;
+  subtext?: string;
+  button_label?: string;
+  /** Path of the page the button opens, e.g. "classes". Empty hides the button. */
+  button_page?: string;
+}
+
+/** A menu or price list: named sections of items with an optional description, price and small badge. */
+export interface PriceListBlockConfig {
+  title?: string;
+  subtitle?: string;
+  sections?: Array<{ name: string; items: Array<{ name: string; description?: string; price?: string; badge?: string }> }>;
+}
+
+/** Opening hours (one row per day or range), with an address that opens in maps and a phone number to tap. */
+export interface HoursBlockConfig {
+  title?: string;
+  rows?: Array<{ label: string; value: string }>;
+  address?: string;
+  phone?: string;
+}
+
+/** Quotes from happy customers, with an optional star rating. */
+export interface ReviewsBlockConfig {
+  title?: string;
+  items?: Array<{ quote: string; name: string; rating?: number }>;
+}
+
+/** A strip of two to four short facts, like "4.9★ rating" or "20+ classes a week". */
+export interface StatsBlockConfig {
+  items?: Array<{ value: string; label: string }>;
+}
+
+/** A grid of photos. */
+export interface GalleryBlockConfig {
+  title?: string;
+  images?: Array<{ src: string; alt?: string }>;
+}
 
 export interface TextBlockConfig {
   heading?: string;

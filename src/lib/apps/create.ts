@@ -1,6 +1,7 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import type { Starter } from "@/lib/apps/templates";
+import { sampleEventRows } from "@/lib/apps/sample-events";
 import { orgHasMaps } from "@/lib/platform/maps";
 import { MAPS_LOCKED_MESSAGE, isMapsBlock } from "@/lib/platform/maps-shared";
 
@@ -67,6 +68,12 @@ export async function createAppFromStarter(
   if (blockRows.length) {
     const { error: blockError } = await supabase.from("blocks").insert(blockRows);
     if (blockError) return fail(blockError.message);
+  }
+
+  // Sample classes or events, so a booking page has something in it on first open.
+  if (starter.events?.length) {
+    const { error: eventError } = await supabase.from("events").insert(sampleEventRows(created.id, starter.events));
+    if (eventError) return fail(eventError.message);
   }
 
   return { app: created };

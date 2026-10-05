@@ -94,19 +94,19 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     id: "restaurant",
     name: "Restaurant or café",
-    tagline: "Your menu, opening hours and a way to reserve a table.",
+    tagline: "Mouth-watering photos, your full menu, hours and table reservations.",
     icon: "utensils",
-    color: "#ea580c",
-    includes: ["Welcome", "Menu", "Reservation form"],
+    color: "#c2410c",
+    includes: ["Photo banner", "Menu", "Gallery", "Reviews", "Hours", "Reservations"],
     category: "food",
   },
   {
     id: "fitness",
     name: "Gym or studio",
-    tagline: "Show your classes, let people book a spot, and collect free-trial sign-ups.",
+    tagline: "A bold, dark look with your classes, memberships and free-trial sign-ups.",
     icon: "dumbbell",
-    color: "#0ea5e9",
-    includes: ["Welcome", "Class booking", "Free-trial form"],
+    color: "#e11d48",
+    includes: ["Photo banner", "Class booking", "Memberships", "Gallery", "Reviews", "Free trial"],
     category: "fitness",
   },
   {
@@ -159,11 +159,33 @@ export interface StarterPage {
   isHome: boolean;
   blocks: StarterBlock[];
 }
+/** A sample event created with the app, so a booking page isn't empty on first open. */
+export interface StarterEvent {
+  title: string;
+  description: string;
+  /** Days from today (0 = today). */
+  dayOffset: number;
+  /** Local start time, "HH:MM". */
+  time: string;
+  minutes: number;
+  capacity: number;
+}
+
 export interface Starter {
   theme: ThemeConfig;
   manifest: ManifestConfig;
   pages: StarterPage[];
+  events?: StarterEvent[];
 }
+
+/** A photo that ships with TapAndLaunch (public/templates), as a full address so it also loads inside customers' apps. */
+export function templatePhoto(name: string): string {
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
+  const local = /^(localhost|127\.|\d{1,3}(\.\d{1,3}){3})/.test(root);
+  return `${local ? "http" : "https"}://${root}/templates/${name}.jpg`;
+}
+
+const SAMPLE_NOTE = "This is a sample. Edit it or delete it under Manage, Events.";
 
 const block = (type: BlockType, overrides: Record<string, unknown> = {}): StarterBlock => ({
   type,
@@ -237,23 +259,96 @@ function buildStarterBody(templateId: string, appName: string): Starter {
       return { manifest, theme, pages: [home([block("gas_directory")])] };
     case "restaurant":
       return {
-        manifest,
+        manifest: { ...manifest, background_color: "#fff8f1" },
         theme: {
           ...theme,
+          background_color: "#fff8f1",
+          bottom_nav_style: "tabs",
           bottom_nav: [
             { label: "Home", icon: "home", page_path: "home" },
+            { label: "Menu", icon: "info", page_path: "menu" },
             { label: "Reserve", icon: "calendar", page_path: "reserve" },
           ],
         },
         pages: [
           home([
-            welcome("Fresh food, made with care. See the menu, check our hours and save yourself a table."),
-            block("text", {
-              heading: "Our menu",
-              body: "Starters\nAdd a dish, a short description and the price.\n\nMains\nAdd your best sellers here.\n\nDesserts\nSomething sweet to finish.",
+            block("hero", {
+              image_url: templatePhoto("restaurant-hero"),
+              eyebrow: "Fresh · Local · Made to order",
+              headline: "Good food, made with love.",
+              subtext: "Tacos, bowls and fresh salsas, made from scratch every morning.",
+              button_label: "Reserve a table",
+              button_page: "reserve",
             }),
-            block("text", { heading: "Hours and address", body: "Open daily 11am to 9pm\n123 Main Street" }),
+            block("stats", {
+              items: [
+                { value: "Daily", label: "Fresh salsas" },
+                { value: "15 min", label: "Pickup orders" },
+                { value: "Family", label: "Run since 2019" },
+              ],
+            }),
+            block("gallery", {
+              title: "Come hungry",
+              images: [
+                { src: templatePhoto("restaurant-room"), alt: "Our dining room with warm string lights" },
+                { src: templatePhoto("restaurant-latte"), alt: "A latte on a bright orange table" },
+                { src: templatePhoto("restaurant-cafe"), alt: "A cozy corner of the café" },
+              ],
+            }),
+            block("reviews", {
+              title: "Regulars say it best",
+              items: [
+                { quote: "The carnitas tacos are the best in the neighbourhood. We come every Friday.", name: "Maria G.", rating: 5 },
+                { quote: "Friendly staff, quick lunch, and the salsa bar is unreal.", name: "Daniel K.", rating: 5 },
+                { quote: "Booked a table for 8 from the app in a minute. Loved it.", name: "Priya S.", rating: 5 },
+              ],
+            }),
+            block("hours", {
+              title: "Hours",
+              rows: [
+                { label: "Mon to Thu", value: "11am to 9pm" },
+                { label: "Fri and Sat", value: "11am to 10pm" },
+                { label: "Sunday", value: "10am to 3pm (brunch)" },
+              ],
+              address: "",
+              phone: "",
+            }),
           ]),
+          {
+            name: "Menu",
+            path: "menu",
+            isHome: false,
+            blocks: [
+              block("price_list", {
+                title: "Menu",
+                subtitle: "Everything is made fresh. Ask us about gluten-free and vegan options.",
+                sections: [
+                  {
+                    name: "Tacos",
+                    items: [
+                      { name: "Carnitas", description: "Slow-cooked pork, pickled onion, cilantro", price: "$4.50", badge: "Popular" },
+                      { name: "Baja fish", description: "Crispy cod, chipotle crema, cabbage slaw", price: "$5.00" },
+                      { name: "Roasted cauliflower", description: "Pepita salsa, lime, queso fresco", price: "$4.00", badge: "Veggie" },
+                    ],
+                  },
+                  {
+                    name: "Bowls & salads",
+                    items: [
+                      { name: "Burrito bowl", description: "Rice, black beans, your choice of protein, all the toppings", price: "$13" },
+                      { name: "Street corn salad", description: "Charred corn, cotija, lime, chili", price: "$9" },
+                    ],
+                  },
+                  {
+                    name: "Drinks",
+                    items: [
+                      { name: "Horchata", description: "House-made, cinnamon and rice", price: "$4" },
+                      { name: "Latte", description: "Double shot, any milk", price: "$5" },
+                    ],
+                  },
+                ],
+              }),
+            ],
+          },
           {
             name: "Reserve",
             path: "reserve",
@@ -274,28 +369,98 @@ function buildStarterBody(templateId: string, appName: string): Starter {
       };
     case "fitness":
       return {
-        manifest,
+        manifest: { ...manifest, background_color: "#0a0a0a" },
         theme: {
           ...theme,
+          color_scheme: "dark",
+          background_color: "#0a0a0a",
+          bottom_nav_style: "tabs",
           bottom_nav: [
             { label: "Home", icon: "home", page_path: "home" },
             { label: "Classes", icon: "calendar", page_path: "classes" },
-            { label: "Join", icon: "mail", page_path: "join" },
+            { label: "Join", icon: "user", page_path: "join" },
           ],
         },
         pages: [
           home([
-            welcome("Move more, feel better. Browse our classes and book your spot from your phone."),
-            block("text", { heading: "What we offer", body: "Strength, yoga, cardio and more. Tell people what makes your classes different." }),
+            block("hero", {
+              image_url: templatePhoto("gym-hero"),
+              eyebrow: "Strength · Yoga · Martial arts",
+              headline: "Stronger every week.",
+              subtext: "Coached classes for every level, from first-timers to competitors. Your first class is on us.",
+              button_label: "Book a free class",
+              button_page: "classes",
+            }),
+            block("stats", {
+              items: [
+                { value: "20+", label: "Classes a week" },
+                { value: "All", label: "Levels welcome" },
+                { value: "1st", label: "Class free" },
+              ],
+            }),
+            block("price_list", {
+              title: "Memberships",
+              subtitle: "No sign-up fees. Pause or cancel any time.",
+              sections: [
+                {
+                  name: "Plans",
+                  items: [
+                    { name: "Drop-in class", description: "Any class, no commitment", price: "$20" },
+                    { name: "10-class pass", description: "Use within 3 months", price: "$170", badge: "Save 15%" },
+                    { name: "Unlimited", description: "Every class, every week", price: "$129/mo", badge: "Most popular" },
+                  ],
+                },
+              ],
+            }),
+            block("gallery", {
+              title: "Inside the studio",
+              images: [
+                { src: templatePhoto("gym-yoga"), alt: "A member stretching on a yoga mat" },
+                { src: templatePhoto("gym-karate"), alt: "A young student in a karate uniform" },
+                { src: templatePhoto("gym-weights"), alt: "A rack of dumbbells" },
+              ],
+            }),
+            block("reviews", {
+              title: "Members say",
+              items: [
+                { quote: "I was nervous to start, but the coaches made my first class feel easy. Six months in and I'm hooked.", name: "Jordan T.", rating: 5 },
+                { quote: "My kids love their karate class, and I love that I can book it from my phone.", name: "Alicia M.", rating: 5 },
+                { quote: "Best community in town. The 6am crew keeps me honest.", name: "Sam R.", rating: 5 },
+              ],
+            }),
+            block("hours", {
+              title: "Hours",
+              rows: [
+                { label: "Mon to Fri", value: "6am to 9pm" },
+                { label: "Saturday", value: "8am to 4pm" },
+                { label: "Sunday", value: "9am to 1pm" },
+              ],
+              address: "",
+              phone: "",
+            }),
           ]),
-          { name: "Classes", path: "classes", isHome: false, blocks: [block("event_calendar", { title: "Book a class" })] },
+          {
+            name: "Classes",
+            path: "classes",
+            isHome: false,
+            blocks: [
+              block("text", { heading: "Book a class", body: "Pick a class and save your spot. New here? Your first class is free." }),
+              block("event_calendar", { title: "This week" }),
+            ],
+          },
           {
             name: "Join",
             path: "join",
             isHome: false,
             blocks: [
+              block("hero", {
+                image_url: templatePhoto("gym-karate"),
+                eyebrow: "New members",
+                headline: "Your first class is free.",
+                subtext: "Tell us a little about you and we'll save you a spot.",
+              }),
               block("contact_form", {
-                title: "Try a free class",
+                title: "Claim your free class",
                 submit_label: "Claim my free class",
                 fields: [
                   { name: "name", label: "Your name", type: "text", required: true },
@@ -305,6 +470,14 @@ function buildStarterBody(templateId: string, appName: string): Starter {
               }),
             ],
           },
+        ],
+        events: [
+          { title: "Morning Strength", description: `Full-body strength with a coach. All levels. ${SAMPLE_NOTE}`, dayOffset: 1, time: "06:30", minutes: 45, capacity: 16 },
+          { title: "Beginner Karate (kids 7 to 12)", description: `Fun, focused and safe. Uniforms not needed for your first class. ${SAMPLE_NOTE}`, dayOffset: 1, time: "17:30", minutes: 50, capacity: 14 },
+          { title: "Vinyasa Yoga", description: `Flow, breathe and stretch. Mats provided. ${SAMPLE_NOTE}`, dayOffset: 2, time: "18:00", minutes: 60, capacity: 20 },
+          { title: "HIIT 30", description: `Thirty minutes, all out. ${SAMPLE_NOTE}`, dayOffset: 3, time: "12:15", minutes: 30, capacity: 18 },
+          { title: "Adult Karate", description: `Technique, sparring drills and conditioning. ${SAMPLE_NOTE}`, dayOffset: 4, time: "19:00", minutes: 60, capacity: 16 },
+          { title: "Weekend Bootcamp", description: `Bring a friend. Outdoor if the weather is good. ${SAMPLE_NOTE}`, dayOffset: 5, time: "09:00", minutes: 60, capacity: 24 },
         ],
       };
     case "salon":
