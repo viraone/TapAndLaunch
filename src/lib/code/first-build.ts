@@ -9,7 +9,7 @@ import { chunk } from "./protocol";
  */
 
 /** One call to the AI: the conversation so far, and (optionally) a callback for the answer as it streams. */
-export type Ask = (turns: Array<{ role: "user" | "assistant"; content: string }>, onText?: (piece: string) => void) => Promise<string>;
+export type Ask = (turns: Array<{ role: "user" | "assistant"; content: string }>, onText?: (piece: string) => void, signal?: AbortSignal) => Promise<string>;
 
 /** Thrown by `ask` when the provider says to slow down; the section is tried again after a short pause. */
 export class SlowDown extends Error {}
@@ -255,6 +255,27 @@ function componentName(path: string): string | null {
   return m ? (m[1] as string) : null;
 }
 
+/**
+ * An App.jsx for when the plan step stopped before writing one: the planned sections in a sensible page order
+ * (header and hero first, footer last).
+ */
+export function fallbackApp(paths: string[]): string {
+  const rank = (p: string) => (/header|nav/i.test(p) ? 0 : /hero/i.test(p) ? 1 : /footer/i.test(p) ? 3 : 2);
+  const parts = paths
+    .filter((p) => /^src\/components\/[A-Z][A-Za-z0-9]*\.jsx$/.test(p))
+    .sort((a, b) => rank(a) - rank(b))
+    .map((p) => (p.split("/").pop() as string).replace(".jsx", ""));
+  return `${parts.map((n) => `import ${n} from '@/components/${n}';`).join("\n")}
+
+export default function App() {
+  return (
+    <div className="min-h-screen bg-white font-sans text-slate-900">
+${parts.map((n) => `      <${n} />`).join("\n")}
+    </div>
+  );
+}`;
+}
+
 export type FirstBuildResult = { reply: string; changes: Record<string, string> } | { error: string };
 
 /**
@@ -384,29 +405,58 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
     }
   };
 
+  // The plan step is stopped as soon as App.jsx is written, or the moment it starts writing a section itself (some
+  // models do, one after another, which took a real build to 34 seconds): the sections are being written in parallel.
+  const stop = new AbortController();
+  let cutAt = -1;
+  const check = () => {
+    const end = planText.indexOf("</plan>");
+    if (end === -1 || stop.signal.aborted) return;
+    if (/<file\s+path="src\/App\.jsx"\s*>[\s\S]*?<\/file>/.test(planText.slice(end))) return stop.abort();
+    const other = /<file\s+path="(?!src\/App\.jsx")[^"]*"/.exec(planText.slice(end));
+    if (other) {
+      cutAt = end + other.index;
+      opts.send("\n</file>\n"); // close what the browser was shown, so the rest of the answer reads cleanly
+      stop.abort();
+    }
+  };
   try {
-    planText = await opts.ask([...opts.history, { role: "user", content: planMessage(opts.files, opts.message) }], (piece) => {
-      if (timeline && timeline.planFirstText === undefined) timeline.planFirstText = at();
-      planText += piece;
-      opts.send(piece);
-      watchPlan();
-      flush();
-    });
+    planText = await opts.ask(
+      [...opts.history, { role: "user", content: planMessage(opts.files, opts.message) }],
+      (piece) => {
+        if (stop.signal.aborted) return;
+        if (timeline && timeline.planFirstText === undefined) timeline.planFirstText = at();
+        planText += piece;
+        opts.send(piece);
+        watchPlan();
+        check();
+        flush();
+      },
+      stop.signal
+    );
+  } catch (error) {
+    if (!stop.signal.aborted) throw error;
   } finally {
     planDone = true;
     if (timeline) timeline.planDone = at();
     flush();
   }
+  if (cutAt !== -1) planText = planText.slice(0, cutAt);
   watchPlan();
 
   const first = parseReply(planText);
   if (first.incomplete.length) return { error: `The AI's answer was cut off while writing ${first.incomplete[0]}. Nothing was changed. Try again.` };
   const changes: Record<string, string> = { [SHARED_PATH]: SHARED_FILE, ...(built.kit === null ? {} : { [UI_PATH]: built.kit }) };
-  for (const [path, content] of Object.entries(first.changes)) if (typeof content === "string") changes[path] = content;
+  // Sections being written in parallel win over any the plan step wrote itself.
+  for (const [path, content] of Object.entries(first.changes)) if (typeof content === "string" && !launched.has(path)) changes[path] = content;
+  if (!changes["src/App.jsx"] && launched.size > 0) {
+    changes["src/App.jsx"] = fallbackApp([...launched.keys()]);
+    emit(`\n<file path="src/App.jsx">\n${changes["src/App.jsx"]}\n</file>`);
+  }
   // Only a question back (no plan, no files): nothing changes, not even the shared-state file.
   if (Object.keys(first.changes).length === 0 && launched.size === 0) return { reply: first.reply, changes: {} };
 
-  let files = applyChanges(seeded, first.changes);
+  let files = applyChanges(seeded, changes);
   const { parts } = parsePlan(planText);
   for (let round = 0; round < MAX_ROUNDS; round++) {
     // Anything App.jsx (or a finished section) imports that nobody is writing yet.

@@ -92,17 +92,17 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
         const provider = keyRow.provider as AiProvider;
         // Builds use the provider's small, quick model; if the provider doesn't have it, the model chosen with the key does the job.
         let model = fastModel(provider, keyRow.model);
-        const ask: Ask = async (turns, onText = () => {}) => {
+        const ask: Ask = async (turns, onText = () => {}, signal) => {
           try {
             models.add(model);
-            return await streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, onText);
+            return await streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, onText, signal);
           } catch (error) {
             if (error instanceof ProviderError && error.status === 429) throw new SlowDown(error.message);
             if (model === keyRow.model || !(error instanceof ProviderError) || ![400, 404].includes(error.status)) throw error;
             models.add(`${model} (not available)`);
             model = keyRow.model;
             models.add(model);
-            return streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, onText);
+            return streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, onText, signal);
           }
         };
 

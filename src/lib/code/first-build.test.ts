@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accentOf, firstBuild, isFreshApp, missingImports, parsePlan, SlowDown, uiKit, type Ask } from "./first-build";
+import { accentOf, fallbackApp, firstBuild, isFreshApp, missingImports, parsePlan, SlowDown, uiKit, type Ask } from "./first-build";
 import { parse } from "@babel/parser";
 import { starterFiles } from "./prompt";
 import { parseReply } from "./files";
@@ -205,5 +205,45 @@ describe("the two-step build", () => {
     expect(kit).toContain("export function Field(");
     expect(parse(kit, { sourceType: "module", plugins: ["jsx"] })).toBeTruthy();
     expect(uiKit("not-a-color")).toContain("bg-indigo-600");
+  });
+
+  // A plan step that keeps going and writes the sections itself, one after another (a real build took 34s this way).
+  const greedy = (afterPlan: string): Ask => async (turns, onText, signal) => {
+    const last = turns.at(-1)?.content ?? "";
+    if (last.includes("This is a NEW app")) {
+      const text = `<plan>\ndesign: teal\nsrc/components/Hero.jsx: big headline\nsrc/components/Footer.jsx: links\n</plan>\n<reply>Building it.</reply>\n${afterPlan}<file path="src/components/Hero.jsx">\nexport default function Hero() { return <h1>FROM THE PLAN STEP</h1>; }\n</file>\n<file path="src/components/Footer.jsx">\nexport default function Footer() { return <footer>plan</footer>; }\n</file>`;
+      let sent = "";
+      for (const piece of text.match(/[\s\S]{1,10}/g) ?? []) {
+        if (signal?.aborted) throw new DOMException("aborted", "AbortError");
+        sent += piece;
+        onText?.(piece);
+        await wait(3);
+      }
+      return sent;
+    }
+    const path = /Your file: (\S+)/.exec(last)?.[1] as string;
+    await wait(5);
+    return `<file path="${path}">\nexport default function X() { return <p>PARALLEL ${path}</p>; }\n</file>`;
+  };
+
+  it("stops the plan step once App.jsx is written, and keeps the sections written in parallel", async () => {
+    const app = `<file path="src/App.jsx">\nimport Hero from '@/components/Hero';\nimport Footer from '@/components/Footer';\nexport default () => <><Hero /><Footer /></>;\n</file>\n`;
+    const sent: string[] = [];
+    const result = await firstBuild({ files: starterFiles("x"), message: "x", history: [], ask: greedy(app), send: (t) => sent.push(t) });
+    if (!("changes" in result)) throw new Error(JSON.stringify(result));
+    expect(result.changes["src/components/Hero.jsx"]).toContain("PARALLEL");
+    expect(result.changes["src/components/Footer.jsx"]).toContain("PARALLEL");
+    expect(result.changes["src/App.jsx"]).toContain("<Hero />");
+    expect(sent.join("")).not.toContain("FROM THE PLAN STEP");
+  });
+
+  it("stops the plan step when it starts a section before App.jsx, and makes App.jsx itself", async () => {
+    const result = await firstBuild({ files: starterFiles("x"), message: "x", history: [], ask: greedy(""), send: () => {} });
+    if (!("changes" in result)) throw new Error(JSON.stringify(result));
+    expect(result.reply).toBe("Building it.");
+    expect(result.changes["src/components/Hero.jsx"]).toContain("PARALLEL");
+    expect(result.changes["src/App.jsx"]).toBe(fallbackApp(["src/components/Hero.jsx", "src/components/Footer.jsx"]));
+    expect(result.changes["src/App.jsx"].indexOf("<Hero />")).toBeLessThan(result.changes["src/App.jsx"].indexOf("<Footer />"));
+    expect(parse(result.changes["src/App.jsx"], { sourceType: "module", plugins: ["jsx"] })).toBeTruthy();
   });
 });
