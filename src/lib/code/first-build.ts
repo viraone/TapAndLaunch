@@ -67,10 +67,55 @@ export function accentOf(design: string): string {
 
 export function uiKit(accent: string): string {
   const a = PALETTE.includes(accent) ? accent : "indigo";
-  return `import { Check } from 'lucide-react';
+  return `import { useState } from 'react';
+import { Check, Menu, X } from 'lucide-react';
 
 // Building blocks in this app's style. Use them for the common pieces; plain Tailwind for everything else.
 export const cx = (...classes) => classes.filter(Boolean).join(' ');
+
+// The top of every page: <SiteHeader name="Pawfect" links={[{ label: 'Services', href: '#services' }]} cta={{ label: 'Book now', href: '#book' }} />
+export function SiteHeader({ name, links = [], cta }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-6">
+        <a href="#" className="flex items-center gap-2.5 text-lg font-extrabold tracking-tight text-slate-900">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-${a}-600 text-base text-white shadow-sm">{(name || '?').charAt(0)}</span>
+          {name}
+        </a>
+        <nav className="ml-auto hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
+          {links.map((l) => <a key={l.href} href={l.href} className="transition hover:text-slate-900">{l.label}</a>)}
+        </nav>
+        {cta && <a href={cta.href} className="ml-auto hidden rounded-full bg-${a}-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-${a}-700 md:ml-0 md:inline-flex">{cta.label}</a>}
+        <button type="button" aria-label="Menu" onClick={() => setOpen(!open)} className="ml-auto grid h-11 w-11 place-items-center rounded-full text-slate-700 hover:bg-slate-100 md:hidden">{open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</button>
+      </div>
+      {open && (
+        <nav className="grid gap-1 border-t border-slate-200/70 bg-white px-6 py-3 md:hidden">
+          {links.map((l) => <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="rounded-xl px-3 py-3 font-medium text-slate-700 hover:bg-slate-50">{l.label}</a>)}
+          {cta && <a href={cta.href} onClick={() => setOpen(false)} className="mt-1 rounded-full bg-${a}-600 px-5 py-3 text-center font-semibold text-white">{cta.label}</a>}
+        </nav>
+      )}
+    </header>
+  );
+}
+
+// The bottom of every page: <SiteFooter name="Pawfect" tagline="Gentle grooming in Portland." links={[...]} />
+export function SiteFooter({ name, tagline, links = [] }) {
+  return (
+    <footer className="border-t border-slate-200/70 bg-slate-50">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-12 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-lg font-extrabold tracking-tight text-slate-900">{name}</p>
+          {tagline && <p className="mt-1 max-w-sm text-sm text-slate-600">{tagline}</p>}
+        </div>
+        <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-slate-600">
+          {links.map((l) => <a key={l.href} href={l.href} className="hover:text-slate-900">{l.label}</a>)}
+        </nav>
+      </div>
+      <p className="border-t border-slate-200/70 py-5 text-center text-xs text-slate-500">© {new Date().getFullYear()} {name}</p>
+    </footer>
+  );
+}
 
 export function Section({ id, className, children }) {
   return <section id={id} className={cx('mx-auto w-full max-w-6xl px-6 py-16 sm:py-20', className)}>{children}</section>;
@@ -207,16 +252,16 @@ ${filesContext(files)}
 This is a NEW app. To build it fast, answer with ONLY these three things, in this order:
 <plan>
 design: one line every section will follow: accent color (a Tailwind color name), backgrounds, headline style, corner radius, mood
-src/components/BookingForm.jsx: what it shows and does, in under 15 words
+src/components/BookingForm.jsx: what it shows and does, in under 15 words; its root has id="book"
 src/components/Hero.jsx: ...
-(5 to 8 files in src/components/, one per section of the page, each small enough to write in about 50 lines)
+(3 to 6 files in src/components/, one per section of the page, each small enough to write in about 50 lines. NO header and NO footer files: those are ready-made, see App.jsx below)
 List the sections that need the most code FIRST (forms, schedules, lists, galleries) and the simplest LAST (header, footer): each one starts being written the moment its line appears. App.jsx decides the order on the page.
 Keep each section's content small (a form: at most 4 fields; lists: at most 4 items). Anything that would still run long is TWO sections: a booking or contact form becomes a picker (ServicePicker.jsx) and a details form (BookingDetails.jsx); a schedule with filters becomes the filters and the list; a menu becomes categories and items.
 When two sections must share something (the chosen service, a selected day, a cart), end both of their lines with "shares: <key>", using the same key.
 </plan>
 <reply>One friendly sentence about what you're building.</reply>
 <file path="src/App.jsx">
-App.jsx imports every planned component with a default import (import Hero from '@/components/Hero') and renders them in order with no props. It holds only the page layout (or routing). Keep it short.
+App.jsx imports every planned component with a default import (import Hero from '@/components/Hero') and renders them in order with no props, between the ready-made header and footer: import { SiteHeader, SiteFooter } from '@/lib/ui', then <SiteHeader name="..." links={[{ label: 'Classes', href: '#classes' }]} cta={{ label: 'Book now', href: '#book' }} /> at the top and <SiteFooter name="..." tagline="..." links={[...]} /> at the bottom. Links point to the sections' ids. Keep it short.
 </file>
 Do NOT write the component files. Each one is written by someone else at the same time, starting the moment its plan line appears, without seeing the others, so write the plan FIRST and make every line specific.
 
@@ -244,7 +289,7 @@ Answer with ONLY <file path="${input.path}">...the complete file...</file>. No <
 - About 50 lines, never more than 80. Speed matters: the owner is watching, and the slowest file holds up the whole app.
 - Keep the content small: a form has at most 4 fields and uses the browser's \`required\` (and \`type="email"\`) instead of validation code or per-field error messages; at most 4 cards or list items; at most 3 FAQ entries; no long arrays of options. The owner can ask for more later.
 - Self-contained: keep its sample data inside this file. Do NOT import other files from src/ (they are being written right now), except the two below. Import only react, the allowed libraries, '@/lib/ui' and '@/lib/shared'.
-- src/lib/ui.jsx already exists and matches the design: \`import { Section, Heading, Button, Card, Badge, Field, Success } from '@/lib/ui'\`. Use it for the common pieces, ESPECIALLY \`<Field label="Your email" name="email" type="email" required />\` for every form control (as="select" with options={[...]}, or as="textarea"), \`<Button>\` / \`<Button href="#book" variant="secondary">\` for buttons, \`<Section id="...">\` + \`<Heading eyebrow title subtitle />\` for a section's frame, and \`<Success title="...">\` after a form is sent. Plain Tailwind for everything else.
+- src/lib/ui.jsx already exists and matches the design: \`import { Section, Heading, Button, Card, Badge, Field, Success } from '@/lib/ui'\`. (It also has SiteHeader and SiteFooter, which App.jsx already uses: don't add a header or footer.) Use it for the common pieces, ESPECIALLY \`<Field label="Your email" name="email" type="email" required />\` for every form control (as="select" with options={[...]}, or as="textarea"), \`<Button>\` / \`<Button href="#book" variant="secondary">\` for buttons, \`<Section id="...">\` + \`<Heading eyebrow title subtitle />\` for a section's frame, and \`<Success title="...">\` after a form is sent. Plain Tailwind for everything else.
 - One exception to "don't import other files": src/lib/shared.js already exists. If your plan line says "shares: <key>", share that value with \`import { useShared } from '@/lib/shared'\` and \`const [value, setValue] = useShared('<key>', initialValue)\`; it works like useState, shared with the other section by that key. Sample data both sections need (like the list of services) must be written the same way in both.
 - A complete, polished, responsive section that looks great on a phone, following the design line exactly so it matches the rest of the app.`;
 }
@@ -447,6 +492,11 @@ async function build(opts: BuildOptions, timers: Array<ReturnType<typeof setInte
   const first = parseReply(planText);
   if (first.incomplete.length) return { error: `The AI's answer was cut off while writing ${first.incomplete[0]}. Nothing was changed. Try again.` };
   const changes: Record<string, string> = { [SHARED_PATH]: SHARED_FILE, ...(built.kit === null ? {} : { [UI_PATH]: built.kit }) };
+  if (built.kit === null && /@\/lib\/ui/.test(first.changes["src/App.jsx"] ?? "")) {
+    built.kit = uiKit(accentOf(design));
+    seeded[UI_PATH] = built.kit;
+    emit(`\n<file path="${UI_PATH}">\n${built.kit}\n</file>`);
+  }
   // Sections being written in parallel win over any the plan step wrote itself.
   for (const [path, content] of Object.entries(first.changes)) if (typeof content === "string" && !launched.has(path)) changes[path] = content;
   if (!changes["src/App.jsx"] && launched.size > 0) {

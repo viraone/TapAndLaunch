@@ -75,7 +75,8 @@ writes a React app, shown live next to the chat. The block-based chat above stil
   Split sections share values through `src/lib/shared.js` (`useShared(key, initial)`, written by us, not the AI, and added
   to every new app), named in the plan as "shares: <key>".
 - Every new app also gets `src/lib/ui.jsx` (`uiKit`, written by us in the plan's accent color, `accentOf`): `Section`,
-  `Heading`, `Button`, `Card`, `Badge`, `Field`, `Success`. A form field is one line instead of ~400 characters, which
+  `Heading`, `Button`, `Card`, `Badge`, `Field`, `Success`, plus a ready-made `SiteHeader` (with a phone menu) and
+  `SiteFooter` that App.jsx places, so the AI doesn't write a header or footer section (those were often the biggest). A form field is one line instead of ~400 characters, which
   matters because the slowest section (usually a form) sets the build time; measured on a real build, a 4-field form was
   4 KB, 36% of it class names. The plan lists the heaviest sections first, in short lines, so they start earliest.
 - Each build's timeline is saved in `ai_generations.details` (migration 0032): the model that answered, total time,
