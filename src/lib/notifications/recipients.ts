@@ -60,7 +60,8 @@ export async function resolveEmailRecipients(
   target: NotificationTarget
 ): Promise<EmailRecipient[]> {
   const admin = createAdminClient();
-  let query = admin.from("app_members").select("id, email").eq("app_id", appId);
+  // Members who clicked Unsubscribe in an earlier email are left out.
+  let query = admin.from("app_members").select("id, email").eq("app_id", appId).is("email_unsubscribed_at", null);
   if (target.type === "tier") query = query.eq("tier", target.tier);
 
   const { data } = await query;

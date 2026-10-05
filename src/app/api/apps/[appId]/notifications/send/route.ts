@@ -3,7 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAppEditor } from "@/lib/org";
 import { isPushConfigured, sendPush } from "@/lib/notifications/push";
-import { isEmailConfigured, sendEmail } from "@/lib/notifications/email";
+import { isEmailConfigured, sendEmailBatch } from "@/lib/notifications/email";
+import { fromHeader, renderEmailHtml, signUnsubscribe } from "@/lib/notifications/email-content";
+import { appOrigin } from "@/lib/stripe/checkout";
+import { getRootDomain } from "@/lib/tenant";
 import { isSmsConfigured, sendSms } from "@/lib/notifications/sms";
 import { resolveEmailRecipients, resolvePushRecipients, resolveSmsRecipients } from "@/lib/notifications/recipients";
 import { recordAnalyticsEvent } from "@/lib/pwa/analytics";
@@ -85,12 +88,24 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
     );
   } else if (channel === "email") {
     const recipients = await resolveEmailRecipients(appId, target);
-    const html = `<p>${body}</p>`;
-    const results = await Promise.allSettled(recipients.map((r) => sendEmail(r.email, title, html)));
-    for (const result of results) {
-      if (result.status === "fulfilled" && result.value.ok) sent++;
-      else failed++;
-    }
+    const { data: app } = await createAdminClient().from("apps").select("name, slug").eq("id", appId).single();
+    const secret = process.env.MEMBER_SESSION_SECRET;
+    if (!app || !secret) return Response.json({ error: "Email is not set up correctly on this server" }, { status: 500 });
+
+    // Every email carries its own unsubscribe link (also as the one-click header mail apps look for).
+    const origin = appOrigin(app.slug, getRootDomain());
+    const emails = recipients.map((r) => {
+      const unsubscribeUrl = `${origin}/unsubscribe?m=${r.memberId}&t=${signUnsubscribe(r.memberId, secret)}`;
+      return {
+        to: r.email,
+        subject: title,
+        html: renderEmailHtml({ appName: app.name, title, body, unsubscribeUrl }),
+        headers: { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+      };
+    });
+    const result = await sendEmailBatch(fromHeader(app.name, process.env.RESEND_FROM_EMAIL ?? ""), emails);
+    sent = result.sent;
+    failed = result.failed;
   } else {
     const recipients = await resolveSmsRecipients(appId, target);
     const text = `${title}: ${body}`;

@@ -73,7 +73,10 @@ export function MembersTable({ appId, members }: { appId: string; members: Omit<
       <tbody>
         {members.map((member) => (
           <tr key={member.id} className="border-b last:border-b-0">
-            <td className="py-2">{member.email}</td>
+            <td className="py-2">
+              {member.email}
+              {member.email_unsubscribed_at && <span className="ml-2 text-xs text-muted-foreground">unsubscribed from email</span>}
+            </td>
             <td className="py-2">{member.display_name ?? "—"}</td>
             <td className="py-2">{member.phone ?? "—"}</td>
             <td className="py-2">
