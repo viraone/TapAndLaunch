@@ -190,6 +190,7 @@ export type CuisineKey =
   | "ethiopian"
   | "indian"
   | "bars"
+  | "ice_cream"
   | "dessert";
 
 /** Google's opening-hours period shape, stored verbatim. `close` is absent

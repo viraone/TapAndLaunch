@@ -42,6 +42,14 @@ export const CUISINES: CuisineDef[] = [
   { key: "ethiopian", label: "Ethiopian", emoji: "🫓", types: ["african_restaurant"], keywords: ["ethiopian", "eritrean", "injera", "habesha", "abyssinia", "addis"] },
   { key: "indian", label: "Indian", emoji: "🍛", types: ["indian_restaurant"], keywords: ["indian", "curry", "tikka", "biryani", "tandoor", "masala", "dosa"] },
   { key: "bars", label: "Bars & Pub Grub", emoji: "🍻", types: ["bar", "pub", "bar_and_grill"], keywords: ["tavern", "pub", "taproom", "brewery", "saloon", "bait shop"] },
+  // Ahead of Dessert / Coffee, whose Google types also include ice_cream_shop: an ice cream shop belongs under this pill.
+  {
+    key: "ice_cream",
+    label: "Ice Cream",
+    emoji: "🍦",
+    types: ["ice_cream_shop"],
+    keywords: ["ice cream", "gelato", "creamery", "frozen yogurt", "froyo", "soft serve", "dairy queen"],
+  },
   {
     key: "dessert",
     label: "Dessert / Coffee",

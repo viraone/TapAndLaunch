@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { CUISINES, CUISINE_KEYS, cuisineLabelFor, cuisineOf } from "@/lib/food/cuisines";
 
 describe("cuisines", () => {
-  it("offers the thirteen quick-filters in display order", () => {
+  it("offers the fourteen quick-filters in display order", () => {
     expect(CUISINE_KEYS).toEqual([
       "ramen", "vietnamese", "thai", "korean", "japanese",
-      "mexican", "pizza", "burgers", "mediterranean", "ethiopian", "indian", "bars", "dessert",
+      "mexican", "pizza", "burgers", "mediterranean", "ethiopian", "indian", "bars", "ice_cream", "dessert",
     ]);
     expect(new Set(CUISINES.map((c) => c.emoji)).size).toBe(CUISINES.length);
   });
@@ -16,6 +16,9 @@ describe("cuisines", () => {
     expect(cuisineOf({ types: ["hamburger_restaurant", "bar", "restaurant"], name: "Local Bigger Burger" })).toBe("burgers");
     expect(cuisineOf({ types: ["bar", "restaurant"], name: "Linda's Tavern" })).toBe("bars");
     expect(cuisineOf({ types: ["coffee_shop", "cafe"], name: "Victrola" })).toBe("dessert");
+    expect(cuisineOf({ types: ["ice_cream_shop", "dessert_shop", "food"], primaryType: "ice_cream_shop", name: "Molly Moon's Homemade Ice Cream" })).toBe("ice_cream");
+    // With no Google type to go on, the name decides.
+    expect(cuisineOf({ types: ["food"], name: "Seattle Gelato Co" })).toBe("ice_cream");
     expect(cuisineOf({ types: ["pizza_restaurant", "italian_restaurant"], name: "Big Mario's" })).toBe("pizza");
     expect(cuisineOf({ types: ["greek_restaurant"], name: "The Golden Olive" })).toBe("mediterranean");
   });

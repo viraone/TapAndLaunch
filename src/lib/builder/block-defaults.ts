@@ -44,7 +44,7 @@ export function defaultConfigFor(type: BlockType): BlockConfig {
         fallback_longitude: -122.3223,
         cuisines: [
           "ramen", "vietnamese", "thai", "korean", "japanese",
-          "mexican", "pizza", "burgers", "mediterranean", "ethiopian", "indian", "bars", "dessert",
+          "mexican", "pizza", "burgers", "mediterranean", "ethiopian", "indian", "bars", "ice_cream", "dessert",
         ],
         default_sort: "open",
       };
