@@ -70,7 +70,10 @@ writes a React app, shown live next to the chat. The block-based chat above stil
 - A brand-new app (`isFreshApp`: still the starter file) is built by `src/lib/code/first-build.ts`: the AI writes a
   `<plan>` first (a design line, then one line per section), then a one-line reply and `src/App.jsx`. Each section starts in
   its own AI call the moment its plan line arrives, so they are written while App.jsx is still being written; anything still
-  missing after that (`missingImports`) gets one more round. Sections are asked to be self-contained and ~50 lines. Their
+  missing after that (`missingImports`) gets one more round. Sections are asked to be self-contained and ~50 lines; the
+  slowest section sets the total, so the plan splits anything long (a booking form becomes a picker and a details form).
+  Split sections share values through `src/lib/shared.js` (`useShared(key, initial)`, written by us, not the AI, and added
+  to every new app), named in the plan as "shares: <key>". Their
   output is streamed to the browser as whole `<file>` blocks, held back while the plan step is inside a `<file>` or
   `<reply>`, and announced with `<writing path="…"/>` lines.
 - The preview fills in while the AI writes: as soon as App.jsx exists, the page shows the real layout with shimmering

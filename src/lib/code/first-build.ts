@@ -19,6 +19,35 @@ const MAX_PARTS = 10;
 /** A section can import a helper that doesn't exist yet; that gets written in a second round, at most. */
 const MAX_ROUNDS = 2;
 
+/**
+ * Sections are written without seeing each other, so they can't pass props. This small file (written by us, not the AI,
+ * so it costs no time) lets two sections share a value by name, like the service picked in one and booked in another.
+ */
+export const SHARED_PATH = "src/lib/shared.js";
+export const SHARED_FILE = `import { useCallback, useSyncExternalStore } from 'react';
+
+// State that several sections share by name: const [service, setService] = useShared('service', null);
+const values = new Map();
+const listeners = new Set();
+const subscribe = (listener) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+export function useShared(key, initial) {
+  if (!values.has(key)) values.set(key, initial);
+  const value = useSyncExternalStore(subscribe, () => values.get(key));
+  const set = useCallback(
+    (next) => {
+      values.set(key, typeof next === 'function' ? next(values.get(key)) : next);
+      listeners.forEach((listener) => listener());
+    },
+    [key]
+  );
+  return [value, set];
+}
+`;
+
 /** True while the app is still the placeholder it was created with. */
 export function isFreshApp(files: CodeFiles): boolean {
   const paths = Object.keys(files);
@@ -94,7 +123,9 @@ This is a NEW app. To build it fast, answer with ONLY these three things, in thi
 design: one line every section will follow: accent color (a Tailwind color name), backgrounds, headline style, corner radius, mood
 src/components/Header.jsx: exactly what it shows and does (content, sample data, interactions), in one line
 src/components/Hero.jsx: ...
-(5 to 7 files in src/components/, one per section of the page, each small enough to write in about 50 lines; split a big section into two)
+(5 to 8 files in src/components/, one per section of the page, each small enough to write in about 50 lines)
+Anything that would run long is TWO sections: a booking or contact form becomes a picker (ServicePicker.jsx) and a details form (BookingDetails.jsx); a schedule with filters becomes the filters and the list; a menu becomes categories and items.
+When two sections must share something (the chosen service, a selected day, a cart), end both of their lines with "shares: <key>", using the same key.
 </plan>
 <reply>One friendly sentence about what you're building.</reply>
 <file path="src/App.jsx">
@@ -125,6 +156,7 @@ ${name ? `Write it as \`export default function ${name}() { ... }\` and add \`ex
 Answer with ONLY <file path="${input.path}">...the complete file...</file>. No <reply>.
 - About 50 lines, never more than 80. Speed matters: the owner is watching.
 - Self-contained: keep its sample data inside this file. Do NOT import other files from src/ (they are being written right now). Import only react and the allowed libraries.
+- One exception: src/lib/shared.js already exists. If your plan line says "shares: <key>", share that value with \`import { useShared } from '@/lib/shared'\` and \`const [value, setValue] = useShared('<key>', initialValue)\`; it works like useState, shared with the other section by that key. Sample data both sections need (like the list of services) must be written the same way in both.
 - A complete, polished, responsive section that looks great on a phone, following the design line exactly so it matches the rest of the app.`;
 }
 
@@ -146,6 +178,9 @@ export async function firstBuild(opts: { files: CodeFiles; message: string; hist
   // still being written can't become an unhandled rejection.
   const launched = new Map<string, Promise<{ path: string; content: string | null; error?: unknown }>>();
   let planText = "";
+  // The shared-state file goes first, so it's in place (and in the preview) before any section needs it.
+  const seeded = { ...opts.files, [SHARED_PATH]: SHARED_FILE };
+  opts.send(`<file path="${SHARED_PATH}">\n${SHARED_FILE}\n</file>\n`);
   let design = "";
   let planDone = false;
   const queue: string[] = [];
@@ -211,11 +246,12 @@ export async function firstBuild(opts: { files: CodeFiles; message: string; hist
 
   const first = parseReply(planText);
   if (first.incomplete.length) return { error: `The AI's answer was cut off while writing ${first.incomplete[0]}. Nothing was changed. Try again.` };
-  const changes: Record<string, string> = {};
+  const changes: Record<string, string> = { [SHARED_PATH]: SHARED_FILE };
   for (const [path, content] of Object.entries(first.changes)) if (typeof content === "string") changes[path] = content;
-  if (Object.keys(changes).length === 0 && launched.size === 0) return { reply: first.reply, changes: {} };
+  // Only a question back (no plan, no files): nothing changes, not even the shared-state file.
+  if (Object.keys(first.changes).length === 0 && launched.size === 0) return { reply: first.reply, changes: {} };
 
-  let files = applyChanges(opts.files, first.changes);
+  let files = applyChanges(seeded, first.changes);
   const { parts } = parsePlan(planText);
   for (let round = 0; round < MAX_ROUNDS; round++) {
     // Anything App.jsx (or a finished section) imports that nobody is writing yet.

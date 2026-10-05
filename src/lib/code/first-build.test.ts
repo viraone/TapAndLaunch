@@ -72,7 +72,7 @@ describe("the two-step build", () => {
     expect("error" in result).toBe(false);
     if ("error" in result) return;
     expect(result.reply).toBe("Building a gym app.");
-    expect(Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx", "src/data/classes.js"]);
+    expect(Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx", "src/data/classes.js", "src/lib/shared.js"]);
     expect(asked.sort()).toEqual(["src/components/Header.jsx", "src/components/Hero.jsx", "src/data/classes.js"]);
     // All three were written at once: about one section's time, not three.
     expect(most).toBe(3);
@@ -91,7 +91,7 @@ describe("the two-step build", () => {
       return `<file path="${path}">\n${body}\n</file>`;
     };
     const result = await firstBuild({ files: starterFiles("x"), message: "x", history: [], ask, send: () => {} });
-    expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Card.jsx", "src/components/Hero.jsx"]);
+    expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Card.jsx", "src/components/Hero.jsx", "src/lib/shared.js"]);
   });
 
   it("tries a section again after a slow-down, and reports one it can't write", async () => {
@@ -132,7 +132,7 @@ describe("the two-step build", () => {
     };
     const sent: string[] = [];
     const result = await firstBuild({ files: starterFiles("Gym"), message: "gym", history: [], ask, send: (t) => sent.push(t) });
-    expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx"]);
+    expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx", "src/lib/shared.js"]);
     expect(events.indexOf("start src/components/Hero.jsx")).toBeLessThan(events.indexOf("plan done"));
     // What the browser got still reads cleanly: App.jsx is whole, and each section arrived as its own file.
     const parsed = parseReply(sent.join(""));
@@ -140,7 +140,7 @@ describe("the two-step build", () => {
     expect(parsed.changes["src/App.jsx"]).not.toContain("<file");
     expect(parsed.reply).toBe("Gym!");
     expect(sent.join("")).toContain("<reply>Gym!</reply>");
-    expect(Object.keys(parsed.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx"]);
+    expect(Object.keys(parsed.changes).sort()).toEqual(["src/App.jsx", "src/components/Header.jsx", "src/components/Hero.jsx", "src/lib/shared.js"]);
   });
 
   it("reports a provider failure in a section as that failure, without an unhandled rejection", async () => {
@@ -154,5 +154,19 @@ describe("the two-step build", () => {
       throw new Error("key revoked");
     };
     await expect(firstBuild({ files: starterFiles("x"), message: "x", history: [], ask, send: () => {} })).rejects.toThrow("key revoked");
+  });
+
+  it("gives sections a shared-state file they can import without it counting as missing", async () => {
+    const ask: Ask = async (turns) => {
+      const last = turns.at(-1)?.content ?? "";
+      if (last.includes("This is a NEW app")) return `<plan>\ndesign: x\nsrc/components/Picker.jsx: pick a service, shares: service\nsrc/components/Details.jsx: book it, shares: service\n</plan><file path="src/App.jsx">\nimport Picker from '@/components/Picker';\nimport Details from '@/components/Details';\nexport default () => <><Picker /><Details /></>;\n</file>`;
+      const path = /Your file: (\S+)/.exec(last)?.[1] as string;
+      expect(last).toContain("shares: service");
+      expect(last).toContain("useShared");
+      return `<file path="${path}">\nimport { useShared } from '@/lib/shared';\nexport default function X() { const [s] = useShared('service', null); return s; }\n</file>`;
+    };
+    const result = await firstBuild({ files: starterFiles("x"), message: "x", history: [], ask, send: () => {} });
+    expect("changes" in result && Object.keys(result.changes).sort()).toEqual(["src/App.jsx", "src/components/Details.jsx", "src/components/Picker.jsx", "src/lib/shared.js"]);
+    expect("changes" in result && result.changes["src/lib/shared.js"]).toContain("export function useShared");
   });
 });
