@@ -15,11 +15,11 @@ _Last updated: 2026-10-03._ Tick items as they are done and note the date.
 
 ## Product basics before inviting real builders
 
-- [x] Forgot-password flow for builders (2026-10-04; production reset email template still to be switched, see runbooks)
-- [ ] Shorter checkout: skip our name/email form when Stripe is connected (Stripe already asks)
+- [x] Forgot-password flow for builders, including the branded any-device reset email on production (2026-10-04)
+- [x] Shorter checkout: skip our name/email form when Stripe is connected (2026-10-05)
 - [ ] Plans and billing: see the checklist in `billing.md` (live webhook, customer portal, real test, then `BILLING_ENFORCED`)
 - [x] App-level email: `RESEND_API_KEY` and `RESEND_FROM_EMAIL` set in Vercel (2026-10-05), live test passed
-- [ ] Show notification send times in the viewer's time zone (they show UTC)
+- [x] Show notification send times in the viewer's time zone (2026-10-05)
 - [ ] Lawyer review of Terms and Privacy
 
 ## StageTime launch (Fri Oct 23, 2026)
