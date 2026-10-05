@@ -18,6 +18,19 @@ export default async function PublishedAppPage({ params }: { params: Params }) {
   const published = await getPublishedApp(appSlug);
   if (!published) notFound();
 
+  // An AI-written app (BYOB code mode) is one sandboxed page, served by ./app-code; it handles its own routing.
+  if (published.app.kind === "code") {
+    void recordAnalyticsEvent({ appId: published.app.id, eventType: "view" });
+    return (
+      <iframe
+        title={published.app.name}
+        src="/app-code"
+        sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads"
+        className="fixed inset-0 h-full w-full border-0 bg-white"
+      />
+    );
+  }
+
   const page = resolvePage(published, path);
   if (!page) notFound();
 

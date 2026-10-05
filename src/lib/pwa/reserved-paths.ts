@@ -5,6 +5,7 @@
  * not the page. Keep in step with that folder.
  */
 export const RESERVED_PAGE_PATHS = new Set([
+  "app-code",
   "app-icon",
   "bookings",
   "fitness",

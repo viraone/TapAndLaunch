@@ -77,6 +77,16 @@ export default async function PublishedAppLayout({
     );
   }
 
+  // An AI-written app is a full-screen page of its own (shown in a sandboxed frame by the page): no phone column, bars or member sign-in.
+  if (published.app.kind === "code") {
+    return (
+      <>
+        <ServiceWorkerRegister />
+        {children}
+      </>
+    );
+  }
+
   const member = await getCurrentMember(published.app.id);
   const { theme } = published.app;
   const dark = theme.color_scheme === "dark";

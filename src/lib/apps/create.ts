@@ -32,7 +32,7 @@ export async function createAppFromStarter(
   for (const slug of slugCandidates(input.slug)) {
     const result = await supabase
       .from("apps")
-      .insert({ organization_id: organizationId, name, slug, theme: starter.theme, manifest: starter.manifest, created_by: user.id })
+      .insert({ organization_id: organizationId, name, slug, theme: starter.theme, manifest: starter.manifest, created_by: user.id, ...(starter.codeFiles ? { kind: "code" as const } : {}) })
       .select("*")
       .single();
     if (!result.error) {
@@ -84,6 +84,11 @@ export async function createAppFromStarter(
   if (starter.listings?.length) {
     const { error: listingError } = await supabase.from("listings").insert(starter.listings.map((l) => ({ app_id: created.id, slug: l.slug, record: l.record })));
     if (listingError) return fail(listingError.message);
+  }
+
+  if (starter.codeFiles) {
+    const { error: codeError } = await supabase.from("app_code_versions").insert({ app_id: created.id, version: 1, files: starter.codeFiles, summary: "Starting point", created_by: user.id });
+    if (codeError) return fail(codeError.message);
   }
 
   return { app: created };

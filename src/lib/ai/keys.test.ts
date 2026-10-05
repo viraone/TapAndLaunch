@@ -46,3 +46,15 @@ describe("provider helpers", () => {
     expect(pickModel("openai", ["whisper-1"])).toBeNull();
   });
 });
+
+describe("reading a streamed answer", () => {
+  it("handles events split across chunks", async () => {
+    const { readSse } = await import("./providers");
+    const enc = new TextEncoder();
+    const chunks = ['data: {"a":1}\n\ndata: {"b"', ':2}\n\ndata: [DONE]\n\n'];
+    const stream = new ReadableStream<Uint8Array>({ start(c) { chunks.forEach((x) => c.enqueue(enc.encode(x))); c.close(); } });
+    const got: string[] = [];
+    await readSse(stream, (d) => got.push(d));
+    expect(got).toEqual(['{"a":1}', '{"b":2}', "[DONE]"]);
+  });
+});

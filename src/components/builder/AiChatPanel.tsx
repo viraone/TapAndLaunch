@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowUp, Bot, KeyRound, Loader2, X } from "lucide-react";
 
 type Provider = "anthropic" | "openai";
-interface SavedKey {
+export interface SavedKey {
   provider: Provider;
   hint: string;
   model: string;
@@ -188,7 +188,7 @@ export function AiChatPanel({ appId, appName, initiallyOpen = false }: { appId: 
   );
 }
 
-function KeyForm({ canManage, onSaved }: { canManage: boolean; onSaved: (key: SavedKey) => void }) {
+export function KeyForm({ canManage, onSaved }: { canManage: boolean; onSaved: (key: SavedKey) => void }) {
   const [provider, setProvider] = useState<Provider>("anthropic");
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);

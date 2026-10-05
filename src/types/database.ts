@@ -356,6 +356,21 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["organizations"]["Row"]>;
         Relationships: [];
       };
+      app_code_versions: {
+        Row: {
+          id: string;
+          app_id: string;
+          version: number;
+          files: Record<string, string>;
+          prompt: string | null;
+          summary: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["app_code_versions"]["Row"]> & { app_id: string; version: number; files: Record<string, string> };
+        Update: Partial<Database["public"]["Tables"]["app_code_versions"]["Row"]>;
+        Relationships: [];
+      };
       org_ai_keys: {
         Row: {
           organization_id: string;
@@ -378,7 +393,7 @@ export interface Database {
         Relationships: [];
       };
       ai_generations: {
-        Row: { id: string; user_id: string; organization_id: string | null; kind: "describe" | "chat"; created_at: string };
+        Row: { id: string; user_id: string; organization_id: string | null; kind: "describe" | "chat" | "code"; created_at: string };
         Insert: Partial<Database["public"]["Tables"]["ai_generations"]["Row"]> & { user_id: string };
         Update: Partial<Database["public"]["Tables"]["ai_generations"]["Row"]>;
         Relationships: [];
@@ -440,6 +455,10 @@ export interface Database {
           slug: string;
           status: AppStatus;
           custom_domain: string | null;
+          /** 'blocks' is the block builder; 'code' is an AI-written React app shown in a sandbox. */
+          kind: "blocks" | "code";
+          /** For code apps: the version visitors see. */
+          code_published_version: number | null;
           /** Set when an admin deletes the app; it is hidden at once and erased 30 days later. */
           deleted_at: string | null;
           deleted_by: string | null;

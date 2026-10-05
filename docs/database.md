@@ -33,6 +33,7 @@ Applied in order from `supabase/migrations/`. Production has every one of these 
 | 0017_platform_admins_and_maps_gate | Platform admins; Google Maps features off per organization until enabled |
 | 0018_stripe_connect | `stripe_accounts`; orders gain `payment_method`, Stripe ids, `paid_at`, statuses `paid` and `refunded` |
 | 0026 (food happy hour) | LiveBites happy-hour columns on `food_places` |
+| 0031 (code apps) | `apps.kind` ('blocks' or 'code'), `apps.code_published_version`, `app_code_versions` (every version of an AI-written React app) |
 | 0030 (ai keys) | `org_ai_keys` (a customer's encrypted AI key, server-only) and `ai_generations.kind` (describe vs chat) |
 | 0029 (showcase blocks) | Allows block types `hero`, `price_list`, `hours`, `reviews`, `stats`, `gallery` |
 | 0028 (ai generations) | `ai_generations`: a counter so each person gets 10 "Describe your app" designs a day; server-only, no policies |
@@ -43,7 +44,7 @@ Applied in order from `supabase/migrations/`. Production has every one of these 
 
 ### Writing a migration
 
-- Next number, short name: `supabase/migrations/0031_something.sql`. Explain *why* in a comment at the top.
+- Next number, short name: `supabase/migrations/0032_something.sql`. Explain *why* in a comment at the top.
 - Prefer additive changes (new tables, nullable columns). `/push` **stops** if a pending migration contains `drop table`,
   `drop column`, `drop schema`, `truncate` or `delete from`, so a person reviews it first.
 - Update `src/types/database.ts` by hand to match (it is hand-written; see the README section on regenerating types).

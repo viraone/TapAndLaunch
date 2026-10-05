@@ -1,4 +1,5 @@
 import { defaultConfigFor } from "@/lib/builder/block-defaults";
+import { starterFiles } from "@/lib/code/prompt";
 import { isMapsBlock } from "@/lib/platform/maps-shared";
 import type { BlockConfig, BlockType, ManifestConfig, ThemeConfig } from "@/types/database";
 
@@ -140,10 +141,10 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     id: "byob",
     name: "BYOB: Bring your own bot",
-    tagline: "Paste your own Claude or ChatGPT key, then just chat: \u201cadd a menu page\u201d, \u201cmake it green\u201d. It builds as you talk.",
+    tagline: "Describe any app and your own Claude or ChatGPT builds it for real, live, as you chat. Polished React apps, no coding.",
     icon: "bot",
     color: "#4f46e5",
-    includes: ["AI chat builder", "Your own key", "Billed to your AI account"],
+    includes: ["AI writes the app", "Live preview", "Undo any change", "Your own AI key"],
     category: "ai",
   },
 ];
@@ -202,6 +203,8 @@ export interface Starter {
   events?: StarterEvent[];
   products?: StarterProduct[];
   listings?: StarterListing[];
+  /** A code app (BYOB): the AI writes a React app. These are its first files. */
+  codeFiles?: Record<string, string>;
 }
 
 /** A photo that ships with TapAndLaunch (public/templates), as a full address so it also loads inside customers' apps. */
@@ -993,22 +996,8 @@ function buildStarterBody(templateId: string, appName: string): Starter {
         ],
       };
     case "byob":
-      return {
-        manifest,
-        theme,
-        pages: [
-          home([
-            block("hero", {
-              image_url: "",
-              eyebrow: "Built with AI",
-              headline: appName,
-              subtext: "This app is being built by chat. Open Build with AI in the builder and describe what you want.",
-              button_label: "",
-              button_page: "",
-            }),
-          ]),
-        ],
-      };
+      // A code app: its pages are empty (the app is the React code); the AI writes the files.
+      return { manifest, theme, pages: [home([])], codeFiles: starterFiles(appName) };
     default:
       return { manifest, theme: {}, pages: [home([])] };
   }

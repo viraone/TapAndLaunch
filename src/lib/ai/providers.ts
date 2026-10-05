@@ -88,3 +88,72 @@ export async function chatJson(provider: AiProvider, key: string, model: string,
   if (!res.ok) throw new ProviderError(friendly(provider, res.status, body.error?.message), res.status);
   return body.choices?.[0]?.message?.content ?? "";
 }
+
+/** Reads a server-sent-events body and calls `onData` with each event's `data:` payload. */
+export async function readSse(body: ReadableStream<Uint8Array>, onData: (data: string) => void): Promise<void> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let cut: number;
+    while ((cut = buffer.search(/\r?\n\r?\n/)) !== -1) {
+      const event = buffer.slice(0, cut);
+      buffer = buffer.slice(cut).replace(/^\r?\n\r?\n/, "");
+      for (const line of event.split(/\r?\n/)) if (line.startsWith("data:")) onData(line.slice(5).trim());
+    }
+  }
+}
+
+/**
+ * One long answer from the model, streamed: `onText` gets each new piece as it arrives, and the full text is returned.
+ * Used for writing code, where an answer can take a minute and should appear as it is written.
+ */
+export async function streamText(
+  provider: AiProvider,
+  key: string,
+  model: string,
+  system: string,
+  turns: ChatTurn[],
+  onText: (piece: string) => void,
+  signal?: AbortSignal
+): Promise<string> {
+  const timeout = AbortSignal.timeout(280_000);
+  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
+  const res =
+    provider === "anthropic"
+      ? await fetch(`${base("anthropic")}/v1/messages`, {
+          method: "POST",
+          headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+          body: JSON.stringify({ model, max_tokens: 16000, stream: true, system, messages: turns }),
+          signal: combined,
+        })
+      : await fetch(`${base("openai")}/v1/chat/completions`, {
+          method: "POST",
+          headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+          body: JSON.stringify({ model, stream: true, max_completion_tokens: 16000, messages: [{ role: "system", content: system }, ...turns] }),
+          signal: combined,
+        });
+  if (!res.ok || !res.body) {
+    const body = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+    throw new ProviderError(friendly(provider, res.status, body.error?.message), res.status);
+  }
+  let full = "";
+  await readSse(res.body, (data) => {
+    if (data === "[DONE]") return;
+    try {
+      const event = JSON.parse(data) as { type?: string; delta?: { type?: string; text?: string }; choices?: Array<{ delta?: { content?: string } }>; error?: { message?: string } };
+      if (event.type === "error") throw new ProviderError(event.error?.message ?? "The AI stopped unexpectedly.", 502);
+      const piece = provider === "anthropic" ? (event.type === "content_block_delta" && event.delta?.type === "text_delta" ? event.delta.text : undefined) : event.choices?.[0]?.delta?.content;
+      if (piece) {
+        full += piece;
+        onText(piece);
+      }
+    } catch (error) {
+      if (error instanceof ProviderError) throw error;
+    }
+  });
+  return full;
+}

@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BuilderClient } from "@/components/builder/BuilderClient";
 import { AiChatPanel } from "@/components/builder/AiChatPanel";
+import { CodeBuilder } from "@/components/builder/CodeBuilder";
+import { latestVersion, listVersions } from "@/lib/code/store";
 import { getRootDomain } from "@/lib/tenant";
 import { appHasVisit } from "@/lib/apps/signals";
 import { isVercelDomainsConfigured } from "@/lib/domains/vercel";
@@ -21,6 +23,25 @@ export default async function BuilderPage({ params, searchParams }: { params: Pa
   // should look identical (404), not leak which one it was.
   const { data: app } = await supabase.from("apps").select("*").eq("id", appId).maybeSingle();
   if (!app) notFound();
+
+  // An AI-written (BYOB) app has its own builder: chat on one side, a live sandboxed preview on the other.
+  if (app.kind === "code") {
+    const [latest, versions] = await Promise.all([latestVersion(supabase, appId), listVersions(supabase, appId)]);
+    return (
+      <CodeBuilder
+        appId={appId}
+        appName={app.name}
+        accent={app.theme.primary_color}
+        slug={app.slug}
+        rootDomain={getRootDomain()}
+        initialFiles={latest?.files ?? {}}
+        initialVersion={latest?.version ?? 0}
+        initialVersions={versions}
+        initialStatus={app.status}
+        initialPublished={app.code_published_version}
+      />
+    );
+  }
 
   const { data: pages } = await supabase
     .from("pages")

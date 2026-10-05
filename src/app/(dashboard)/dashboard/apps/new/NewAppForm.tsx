@@ -63,7 +63,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
       return;
     }
 
-    router.push(`/dashboard/apps/${body.app.id}/builder${selected.id === "byob" ? "?ai=1" : ""}`);
+    router.push(`/dashboard/apps/${body.app.id}/builder`);
   }
 
   async function handleDescribe(e: React.FormEvent) {
