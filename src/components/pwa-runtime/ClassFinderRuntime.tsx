@@ -357,35 +357,45 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
               PARTS.map((part) => {
                 const rows = dayClasses.filter((c) => partOfDay(c.start) === part);
                 if (!rows.length) return null;
-                const isFolded = folded.has(part);
+                // A folded group keeps its first class in view (an empty card under a heading felt broken) and offers the rest
+                // in one tap; a group with a single class has nothing to fold.
+                const isFolded = folded.has(part) && rows.length > 1;
+                const shown = isFolded ? rows.slice(0, 1) : rows;
+                const toggle = () =>
+                  setFolded((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(part)) next.delete(part);
+                    else next.add(part);
+                    return next;
+                  });
                 return (
                   <div key={part} className="flex flex-col gap-2">
                     <h3 className="mt-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                      <button
-                        type="button"
-                        aria-expanded={!isFolded}
-                        aria-controls={`part-${part}`}
-                        onClick={() =>
-                          setFolded((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(part)) next.delete(part);
-                            else next.add(part);
-                            return next;
-                          })
-                        }
-                        className="flex min-h-11 w-full items-center gap-2 rounded-lg px-0.5 text-left uppercase tracking-widest"
-                      >
-                        {part}
-                        <span>{rows.length}</span>
-                        {/* A bare arrow said nothing; the control says what a tap does and, when folded, what is hidden. */}
-                        <span className="ml-auto inline-flex items-center gap-1 rounded-full border bg-background px-2.5 py-1 text-xs font-semibold normal-case tracking-normal text-foreground">
-                          {isFolded ? `Show ${rows.length} ${rows.length === 1 ? "class" : "classes"}` : "Hide"}
-                          <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${isFolded ? "" : "rotate-180"}`} strokeWidth={2.5} aria-hidden />
+                      {rows.length > 1 ? (
+                        <button
+                          type="button"
+                          aria-expanded={!isFolded}
+                          aria-controls={`part-${part}`}
+                          onClick={toggle}
+                          className="flex min-h-11 w-full items-center gap-2 rounded-lg px-0.5 text-left uppercase tracking-widest"
+                        >
+                          {part}
+                          <span>{rows.length}</span>
+                          {/* A bare arrow said nothing; the control says what a tap does. */}
+                          <span className="ml-auto inline-flex items-center gap-1 rounded-full border bg-background px-2.5 py-1 text-xs font-semibold normal-case tracking-normal text-foreground">
+                            {isFolded ? `Show all ${rows.length}` : "Show less"}
+                            <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${isFolded ? "" : "rotate-180"}`} strokeWidth={2.5} aria-hidden />
+                          </span>
+                        </button>
+                      ) : (
+                        <span className="flex min-h-11 items-center gap-2 px-0.5">
+                          {part}
+                          <span>{rows.length}</span>
                         </span>
-                      </button>
+                      )}
                     </h3>
-                    <ul id={`part-${part}`} hidden={isFolded} className="divide-y overflow-hidden rounded-xl border">
-                      {rows.map((c) => {
+                    <ul id={`part-${part}`} className="divide-y overflow-hidden rounded-xl border">
+                      {shown.map((c) => {
                         const s = studios.get(c.studioId);
                         const len = classMinutes(c.start, c.end);
                         const mi = miles(c.studioId);
@@ -453,6 +463,14 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                           </li>
                         );
                       })}
+                      {isFolded && (
+                        <li>
+                          <button type="button" onClick={toggle} className="flex min-h-11 w-full items-center justify-center gap-1.5 bg-muted/60 px-3 text-xs font-semibold text-foreground">
+                            {rows.length - 1} more {rows.length - 1 === 1 ? "class" : "classes"}
+                            <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                          </button>
+                        </li>
+                      )}
                     </ul>
                   </div>
                 );
