@@ -65,7 +65,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Link
             aria-label="Apps"
             href="/dashboard"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 sm:px-3.5 text-neutral-400 transition hover:bg-white/5 hover:text-white"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] font-semibold text-neutral-50 transition hover:bg-white/5 sm:px-3.5"
           >
             <LayoutGrid className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Apps</span>
           </Link>
@@ -73,7 +73,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Link
               aria-label="Admin"
               href="/dashboard/admin"
-              className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 sm:px-3.5 text-indigo-300 transition hover:bg-white/5 hover:text-indigo-200"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] font-semibold text-indigo-300 transition hover:bg-white/5 hover:text-indigo-200 sm:px-3.5"
             >
               <ShieldCheck className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Admin</span>
             </Link>
@@ -81,7 +81,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Link
             aria-label="Settings"
             href="/dashboard/settings"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 sm:px-3.5 text-neutral-400 transition hover:bg-white/5 hover:text-white"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] font-semibold text-neutral-50 transition hover:bg-white/5 sm:px-3.5"
           >
             <Settings className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Settings</span>
           </Link>
