@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isPlatformAdmin } from "@/lib/platform/admin";
 
 const Schema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("add"), title: z.string().trim().min(1).max(200), detail: z.string().trim().max(600).optional() }),
+  z.object({ action: z.literal("add"), title: z.string().trim().min(1).max(200), detail: z.string().trim().max(600).optional(), board: z.enum(["tapandlaunch", "fitnessnav"]).default("tapandlaunch") }),
   z.object({ action: z.literal("done"), id: z.string().uuid(), done: z.boolean() }),
   z.object({ action: z.literal("remove"), id: z.string().uuid() }),
 ]);
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const body = parsed.data;
   if (body.action === "add") {
-    const { data, error } = await admin.from("admin_todos").insert({ title: body.title, detail: body.detail || null, section: "Mine", sort: 0 }).select("id").single();
+    const { data, error } = await admin.from("admin_todos").insert({ title: body.title, detail: body.detail || null, section: "Mine", sort: 0, board: body.board }).select("id").single();
     if (error) return Response.json({ error: error.message }, { status: 400 });
     return Response.json({ ok: true, id: data.id });
   }

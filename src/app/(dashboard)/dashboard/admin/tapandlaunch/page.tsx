@@ -3,37 +3,18 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPlatformAdmin } from "@/lib/platform/admin";
-import { TodoBoard, type Todo } from "./TodoBoard";
+import { TodoBoard } from "./TodoBoard";
+import { loadBoardTodos, type SeededTodo } from "@/lib/admin/todos";
 
 export const dynamic = "force-dynamic";
 
 const TZ = "America/Los_Angeles";
 
-interface Seed {
-  key: string;
-  section: string;
-  title: string;
-  detail?: string;
-  /** The steps to follow, each with its own tick. The last one ticked finishes the item. */
-  steps?: Array<{ title: string; detail?: string }>;
-}
-
 /**
  * The to-do items the code knows about, in the order they are shown. Each item and each step is added to the list once
  * (by its key) and keeps its tick after that, so finished ones can be left here or removed later without coming back.
  */
-const SEEDED: Seed[] = [
-  {
-    key: "fitnessnav-key",
-    section: "FitnessNav",
-    title: "Add the Anthropic key to the FitnessNav reader",
-    detail: "Turns the 95-minute morning run into minutes.",
-    steps: [
-      { title: "Create a key at console.anthropic.com → API Keys → Create key. Name it fitnessnav-reader." },
-      { title: "In Terminal, run: echo 'ANTHROPIC_API_KEY=sk-ant-…' >> ~/.fitnessnav-job/.env", detail: "Replace sk-ant-… with the key. Never paste the key into chat." },
-      { title: "Tell Claude \"key added\".", detail: "Claude test-reads 3 studios, then runs all 46 with timing and cost." },
-    ],
-  },
+const SEEDED: SeededTodo[] = [
   {
     key: "stripe-connect-live",
     section: "Before real customers pay you (Stripe)",
@@ -122,7 +103,7 @@ const SEEDED: Seed[] = [
   { key: "seo-oct12", section: "Housekeeping", title: "SEO check around Oct 12", steps: [{ title: "On Oct 12 or later, type /seo in Claude Code. It audits tapandlaunch.com and fixes what it finds." }] },
   { key: "delete-artifact", section: "Housekeeping", title: "Delete the redundant claude.ai dashboard page", steps: [{ title: "Tell Claude \"delete the claude.ai dashboard\"." }] },
 ];
-const SECTIONS = ["FitnessNav", "Before real customers pay you (Stripe)", "Before inviting real builders", "Housekeeping", "Mine", "Later, optional"];
+const SECTIONS = ["Before real customers pay you (Stripe)", "Before inviting real builders", "Housekeeping", "Mine", "Later, optional"];
 
 /** Platform admins only: the to-do list for today, then how the platform is doing. */
 export default async function TapAndLaunchBoard() {
@@ -130,39 +111,14 @@ export default async function TapAndLaunchBoard() {
   if (!(await isPlatformAdmin(supabase))) notFound();
   const admin = createAdminClient();
 
-  // Seed what the code knows about, by key: an item or step is added once and keeps its tick; its wording and order follow the code.
-  const { data: parents } = await admin
-    .from("admin_todos")
-    .upsert(SEEDED.map((s, i) => ({ key: s.key, section: s.section, title: s.title, detail: s.detail ?? null, sort: i })), { onConflict: "key" })
-    .select("id, key");
-  const idByKey = new Map((parents ?? []).map((r) => [r.key as string, r.id]));
-  const steps = SEEDED.flatMap((s) => (s.steps ?? []).map((st, i) => ({ key: `${s.key}/${i + 1}`, parent_id: idByKey.get(s.key) ?? null, section: s.section, title: st.title, detail: st.detail ?? null, sort: i }))).filter((st) => st.parent_id);
-  if (steps.length) await admin.from("admin_todos").upsert(steps, { onConflict: "key" });
+  const { todos, doneEarlier } = await loadBoardTodos(admin, "tapandlaunch", SEEDED);
 
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());
-  const [{ data: rows }, { count: orgs }, { count: liveApps }, { data: billing }, { count: openReports }] = await Promise.all([
-    admin.from("admin_todos").select("id, key, title, detail, section, sort, created_at, done_at, parent_id").order("sort").order("created_at"),
+  const [{ count: orgs }, { count: liveApps }, { data: billing }, { count: openReports }] = await Promise.all([
     admin.from("organizations").select("id", { count: "exact", head: true }),
     admin.from("apps").select("id", { count: "exact", head: true }).eq("status", "published").is("deleted_at", null),
     admin.from("org_billing").select("status"),
     admin.from("app_reports").select("id", { count: "exact", head: true }).is("resolved_at", null),
   ]);
-
-  const dateOf = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date(iso));
-  const all = rows ?? [];
-  const items = all.filter((r) => !r.parent_id);
-  const todos: Todo[] = items
-    .filter((r) => !r.done_at || dateOf(r.done_at) === today)
-    .map((r) => ({
-      id: r.id,
-      key: r.key,
-      title: r.title,
-      detail: r.detail,
-      section: r.section,
-      done: !!r.done_at,
-      steps: all.filter((s) => s.parent_id === r.id).map((s) => ({ id: s.id, title: s.title, detail: s.detail, done: !!s.done_at })),
-    }));
-  const doneEarlier = items.filter((r) => r.done_at && dateOf(r.done_at) !== today).length;
   const paid = (billing ?? []).filter((b) => b.status === "active").length;
   const trials = (billing ?? []).filter((b) => b.status === "trialing").length;
   const nowLabel = new Date().toLocaleString("en-US", { timeZone: TZ, weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -198,7 +154,7 @@ export default async function TapAndLaunchBoard() {
       </section>
 
       <div className="relative mx-auto -mt-10 w-full max-w-6xl space-y-6 px-6 pb-16">
-        <TodoBoard todos={todos} sections={SECTIONS} doneEarlier={doneEarlier} />
+        <TodoBoard board="tapandlaunch" todos={todos} sections={SECTIONS} doneEarlier={doneEarlier} />
         <section className="rounded-3xl bg-white p-6 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5">
           <h2 className="text-lg font-semibold tracking-tight">How this list works</h2>
           <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-neutral-700">

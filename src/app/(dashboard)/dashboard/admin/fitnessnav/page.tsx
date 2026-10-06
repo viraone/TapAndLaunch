@@ -6,6 +6,8 @@ import { isPlatformAdmin } from "@/lib/platform/admin";
 import { getClassWeek } from "@/lib/fitness/classes";
 import { CLASS_TYPE_LABEL, hasStarted, seattleStamp, seattleToday, type FitnessClass } from "@/lib/fitness/schedule";
 import type { FitnessClassType } from "@/types/database";
+import { TodoBoard } from "../tapandlaunch/TodoBoard";
+import { loadBoardTodos, type SeededTodo } from "@/lib/admin/todos";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,22 @@ const STATUS_LABEL: Record<string, { label: string; tone: "good" | "warn" | "bad
 };
 
 const TYPE_COLOR: Record<FitnessClassType, string> = { pilates: "bg-pink-600", yoga: "bg-emerald-600", lifting: "bg-blue-600", spin: "bg-amber-500", climbing: "bg-orange-800" };
+
+/** What needs doing on FitnessNav, with the steps to follow. Added to the board's list once by key; ticks are kept. */
+const TODOS: SeededTodo[] = [
+  {
+    key: "fitnessnav-key",
+    section: "Reader",
+    title: "Add the Anthropic key to the FitnessNav reader",
+    detail: "Turns the 95-minute morning run into minutes.",
+    steps: [
+      { title: "Create a key at console.anthropic.com → API Keys → Create key. Name it fitnessnav-reader." },
+      { title: "In Terminal, run: echo 'ANTHROPIC_API_KEY=sk-ant-…' >> ~/.fitnessnav-job/.env", detail: "Replace sk-ant-… with the key. Never paste the key into chat." },
+      { title: "Tell Claude \"key added\".", detail: "Claude test-reads 3 studios, then runs all 46 with timing and cost." },
+    ],
+  },
+];
+const TODO_SECTIONS = ["Reader", "Studios", "Mine"];
 
 /** What shipped, newest first. Kept here on purpose: it changes when the work ships, with the same commit. */
 const BUILT: Array<{ when: string; items: string[] }> = [
@@ -89,6 +107,7 @@ export default async function FitnessNavBoard() {
   if (!(await isPlatformAdmin(supabase))) notFound();
 
   const admin = createAdminClient();
+  const { todos, doneEarlier } = await loadBoardTodos(admin, "fitnessnav", TODOS);
   const { data: app } = await admin.from("apps").select("id, slug").eq("slug", "fitnessnav").is("deleted_at", null).neq("kind", "code").maybeSingle();
 
   const today = seattleToday();
@@ -172,6 +191,7 @@ export default async function FitnessNavBoard() {
       </section>
 
       <div className="relative mx-auto -mt-10 w-full max-w-6xl space-y-6 px-6 pb-16">
+        <TodoBoard board="fitnessnav" todos={todos} sections={TODO_SECTIONS} doneEarlier={doneEarlier} />
         {app && (
           <div className="grid gap-6 md:grid-cols-2">
             <Card title="By kind of class">

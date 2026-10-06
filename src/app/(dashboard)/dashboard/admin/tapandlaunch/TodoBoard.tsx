@@ -5,29 +5,16 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
 
-export interface Step {
-  id: string;
-  title: string;
-  detail: string | null;
-  done: boolean;
-}
+import type { TodoItem as Todo } from "@/lib/admin/todos";
 
-export interface Todo {
-  id: string;
-  key: string | null;
-  title: string;
-  detail: string | null;
-  section: string;
-  done: boolean;
-  steps: Step[];
-}
+export type { TodoItem as Todo } from "@/lib/admin/todos";
 
 /**
  * The to-do list at the top of the daily board. Ticking saves at once; anything left unticked is simply still there
  * tomorrow. An item with steps shows them underneath, each with its own tick: the last step ticked finishes the item.
  * Items ticked today sit under "Done today" (untick to bring one back) and drop off after that.
  */
-export function TodoBoard({ todos, sections, doneEarlier }: { todos: Todo[]; sections: string[]; doneEarlier: number }) {
+export function TodoBoard({ board, todos, sections, doneEarlier }: { board: "tapandlaunch" | "fitnessnav"; todos: Todo[]; sections: string[]; doneEarlier: number }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -63,7 +50,7 @@ export function TodoBoard({ todos, sections, doneEarlier }: { todos: Todo[]; sec
     const text = title.trim();
     if (!text) return;
     setBusy("add");
-    const ok = await call({ action: "add", title: text }, "Couldn't add that. Try again.");
+    const ok = await call({ action: "add", title: text, board }, "Couldn't add that. Try again.");
     setBusy(null);
     if (ok) setTitle("");
   }
