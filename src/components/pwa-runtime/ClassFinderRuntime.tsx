@@ -90,6 +90,8 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   // True once the visitor (or their browser) has said no to sharing their location; the page then stays on the area.
   const [denied, setDenied] = useState(false);
   const fixAt = useRef(0);
+  // One line under the header after a tap on the location pill that could not help (location off, or a failed fix).
+  const [tip, setTip] = useState<string | null>(null);
   // "soonest": by start time, nearest studio first when times match. "nearest": closest studio first, within each part of the day.
   const [sort, setSort] = useState<"soonest" | "nearest">("soonest");
   const [now, setNow] = useState(() => seattleStamp());
@@ -101,27 +103,48 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     setOrigin({ lat: p.coords.latitude, lng: p.coords.longitude, mine: true });
     setDenied(false);
     setLocating(false);
+    setTip(null);
   }, []);
   const noFix = useCallback((e: GeolocationPositionError) => {
     if (e.code === e.PERMISSION_DENIED) setDenied(true);
     setLocating(false);
   }, []);
-  // The button: asks again (and shows "Finding you…" while it waits).
+  const area = config.area_label ?? "the middle of the area";
+  const offTip = `Location is off for this site. Turn it on in your browser settings to see what's closest to you.`;
+  // The pill: asks again and shows "Finding you…" while it waits. Once the browser has said no it will not ask again, so
+  // a tap then explains instead of silently doing nothing.
   function locate() {
-    if (!("geolocation" in navigator)) return;
+    if (!("geolocation" in navigator)) return setTip(`This browser can't share your location, so distances are from ${area}.`);
+    if (denied) return setTip(offTip);
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(gotFix, noFix, FIX_OPTIONS);
+    setTip(null);
+    navigator.geolocation.getCurrentPosition(gotFix, (e) => {
+      noFix(e);
+      setTip(e.code === e.PERMISSION_DENIED ? offTip : `Couldn't find you just now, so distances are from ${area}. Tap "Near ${area}" to try again.`);
+    }, FIX_OPTIONS);
   }
 
-  // The week's classes. Nothing is ticked until the visitor picks.
+  // The week's classes. A request that hangs (a flaky connection) becomes the error state after 15 seconds instead of a
+  // spinner that never ends; "Try again" and coming back online call this again.
+  const load = useCallback(() => {
+    fetch("/fitness/classes", { cache: "no-store", signal: typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(15_000) : undefined })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((w: Week) => setWeek(w))
+      .catch(() => setFailed(true));
+  }, []);
+  const retry = useCallback(() => {
+    setFailed(false);
+    load();
+  }, [load]);
+
+  // Nothing is ticked until the visitor picks.
   useEffect(() => {
     forgetOldPicks();
     // Asked as soon as the page opens, so the first list already has distances from the visitor.
     if ("geolocation" in navigator) navigator.geolocation.getCurrentPosition(gotFix, noFix, FIX_OPTIONS);
-    fetch("/fitness/classes", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((w: Week) => setWeek(w))
-      .catch(() => setFailed(true));
+    load();
+    // Back in coverage: fetch again on its own.
+    window.addEventListener("online", retry);
     const tick = () => setNow(seattleStamp());
     const t = setInterval(tick, 30_000);
     const onVisible = () => {
@@ -134,8 +157,9 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     return () => {
       clearInterval(t);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", retry);
     };
-  }, [gotFix, noFix]);
+  }, [gotFix, noFix, load, retry]);
 
   // A kind of class nobody has listed yet (rock climbing, for now) is not offered: a button that only ever says "none" looks broken.
   const available = useMemo(() => (week ? offered.filter((t) => week.classes.some((c) => c.type === t.key)) : []), [offered, week]);
@@ -177,7 +201,14 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
 
   function showStudio(id: string | null) {
     setStudioId(id);
-    setDay(null);
+    if (id && shownDay) {
+      // Stay on the day in view when this studio still has a class there; otherwise its first day with one.
+      const mine = visible.filter((c) => c.studioId === id);
+      if (!mine.some((c) => c.date === shownDay)) {
+        const first = days.find((d) => mine.some((c) => c.date === d));
+        if (first) setDay(first);
+      }
+    }
     // The chip is above the days; bring it into view so the change is obvious.
     requestAnimationFrame(() => results.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
   }
@@ -187,8 +218,29 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     if (chosen.size === 0) return;
     const next = new Set(chosen);
     setApplied(next);
-    if (week && shownDay && !visible.some((c) => c.date === shownDay)) setDay(null);
+    // Keep the day in view when the new picks have something there (judged by the new picks, not the old ones);
+    // otherwise back to today.
+    const stillThere =
+      !!week && !!shownDay && week.classes.some((c) => c.date === shownDay && c.type !== "other" && next.has(c.type) && (online || !c.online) && (!studioId || c.studioId === studioId) && !hasStarted(c, now));
+    if (week && shownDay && !stillThere) setDay(null);
+    // On a phone the results start below the fold: without this a tap on Search looks like it did nothing.
+    requestAnimationFrame(() => results.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
   }
+
+  // After a search, focus lands on the day heading: screen readers hear the result and keyboards start at the list.
+  const dayHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (applied.size) dayHeading.current?.focus({ preventScroll: true });
+  }, [applied]);
+
+  // The day strip keeps the chosen day in view (it holds a week of chips but shows four or five at a time).
+  const strip = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = strip.current;
+    const chip = el?.querySelector<HTMLElement>(`[data-day="${shownDay}"]`);
+    if (!el || !chip) return;
+    el.scrollTo({ left: chip.offsetLeft - el.offsetLeft - (el.clientWidth - chip.offsetWidth) / 2, behavior: "smooth" });
+  }, [shownDay]);
 
   const studiosForHint = new Set((week?.classes ?? []).filter((c) => c.type !== "other" && chosen.has(c.type) && !c.online).map((c) => c.studioId)).size;
 
@@ -213,9 +265,9 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
           </button>
         </div>
         {config.subtitle && <p className="text-sm text-muted-foreground">{config.subtitle}</p>}
-        {denied && !origin?.mine && (
-          <p className="text-xs text-muted-foreground">
-            Location is off, so distances are from {config.area_label ?? "the middle of the area"}. Allow it for this site in your browser settings to see what&apos;s closest.
+        {tip && (
+          <p role="status" className="text-xs text-muted-foreground">
+            {tip}
           </p>
         )}
       </header>
@@ -252,7 +304,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
           <input type="checkbox" className="h-[18px] w-[18px] accent-[#df4f26]" checked={online} onChange={(e) => setOnline(e.target.checked)} />
           Include online classes
         </label>
-        <button type="submit" disabled={chosen.size === 0} className="rounded-xl bg-[#df4f26] px-4 py-3.5 text-base font-bold text-white disabled:opacity-50">
+        <button type="submit" disabled={chosen.size === 0} className="rounded-xl bg-[#c23f1a] px-4 py-3.5 text-base font-bold text-white disabled:opacity-50">
           Search classes
         </button>
         <p className="text-xs text-muted-foreground">
@@ -264,13 +316,20 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
         </p>
       </form>
 
-      <section ref={results} aria-live="polite" className="flex scroll-mt-3 flex-col gap-3 rounded-2xl border bg-background p-4">
+      <section ref={results} className="flex scroll-mt-3 flex-col gap-3 rounded-2xl border bg-background p-4">
         {!week && !failed && (
           <p className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading this week&apos;s classes…
           </p>
         )}
-        {failed && <p className="py-8 text-center text-sm text-muted-foreground">Couldn&apos;t load the class schedule. Pull to refresh or try again in a minute.</p>}
+        {failed && !week && (
+          <div className="flex flex-col items-center gap-3 py-8 text-center text-sm text-muted-foreground">
+            <p>Couldn&apos;t load the class schedule.</p>
+            <button type="button" onClick={retry} className="rounded-full border-[1.5px] border-[#c23f1a] bg-background px-4 py-2 text-sm font-bold text-[#c23f1a] dark:border-[#ff7a52] dark:text-[#ff7a52]">
+              Try again
+            </button>
+          </div>
+        )}
         {week && !picked && <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">Pick what you want to do above, then tap Search classes.</p>}
         {week && picked && shownDay && (
           <>
@@ -289,7 +348,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                 </button>
               </div>
             )}
-            <div role="group" aria-label="Pick a day" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+            <div ref={strip} role="group" aria-label="Pick a day" className="-mx-4 flex snap-x gap-2 overflow-x-auto scroll-px-4 px-4 pb-1 [scrollbar-width:none]">
               {days.map((d) => {
                 const n = visible.filter((c) => c.date === d).length;
                 const on = d === shownDay;
@@ -297,9 +356,11 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                   <button
                     key={d}
                     type="button"
+                    data-day={d}
                     aria-pressed={on}
+                    aria-label={`${d === today ? "Today" : dayLabel(d, { weekday: "long" })}, ${dayLabel(d, { month: "long", day: "numeric" })}, ${n ? `${n} class${n === 1 ? "" : "es"}` : "no classes"}`}
                     onClick={() => setDay(d)}
-                    className={`flex min-w-16 shrink-0 flex-col items-center rounded-xl border-[1.5px] px-1.5 py-2 ${on ? "border-foreground bg-foreground text-background" : "border-border"}`}
+                    className={`flex min-w-16 shrink-0 snap-start flex-col items-center rounded-xl border-[1.5px] px-1.5 py-2 ${on ? "border-foreground bg-foreground text-background" : "border-border"}`}
                   >
                     <span className={`text-[11px] font-bold uppercase tracking-wider ${on ? "opacity-80" : "text-muted-foreground"}`}>
                       {d === today ? "Today" : dayLabel(d, { weekday: "short" })}
@@ -311,7 +372,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
               })}
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-xl font-bold">
+              <h2 ref={dayHeading} tabIndex={-1} className="text-xl font-bold outline-none">
                 {shownDay === today ? `Today, ${dayLabel(shownDay, { month: "short", day: "numeric" })}` : dayLabel(shownDay, { weekday: "long", month: "short", day: "numeric" })}
               </h2>
               {dayClasses.length > 1 && dayClasses.some((c) => miles(c.studioId) != null) && (
@@ -331,7 +392,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
               )}
             </div>
             {dayClasses.length > 0 && (
-              <p className="-mt-1 text-xs tabular-nums text-muted-foreground">
+              <p role="status" className="-mt-1 text-xs tabular-nums text-muted-foreground">
                 {dayClasses.length} class{dayClasses.length === 1 ? "" : "es"} · {dayStudios} studio{dayStudios === 1 ? "" : "s"}
                 {shownDay === today && startedToday > 0 ? ` · ${startedToday} already started` : ""}
               </p>
@@ -341,17 +402,24 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                 <p className="text-xl font-extrabold leading-snug text-foreground">
                   {shownDay === today
                     ? `There are no ${pickedLabel} classes${atStudio} at this time.`
-                    : `No ${pickedLabel} classes listed${atStudio} for ${dayLabel(shownDay, { weekday: "long" })}.${nextDay ? "" : ` Try another day${studioId ? ", show every studio," : ""} or add a class type.`}`}
+                    : `No ${pickedLabel} classes listed${atStudio} for ${dayLabel(shownDay, { weekday: "long" })}.${nextDay || studioId ? "" : " Try another day or add a class type."}`}
                 </p>
-                {nextDay && (
-                  <button
-                    type="button"
-                    onClick={() => setDay(nextDay)}
-                    className="flex items-center rounded-full border-[1.5px] border-[#df4f26] bg-background px-4 py-2 text-sm font-bold text-[#df4f26]"
-                  >
-                    See {dayLabel(nextDay, { weekday: "long" })}&apos;s classes · {visible.filter((c) => c.date === nextDay).length}
-                  </button>
-                )}
+                <div className="flex flex-wrap justify-center gap-2">
+                  {nextDay && (
+                    <button
+                      type="button"
+                      onClick={() => setDay(nextDay)}
+                      className="flex items-center rounded-full border-[1.5px] border-[#c23f1a] bg-background px-4 py-2 text-sm font-bold text-[#c23f1a] dark:border-[#ff7a52] dark:text-[#ff7a52]"
+                    >
+                      See {dayLabel(nextDay, { weekday: "long" })}&apos;s classes · {visible.filter((c) => c.date === nextDay).length}
+                    </button>
+                  )}
+                  {studioId && (
+                    <button type="button" onClick={() => showStudio(null)} className="flex items-center rounded-full border-[1.5px] bg-background px-4 py-2 text-sm font-bold">
+                      Show every studio
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (
               PARTS.map((part) => {
@@ -380,7 +448,10 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                           className="flex min-h-11 w-full items-center gap-2 rounded-lg px-0.5 text-left uppercase tracking-widest"
                         >
                           {part}
-                          <span>{rows.length}</span>
+                          <span>
+                            {rows.length}
+                            <span className="sr-only"> classes</span>
+                          </span>
                           {/* A bare arrow said nothing; the control says what a tap does. */}
                           <span className="ml-auto inline-flex items-center gap-1 rounded-full border bg-background px-2.5 py-1 text-xs font-semibold normal-case tracking-normal text-foreground">
                             {isFolded ? `Show all ${rows.length}` : "Show less"}
@@ -390,7 +461,10 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                       ) : (
                         <span className="flex min-h-11 items-center gap-2 px-0.5">
                           {part}
-                          <span>{rows.length}</span>
+                          <span>
+                            {rows.length}
+                            <span className="sr-only"> classes</span>
+                          </span>
                         </span>
                       )}
                     </h3>
@@ -421,7 +495,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                                   href={book}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="rounded-full border-[1.5px] border-[#df4f26] px-3 py-1 text-xs font-bold text-[#df4f26]"
+                                  className="rounded-full border-[1.5px] border-[#c23f1a] px-3 py-1 text-xs font-bold text-[#c23f1a] dark:border-[#ff7a52] dark:text-[#ff7a52]"
                                 >
                                   Book
                                 </a>
@@ -454,7 +528,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                                   {c.spots && (
                                     <>
                                       {" · "}
-                                      <span className="font-semibold text-[#df4f26]">{c.spots}</span>
+                                      <span className="font-semibold text-[#c23f1a] dark:text-[#ff7a52]">{c.spots}</span>
                                     </>
                                   )}
                                 </span>
