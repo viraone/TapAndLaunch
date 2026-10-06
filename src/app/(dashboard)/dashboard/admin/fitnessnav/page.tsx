@@ -37,6 +37,7 @@ const BUILT: Array<{ when: string; items: string[] }> = [
       "A safety net: a bad read can never replace a good week on the site (7 studios protected on the first morning).",
       "Inspire (both), Ahimsa, be here now. and TRIBE read from their booking widget's own data: exact times, no model, no more wrong-week results.",
       "The app was silently showing only the first 1,000 classes; it now shows the whole week.",
+      "Phone polish: the fold control says \"Hide\" or \"Show 52 classes\" instead of a bare arrow; the name no longer gets clipped by the location pill; class rows are about half as tall (Book sits under the time, the name has the full width); two header lines instead of four; \"under 0.1 mi\" instead of \"0.0 mi\".",
       "The reader runs every night at 10 PM instead of 10 AM, still on the local Qwen model, so the page is fresh by morning.",
       "Claude as the reader is built but parked: no key for now; the local model does the job.",
       "This board.",
