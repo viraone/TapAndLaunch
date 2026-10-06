@@ -151,6 +151,36 @@ function Skeleton({ block, color, ink, soft }: { block: StarterBlock; color: str
       );
     case "hero":
       return <HeroSkeleton block={block} color={color} />;
+    case "food_directory":
+      // The finished app opens on a dark header with live numbers, then a list of places.
+      return (
+        <div className="-mx-2 -mt-1.5 space-y-1.5">
+          <div className="space-y-1 px-2 pb-1.5 pt-2" style={{ background: "radial-gradient(circle at 20% 0%, rgba(251,146,60,0.55), transparent 60%), radial-gradient(circle at 90% 10%, rgba(244,63,94,0.4), transparent 55%), #0a0a0a" }}>
+            <div className="h-1.5 w-4/5 rounded-full bg-white" />
+            <div className="flex gap-0.5 pt-0.5">
+              {["#34d399", "#fbbf24", "#ffffff"].map((c) => (
+                <div key={c} className="flex h-4 flex-1 flex-col items-center justify-center gap-0.5 rounded bg-white/10">
+                  <span className="h-1.5 w-2 rounded-full" style={{ background: c }} />
+                  <span className="h-0.5 w-3 rounded-full bg-white/40" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1 px-2">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-1 rounded border p-0.5" style={{ borderColor: soft }}>
+                <span className="grid h-3.5 w-3.5 shrink-0 place-items-center rounded text-[6px]" style={{ background: `color-mix(in oklab, ${color} 25%, white)` }}>
+                  {["🍜", "🌮", "🍕"][i]}
+                </span>
+                <div className="flex-1 space-y-0.5">
+                  <div className="h-1 w-3/4 rounded-full" style={{ background: ink, opacity: 0.8 }} />
+                  <div className="h-0.5 w-1/2 rounded-full" style={{ background: i === 1 ? "#f59e0b" : "#10b981" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
     default:
       // The live directories (food, gas, open mics): a short list.
       return (

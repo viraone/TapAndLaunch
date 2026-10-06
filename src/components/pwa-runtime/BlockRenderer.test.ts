@@ -34,3 +34,14 @@ describe("listing_directory blocks", () => {
     expect(html).not.toContain("<h2");
   });
 });
+
+describe("food_directory blocks in the builder", () => {
+  it("show sample restaurants in the finished app's look, not an empty box", () => {
+    const html = render({ type: "food_directory", config: { title: "Food near me" } });
+    expect(html).toContain("Food near me");
+    expect(html).toContain("Golden Bowl Ramen");
+    expect(html).toContain("What are you craving?");
+    expect(html).toContain("Sample places.");
+    expect(html).not.toContain("border-dashed");
+  });
+});

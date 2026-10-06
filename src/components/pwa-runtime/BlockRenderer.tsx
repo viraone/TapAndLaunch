@@ -26,7 +26,7 @@ import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime"
 import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
 import { GasDirectoryRuntime } from "@/components/pwa-runtime/GasDirectoryRuntime";
-import { FoodDirectoryRuntime } from "@/components/pwa-runtime/FoodDirectoryRuntime";
+import { FoodDirectoryPreview, FoodDirectoryRuntime } from "@/components/pwa-runtime/FoodDirectoryRuntime";
 import { ListingDirectoryRuntime } from "@/components/pwa-runtime/ListingDirectoryRuntime";
 import { OpenMicSignupRuntime } from "@/components/pwa-runtime/OpenMicSignupRuntime";
 import { ClassFinderRuntime } from "@/components/pwa-runtime/ClassFinderRuntime";
@@ -330,18 +330,7 @@ function GasDirectoryBlockView({ config, live }: { config: GasDirectoryBlockConf
 }
 
 function FoodDirectoryBlockView({ config, live }: { config: FoodDirectoryBlockConfig; live: boolean }) {
-  if (!live) {
-    return (
-      <div className="px-4 py-3">
-        {config.title && <h2 className="text-lg font-semibold">{config.title}</h2>}
-        {config.subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{config.subtitle}</p>}
-        <p className="mt-2 rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Live open / closing-soon / closed status for restaurants around each viewer
-          when published (within {config.radius_miles ?? 2} mi).
-        </p>
-      </div>
-    );
-  }
+  if (!live) return <FoodDirectoryPreview config={config} />;
   return <FoodDirectoryRuntime config={config} />;
 }
 

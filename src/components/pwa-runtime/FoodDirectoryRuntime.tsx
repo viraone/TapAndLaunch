@@ -456,6 +456,174 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
   );
 }
 
+/** Made-up places for the builder's preview, so the block looks like the finished app before anyone's location is known. */
+const SAMPLE_PLACES: Array<{ place: NearbyPlace; status: OpenStatus }> = (
+  [
+    {
+      name: "Golden Bowl Ramen",
+      cuisine: "ramen",
+      cuisineLabel: "Ramen",
+      rating: 4.7,
+      priceLevel: 2,
+      distanceMiles: 0.3,
+      status: { state: "open", closesInMinutes: 240, closesAtLabel: "10 PM" },
+    },
+    {
+      name: "Casa Maria Tacos",
+      cuisine: "mexican",
+      cuisineLabel: "Mexican / Tacos",
+      rating: 4.5,
+      priceLevel: 1,
+      distanceMiles: 0.6,
+      status: {
+        state: "closing_soon",
+        closesInMinutes: 25,
+        closesAtLabel: "9 PM",
+      },
+    },
+    {
+      name: "Fiore Pizzeria",
+      cuisine: "pizza",
+      cuisineLabel: "Pizza",
+      rating: 4.4,
+      priceLevel: 2,
+      distanceMiles: 0.9,
+      status: { state: "open", closesInMinutes: 180, closesAtLabel: "11 PM" },
+    },
+    {
+      name: "The Daily Pour",
+      cuisine: null,
+      cuisineLabel: "Café",
+      rating: 4.8,
+      priceLevel: 1,
+      distanceMiles: 1.2,
+      status: { state: "closed", opensInMinutes: 600, opensAtLabel: "7 AM" },
+    },
+  ] as Array<{
+    name: string;
+    cuisine: NearbyPlace["cuisine"];
+    cuisineLabel: string;
+    rating: number;
+    priceLevel: number;
+    distanceMiles: number;
+    status: OpenStatus;
+  }>
+).map(({ status, ...rest }, i) => ({
+  status,
+  place: {
+    id: `sample-${i}`,
+    googlePlaceId: `sample-${i}`,
+    address: null,
+    latitude: 0,
+    longitude: 0,
+    ratingCount: null,
+    openingPeriods: [],
+    weekdayDescriptions: [],
+    utcOffsetMinutes: null,
+    phoneNational: null,
+    phoneInternational: null,
+    website: null,
+    happyHour: [],
+    wait: null,
+    ...rest,
+  } as NearbyPlace,
+}));
+
+/** What the builder shows for this block: the live app's look with sample places. Nothing here is clickable or stored. */
+export function FoodDirectoryPreview({
+  config,
+}: {
+  config: FoodDirectoryBlockConfig;
+}) {
+  const radius = config.radius_miles ?? 2;
+  const cuisines = (config.cuisines ?? CUISINES.map((c) => c.key))
+    .map((k) => CUISINE_BY_KEY[k])
+    .filter(Boolean)
+    .slice(0, 7);
+  return (
+    <div
+      className="pointer-events-none select-none pb-4"
+      aria-label="Preview with sample restaurants"
+    >
+      <section className="relative overflow-hidden bg-neutral-950 px-4 pb-5 pt-4 text-neutral-50">
+        <div aria-hidden className="absolute inset-0">
+          <div className="absolute -left-1/4 -top-1/2 h-[140%] w-[90%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(251,146,60,0.35),transparent_65%)] blur-2xl" />
+          <div className="absolute -right-1/4 -top-1/3 h-[120%] w-[80%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(244,63,94,0.3),transparent_65%)] blur-2xl" />
+        </div>
+        <div className="relative">
+          <div className="flex items-center justify-between gap-2">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 text-white shadow-lg shadow-orange-500/30">
+              <UtensilsCrossed
+                className="h-[18px] w-[18px]"
+                strokeWidth={2.5}
+              />
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-medium text-neutral-100">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" /> Near you
+            </span>
+          </div>
+          <h2 className="mt-4 text-[26px] font-bold leading-[1.1] tracking-tight">
+            {config.title || "Real-time food near me"}
+          </h2>
+          {config.subtitle && (
+            <p className="mt-1.5 text-sm leading-snug text-neutral-300">
+              {config.subtitle}
+            </p>
+          )}
+          <div className="mt-4 grid grid-cols-3 divide-x divide-white/10 rounded-2xl border border-white/10 bg-white/[0.06] py-2.5">
+            <Stat
+              value={3}
+              label="Open now"
+              tone="text-emerald-300"
+              dot="bg-emerald-400"
+            />
+            <Stat
+              value={1}
+              label="Closing soon"
+              tone="text-amber-300"
+              dot="bg-amber-400"
+            />
+            <Stat value={4} label={`Within ${radius} mi`} tone="text-white" />
+          </div>
+        </div>
+      </section>
+      <section className="px-4 pt-5">
+        <h3 className="text-[17px] font-semibold tracking-tight">
+          What are you craving?
+        </h3>
+        <div className="mt-3 grid grid-cols-4 gap-2">
+          <CuisineTile emoji="✨" label="All" active onClick={() => {}} />
+          {cuisines.slice(0, 7).map((c) => (
+            <CuisineTile
+              key={c.key}
+              emoji={c.emoji}
+              label={c.label}
+              active={false}
+              onClick={() => {}}
+            />
+          ))}
+        </div>
+      </section>
+      <ul className="mt-4 space-y-2 px-4">
+        {SAMPLE_PLACES.map(({ place, status }) => (
+          <li key={place.id}>
+            <PlaceCard
+              place={place}
+              status={status}
+              happy={null}
+              onOpen={() => {}}
+            />
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 px-4 text-center text-[11px] text-muted-foreground">
+        Sample places. Visitors see real restaurants near them within {radius}{" "}
+        miles.
+      </p>
+    </div>
+  );
+}
+
 function Stat({ value, label, tone, dot }: { value: number; label: string; tone: string; dot?: string }) {
   return (
     <div className="px-3 text-center">
