@@ -373,5 +373,126 @@
     "id": "ChIJxTrWF0IVkFQRgnJpsiPUaF0",
     "lat": 47.668397,
     "lng": -122.388837
+  },
+  {
+    "kind": "yoga",
+    "name": "Breathe Hot Yoga",
+    "site": "http://www.breathehotyoga.com/",
+    "km": 4.97,
+    "address": "1818 E Madison St, Seattle, WA 98122, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJv1ol8NNqkFQRgBGP0CtaZHA",
+    "lat": 47.616857,
+    "lng": -122.307818
+  },
+  {
+    "kind": "yoga",
+    "name": "Ritual House",
+    "site": "https://ritualhouseseattle.com/",
+    "km": 4.38,
+    "address": "608 19th Ave E, Seattle, WA 98112, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJHZU_gNUUkFQR1YpBbJ4pcU0",
+    "lat": 47.624683,
+    "lng": -122.307095
+  },
+  {
+    "kind": "yoga",
+    "name": "The Grinning Yogi - Seattle - Capitol Hill",
+    "site": "https://thegrinningyogiseattle.com/",
+    "km": 4.3,
+    "address": "345 15th Ave E, Seattle, WA 98112, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJDV91YisVkFQRIF0j9AE3T48",
+    "lat": 47.621789,
+    "lng": -122.312984
+  },
+  {
+    "kind": "yoga",
+    "name": "The SweatBox Yoga",
+    "site": "http://sweatboxyoga.com/",
+    "km": 4.76,
+    "address": "1417 10th Ave, Seattle, WA 98122, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJF2sr8YcQkFQRi_6IV8ubACc",
+    "lat": 47.613497,
+    "lng": -122.319968
+  },
+  {
+    "kind": "yoga",
+    "name": "Troy Lucero’s Acme Yoga Project",
+    "site": "http://troylucero.com/",
+    "km": 4.61,
+    "address": "915 E Pine St, Seattle, WA 98122, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJS3YhWMxqkFQR4xP2U-TnLw4",
+    "lat": 47.615136,
+    "lng": -122.319864
+  },
+  {
+    "kind": "yoga",
+    "name": "be here now.",
+    "site": "https://beherenowseattle.com/",
+    "km": 4.46,
+    "address": "601 E Pine St, Seattle, WA 98122, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJpTLyVwNrkFQRrjQ2yQJszvM",
+    "lat": 47.615062,
+    "lng": -122.324208
+  },
+  {
+    "kind": "pilates",
+    "name": "Mind & Body Pilates",
+    "site": "http://www.seattlepilates.com/",
+    "km": 5.42,
+    "address": "2022 E Union St, Seattle, WA 98122, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJo-Vm7dBqkFQRcutMl14gTe0",
+    "lat": 47.613084,
+    "lng": -122.305144
+  },
+  {
+    "kind": "pilates",
+    "name": "[solidcore] Capitol Hill",
+    "site": "https://solidcore.co/studios/capitol-hill?siteId=5723430&locationId=3&utm_source=google&utm_medium=search&utm_content=local-listing&utm_campaign=gmb-listing",
+    "km": 4.31,
+    "address": "1812 Broadway, Seattle, WA 98122, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJi2QTuBoVkFQRUrobLAzYCIA",
+    "lat": 47.617934,
+    "lng": -122.320594
+  },
+  {
+    "kind": "lifting",
+    "name": "Emerald City CrossFit",
+    "site": "https://www.emeraldcitycrossfit.com/",
+    "km": 5.03,
+    "address": "2308 E Madison St, Seattle, WA 98112, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJk3BoktVqkFQRP1wWj2KT0CU",
+    "lat": 47.619575,
+    "lng": -122.302168
+  },
+  {
+    "kind": "lifting",
+    "name": "HIIT Lab",
+    "site": "http://www.hiitlab.com/",
+    "km": 5.62,
+    "address": "1122 23rd Ave Ste D, Seattle, WA 98122, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJC62NmmVrkFQRR9A_pyMfEFE",
+    "lat": 47.612306,
+    "lng": -122.302388
+  },
+  {
+    "kind": "lifting",
+    "name": "Pacific Northwest Fitness",
+    "site": "http://www.pnwfitnessclubs.com/",
+    "km": 3.82,
+    "address": "401 Broadway E, Seattle, WA 98102, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJkbR4di4VkFQRFXC1WtQIO_0",
+    "lat": 47.622867,
+    "lng": -122.321286
   }
 ]

@@ -2,8 +2,10 @@
 // for each studio it finds the class schedule page (following the studio's own links, a few common schedule addresses,
 // and booking widgets in frames), clicks through day tabs, has the local model (Ollama) list the classes, and keeps only
 // classes whose name and start time appear on the page. Saves to out/ only; nothing goes to a database yet.
-// Usage: node read.mjs studios.json out-dir [--only "name"]
+// Usage: node read.mjs studios.json out-dir [--only "name"]   (FN_PARALLEL=3 studios at a time; FN_CACHE=where schedule pages are remembered)
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import robotsParser from "robots-parser";
 
@@ -11,6 +13,11 @@ const [studiosFile, outDir] = process.argv.slice(2);
 const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1].toLowerCase() : null;
 fs.mkdirSync(outDir, { recursive: true });
 const MODEL = "qwen3.8:27b";
+// How many studios are read at the same time. The browsing of one overlaps the model reading another's page.
+const PARALLEL = Math.max(1, Number(process.env.FN_PARALLEL ?? 3));
+// Where each studio's schedule page was last found, so the next run goes straight there instead of searching again.
+const CACHE_FILE = process.env.FN_CACHE ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "schedule-cache.json");
+const cache = (() => { try { return JSON.parse(fs.readFileSync(CACHE_FILE, "utf8")); } catch { return {}; } })();
 const dbg = (...a) => process.env.FN_DEBUG && console.error("  [debug]", ...a);
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 FitnessNavBot/0.1";
 // "Monday, October 5, 2026" in Seattle time: the model needs it to turn "Today" / "Tomorrow" into dates.
@@ -204,11 +211,52 @@ async function guessedSchedulePages(pageUrl) {
 }
 
 // ---- one studio ----
-const STUDIO_BUDGET_MS = 8 * 60 * 1000; // one slow or huge site must not hold up the rest
+const STUDIO_BUDGET_MS = 8 * 60 * 1000 * PARALLEL; // one slow or huge site must not hold up the rest (longer when studios share the model)
 async function readStudio(browser, s) {
   const t0 = Date.now();
+  let modelMs = 0;
   const r = { name: s.name, kind: s.kind, site: s.site, tried: [], scheduleUrl: null, platform: null, status: "no_schedule", classes: [], dropped: [] };
   if (!(await allowed(s.site))) return { ...r, status: "blocked_robots" };
+  const finish = (extra) => ({ ...r, ...extra, seconds: Math.round((Date.now() - t0) / 1000), modelSeconds: Math.round(modelMs / 1000) });
+
+  // Reads one candidate schedule page. Returns the finished result when it holds classes, else null (what it dropped is kept).
+  const attempt = async (url, pg) => {
+    const all = [];
+    let anySchedule = false;
+    const withTimes = chunk(pg.text).filter((c) => /\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b/i.test(c)).slice(0, 8);
+    for (const part of withTimes) {
+      if (Date.now() - t0 > STUDIO_BUDGET_MS) break;
+      dbg("ask model, chars", part.length);
+      const m0 = Date.now();
+      const a = await ask(s.name, part);
+      modelMs += Date.now() - m0;
+      dbg("model answered", a.classes.length, "classes");
+      if (a.is) anySchedule = true;
+      all.push(...a.classes);
+    }
+    if (!anySchedule || all.length === 0) return null;
+    const { kept, dropped } = verify(all, pg.text);
+    if (kept.length >= 2) {
+      const plat = (pg.frameUrls.join(" ") + " " + pg.finalUrl).match(PLATFORM)?.[0] ?? "own site";
+      return finish({ status: "ok", scheduleUrl: pg.finalUrl, platform: plat, classes: kept, dropped });
+    }
+    r.dropped.push(...dropped);
+    return null;
+  };
+
+  // Last time, the schedule was here: go straight to it (no home page, no link search). If it no longer works, search as usual.
+  const remembered = !s.schedule ? cache[s.name]?.url : null;
+  if (remembered) {
+    r.tried.push(remembered);
+    if (await allowed(remembered)) {
+      const pg = await render(browser, remembered).catch(() => null);
+      if (pg && pg.text.length >= 200) {
+        const done = await attempt(remembered, pg);
+        if (done) return done;
+      }
+    }
+  }
+
   const home = await render(browser, s.site, { settle: 3000 });
   // "West Queen Anne" should still match a "Queen Anne" link.
   const hood = s.neighborhood ? [s.neighborhood, s.neighborhood.replace(/^(north|south|east|west|upper|lower)\s+/i, "")] : [];
@@ -225,35 +273,32 @@ async function readStudio(browser, s) {
     if (!(await allowed(url))) { r.status = "blocked_robots"; continue; }
     const pg = url === home.finalUrl ? home : await render(browser, url).catch(() => null);
     if (!pg || pg.text.length < 200) continue;
-    const all = [];
-    let anySchedule = false;
-    const withTimes = chunk(pg.text).filter((c) => /\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b/i.test(c)).slice(0, 8);
-    for (const part of withTimes) {
-      if (Date.now() - t0 > STUDIO_BUDGET_MS) break;
-      dbg("ask model, chars", part.length);
-      const a = await ask(s.name, part);
-      dbg("model answered", a.classes.length, "classes");
-      if (a.is) anySchedule = true;
-      all.push(...a.classes);
-    }
-    if (!anySchedule || all.length === 0) continue;
-    const { kept, dropped } = verify(all, pg.text);
-    if (kept.length >= 2) {
-      const plat = (pg.frameUrls.join(" ") + " " + pg.finalUrl).match(PLATFORM)?.[0] ?? "own site";
-      return { ...r, status: "ok", scheduleUrl: pg.finalUrl, platform: plat, classes: kept, dropped, seconds: Math.round((Date.now() - t0) / 1000) };
-    }
-    r.dropped.push(...dropped);
+    const done = await attempt(url, pg);
+    if (done) return done;
   }
-  return { ...r, seconds: Math.round((Date.now() - t0) / 1000) };
+  return finish({});
 }
 
 const studios = JSON.parse(fs.readFileSync(studiosFile, "utf8")).filter((s) => !only || s.name.toLowerCase().includes(only));
 const browser = await chromium.launch({ headless: true });
-for (const [i, s] of studios.entries()) {
-  let r;
-  try { r = await readStudio(browser, s); } catch (e) { r = { name: s.name, kind: s.kind, status: "error", error: String(e.message).slice(0, 120), classes: [] }; }
-  fs.writeFileSync(`${outDir}/${s.name.replace(/[^a-z0-9]+/gi, "_")}.json`, JSON.stringify(r, null, 2));
-  const days = [...new Set(r.classes.map((c) => c.date))].sort();
-  console.log(`[${i + 1}/${studios.length}] ${s.name.slice(0, 34).padEnd(34)} ${r.status.padEnd(14)} ${String(r.classes.length).padStart(3)} classes  days: ${days.join(",") || "-"}  via ${r.platform ?? "-"} ${r.seconds ? `(${r.seconds}s)` : ""}${r.error ? " " + r.error : ""}`);
+// A small pool: PARALLEL studios at a time. The model answers one request at a time, so what overlaps is mostly browsing.
+let nextStudio = 0;
+async function worker() {
+  while (nextStudio < studios.length) {
+    const i = nextStudio++;
+    const s = studios[i];
+    let r;
+    try { r = await readStudio(browser, s); } catch (e) { r = { name: s.name, kind: s.kind, status: "error", error: String(e.message).slice(0, 120), classes: [] }; }
+    fs.writeFileSync(`${outDir}/${s.name.replace(/[^a-z0-9]+/gi, "_")}.json`, JSON.stringify(r, null, 2));
+    // Remember where the schedule was found (and forget a page that stopped working).
+    if (r.status === "ok" && r.scheduleUrl) cache[s.name] = { url: r.scheduleUrl, at: new Date().toISOString() };
+    else if (r.status !== "blocked_robots" && cache[s.name]) delete cache[s.name];
+    try { fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 1)); } catch {}
+    const days = [...new Set(r.classes.map((c) => c.date))].sort();
+    console.log(`[${i + 1}/${studios.length}] ${s.name.slice(0, 34).padEnd(34)} ${r.status.padEnd(14)} ${String(r.classes.length).padStart(3)} classes  days: ${days.join(",") || "-"}  via ${r.platform ?? "-"} ${r.seconds ? `(${r.seconds}s, model ${r.modelSeconds ?? 0}s)` : ""}${r.error ? " " + r.error : ""}`);
+  }
 }
+const started = Date.now();
+await Promise.all(Array.from({ length: Math.min(PARALLEL, studios.length) }, worker));
+console.log(`All ${studios.length} studios in ${Math.round((Date.now() - started) / 60000)} min (${PARALLEL} at a time).`);
 await browser.close();
