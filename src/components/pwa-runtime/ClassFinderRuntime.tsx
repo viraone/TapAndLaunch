@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Dumbbell, Loader2, LocateFixed, MapPin, X } from "lucide-react";
+import { ChevronDown, Dumbbell, Loader2, LocateFixed, MapPin, X } from "lucide-react";
 import type { ClassFinderBlockConfig, FitnessClassType } from "@/types/database";
 import {
   CLASS_TYPES,
@@ -78,6 +78,8 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   // Set by tapping a studio's name: the page then shows only that studio, until the chip above the days is cleared.
   const [studioId, setStudioId] = useState<string | null>(null);
   const results = useRef<HTMLElement>(null);
+  // Morning / Afternoon / Evening groups the visitor has folded away (all open to begin with).
+  const [folded, setFolded] = useState<Set<PartOfDay>>(() => new Set());
   const [origin, setOrigin] = useState<{ lat: number; lng: number; mine: boolean } | null>(
     config.area_latitude != null && config.area_longitude != null ? { lat: config.area_latitude, lng: config.area_longitude, mine: false } : null
   );
@@ -304,16 +306,33 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
               PARTS.map((part) => {
                 const rows = dayClasses.filter((c) => partOfDay(c.start) === part);
                 if (!rows.length) return null;
+                const isFolded = folded.has(part);
                 return (
                   <div key={part} className="flex flex-col gap-2">
-                    <h3 className="mt-1 flex gap-2 px-0.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                      {part}
-                      <span>{rows.length}</span>
+                    <h3 className="mt-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      <button
+                        type="button"
+                        aria-expanded={!isFolded}
+                        aria-controls={`part-${part}`}
+                        onClick={() =>
+                          setFolded((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(part)) next.delete(part);
+                            else next.add(part);
+                            return next;
+                          })
+                        }
+                        className="flex min-h-11 w-full items-center gap-2 rounded-lg px-0.5 text-left uppercase tracking-widest"
+                      >
+                        {part}
+                        <span>{rows.length}</span>
+                        <ChevronDown className={`ml-auto mr-1 h-4 w-4 shrink-0 transition-transform ${isFolded ? "" : "rotate-180"}`} strokeWidth={2.5} aria-hidden />
+                      </button>
                     </h3>
-                    <ul className="divide-y overflow-hidden rounded-xl border">
+                    <ul id={`part-${part}`} hidden={isFolded} className="divide-y overflow-hidden rounded-xl border">
                       {rows.map((c) => {
                         const s = studios.get(c.studioId);
-                                                const len = classMinutes(c.start, c.end);
+                        const len = classMinutes(c.start, c.end);
                         const mi = miles(c.studioId);
                         const book = s?.bookUrl ?? s?.website ?? null;
                         const type = c.type as FitnessClassType;
