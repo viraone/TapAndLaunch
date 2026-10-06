@@ -135,6 +135,8 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     };
   }, [gotFix, noFix]);
 
+  // A kind of class nobody has listed yet (rock climbing, for now) is not offered: a button that only ever says "none" looks broken.
+  const available = useMemo(() => (week ? offered.filter((t) => week.classes.some((c) => c.type === t.key)) : offered), [offered, week]);
   const studios = useMemo(() => new Map((week?.studios ?? []).map((s) => [s.id, s])), [week]);
   const miles = (studioId: string) => {
     const s = studios.get(studioId);
@@ -218,7 +220,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
       <form onSubmit={search} className="flex flex-col gap-3 rounded-2xl border bg-background p-4">
         <h2 className="text-lg font-bold">What do you want to do?</h2>
         <div className="flex flex-wrap gap-2">
-          {offered.map((t) => {
+          {available.map((t) => {
             const on = chosen.has(t.key);
             return (
               <label
