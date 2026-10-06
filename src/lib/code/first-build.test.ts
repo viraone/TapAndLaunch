@@ -308,6 +308,47 @@ describe("the two-step build", () => {
     expect(timeline.sections["src/components/Reviews.jsx"]?.cut).toBe(true);
     expect(timeline.sections["src/components/Hero.jsx"]?.cut).toBeUndefined();
   });
+
+  const dataPlan = `<plan>\ndesign: x\nsections: Hero\nsrc/data/recipes.js: the recipe list\n</plan><file path="src/App.jsx">\nimport Hero from '@/components/Hero';\nimport { recipes } from '@/data/recipes';\nexport default () => <><Hero /><p>{recipes.length}</p></>;\n</file>`;
+
+  it("keeps the whole entries of a data file that hit the cap, instead of failing the build", async () => {
+    const ask: Ask = async (turns) => {
+      const last = turns.at(-1)?.content ?? "";
+      if (last.includes("This is a NEW app")) return dataPlan;
+      const path = /Your file: (\S+)/.exec(last)?.[1] as string;
+      if (path === "src/data/recipes.js") return `<file path="${path}">\nexport const recipes = [\n  { id: 1, name: "Pad Thai" },\n  { id: 2, name: "Tacos" },\n  { id: 3, name: "Ram`;
+      return `<file path="${path}">\nexport default function Hero() { return <h1>Hi</h1>; }\n</file>`;
+    };
+    const timeline: BuildTimeline = { sections: {} };
+    const result = await firstBuild({ files: starterFiles("x"), message: "x", history: [], ask, send: () => {}, timeline });
+    if (!("changes" in result)) throw new Error(JSON.stringify(result));
+    const data = result.changes["src/data/recipes.js"] as string;
+    expect(data).toContain("Tacos");
+    expect(data).not.toContain("Ram");
+    expect(parse(data, { sourceType: "module" })).toBeTruthy();
+    expect(timeline.sections["src/data/recipes.js"]?.cut).toBe(true);
+  });
+
+  it("gives a section that came back empty twice the room on its second try", async () => {
+    const caps: Record<string, Array<number | undefined>> = {};
+    const ask: Ask = async (turns, _onText, _signal, maxTokens) => {
+      const last = turns.at(-1)?.content ?? "";
+      if (last.includes("This is a NEW app")) return dataPlan;
+      const path = /Your file: (\S+)/.exec(last)?.[1] as string;
+      (caps[path] ??= []).push(maxTokens);
+      // The first try runs out of room before one whole entry is written; the second has room for all of it.
+      if (path === "src/data/recipes.js") {
+        return caps[path].length === 1
+          ? `<file path="${path}">\nexport const recipes = [\n  { id: 1, name: "Pad Th`
+          : `<file path="${path}">\nexport const recipes = [\n  { id: 1, name: "Pad Thai" },\n  { id: 2, name: "Tacos" },\n];\n</file>`;
+      }
+      return `<file path="${path}">\nexport default function Hero() { return <h1>Hi</h1>; }\n</file>`;
+    };
+    const result = await firstBuild({ files: starterFiles("x"), message: "x", history: [], ask, send: () => {} });
+    if (!("changes" in result)) throw new Error(JSON.stringify(result));
+    expect(caps["src/data/recipes.js"]).toEqual([PART_MAX_TOKENS, PART_MAX_TOKENS * 2]);
+    expect(result.changes["src/data/recipes.js"]).toContain("Tacos");
+  });
 });
 
 describe("sending a slow request again", () => {

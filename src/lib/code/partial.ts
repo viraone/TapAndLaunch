@@ -9,6 +9,8 @@
  * of breaking the rest of the page.
  */
 
+import { parse } from "@babel/parser";
+
 type Frame =
   | { t: "js"; close: string; ternaries: number }
   | { t: "str"; quote: string }
@@ -245,8 +247,61 @@ export default function __TlPartial(props) { return __tlH(__TlSafe, null, __tlH(
 export function salvage(path: string, source: string): string | null {
   const body = source.replace(/^\s*```[a-zA-Z]*\n/, "");
   const closed = closePartialJsx(body, { atElement: true });
-  if (!closed) return null;
+  // No JSX to cut at: a data file (a list of recipes, plans, classes). Keep the entries that are whole.
+  if (!closed) return /\.jsx$/.test(path) || path.startsWith("src/components/") ? null : salvageData(body);
   if (/export\s+default/.test(closed)) return closed;
   const name = nameOf(path);
   return new RegExp(`(function|const|let)\\s+${name}\\b`).test(closed) ? `${closed}\nexport default ${name};` : null;
+}
+
+
+/**
+ * A data file the AI didn't finish (`export const recipes = [ {...}, {...}, {` and then the length limit): cut after the last
+ * entry that is complete and close the list, so the app gets the entries that were written instead of nothing. Tries the
+ * last few cut points and keeps the first that is valid code. Null when no whole entry was written.
+ */
+export function salvageData(source: string): string | null {
+  const pairs: Record<string, string> = { "[": "]", "{": "}", "(": ")" };
+  const stack: string[] = [];
+  const cuts: Array<{ at: number; closers: string }> = [];
+  let quote: string | null = null;
+  for (let i = 0; i < source.length; i++) {
+    const ch = source[i] as string;
+    if (quote) {
+      if (ch === "\\") i++;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === "/" && source[i + 1] === "/") {
+      const nl = source.indexOf("\n", i);
+      if (nl < 0) break;
+      i = nl;
+      continue;
+    }
+    if (ch === "/" && source[i + 1] === "*") {
+      const end = source.indexOf("*/", i + 2);
+      if (end < 0) break;
+      i = end + 1;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      quote = ch;
+    } else if (pairs[ch]) {
+      stack.push(pairs[ch] as string);
+    } else if (ch === "]" || ch === "}" || ch === ")") {
+      if (stack.pop() !== ch) return null;
+      // An entry inside the outermost list or object (or a list nested one level down) just finished.
+      if (stack.length >= 1 && stack.length <= 3 && ch !== ")") cuts.push({ at: i + 1, closers: [...stack].reverse().join("") });
+    }
+  }
+  for (const cut of cuts.reverse().slice(0, 8)) {
+    const out = `${source.slice(0, cut.at)}\n${cut.closers};\n`;
+    try {
+      parse(out, { sourceType: "module", plugins: ["jsx"] });
+      return out;
+    } catch {
+      // try the previous cut point
+    }
+  }
+  return null;
 }

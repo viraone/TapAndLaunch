@@ -726,7 +726,8 @@ async function writePart(ask: Ask, content: string, path: string, onText: (piece
             first = false;
           },
           undefined,
-          PART_MAX_TOKENS
+          // The second try gets twice the room: a section that hit its limit and couldn't be trimmed (a long list) usually fits.
+          attempt === 0 ? PART_MAX_TOKENS : PART_MAX_TOKENS * 2
         )
       );
       const exact = parsed.changes[path];

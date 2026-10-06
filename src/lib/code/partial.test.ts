@@ -111,3 +111,55 @@ describe("closing a half-written section", () => {
     expect(kept).toBeGreaterThan(0);
   });
 });
+
+describe("salvaging a half-written data file", () => {
+  const ok = (code: string | null) => {
+    expect(code).not.toBeNull();
+    expect(() => parse(code as string, { sourceType: "module" })).not.toThrow();
+    return code as string;
+  };
+
+  it("keeps the whole entries and closes the list", () => {
+    const cut = `export const recipes = [
+  { id: 1, name: "Pad Thai", cuisine: "Thai", steps: ["Soak noodles", "Fry"] },
+  { id: 2, name: "Tacos al pastor", cuisine: "Mexican", steps: ["Marinate", "Grill"] },
+  { id: 3, name: "Ramen", cuisine: "Japa`;
+    const out = ok(salvage("src/data/recipes.js", cut));
+    expect(out).toContain("Pad Thai");
+    expect(out).toContain("Tacos al pastor");
+    expect(out).not.toContain("Ramen");
+    expect(out.trimEnd().endsWith("];")).toBe(true);
+  });
+
+  it("is not fooled by brackets, quotes and comments inside the text", () => {
+    const cut = `// the list
+export const tips = [
+  { id: 1, text: "Use a } and a ] carefully", note: 'it\\'s fine' },
+  /* second one */ { id: 2, text: \`line one
+line two\` },
+  { id: 3, te`;
+    const out = ok(salvage("src/data/tips.js", cut));
+    expect(out).toContain("id: 2");
+    expect(out).not.toContain("id: 3");
+  });
+
+  it("works for an object holding lists", () => {
+    const cut = `export const menu = {
+  starters: [{ n: "Soup" }, { n: "Salad" }],
+  mains: [{ n: "Pie" }, { n: "Ste`;
+    const out = ok(salvage("src/data/menu.js", cut));
+    expect(out).toContain("Salad");
+    expect(out).toContain("Pie");
+    expect(out).not.toContain("Ste");
+  });
+
+  it("gives up when not even one entry is whole", () => {
+    expect(salvage("src/data/recipes.js", "export const recipes = [\n  { id: 1, name: \"Pad Th")).toBeNull();
+    expect(salvage("src/data/recipes.js", "")).toBeNull();
+  });
+
+  it("still ends a component after its last whole element", () => {
+    const comp = `export default function Grid() {\n  return (\n    <div>\n      <p>one</p>\n      <p>tw`;
+    expect(salvage("src/components/Grid.jsx", comp)).toContain("<p>one</p>");
+  });
+});
