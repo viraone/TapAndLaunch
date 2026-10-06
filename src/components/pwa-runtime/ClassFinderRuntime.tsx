@@ -288,20 +288,22 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
               </p>
             )}
             {dayClasses.length === 0 ? (
-              <p className="rounded-xl border px-4 py-6 text-center text-sm text-muted-foreground">
-                {shownDay === today
-                  ? `There are no ${pickedLabel} classes${atStudio} at this time.`
-                  : `No ${pickedLabel} classes listed${atStudio} for ${dayLabel(shownDay, { weekday: "long" })}.${nextDay ? "" : ` Try another day${studioId ? ", show every studio," : ""} or add a class type.`}`}
+              <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-[#df4f26]/30 bg-[#df4f26]/5 px-4 py-8 text-center">
+                <p className="text-xl font-extrabold leading-snug text-foreground">
+                  {shownDay === today
+                    ? `There are no ${pickedLabel} classes${atStudio} at this time.`
+                    : `No ${pickedLabel} classes listed${atStudio} for ${dayLabel(shownDay, { weekday: "long" })}.${nextDay ? "" : ` Try another day${studioId ? ", show every studio," : ""} or add a class type.`}`}
+                </p>
                 {nextDay && (
                   <button
                     type="button"
                     onClick={() => setDay(nextDay)}
-                    className="mx-auto mt-3 flex items-center rounded-full border-[1.5px] border-[#df4f26] px-4 py-2 text-sm font-bold text-[#df4f26]"
+                    className="flex items-center rounded-full border-[1.5px] border-[#df4f26] bg-background px-4 py-2 text-sm font-bold text-[#df4f26]"
                   >
                     See {dayLabel(nextDay, { weekday: "long" })}&apos;s classes · {visible.filter((c) => c.date === nextDay).length}
                   </button>
                 )}
-              </p>
+              </div>
             ) : (
               PARTS.map((part) => {
                 const rows = dayClasses.filter((c) => partOfDay(c.start) === part);
