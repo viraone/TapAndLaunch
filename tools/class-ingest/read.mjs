@@ -250,7 +250,9 @@ async function readStudio(browser, s) {
     const { kept, dropped } = verify(all, pg.text);
     if (kept.length >= 2) {
       const plat = (pg.frameUrls.join(" ") + " " + pg.finalUrl).match(PLATFORM)?.[0] ?? "own site";
-      return finish({ status: "ok", scheduleUrl: pg.finalUrl, platform: plat, classes: kept, dropped });
+      // pageUrl is the page as requested; finalUrl can carry the state of the last day tab clicked (Mindbody widgets put
+      // activeDate=… in it), and remembering that would open the wrong week next time.
+      return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: plat, classes: kept, dropped });
     }
     r.dropped.push(...dropped);
     return null;
@@ -293,6 +295,8 @@ async function readStudio(browser, s) {
 
 const studios = JSON.parse(fs.readFileSync(studiosFile, "utf8")).filter((s) => !only || s.name.toLowerCase().includes(only));
 const browser = await chromium.launch({ headless: true });
+const isHomePage = (u) => { try { const x = new URL(u); return x.pathname.replace(/\/+$/, "") === "" && !x.search; } catch { return true; } };
+
 // A small pool: PARALLEL studios at a time. The model answers one request at a time, so what overlaps is mostly browsing.
 let nextStudio = 0;
 async function worker() {
@@ -302,8 +306,10 @@ async function worker() {
     let r;
     try { r = await readStudio(browser, s); } catch (e) { r = { name: s.name, kind: s.kind, status: "error", error: String(e.message).slice(0, 120), classes: [] }; }
     fs.writeFileSync(`${outDir}/${s.name.replace(/[^a-z0-9]+/gi, "_")}.json`, JSON.stringify(r, null, 2));
-    // Remember where the schedule was found (and forget a page that stopped working).
-    if (r.status === "ok" && r.scheduleUrl) cache[s.name] = { url: r.scheduleUrl, at: new Date().toISOString() };
+    // Remember where the schedule was found (and forget a page that stopped working). Never the site's own home page:
+    // a home page that lists today's few classes must not stand in for the schedule page on later runs.
+    const worth = r.status === "ok" && r.pageUrl && !isHomePage(r.pageUrl) && r.pageUrl.replace(/\/$/, "") !== String(s.site).replace(/\/$/, "");
+    if (worth) cache[s.name] = { url: r.pageUrl, at: new Date().toISOString() };
     else if (r.status === "no_schedule" && cache[s.name]) delete cache[s.name]; // only when the page itself stopped working
     try { fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 1)); } catch {}
     const days = [...new Set(r.classes.map((c) => c.date))].sort();
