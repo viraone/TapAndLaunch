@@ -90,7 +90,7 @@ export function CodeBuilder({
   const [status, setStatus] = useState(initialStatus);
   const [published, setPublished] = useState(initialPublished);
   const [viewing, setViewing] = useState<{ version: number; files: Record<string, string> } | null>(null);
-  const [device, setDevice] = useState<"phone" | "desktop">("desktop");
+  const [device, setDevice] = useState<"ios" | "android" | "desktop">("desktop");
   const [tab, setTab] = useState<"chat" | "preview">("chat");
   const [key, setKey] = useState<SavedKey | null | undefined>(undefined);
   const [canManage, setCanManage] = useState(false);
@@ -404,9 +404,10 @@ export function CodeBuilder({
           )}
         </button>
         <div className="hidden rounded-full bg-white/[0.06] p-1 ring-1 ring-white/10 sm:flex" role="group" aria-label="Preview size">
-          {(["phone", "desktop"] as const).map((d) => (
-            <button key={d} type="button" onClick={() => setDevice(d)} aria-pressed={device === d} className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm ${device === d ? "bg-white text-neutral-950" : "text-neutral-300"}`}>
-              {d === "phone" ? <Smartphone className="h-4 w-4" /> : <Monitor className="h-4 w-4" />} {d === "phone" ? "Phone" : "Desktop"}
+          {(["ios", "android", "desktop"] as const).map((d) => (
+            <button key={d} type="button" onClick={() => setDevice(d)} aria-pressed={device === d} aria-label={d === "ios" ? "iOS phone" : d === "android" ? "Android phone" : "Desktop"} className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm ${device === d ? "bg-white text-neutral-950" : "text-neutral-300"}`}>
+              {d === "desktop" ? <Monitor className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
+              {d === "desktop" ? <span className="hidden lg:inline">Desktop</span> : d === "ios" ? "iOS" : "Android"}
             </button>
           ))}
         </div>
@@ -546,8 +547,22 @@ export function CodeBuilder({
             </div>
           )}
           <div className="grid min-h-0 flex-1 place-items-center overflow-auto bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,0.18),transparent_60%)] p-3 sm:p-6">
-            <div className={`h-full w-full overflow-hidden bg-white shadow-2xl ring-1 ring-white/10 ${device === "phone" ? "max-w-[390px] rounded-[2rem] border-[10px] border-neutral-900" : "rounded-xl"}`}>
-              <iframe ref={frame} title="App preview" srcDoc={srcDoc} sandbox="allow-scripts allow-forms allow-popups allow-modals" className="h-full w-full border-0 bg-white" />
+            {/* iOS and Android show the app in a phone with that phone's camera cut-out and corners; Desktop is a plain window. */}
+            <div
+              className={`flex h-full w-full flex-col overflow-hidden bg-white shadow-2xl ring-1 ring-white/10 ${
+                device === "ios" ? "max-w-[390px] rounded-[3rem] border-[10px] border-neutral-900" : device === "android" ? "max-w-[390px] rounded-[1.75rem] border-[8px] border-neutral-900" : "rounded-xl"
+              }`}
+            >
+              {device !== "desktop" && (
+                <div className="relative h-9 shrink-0 bg-neutral-900" aria-hidden>
+                  {device === "ios" ? (
+                    <div className="absolute left-1/2 top-1 h-6 w-28 -translate-x-1/2 rounded-full bg-neutral-950" />
+                  ) : (
+                    <div className="absolute left-1/2 top-2.5 h-3 w-3 -translate-x-1/2 rounded-full bg-neutral-950" />
+                  )}
+                </div>
+              )}
+              <iframe ref={frame} title="App preview" srcDoc={srcDoc} sandbox="allow-scripts allow-forms allow-popups allow-modals" className="min-h-0 w-full flex-1 border-0 bg-white" />
             </div>
           </div>
           {busy && (
