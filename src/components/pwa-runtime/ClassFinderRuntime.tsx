@@ -115,6 +115,9 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   const today = now.slice(0, 10);
   const days = useMemo(() => (week?.days ?? []).filter((d) => d >= today), [week, today]);
   const shownDay = day ?? (days.includes(today) ? today : (days[0] ?? null));
+  // For the "nothing to show" message: what they picked, and the studio if one is chosen.
+  const pickedLabel = [...applied].map((k) => CLASS_TYPE_LABEL[k]).join(" or ");
+  const atStudio = studioId ? ` at ${studios.get(studioId)?.name ?? "this studio"}` : "";
   const nextDay = days.find((d) => d > (shownDay ?? "") && visible.some((c) => c.date === d)) ?? null;
   const picked = applied.size > 0;
   const dayClasses = visible.filter((c) => c.date === shownDay);
@@ -284,9 +287,9 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
             )}
             {dayClasses.length === 0 ? (
               <p className="rounded-xl border px-4 py-6 text-center text-sm text-muted-foreground">
-                {shownDay === today && startedToday > 0
-                  ? "That's all the classes for today."
-                  : `No ${[...applied].map((k) => CLASS_TYPE_LABEL[k].toLowerCase()).join(" or ")} classes listed${studioId ? ` at ${studios.get(studioId)?.name ?? "this studio"}` : ""} for ${shownDay === today ? "today" : dayLabel(shownDay, { weekday: "long" })}.${nextDay ? "" : ` Try another day${studioId ? ", show every studio," : ""} or add a class type.`}`}
+                {shownDay === today
+                  ? `There are no ${pickedLabel} classes${atStudio} at this time.`
+                  : `No ${pickedLabel} classes listed${atStudio} for ${dayLabel(shownDay, { weekday: "long" })}.${nextDay ? "" : ` Try another day${studioId ? ", show every studio," : ""} or add a class type.`}`}
                 {nextDay && (
                   <button
                     type="button"
