@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LayoutTemplate, Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { STARTER_TEMPLATES } from "@/lib/apps/templates";
 import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
 import { AppCard, type DailyViews } from "@/components/dashboard/AppCard";
@@ -81,19 +81,13 @@ export default async function DashboardPage() {
             <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href="/dashboard/apps/new#templates"
-                  className="inline-flex h-11 items-center gap-2 rounded-full bg-white/10 px-5 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/15"
-                >
-                  <LayoutTemplate className="h-4 w-4" /> Browse templates
-                </Link>
-                <Link
                   href="/dashboard/apps/new"
                   className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-neutral-950 shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_10px_30px_-10px_rgba(129,140,248,0.8)] transition hover:bg-indigo-50"
                 >
                   <Plus className="h-4 w-4" /> New app
                 </Link>
               </div>
-              <p className="text-xs text-neutral-400">Start from a template, or describe it in a sentence</p>
+              <p className="text-xs text-neutral-400">Pick a template to start from</p>
             </div>
           </div>
 
