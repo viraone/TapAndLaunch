@@ -1,17 +1,25 @@
 # Go-live checklist
 
-_Last updated: 2026-10-03._ Tick items as they are done and note the date.
+_Last updated: 2026-10-06._ Tick items as they are done and note the date.
 
 ## Real money (Stripe)
 
-- [ ] Finish activating the live Stripe account: tax id, bank account, any identity checks (Stripe dashboard > Setup guide >
-      Verify your account)
+- [x] Finish activating the live Stripe account (2026-10-05; unregistered business, no EIN: the IRS online form refused it, see
+      `private/business.md`)
 - [x] Public details: support email, support/privacy/terms URLs, statement descriptor (2026-10-03)
 - [ ] Phone verification on the Stripe account (Settings > Business > Account details)
 - [ ] Connect in live mode: platform profile and branding
-- [ ] Live webhook endpoint created; live `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in Vercel; redeploy
-- [ ] One small real purchase and refund
-- [ ] Delete test organizations and test apps from production
+- [x] Live webhook endpoints created (subscriptions + store payments); live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and
+      `STRIPE_BILLING_WEBHOOK_SECRET` in Vercel; redeployed (2026-10-05)
+- [ ] One small real store purchase and refund (needs a store connected in live mode first; none yet)
+- [ ] Delete test organizations and test apps from production (firstrun3 after its plan ends Nov 4; shop1 after the live store
+      test; the two leftover test apps were unpublished 2026-10-05)
+
+## Platform account
+- [x] Vercel Pro (2026-10-05; Hobby is non-commercial)
+- [x] `BILLING_ENFORCED=true` on production (2026-10-05)
+- [ ] Remove the 4 leftover `tl-…test…` entries from the Vercel team's Domains list (needs the dashboard; the API token can't)
+- [ ] EIN by phone (1-800-829-4933, reference 101) when convenient; optional Stripe Tax after an accountant's advice
 
 ## Product basics before inviting real builders
 
