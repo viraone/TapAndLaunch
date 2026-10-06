@@ -1,4 +1,4 @@
-// Saves the morning run's results (out/*.json) to the LIVE database for the FitnessNav app: one fitness_studios row per
+// Saves the nightly run's results (out/*.json) to the LIVE database for the FitnessNav app: one fitness_studios row per
 // studio (status, schedule page, class count) and, for each studio read successfully today, its classes from today on
 // (replacing what was saved before). A studio that couldn't be read today keeps its earlier classes.
 // Needs .env with SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and FITNESSNAV_APP_ID. Usage: node save.mjs [out-dir]

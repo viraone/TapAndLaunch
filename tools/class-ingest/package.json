@@ -2,7 +2,7 @@
   "name": "class-ingest",
   "private": true,
   "type": "module",
-  "description": "FitnessNav: reads fitness studios' class schedules with a local model on the owner's Mac (runs every morning at 10 AM).",
+  "description": "FitnessNav: reads fitness studios' class schedules with a local model on the owner's Mac (runs every night at 10 PM).",
   "scripts": {
     "start": "node read.mjs studios.json out"
   },

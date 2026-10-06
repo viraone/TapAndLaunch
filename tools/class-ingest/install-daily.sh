@@ -1,5 +1,5 @@
 #!/bin/bash
-# Turns on FitnessNav's morning run (10:00 AM every day). Undo with:  ./install-daily.sh remove
+# Turns on FitnessNav's nightly run (10:00 PM every day). Undo with:  ./install-daily.sh remove
 #
 # macOS doesn't let a background job read ~/Desktop, so this copies the job to ~/.fitnessnav-job and the schedule runs it from there.
 # Run this script again after changing anything in this folder (it re-copies the files; the job's results stay).
@@ -11,7 +11,7 @@ DEST="$HOME/.fitnessnav-job"
 if [ "${1:-}" = "remove" ]; then
   launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
   rm -f "$PLIST"
-  echo "FitnessNav morning run removed. (The copy in $DEST is still there; delete it if you like.)"
+  echo "FitnessNav nightly run removed. (The copy in $DEST is still there; delete it if you like.)"
   exit 0
 fi
 mkdir -p "$DEST" "$HOME/Library/LaunchAgents"
@@ -27,12 +27,12 @@ cat > "$PLIST" <<PLISTEOF
 <plist version="1.0"><dict>
   <key>Label</key><string>$LABEL</string>
   <key>ProgramArguments</key><array><string>/bin/bash</string><string>$DEST/daily.sh</string></array>
-  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>0</integer></dict>
   <key>RunAtLoad</key><false/>
   <key>StandardErrorPath</key><string>$HOME/Library/Logs/fitnessnav.launchd.log</string>
 </dict></plist>
 PLISTEOF
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST"
-echo "FitnessNav morning run is on: every day at 10:00 AM (log: ~/Library/Logs/fitnessnav.log)."
-echo "If the Mac is asleep at 10:00 it runs when it wakes. Turn off with: ./install-daily.sh remove"
+echo "FitnessNav nightly run is on: every day at 10:00 PM (log: ~/Library/Logs/fitnessnav.log)."
+echo "If the Mac is asleep at 10 PM it runs when it next wakes (the page stays a day old until then). Turn off with: ./install-daily.sh remove"

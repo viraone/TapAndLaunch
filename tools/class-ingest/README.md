@@ -1,4 +1,4 @@
-# FitnessNav class reader (runs on your Mac, every morning at 10 AM)
+# FitnessNav class reader (runs on your Mac, every night at 10 PM)
 
 FitnessNav (fitnessnav.tapandlaunch.com) shows every Pilates, yoga, spin, lifting and climbing class at nearby studios
 on one page, by day. Google has no class schedules, so this job reads each studio's own schedule page:
@@ -27,9 +27,9 @@ node save.mjs out                         # to the live database (needs .env)
 ```
 `.env` (git-ignored): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (live project) and `FITNESSNAV_APP_ID`.
 
-## Every morning
+## Every night
 `./install-daily.sh` copies the job to `~/.fitnessnav-job` (macOS won't let background jobs read ~/Desktop) and runs it
-at 10:00 AM. Run it again after changing anything here. Log: `~/Library/Logs/fitnessnav.log`. `./install-daily.sh remove` turns it off.
+at 10:00 PM. Run it again after changing anything here. Log: `~/Library/Logs/fitnessnav.log`. `./install-daily.sh remove` turns it off.
 
 ## Known gaps
 Wix booking calendars (Seed Pilates) aren't clicked through yet; a studio whose schedule shows one day with no day tabs

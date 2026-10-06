@@ -25,19 +25,8 @@ const STATUS_LABEL: Record<string, { label: string; tone: "good" | "warn" | "bad
 const TYPE_COLOR: Record<FitnessClassType, string> = { pilates: "bg-pink-600", yoga: "bg-emerald-600", lifting: "bg-blue-600", spin: "bg-amber-500", climbing: "bg-orange-800" };
 
 /** What needs doing on FitnessNav, with the steps to follow. Added to the board's list once by key; ticks are kept. */
-const TODOS: SeededTodo[] = [
-  {
-    key: "fitnessnav-key",
-    section: "Reader",
-    title: "Add the Anthropic key to the FitnessNav reader",
-    detail: "Turns the 95-minute morning run into minutes.",
-    steps: [
-      { title: "Create a key at console.anthropic.com → API Keys → Create key. Name it fitnessnav-reader." },
-      { title: "In Terminal, run: echo 'ANTHROPIC_API_KEY=sk-ant-…' >> ~/.fitnessnav-job/.env", detail: "Replace sk-ant-… with the key. Never paste the key into chat." },
-      { title: "Tell Claude \"key added\".", detail: "Claude test-reads 3 studios, then runs all 46 with timing and cost." },
-    ],
-  },
-];
+// Nothing seeded right now. The "add the Anthropic key" item was dropped on Oct 6: the local Qwen model stays the reader.
+const TODOS: SeededTodo[] = [];
 const TODO_SECTIONS = ["Reader", "Studios", "Mine"];
 
 /** What shipped, newest first. Kept here on purpose: it changes when the work ships, with the same commit. */
@@ -48,7 +37,8 @@ const BUILT: Array<{ when: string; items: string[] }> = [
       "A safety net: a bad read can never replace a good week on the site (7 studios protected on the first morning).",
       "Inspire (both), Ahimsa, be here now. and TRIBE read from their booking widget's own data: exact times, no model, no more wrong-week results.",
       "The app was silently showing only the first 1,000 classes; it now shows the whole week.",
-      "The reader can use Claude instead of the slow local model (waiting on a key).",
+      "The reader runs every night at 10 PM instead of 10 AM, still on the local Qwen model, so the page is fresh by morning.",
+      "Claude as the reader is built but parked: no key for now; the local model does the job.",
       "This board.",
     ],
   },
@@ -66,7 +56,7 @@ const BUILT: Array<{ when: string; items: string[] }> = [
     when: "Oct 4",
     items: [
       "FitnessNav live: every Pilates, yoga, spin, lifting and climbing class near Fremont, by day, with Book links.",
-      "The reader: a job on the Mac reads each studio's own schedule page every morning at 10 AM.",
+      "The reader: a job on the Mac reads each studio's own schedule page every day (10 AM at first; every night at 10 PM since Oct 6).",
     ],
   },
 ];
@@ -74,7 +64,7 @@ const BUILT: Array<{ when: string; items: string[] }> = [
 const ROADMAP: Array<{ title: string; detail: string; status: "done" | "waiting" | "now" | "later" }> = [
   { title: "Capitol Hill", detail: "12 of 20 candidate studios read and live. Done Oct 5 to 6.", status: "done" },
   { title: "Mariana Tek studios read exactly", detail: "Five of the busiest studios, from their widget's own data. Done Oct 6.", status: "done" },
-  { title: "Faster reads with Claude", detail: "Built. Needs an Anthropic key in the job's settings, then a 3-studio test and a full timed run. Expected: the 95-minute run drops to minutes.", status: "waiting" },
+  { title: "Faster reads with Claude", detail: "Built and parked Oct 6: the local Qwen model stays the reader. An Anthropic key in the job's .env turns it on any time; the 95-minute run would drop to minutes.", status: "later" },
   { title: "Studios that still don't read", detail: "Seed (Wix), JETSET, Experience Momentum, Cambio, Coeur, Studio Jacks: one at a time. Posto and Bouldering Project block readers. Practical Pilates and Bueno have no group classes.", status: "now" },
   { title: "Speed-ups for the model path", detail: "Trim menus and footers before the model reads a page; skip days that haven't changed; a smaller model for clean pages. After about 60 studios.", status: "later" },
   { title: "More booking-system readers", detail: "Mindbody, Walla, Momence, WellnessLiving, Glofox: the same exact-data trick as Mariana Tek.", status: "later" },
@@ -283,10 +273,10 @@ export default async function FitnessNavBoard() {
         <Card title="Your daily glance">
           <ul className="list-disc space-y-2 pl-5 text-sm text-neutral-700">
             <li>
-              <b>Studios with classes</b> should stay at {Math.max(reading, 36)} or climb. If it drops, the morning run had trouble: ask Claude to read the log.
+              <b>Studios with classes</b> should stay at {Math.max(reading, 36)} or climb. If it drops, the run last night had trouble: ask Claude to read the log.
             </li>
             <li>
-              <b>Schedules last read</b> should say today after about 11:45 AM. If it shows yesterday, the Mac was asleep at 10 AM; the run starts when it wakes.
+              <b>Schedules last read</b> should say yesterday (the run is at 10 PM and takes about 95 minutes). If it is older, the Mac was asleep at 10 PM; the run starts when it wakes.
             </li>
             <li>
               <b>Still to come today</b> is what a visitor sees now. If it looks low for the hour, check one busy studio against its own site.

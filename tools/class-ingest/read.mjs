@@ -1,4 +1,4 @@
-// FitnessNav class reader. Runs on the owner's Mac (not in the cloud), every morning at 10 AM (see install-daily.sh):
+// FitnessNav class reader. Runs on the owner's Mac (not in the cloud), every night at 10 PM (see install-daily.sh):
 // for each studio it finds the class schedule page (following the studio's own links, a few common schedule addresses,
 // and booking widgets in frames), clicks through day tabs, has the local model (Ollama) list the classes, and keeps only
 // classes whose name and start time appear on the page. Saves to out/ only; nothing goes to a database yet.
@@ -211,14 +211,14 @@ function marianaClasses(records) {
   return out.sort((a, b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
 }
 
-/** The coming week, read from the widget. Null when the page has no Mariana Tek widget. */
+/** The coming week, read from the widget: 8 days, so a night-time read still fills the next morning's full week. Null when the page has no Mariana Tek widget. */
 async function readMariana(browser, pg) {
   if (!pg.mariana?.length) return null;
   const records = [...pg.mariana];
   const first = marianaDayUrl(pg.finalUrl, "2000-01-01");
   if (first) {
     const base = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
-    const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(base); d.setDate(d.getDate() + i); return d.toISOString().slice(0, 10); });
+    const days = Array.from({ length: 8 }, (_, i) => { const d = new Date(base); d.setDate(d.getDate() + i); return d.toISOString().slice(0, 10); });
     for (const day of days) {
       const url = marianaDayUrl(pg.finalUrl, day);
       try { records.push(...(await marianaDay(browser, url))); } catch (e) { dbg("mariana day failed", day, String(e.message).slice(0, 60)); }
