@@ -76,6 +76,10 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   // Nothing is ticked until the visitor picks.
   const [chosen, setChosen] = useState<Set<FitnessClassType>>(() => new Set());
   const [applied, setApplied] = useState<Set<FitnessClassType>>(() => new Set());
+  // After the first Search, a tap on a pill updates the list straight away; nobody should have to tap Search twice.
+  const [searched, setSearched] = useState(false);
+  // Set by Search (not by a live pill change): the day heading then takes focus once the results have rendered.
+  const focusResults = useRef(false);
   const [online, setOnline] = useState(false);
   const [day, setDay] = useState<string | null>(null);
   // Set by tapping a studio's name: the page then shows only that studio, until the chip above the days is cleared.
@@ -213,16 +217,21 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     requestAnimationFrame(() => results.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
   }
 
-  function search(e: React.FormEvent) {
-    e.preventDefault();
-    if (chosen.size === 0) return;
-    const next = new Set(chosen);
+  // Shows the classes for a set of picks. Keeps the day in view when the new picks have something there (judged by the
+  // new picks, not the old ones); otherwise back to today.
+  function apply(next: Set<FitnessClassType>) {
     setApplied(next);
-    // Keep the day in view when the new picks have something there (judged by the new picks, not the old ones);
-    // otherwise back to today.
     const stillThere =
       !!week && !!shownDay && week.classes.some((c) => c.date === shownDay && c.type !== "other" && next.has(c.type) && (online || !c.online) && (!studioId || c.studioId === studioId) && !hasStarted(c, now));
     if (week && shownDay && !stillThere) setDay(null);
+  }
+
+  function search(e: React.FormEvent) {
+    e.preventDefault();
+    if (chosen.size === 0) return;
+    apply(new Set(chosen));
+    setSearched(true);
+    focusResults.current = true;
     // On a phone the results start below the fold: without this a tap on Search looks like it did nothing.
     requestAnimationFrame(() => results.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
   }
@@ -230,7 +239,9 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   // After a search, focus lands on the day heading: screen readers hear the result and keyboards start at the list.
   const dayHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
-    if (applied.size) dayHeading.current?.focus({ preventScroll: true });
+    if (!focusResults.current) return;
+    focusResults.current = false;
+    dayHeading.current?.focus({ preventScroll: true });
   }, [applied]);
 
   // The day strip keeps the chosen day in view (it holds a week of chips but shows four or five at a time).
@@ -292,6 +303,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                     if (e.target.checked) next.add(t.key);
                     else next.delete(t.key);
                     setChosen(next);
+                    if (searched) apply(next);
                   }}
                 />
                 <span className={`h-2.5 w-2.5 rounded-full ${TYPE_STYLE[t.key].dot}`} />
@@ -330,7 +342,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
             </button>
           </div>
         )}
-        {week && !picked && <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">Pick what you want to do above, then tap Search classes.</p>}
+        {week && !picked && <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">{searched ? "Pick what you want to do above." : "Pick what you want to do above, then tap Search classes."}</p>}
         {week && picked && shownDay && (
           <>
             {studioId && (
