@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Dumbbell, Loader2, LocateFixed, MapPin, X } from "lucide-react";
 import type { ClassFinderBlockConfig, FitnessClassType } from "@/types/database";
 import {
@@ -55,6 +55,7 @@ const forgetOldPicks = () => {
     localStorage.removeItem("fitnessnav-online");
   } catch {}
 };
+const FIX_OPTIONS: PositionOptions = { enableHighAccuracy: false, timeout: 10_000, maximumAge: 120_000 };
 const dayLabel = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", ...opts });
 
 /**
@@ -84,26 +85,63 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     config.area_latitude != null && config.area_longitude != null ? { lat: config.area_latitude, lng: config.area_longitude, mine: false } : null
   );
   const [locating, setLocating] = useState(false);
+  // True once the visitor (or their browser) has said no to sharing their location; the page then stays on the area.
+  const [denied, setDenied] = useState(false);
+  const fixAt = useRef(0);
+  // "soonest": by start time, nearest studio first when times match. "nearest": closest studio first, within each part of the day.
+  const [sort, setSort] = useState<"soonest" | "nearest">("soonest");
   const [now, setNow] = useState(() => seattleStamp());
+
+  // Finds where the visitor is, so every distance on the page is from them and the closest studios can come first.
+  // The position stays in this browser: it is never sent to us or saved.
+  const gotFix = useCallback((p: GeolocationPosition) => {
+    fixAt.current = Date.now();
+    setOrigin({ lat: p.coords.latitude, lng: p.coords.longitude, mine: true });
+    setDenied(false);
+    setLocating(false);
+  }, []);
+  const noFix = useCallback((e: GeolocationPositionError) => {
+    if (e.code === e.PERMISSION_DENIED) setDenied(true);
+    setLocating(false);
+  }, []);
+  // The button: asks again (and shows "Finding you…" while it waits).
+  function locate() {
+    if (!("geolocation" in navigator)) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(gotFix, noFix, FIX_OPTIONS);
+  }
 
   // The week's classes. Nothing is ticked until the visitor picks.
   useEffect(() => {
     forgetOldPicks();
+    // Asked as soon as the page opens, so the first list already has distances from the visitor.
+    if ("geolocation" in navigator) navigator.geolocation.getCurrentPosition(gotFix, noFix, FIX_OPTIONS);
     fetch("/fitness/classes", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((w: Week) => setWeek(w))
       .catch(() => setFailed(true));
     const tick = () => setNow(seattleStamp());
     const t = setInterval(tick, 30_000);
-    const onVisible = () => document.visibilityState === "visible" && tick();
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      tick();
+      // Someone who has moved since the last fix (a few minutes ago) gets their distances worked out again.
+      if (fixAt.current && Date.now() - fixAt.current > 5 * 60_000 && "geolocation" in navigator) navigator.geolocation.getCurrentPosition(gotFix, noFix, FIX_OPTIONS);
+    };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       clearInterval(t);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
+  }, [gotFix, noFix]);
 
   const studios = useMemo(() => new Map((week?.studios ?? []).map((s) => [s.id, s])), [week]);
+  const miles = (studioId: string) => {
+    const s = studios.get(studioId);
+    if (!origin || s?.latitude == null || s.longitude == null) return null;
+    return milesBetween(origin.lat, origin.lng, s.latitude, s.longitude);
+  };
+
   const studioColors = useMemo(() => studioPalette((week?.studios ?? []).map((s) => s.id)), [week]);
   // What matches the pick, split by the clock: classes that have started drop off the list as the day goes on.
   const matching = useMemo(
@@ -122,7 +160,15 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   const atStudio = studioId ? ` at ${studios.get(studioId)?.name ?? "this studio"}` : "";
   const nextDay = days.find((d) => d > (shownDay ?? "") && visible.some((c) => c.date === d)) ?? null;
   const picked = applied.size > 0;
-  const dayClasses = visible.filter((c) => c.date === shownDay);
+  const dayClasses = visible
+    .filter((c) => c.date === shownDay)
+    .sort((a, b) => {
+      // Studios without a known place go last when sorting by distance.
+      const da = miles(a.studioId) ?? Infinity;
+      const db = miles(b.studioId) ?? Infinity;
+      const byTime = a.start.localeCompare(b.start);
+      return sort === "nearest" ? da - db || byTime : byTime || da - db;
+    });
   const dayStudios = new Set(dayClasses.map((c) => c.studioId)).size;
 
   function showStudio(id: string | null) {
@@ -140,25 +186,6 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     if (week && shownDay && !visible.some((c) => c.date === shownDay)) setDay(null);
   }
 
-  function useMyLocation() {
-    if (!("geolocation" in navigator)) return;
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (p) => {
-        setOrigin({ lat: p.coords.latitude, lng: p.coords.longitude, mine: true });
-        setLocating(false);
-      },
-      () => setLocating(false),
-      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 }
-    );
-  }
-
-  const miles = (studioId: string) => {
-    const s = studios.get(studioId);
-    if (!origin || s?.latitude == null || s.longitude == null) return null;
-    return milesBetween(origin.lat, origin.lng, s.latitude, s.longitude);
-  };
-
   const studiosForHint = new Set((week?.classes ?? []).filter((c) => c.type !== "other" && chosen.has(c.type) && !c.online).map((c) => c.studioId)).size;
 
   return (
@@ -175,13 +202,18 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
         </div>
         <button
           type="button"
-          onClick={useMyLocation}
+          onClick={locate}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium text-muted-foreground"
         >
           {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : origin?.mine ? <LocateFixed className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
-          {origin?.mine ? "Near you" : config.area_label ? `Near ${config.area_label}` : "Use my location"}
+          {locating && !origin?.mine ? "Finding you…" : origin?.mine ? "Near you" : config.area_label ? `Near ${config.area_label}` : "Use my location"}
         </button>
       </header>
+      {denied && !origin?.mine && (
+        <p className="-mt-2 text-xs text-muted-foreground">
+          Location is off, so distances are from {config.area_label ?? "the middle of the area"}. Allow location for this site in your browser settings to see the studios closest to you.
+        </p>
+      )}
 
       <form onSubmit={search} className="flex flex-col gap-3 rounded-2xl border bg-background p-4">
         <h2 className="text-lg font-bold">What do you want to do?</h2>
@@ -282,6 +314,24 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                 </p>
               )}
             </div>
+            {dayClasses.length > 1 && dayClasses.some((c) => miles(c.studioId) != null) && (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs text-muted-foreground">{origin?.mine ? "Distances are from where you are" : `Distances are from ${config.area_label ?? "the middle of the area"}`}</span>
+                <div role="group" aria-label="Order the classes" className="flex shrink-0 rounded-full bg-muted p-0.5 text-xs font-semibold">
+                  {(["soonest", "nearest"] as const).map((o) => (
+                    <button
+                      key={o}
+                      type="button"
+                      aria-pressed={sort === o}
+                      onClick={() => setSort(o)}
+                      className={`min-h-9 rounded-full px-3 capitalize ${sort === o ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+                    >
+                      {o}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {shownDay === today && startedToday > 0 && dayClasses.length > 0 && (
               <p className="-mt-1 text-xs text-muted-foreground">
                 {startedToday} earlier class{startedToday === 1 ? " has" : "es have"} already started. Showing what&apos;s still to come.
