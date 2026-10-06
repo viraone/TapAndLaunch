@@ -2,19 +2,32 @@
 // for each studio it finds the class schedule page (following the studio's own links, a few common schedule addresses,
 // and booking widgets in frames), clicks through day tabs, has the local model (Ollama) list the classes, and keeps only
 // classes whose name and start time appear on the page. Saves to out/ only; nothing goes to a database yet.
-// Usage: node read.mjs studios.json out-dir [--only "name"]   (FN_PARALLEL=3 studios at a time; FN_CACHE=where schedule pages are remembered)
+// Usage: node read.mjs studios.json out-dir [--only "name"]
+// ANTHROPIC_API_KEY (env or .env here): read with Claude (FN_CLAUDE_MODEL, default claude-haiku-4-5), 10 studios at a time;
+// without it, the local Ollama model, 3 at a time. FN_PARALLEL overrides; FN_CACHE=where schedule pages are remembered.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import robotsParser from "robots-parser";
+import Anthropic from "@anthropic-ai/sdk";
 
 const [studiosFile, outDir] = process.argv.slice(2);
 const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1].toLowerCase() : null;
 fs.mkdirSync(outDir, { recursive: true });
+// Which model reads the pages. With an ANTHROPIC_API_KEY (in the environment or this folder's .env) it is Claude, hosted:
+// seconds per page and many studios at once. Without one it is the local model (Ollama), which takes minutes per page.
+const envFile = path.join(path.dirname(fileURLToPath(import.meta.url)), ".env");
+if (fs.existsSync(envFile)) for (const l of fs.readFileSync(envFile, "utf8").split("\n")) { const m = /^([A-Z0-9_]+)=(.*)$/.exec(l.trim()); if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, ""); }
+const HOSTED = !!process.env.ANTHROPIC_API_KEY;
+const claude = HOSTED ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 }) : null;
+const CLAUDE_MODEL = process.env.FN_CLAUDE_MODEL ?? "claude-haiku-4-5";
 const MODEL = "qwen3.8:27b";
-// How many studios are read at the same time. The browsing of one overlaps the model reading another's page.
-const PARALLEL = Math.max(1, Number(process.env.FN_PARALLEL ?? 3));
+// Tokens sent to and received from Claude this run, for the cost line at the end.
+const usage = { input: 0, output: 0, calls: 0 };
+// How many studios are read at the same time. Hosted, the model is not a bottleneck, so many; local, the browsing of one
+// overlaps the model reading another's page, and more than a few just queue up.
+const PARALLEL = Math.max(1, Number(process.env.FN_PARALLEL ?? (HOSTED ? 10 : 3)));
 // Where each studio's schedule page was last found, so the next run goes straight there instead of searching again.
 const CACHE_FILE = process.env.FN_CACHE ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "schedule-cache.json");
 const cache = (() => { try { return JSON.parse(fs.readFileSync(CACHE_FILE, "utf8")); } catch { return {}; } })();
@@ -160,9 +173,61 @@ async function ask(studio, text) {
       if (attempt === 1) await new Promise((r) => setTimeout(r, 5000));
     }
   }
+  // Hosted and still failing (the key, the network, the service): the local model is the fallback when it is running.
+  if (HOSTED) {
+    try {
+      const up = await fetch("http://localhost:11434/api/tags", { signal: AbortSignal.timeout(3000) }).then((r) => r.ok).catch(() => false);
+      if (up) { dbg("falling back to the local model"); return await askOllama(studio, text); }
+    } catch {}
+  }
   return { is: false, classes: [], failed: true };
 }
+const STRICT_SCHEMA = {
+  type: "object",
+  properties: {
+    is_schedule: { type: "boolean" },
+    classes: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          date: { type: ["string", "null"] },
+          start: { type: "string" },
+          end: { type: ["string", "null"] },
+          name: { type: "string" },
+          instructor: { type: ["string", "null"] },
+          spots: { type: ["string", "null"] },
+        },
+        required: ["date", "start", "end", "name", "instructor", "spots"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["is_schedule", "classes"],
+  additionalProperties: false,
+};
+
+async function askClaude(studio, text) {
+  const res = await claude.messages.parse({
+    model: CLAUDE_MODEL,
+    max_tokens: 16000,
+    messages: [{ role: "user", content: prompt(studio, text) }],
+    output_config: { format: { type: "json_schema", schema: STRICT_SCHEMA } },
+  });
+  usage.calls += 1;
+  usage.input += res.usage.input_tokens + (res.usage.cache_read_input_tokens ?? 0) + (res.usage.cache_creation_input_tokens ?? 0);
+  usage.output += res.usage.output_tokens;
+  if (res.stop_reason === "max_tokens") dbg("claude hit max_tokens for", studio);
+  const j = res.parsed_output;
+  if (!j) throw new Error("Claude's answer did not match the schema");
+  return { is: !!j.is_schedule, classes: j.classes ?? [] };
+}
+
 async function askOnce(studio, text) {
+  return HOSTED ? askClaude(studio, text) : askOllama(studio, text);
+}
+
+async function askOllama(studio, text) {
   // Streamed: Node's fetch gives up after 5 minutes of silence before the first byte, which happens when this waits in line
   // behind another request to the model. With streaming the first bytes arrive straight away.
   const res = await fetch("http://localhost:11434/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: MODEL, stream: true, think: false, format: SCHEMA, options: { temperature: 0, num_ctx: 24576, num_predict: 6000 }, messages: [{ role: "user", content: prompt(studio, text) }] }), signal: AbortSignal.timeout(6 * 60 * 1000 * PARALLEL) });
@@ -222,7 +287,7 @@ async function guessedSchedulePages(pageUrl) {
 }
 
 // ---- one studio ----
-const STUDIO_BUDGET_MS = 8 * 60 * 1000 * PARALLEL; // one slow or huge site must not hold up the rest (longer when studios share the model)
+const STUDIO_BUDGET_MS = HOSTED ? 10 * 60 * 1000 : 8 * 60 * 1000 * PARALLEL; // one slow or huge site must not hold up the rest (longer when studios share the local model)
 async function readStudio(browser, s) {
   const t0 = Date.now();
   let modelMs = 0;
@@ -318,5 +383,12 @@ async function worker() {
 }
 const started = Date.now();
 await Promise.all(Array.from({ length: Math.min(PARALLEL, studios.length) }, worker));
-console.log(`All ${studios.length} studios in ${Math.round((Date.now() - started) / 60000)} min (${PARALLEL} at a time).`);
+const mins = Math.round((Date.now() - started) / 6000) / 10;
+if (HOSTED) {
+  // Claude Haiku 4.5 list prices as of 2026-09: $1 per million tokens in, $5 per million out. An estimate, not a bill.
+  const est = (usage.input / 1e6) * 1 + (usage.output / 1e6) * 5;
+  console.log(`All ${studios.length} studios in ${mins} min (${PARALLEL} at a time, ${CLAUDE_MODEL}): ${usage.calls} requests, ${usage.input.toLocaleString()} tokens in, ${usage.output.toLocaleString()} out, about $${est.toFixed(2)}.`);
+} else {
+  console.log(`All ${studios.length} studios in ${mins} min (${PARALLEL} at a time, local ${MODEL}).`);
+}
 await browser.close();
