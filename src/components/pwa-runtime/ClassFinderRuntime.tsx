@@ -138,7 +138,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   }, [gotFix, noFix]);
 
   // A kind of class nobody has listed yet (rock climbing, for now) is not offered: a button that only ever says "none" looks broken.
-  const available = useMemo(() => (week ? offered.filter((t) => week.classes.some((c) => c.type === t.key)) : offered), [offered, week]);
+  const available = useMemo(() => (week ? offered.filter((t) => week.classes.some((c) => c.type === t.key)) : []), [offered, week]);
   const studios = useMemo(() => new Map((week?.studios ?? []).map((s) => [s.id, s])), [week]);
   const miles = (studioId: string) => {
     const s = studios.get(studioId);
@@ -223,6 +223,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
       <form onSubmit={search} className="flex flex-col gap-3 rounded-2xl border bg-background p-4">
         <h2 className="text-lg font-bold">What do you want to do?</h2>
         <div className="flex flex-wrap gap-2">
+          {!week && !failed && offered.slice(0, 4).map((t) => <span key={t.key} aria-hidden className="h-[42px] w-28 animate-pulse rounded-full bg-muted" />)}
           {available.map((t) => {
             const on = chosen.has(t.key);
             return (
@@ -397,17 +398,29 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                           <li
                             key={c.id}
                             style={color ? ({ "--studio": color.stripe, "--studio-text": color.text, "--studio-text-dark": color.textDark } as React.CSSProperties) : undefined}
-                            className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-x-3 px-3.5 py-2.5 shadow-[inset_4px_0_0_var(--studio,transparent)]"
+                            className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 px-3.5 py-2.5 shadow-[inset_4px_0_0_var(--studio,transparent)]"
                           >
-                            <div className="pt-px text-[15px] font-bold tabular-nums leading-tight">
-                              {time12(c.start)}
-                              {len && <span className="block text-[11px] font-medium text-muted-foreground">{len} min</span>}
+                            {/* Time, length and the Book button stack in the left column, so the name and the details have the whole width. */}
+                            <div className="flex flex-col items-start gap-1.5 whitespace-nowrap">
+                              <span className="text-[15px] font-bold tabular-nums leading-tight">
+                                {time12(c.start)}
+                                {len && <span className="block text-[11px] font-medium text-muted-foreground">{len} min</span>}
+                              </span>
+                              {book && (
+                                <a
+                                  href={book}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="rounded-full border-[1.5px] border-[#df4f26] px-3 py-1 text-xs font-bold text-[#df4f26]"
+                                >
+                                  Book
+                                </a>
+                              )}
                             </div>
-                            {/* The name has the whole width to itself, so it rarely needs more than two lines. */}
                             <div className="flex min-w-0 flex-col gap-1">
                               <span className="break-words font-semibold leading-snug">{c.name}</span>
-                              <div className="flex items-end justify-between gap-3">
-                                <span className="min-w-0 break-words text-xs leading-snug text-muted-foreground">
+                              <div>
+                                <span className="break-words text-xs leading-snug text-muted-foreground">
                                   <span className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide ${TYPE_STYLE[type].text}`}>
                                     <span className={`h-1.5 w-1.5 rounded-full ${TYPE_STYLE[type].dot}`} />
                                     {CLASS_TYPE_LABEL[type]}
@@ -435,16 +448,6 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                                     </>
                                   )}
                                 </span>
-                                {book && (
-                                  <a
-                                    href={book}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="shrink-0 whitespace-nowrap rounded-full border-[1.5px] border-[#df4f26] px-3 py-1 text-xs font-bold text-[#df4f26]"
-                                  >
-                                    Book
-                                  </a>
-                                )}
                               </div>
                             </div>
                           </li>
