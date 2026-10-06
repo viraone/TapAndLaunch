@@ -17,19 +17,29 @@ const asType = (t: string): FitnessClassType | "other" => ((CLASS_TYPE_KEYS as s
 export async function getClassWeek(appId: string, from: string): Promise<ClassWeek> {
   const admin = createAdminClient();
   const days = nextDays(from, 7);
-  const [{ data: studios }, { data: rows }] = await Promise.all([
-    admin.from("fitness_studios").select("*").eq("app_id", appId),
-    admin
-      .from("fitness_classes")
-      .select("id, studio_id, class_date, start_time, end_time, name, instructor, spots, class_type, online")
-      .eq("app_id", appId)
-      .gte("class_date", days[0])
-      .lte("class_date", days[days.length - 1])
-      .neq("class_type", "other")
-      .order("class_date")
-      .order("start_time")
-      .limit(5000),
-  ]);
+  // The database answers at most 1,000 rows per request whatever limit is asked for, and a week across the city's studios
+  // is more than that, so the classes are fetched a page at a time until a page comes back short.
+  const PAGE = 1000;
+  const fetchClasses = async () => {
+    const rows = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data } = await admin
+        .from("fitness_classes")
+        .select("id, studio_id, class_date, start_time, end_time, name, instructor, spots, class_type, online")
+        .eq("app_id", appId)
+        .gte("class_date", days[0])
+        .lte("class_date", days[days.length - 1])
+        .neq("class_type", "other")
+        .order("class_date")
+        .order("start_time")
+        .order("id")
+        .range(from, from + PAGE - 1);
+      rows.push(...(data ?? []));
+      if (!data || data.length < PAGE) break;
+    }
+    return rows;
+  };
+  const [{ data: studios }, rows] = await Promise.all([admin.from("fitness_studios").select("*").eq("app_id", appId), fetchClasses()]);
   const hhmm = (t: string | null) => (t ? t.slice(0, 5) : null);
   return {
     days,
