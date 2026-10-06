@@ -20,13 +20,13 @@ export default async function NewAppPage({ searchParams }: { searchParams: Promi
       <section className="relative overflow-hidden bg-neutral-950 text-white">
         <div aria-hidden className="pointer-events-none absolute -left-32 -top-40 h-96 w-96 rounded-full bg-indigo-600/30 blur-3xl" />
         <div aria-hidden className="pointer-events-none absolute -right-24 top-10 h-80 w-80 rounded-full bg-pink-500/20 blur-3xl" />
-        <div className="relative mx-auto w-full max-w-6xl px-6 pb-20 pt-10">
+        <div className="relative mx-auto w-full max-w-6xl px-6 pb-12 pt-10">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">{firstRun ? "Welcome to TapAndLaunch" : "New app"}</p>
           <h1 className="mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">What are you building?</h1>
           <p className="mt-2 max-w-xl text-sm text-neutral-400">
             {firstRun
-              ? "Let's get your first app live. Describe it in a sentence, or pick a starting point. You'll have something to preview in under a minute, and you can change all of it."
-              : "Describe it in a sentence, or pick a starting point. It comes filled in, so you can preview it right away and change anything."}
+              ? "Let's get your first app live. Pick a starting point. You'll have something to preview in under a minute, and you can change all of it."
+              : "Pick a starting point. It comes filled in, so you can preview it right away and change anything."}
           </p>
           {firstRun && (
             <ol className="mt-6 flex flex-wrap gap-2 text-xs font-medium" aria-label="Your first app, in four steps">
@@ -44,7 +44,7 @@ export default async function NewAppPage({ searchParams }: { searchParams: Promi
           )}
         </div>
       </section>
-      <div className="relative mx-auto -mt-10 w-full max-w-6xl px-6 pb-16">
+      <div className="relative mx-auto w-full max-w-6xl px-6 pb-16 pt-10">
         <NewAppForm organizationId={organizationId} rootDomain={getRootDomain()} mapsEnabled={org?.maps_enabled === true} />
       </div>
     </main>

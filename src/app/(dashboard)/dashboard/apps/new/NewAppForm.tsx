@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { STARTER_TEMPLATES, TEMPLATE_CATEGORIES, templateNeedsMaps, type StarterTemplate } from "@/lib/apps/templates";
 import { slugify } from "@/lib/apps/slug";
-import { MAX_DESCRIPTION, MIN_DESCRIPTION } from "@/lib/ai/app-spec";
 import { TemplatePreview } from "@/components/dashboard/TemplatePreview";
 import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
 
@@ -26,23 +25,12 @@ const NAME_HINTS: Record<string, string> = {
   community: "Ballard Neighbors",
 };
 
-const EXAMPLES = [
-  "A taco truck with a menu, catering requests and our weekly pop-up schedule",
-  "A yoga studio where people can see classes, book a spot and try a free class",
-  "A neighbourhood book club with upcoming meetups and a way to join",
-];
-
 export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organizationId: string; rootDomain: string; mapsEnabled: boolean }) {
   const router = useRouter();
   const [selected, setSelected] = useState<StarterTemplate | null>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const [description, setDescription] = useState("");
-  const [describeName, setDescribeName] = useState("");
-  const [designing, setDesigning] = useState(false);
-  const [describeError, setDescribeError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,29 +52,6 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
     }
 
     router.push(`/dashboard/apps/${body.app.id}/builder`);
-  }
-
-  async function handleDescribe(e: React.FormEvent) {
-    e.preventDefault();
-    setDesigning(true);
-    setDescribeError(null);
-    try {
-      const res = await fetch("/api/apps/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organization_id: organizationId, description, name: describeName || undefined }),
-      });
-      const body = (await res.json()) as { app?: { id: string }; error?: string };
-      if (!res.ok || !body.app) {
-        setDescribeError(body.error ?? "Something went wrong. Try again, or pick a template below.");
-        setDesigning(false);
-        return;
-      }
-      router.push(`/dashboard/apps/${body.app.id}/builder`);
-    } catch {
-      setDescribeError("Something went wrong. Try again, or pick a template below.");
-      setDesigning(false);
-    }
   }
 
   if (selected) {
@@ -164,94 +129,9 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
     );
   }
 
-  const ready = description.trim().length >= MIN_DESCRIPTION;
-
   return (
-    <div className="space-y-12">
-      <form
-        onSubmit={handleDescribe}
-        className="rounded-3xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 sm:p-8"
-      >
-        <div className="flex items-start gap-4">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-500 to-pink-500 text-white shadow-lg shadow-indigo-500/30">
-            <Sparkles className="h-5 w-5" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-xl font-semibold tracking-tight">Describe your app</h2>
-            <p className="mt-0.5 text-sm text-neutral-500">Tell us about it in a sentence or two and we&apos;ll build a first version for you to change.</p>
-          </div>
-        </div>
-
-        <label htmlFor="describe" className="sr-only">
-          Describe your app
-        </label>
-        <textarea
-          id="describe"
-          rows={3}
-          maxLength={MAX_DESCRIPTION}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          disabled={designing}
-          placeholder="For example: a taco truck with a menu, catering requests and our weekly pop-up schedule"
-          className="mt-5 w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-base outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:ring-4 focus:ring-neutral-950/5 disabled:opacity-60"
-        />
-        <div className="mt-3 flex flex-wrap gap-2">
-          {EXAMPLES.map((example) => (
-            <button
-              key={example}
-              type="button"
-              disabled={designing}
-              onClick={() => setDescription(example)}
-              className="min-h-11 rounded-full bg-neutral-100 px-4 text-left text-xs font-medium text-neutral-700 transition hover:bg-neutral-200 disabled:opacity-60 sm:min-h-9"
-            >
-              {example.length > 52 ? `${example.slice(0, 50)}…` : example}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <label htmlFor="describe-name" className="block text-sm font-medium text-neutral-800">
-              Name <span className="font-normal text-neutral-500">(optional, we&apos;ll suggest one)</span>
-            </label>
-            <input
-              id="describe-name"
-              maxLength={60}
-              value={describeName}
-              onChange={(e) => setDescribeName(e.target.value)}
-              disabled={designing}
-              placeholder="Taco Loco"
-              className="mt-1.5 h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-base outline-none transition focus:border-neutral-950 focus:ring-4 focus:ring-neutral-950/5 disabled:opacity-60"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={!ready || designing}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 px-6 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-110 disabled:opacity-50"
-          >
-            {designing ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Designing your app…
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" /> Build my app
-              </>
-            )}
-          </button>
-        </div>
-        {designing && <p className="mt-3 text-sm text-neutral-500">This takes about 10 seconds. You&apos;ll land in the builder, where you can change anything.</p>}
-        {describeError && (
-          <p role="alert" className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
-            {describeError}
-          </p>
-        )}
-      </form>
-
-      <div id="templates" className="scroll-mt-6">
-        <h2 className="text-2xl font-semibold tracking-tight text-neutral-950">Or start from a template</h2>
-        <p className="mt-1 text-sm text-neutral-500">Every one comes filled in. You can preview it right away and change anything.</p>
-      </div>
+    <div className="space-y-10">
+      <div id="templates" className="scroll-mt-6" />
 
       {TEMPLATE_CATEGORIES.map((category) => {
         // Templates that need live maps data (Food finder, Gas prices) only appear for accounts that have maps switched
