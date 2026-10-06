@@ -56,6 +56,8 @@ const forgetOldPicks = () => {
   } catch {}
 };
 const FIX_OPTIONS: PositionOptions = { enableHighAccuracy: false, timeout: 10_000, maximumAge: 120_000 };
+/** Smooth scrolling, unless the visitor has asked their device for less motion. */
+const scrollBehavior = (): ScrollBehavior => (window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
 /** "0.0 mi" for a studio right at the visitor's spot read like a mistake; under a tenth of a mile is said in words. */
 const milesLabel = (mi: number) => (mi < 0.05 ? "under 0.1 mi" : `${mi.toFixed(1)} mi`);
 const dayLabel = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", ...opts });
@@ -91,8 +93,6 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     config.area_latitude != null && config.area_longitude != null ? { lat: config.area_latitude, lng: config.area_longitude, mine: false } : null
   );
   const [locating, setLocating] = useState(false);
-  // True once the visitor (or their browser) has said no to sharing their location; the page then stays on the area.
-  const [denied, setDenied] = useState(false);
   const fixAt = useRef(0);
   // One line under the header after a tap on the location pill that could not help (location off, or a failed fix).
   const [tip, setTip] = useState<string | null>(null);
@@ -105,39 +105,43 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   const gotFix = useCallback((p: GeolocationPosition) => {
     fixAt.current = Date.now();
     setOrigin({ lat: p.coords.latitude, lng: p.coords.longitude, mine: true });
-    setDenied(false);
     setLocating(false);
     setTip(null);
   }, []);
-  const noFix = useCallback((e: GeolocationPositionError) => {
-    if (e.code === e.PERMISSION_DENIED) setDenied(true);
-    setLocating(false);
-  }, []);
-  const area = config.area_label ?? "the middle of the area";
-  const offTip = `Location is off for this site. Turn it on in your browser settings to see what's closest to you.`;
-  // The pill: asks again and shows "Finding you…" while it waits. Once the browser has said no it will not ask again, so
-  // a tap then explains instead of silently doing nothing.
+  const noFix = useCallback(() => setLocating(false), []);
+  const area = config.area_label?.trim() || "the middle of the area";
+  // The pill: asks again and shows "Finding you…" while it waits. It always asks (a prompt that was swiped away looks
+  // like a "no" to the page, and a browser that really remembers a block answers at once); when the browser cannot
+  // help, one line under the header says what to do, worded for what the page is actually showing.
   function locate() {
     if (!("geolocation" in navigator)) return setTip(`This browser can't share your location, so distances are from ${area}.`);
-    if (denied) return setTip(offTip);
+    const hadFix = !!origin?.mine;
     setLocating(true);
     setTip(null);
     navigator.geolocation.getCurrentPosition(gotFix, (e) => {
-      noFix(e);
-      setTip(e.code === e.PERMISSION_DENIED ? offTip : `Couldn't find you just now, so distances are from ${area}. Tap "Near ${area}" to try again.`);
+      noFix();
+      if (hadFix) setTip("Couldn't update your location just now. Distances are still from where you were last found.");
+      else if (e.code === e.PERMISSION_DENIED) setTip("Location is off for this site. Turn it on in your browser settings to see what's closest to you.");
+      else setTip(`Couldn't find you just now, so distances are from ${area}. Tap the location button to try again.`);
     }, FIX_OPTIONS);
   }
 
   // The week's classes. A request that hangs (a flaky connection) becomes the error state after 15 seconds instead of a
   // spinner that never ends; "Try again" and coming back online call this again.
+  const [retrying, setRetrying] = useState(false);
   const load = useCallback(() => {
     fetch("/fitness/classes", { cache: "no-store", signal: typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(15_000) : undefined })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((w: Week) => setWeek(w))
-      .catch(() => setFailed(true));
+      .then((w: Week) => {
+        setWeek(w);
+        setFailed(false);
+      })
+      .catch(() => setFailed(true))
+      .finally(() => setRetrying(false));
   }, []);
+  // Keeps the "Try again" button on screen (and focus on it) while the request runs, instead of swapping in the spinner.
   const retry = useCallback(() => {
-    setFailed(false);
+    setRetrying(true);
     load();
   }, [load]);
 
@@ -192,6 +196,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   const atStudio = studioId ? ` at ${studios.get(studioId)?.name ?? "this studio"}` : "";
   const nextDay = days.find((d) => d > (shownDay ?? "") && visible.some((c) => c.date === d)) ?? null;
   const picked = applied.size > 0;
+  const dayTitle = !shownDay ? "" : shownDay === today ? `Today, ${dayLabel(shownDay, { month: "short", day: "numeric" })}` : dayLabel(shownDay, { weekday: "long", month: "short", day: "numeric" });
   const dayClasses = visible
     .filter((c) => c.date === shownDay)
     .sort((a, b) => {
@@ -213,8 +218,9 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
         if (first) setDay(first);
       }
     }
+    focusStudio.current = true;
     // The chip is above the days; bring it into view so the change is obvious.
-    requestAnimationFrame(() => results.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
+    requestAnimationFrame(() => results.current?.scrollIntoView({ block: "start", behavior: scrollBehavior() }));
   }
 
   // Shows the classes for a set of picks. Keeps the day in view when the new picks have something there (judged by the
@@ -233,16 +239,8 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     setSearched(true);
     focusResults.current = true;
     // On a phone the results start below the fold: without this a tap on Search looks like it did nothing.
-    requestAnimationFrame(() => results.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
+    requestAnimationFrame(() => results.current?.scrollIntoView({ block: "start", behavior: scrollBehavior() }));
   }
-
-  // After a search, focus lands on the day heading: screen readers hear the result and keyboards start at the list.
-  const dayHeading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => {
-    if (!focusResults.current) return;
-    focusResults.current = false;
-    dayHeading.current?.focus({ preventScroll: true });
-  }, [applied]);
 
   // The day strip keeps the chosen day in view (it holds a week of chips but shows four or five at a time).
   const strip = useRef<HTMLDivElement>(null);
@@ -250,8 +248,27 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     const el = strip.current;
     const chip = el?.querySelector<HTMLElement>(`[data-day="${shownDay}"]`);
     if (!el || !chip) return;
-    el.scrollTo({ left: chip.offsetLeft - el.offsetLeft - (el.clientWidth - chip.offsetWidth) / 2, behavior: "smooth" });
+    el.scrollTo({ left: chip.offsetLeft - el.offsetLeft - (el.clientWidth - chip.offsetWidth) / 2, behavior: scrollBehavior() });
   }, [shownDay]);
+
+  // After a Search, focus lands on the chosen day's chip: screen readers hear "Today, October 6, 52 classes" and the
+  // Tab key carries on through the days. The heading itself is not a stop, so the chips stay in the Tab path.
+  const focusDayChip = () => strip.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus({ preventScroll: true });
+  useEffect(() => {
+    if (!focusResults.current) return;
+    focusResults.current = false;
+    focusDayChip();
+  }, [applied]);
+  // A studio tap replaces the tapped name with plain text, which would drop focus to the top of the page: focus moves to
+  // the studio chip instead, and back to the day chip when the chip is cleared.
+  const studioChip = useRef<HTMLButtonElement>(null);
+  const focusStudio = useRef(false);
+  useEffect(() => {
+    if (!focusStudio.current) return;
+    focusStudio.current = false;
+    if (studioId) studioChip.current?.focus({ preventScroll: true });
+    else focusDayChip();
+  }, [studioId]);
 
   const studiosForHint = new Set((week?.classes ?? []).filter((c) => c.type !== "other" && chosen.has(c.type) && !c.online).map((c) => c.studioId)).size;
 
@@ -276,11 +293,9 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
           </button>
         </div>
         {config.subtitle && <p className="text-sm text-muted-foreground">{config.subtitle}</p>}
-        {tip && (
-          <p role="status" className="text-xs text-muted-foreground">
-            {tip}
-          </p>
-        )}
+        <p role="status" className={tip ? "text-xs text-muted-foreground" : "sr-only"}>
+          {tip}
+        </p>
       </header>
 
       <form onSubmit={search} className="flex flex-col gap-3 rounded-2xl border bg-background p-4">
@@ -329,25 +344,35 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
       </form>
 
       <section ref={results} className="flex scroll-mt-3 flex-col gap-3 rounded-2xl border bg-background p-4">
-        {!week && !failed && (
-          <p className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading this week&apos;s classes…
-          </p>
-        )}
-        {failed && !week && (
-          <div className="flex flex-col items-center gap-3 py-8 text-center text-sm text-muted-foreground">
-            <p>Couldn&apos;t load the class schedule.</p>
-            <button type="button" onClick={retry} className="rounded-full border-[1.5px] border-[#c23f1a] bg-background px-4 py-2 text-sm font-bold text-[#c23f1a] dark:border-[#ff7a52] dark:text-[#ff7a52]">
-              Try again
-            </button>
-          </div>
-        )}
-        {week && !picked && <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">{searched ? "Pick what you want to do above." : "Pick what you want to do above, then tap Search classes."}</p>}
+        {/* One status region from the first paint, so a failed load or the "pick above" note is read out when it appears. */}
+        <div role="status" aria-busy={!week && !failed} className={!week || !picked ? "flex flex-col" : "sr-only"}>
+          {!week && !failed && (
+            <p className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading this week&apos;s classes…
+            </p>
+          )}
+          {failed && !week && (
+            <div className="flex flex-col items-center gap-3 py-8 text-center text-sm text-muted-foreground">
+              <p>Couldn&apos;t load the class schedule.</p>
+              <button
+                type="button"
+                onClick={retry}
+                disabled={retrying}
+                className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-[#c23f1a] bg-background px-4 py-2 text-sm font-bold text-[#c23f1a] disabled:opacity-60 dark:border-[#ff7a52] dark:text-[#ff7a52]"
+              >
+                {retrying && <Loader2 className="h-4 w-4 animate-spin" />}
+                {retrying ? "Trying again…" : "Try again"}
+              </button>
+            </div>
+          )}
+          {week && !picked && <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">{searched ? "Pick what you want to do above." : "Pick what you want to do above, then tap Search classes."}</p>}
+        </div>
         {week && picked && shownDay && (
           <>
             {studioId && (
               <div>
                 <button
+                  ref={studioChip}
                   type="button"
                   onClick={() => showStudio(null)}
                   aria-label={`Showing only ${studios.get(studioId)?.name ?? "this studio"}. Show every studio`}
@@ -384,9 +409,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
               })}
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 ref={dayHeading} tabIndex={-1} className="text-xl font-bold outline-none">
-                {shownDay === today ? `Today, ${dayLabel(shownDay, { month: "short", day: "numeric" })}` : dayLabel(shownDay, { weekday: "long", month: "short", day: "numeric" })}
-              </h2>
+              <h2 className="text-xl font-bold">{dayTitle}</h2>
               {dayClasses.length > 1 && dayClasses.some((c) => miles(c.studioId) != null) && (
                 <div role="group" aria-label="Order the classes" className="flex shrink-0 rounded-full bg-muted p-0.5 text-xs font-semibold">
                   {(["soonest", "nearest"] as const).map((o) => (
@@ -403,12 +426,11 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                 </div>
               )}
             </div>
-            {dayClasses.length > 0 && (
-              <p role="status" className="-mt-1 text-xs tabular-nums text-muted-foreground">
-                {dayClasses.length} class{dayClasses.length === 1 ? "" : "es"} · {dayStudios} studio{dayStudios === 1 ? "" : "s"}
-                {shownDay === today && startedToday > 0 ? ` · ${startedToday} already started` : ""}
-              </p>
-            )}
+            <p role="status" className={dayClasses.length ? "-mt-1 text-xs tabular-nums text-muted-foreground" : "sr-only"}>
+              {dayClasses.length
+                ? `${dayClasses.length} class${dayClasses.length === 1 ? "" : "es"} · ${dayStudios} studio${dayStudios === 1 ? "" : "s"}${shownDay === today && startedToday > 0 ? ` · ${startedToday} already started` : ""}`
+                : `No ${pickedLabel} classes${atStudio} for ${dayTitle}.`}
+            </p>
             {dayClasses.length === 0 ? (
               <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-[#df4f26]/30 bg-[#df4f26]/5 px-4 py-8 text-center">
                 <p className="text-xl font-extrabold leading-snug text-foreground">
@@ -427,7 +449,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                     </button>
                   )}
                   {studioId && (
-                    <button type="button" onClick={() => showStudio(null)} className="flex items-center rounded-full border-[1.5px] bg-background px-4 py-2 text-sm font-bold">
+                    <button type="button" onClick={() => showStudio(null)} className="flex items-center rounded-full border-[1.5px] border-foreground/40 bg-background px-4 py-2 text-sm font-bold">
                       Show every studio
                     </button>
                   )}
@@ -475,7 +497,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                           {part}
                           <span>
                             {rows.length}
-                            <span className="sr-only"> classes</span>
+                            <span className="sr-only"> class</span>
                           </span>
                         </span>
                       )}
