@@ -50,7 +50,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Link
             aria-label="Browse Templates"
             href="/dashboard/apps/new"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] text-neutral-300 transition hover:bg-white/5 hover:text-white sm:px-3.5"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] font-semibold text-neutral-50 transition hover:bg-white/5 sm:px-3.5"
           >
             <LayoutTemplate className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Browse Templates</span>
           </Link>
