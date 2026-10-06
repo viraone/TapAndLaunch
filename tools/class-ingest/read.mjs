@@ -151,10 +151,21 @@ Rules:
 
 PAGE TEXT:
 ${text}`;
+// One request to the model. A request can wait in line behind other studios', so a failure (the model busy, restarting, or slow)
+// is retried once and then reported, never allowed to fail the whole studio.
 async function ask(studio, text) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try { return await askOnce(studio, text); } catch (e) {
+      dbg("model request failed", attempt, String(e.message).slice(0, 80));
+      if (attempt === 1) await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+  return { is: false, classes: [], failed: true };
+}
+async function askOnce(studio, text) {
   // Streamed: Node's fetch gives up after 5 minutes of silence before the first byte, which happens when this waits in line
   // behind another request to the model. With streaming the first bytes arrive straight away.
-  const res = await fetch("http://localhost:11434/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: MODEL, stream: true, think: false, format: SCHEMA, options: { temperature: 0, num_ctx: 24576, num_predict: 6000 }, messages: [{ role: "user", content: prompt(studio, text) }] }), signal: AbortSignal.timeout(6 * 60 * 1000) });
+  const res = await fetch("http://localhost:11434/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: MODEL, stream: true, think: false, format: SCHEMA, options: { temperature: 0, num_ctx: 24576, num_predict: 6000 }, messages: [{ role: "user", content: prompt(studio, text) }] }), signal: AbortSignal.timeout(6 * 60 * 1000 * PARALLEL) });
   if (!res.ok || !res.body) return { is: false, classes: [] };
   let content = "";
   let buf = "";
@@ -230,6 +241,7 @@ async function readStudio(browser, s) {
       const m0 = Date.now();
       const a = await ask(s.name, part);
       modelMs += Date.now() - m0;
+      if (a.failed) r.modelFailed = true;
       dbg("model answered", a.classes.length, "classes");
       if (a.is) anySchedule = true;
       all.push(...a.classes);
@@ -276,7 +288,7 @@ async function readStudio(browser, s) {
     const done = await attempt(url, pg);
     if (done) return done;
   }
-  return finish({});
+  return finish(r.modelFailed ? { status: "error", error: "the model did not answer" } : {});
 }
 
 const studios = JSON.parse(fs.readFileSync(studiosFile, "utf8")).filter((s) => !only || s.name.toLowerCase().includes(only));
@@ -292,7 +304,7 @@ async function worker() {
     fs.writeFileSync(`${outDir}/${s.name.replace(/[^a-z0-9]+/gi, "_")}.json`, JSON.stringify(r, null, 2));
     // Remember where the schedule was found (and forget a page that stopped working).
     if (r.status === "ok" && r.scheduleUrl) cache[s.name] = { url: r.scheduleUrl, at: new Date().toISOString() };
-    else if (r.status !== "blocked_robots" && cache[s.name]) delete cache[s.name];
+    else if (r.status === "no_schedule" && cache[s.name]) delete cache[s.name]; // only when the page itself stopped working
     try { fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 1)); } catch {}
     const days = [...new Set(r.classes.map((c) => c.date))].sort();
     console.log(`[${i + 1}/${studios.length}] ${s.name.slice(0, 34).padEnd(34)} ${r.status.padEnd(14)} ${String(r.classes.length).padStart(3)} classes  days: ${days.join(",") || "-"}  via ${r.platform ?? "-"} ${r.seconds ? `(${r.seconds}s, model ${r.modelSeconds ?? 0}s)` : ""}${r.error ? " " + r.error : ""}`);
