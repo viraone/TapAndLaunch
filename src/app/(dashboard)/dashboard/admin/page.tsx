@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -63,6 +64,11 @@ export default async function AdminPage() {
               <dd className="mt-1 text-2xl font-semibold tabular-nums">{withMaps}</dd>
             </div>
           </dl>
+          <p className="mt-6">
+            <Link href="/dashboard/admin/fitnessnav" className="inline-flex h-10 items-center gap-2 rounded-full bg-white/10 px-4 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/15">
+              FitnessNav daily board →
+            </Link>
+          </p>
         </div>
       </section>
 
