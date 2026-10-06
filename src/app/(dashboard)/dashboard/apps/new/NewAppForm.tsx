@@ -133,19 +133,11 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
     <div className="space-y-10">
       <div id="templates" className="scroll-mt-6" />
 
-      {TEMPLATE_CATEGORIES.map((category) => {
-        // Templates that need live maps data (Food finder, Gas prices) only appear for accounts that have maps switched
-        // on; everyone else never sees them, and a group left empty is hidden.
-        const templates = STARTER_TEMPLATES.filter((t) => t.category === category.id && (mapsEnabled || !templateNeedsMaps(t.id)));
-        if (templates.length === 0) return null;
-        return (
-          <section key={category.id} aria-labelledby={`cat-${category.id}`} className="-mt-6">
-            <h3 id={`cat-${category.id}`} className="text-lg font-semibold tracking-tight text-neutral-950">
-              {category.name}
-            </h3>
-            <p className="text-sm text-neutral-500">{category.blurb}</p>
-            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {templates.map((t) => {
+      {/* One grid for every template, three to a row, so a short group never leaves a gap; each card says which group it is in. */}
+      <div className="-mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {TEMPLATE_CATEGORIES.flatMap((category) =>
+          STARTER_TEMPLATES.filter((t) => t.category === category.id && (mapsEnabled || !templateNeedsMaps(t.id))).map((t) => ({ t, category }))
+        ).map(({ t, category }) => {
                 const Icon = ICONS[t.icon];
                 return (
                   <button
@@ -155,7 +147,8 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
                     className="group relative flex flex-col rounded-3xl bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 enabled:hover:-translate-y-1 enabled:hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_24px_48px_-16px_rgba(0,0,0,0.28)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                   >
                     <TemplatePreview templateId={t.id} color={t.color} />
-                    <div className="flex items-center gap-3 px-2 pt-4">
+                    <p className="px-2 pt-4 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{category.name}</p>
+                    <div className="flex items-center gap-3 px-2 pt-1.5">
                       <span
                         className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow transition group-hover:scale-105"
                         style={{ background: `linear-gradient(135deg, ${t.color}, color-mix(in oklab, ${t.color} 55%, #0a0a0a))` }}
@@ -180,11 +173,8 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
                     </div>
                   </button>
                 );
-              })}
-            </div>
-          </section>
-        );
-      })}
+        })}
+      </div>
     </div>
   );
 }
