@@ -13,5 +13,6 @@ export async function GET(_request: Request, context: { params: Promise<{ appSlu
     return Response.json({ error: "Not found" }, { status: 404 });
   }
   const week = await getClassWeek(published.app.id, seattleToday());
-  return Response.json(week, { headers: { "Cache-Control": "no-store" } });
+  // Public, read-only data; other sites (the owner's dashboard page) may read it too.
+  return Response.json(week, { headers: { "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } });
 }
