@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 import { encryptSecret, keyHint } from "@/lib/ai/keys";
-import { PROVIDER_LABELS, ProviderError, listModels, looksLikeKey, pickModel, type AiProvider } from "@/lib/ai/providers";
+import { PROVIDER_LABELS, isProviderError, listModels, looksLikeKey, pickModel, type AiProvider } from "@/lib/ai/providers";
 
 /**
  * The active organization's own AI key ("BYOB: Bring your own bot"). Any member can see whether one is set and its last
@@ -50,7 +50,11 @@ export async function PUT(request: Request) {
   try {
     model = pickModel(provider, await listModels(provider, key));
   } catch (error) {
-    return Response.json({ error: error instanceof ProviderError ? error.message : `Couldn't reach ${PROVIDER_LABELS[provider]}. Try again.` }, { status: 400 });
+    if (isProviderError(error)) return Response.json({ error: error.message }, { status: 400 });
+    // A network failure, not a refusal. Logged so an outage can be told apart from a typo; the cause is shown only in development.
+    const cause = error instanceof Error ? `${error.message}${error.cause instanceof Error ? ` / ${error.cause.message}` : ""}` : String(error);
+    console.error("ai key check failed:", cause);
+    return Response.json({ error: `Couldn't reach ${PROVIDER_LABELS[provider]}. Try again.${process.env.NODE_ENV === "development" ? ` (${cause})` : ""}` }, { status: 400 });
   }
   if (!model) return Response.json({ error: `This key works, but it can't use any of ${PROVIDER_LABELS[provider]}'s chat models.` }, { status: 400 });
 

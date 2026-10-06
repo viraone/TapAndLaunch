@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAppEditor } from "@/lib/org";
 import { decryptSecret } from "@/lib/ai/keys";
-import { ProviderError, chatJson, type AiProvider } from "@/lib/ai/providers";
+import { isProviderError, chatJson, type AiProvider } from "@/lib/ai/providers";
 import { parseModelJson } from "@/lib/ai/app-spec";
 import { AiReply, BUILDER_SYSTEM_PROMPT, applyOperations, buildContext, type Draft } from "@/lib/ai/builder-ops";
 import type { BlockConfig, BlockType, ThemeConfig } from "@/types/database";
@@ -75,7 +75,7 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
     if (!checked.success) return Response.json({ error: "The AI's answer couldn't be used. Try saying it a different way." }, { status: 502 });
     reply = checked.data;
   } catch (error) {
-    if (error instanceof ProviderError) return Response.json({ error: error.message }, { status: 502 });
+    if (isProviderError(error)) return Response.json({ error: error.message }, { status: 502 });
     return Response.json({ error: "The AI didn't answer in time. Try a smaller request." }, { status: 504 });
   }
 

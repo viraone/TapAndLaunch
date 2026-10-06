@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isEditorRole } from "@/lib/org";
 import { decryptSecret } from "@/lib/ai/keys";
-import { ProviderError, fastModel, streamText, type AiProvider } from "@/lib/ai/providers";
+import { isProviderError, fastModel, streamText, type AiProvider } from "@/lib/ai/providers";
 import { CODE_SYSTEM_PROMPT, userMessage } from "@/lib/code/prompt";
 import { applyChanges, applyEdits, parseReply, summarize, validateFiles, type CodeFiles } from "@/lib/code/files";
 import { firstBuild, hedge, isFreshApp, SlowDown, type Ask, type BuildTimeline } from "@/lib/code/first-build";
@@ -14,7 +14,8 @@ import { repairFiles } from "@/lib/code/repair";
 import { SUPABASE_PATH, supabaseFile } from "@/lib/code/backend";
 
 /** Code builds are heavier than block edits, so they have their own hourly limit per person. */
-const CODE_HOURLY_LIMIT = 30;
+// Per person. The customer pays their own AI provider, so this only stops a runaway loop; a busy hour of small edits is 40 to 60.
+const CODE_HOURLY_LIMIT = 100;
 
 const Schema = z.object({
   message: z.string().trim().min(1).max(4000),
@@ -126,8 +127,8 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
             models.add(model);
             return await streamText(provider, apiKey, model, CODE_SYSTEM_PROMPT, turns, onText, signal, maxTokens);
           } catch (error) {
-            if (error instanceof ProviderError && error.status === 429) throw new SlowDown(error.message);
-            if (model === keyRow.model || !(error instanceof ProviderError) || ![400, 404].includes(error.status)) throw error;
+            if (isProviderError(error) && error.status === 429) throw new SlowDown(error.message);
+            if (model === keyRow.model || !(isProviderError(error)) || ![400, 404].includes(error.status)) throw error;
             models.add(`${model} (not available)`);
             model = keyRow.model;
             models.add(model);
@@ -235,7 +236,7 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
         }
         finish({ reply, version: saved.version, files: next, changed: [...changed] });
       } catch (error) {
-        const message = error instanceof SlowDown ? "Your AI provider says you're sending requests too fast. Wait a minute and try again." : error instanceof ProviderError ? error.message : "The AI stopped before it finished. Try again.";
+        const message = error instanceof SlowDown ? "Your AI provider says you're sending requests too fast. Wait a minute and try again." : isProviderError(error) ? error.message : "The AI stopped before it finished. Try again.";
         finish({ error: message });
       }
     },

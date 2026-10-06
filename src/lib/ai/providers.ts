@@ -48,6 +48,12 @@ export class ProviderError extends Error {
   }
 }
 
+/** A provider's refusal (the key, the limit), as opposed to a network failure. Checked by shape, not by class: the class can be
+ * duplicated between bundles in development, which made every refusal look like "couldn't reach". */
+export function isProviderError(error: unknown): error is ProviderError {
+  return error instanceof Error && typeof (error as { status?: unknown }).status === "number";
+}
+
 function friendly(provider: AiProvider, status: number, detail: string | undefined): string {
   if (status === 401 || status === 403) return `${PROVIDER_LABELS[provider]} refused this key. Check you copied all of it, and that it's still active.`;
   if (status === 429) return `${PROVIDER_LABELS[provider]} says you're over your limit or out of credit. Check your account's billing.`;
@@ -160,7 +166,7 @@ export async function streamText(
         onText(piece);
       }
     } catch (error) {
-      if (error instanceof ProviderError) throw error;
+      if (isProviderError(error)) throw error;
     }
   });
   return full;

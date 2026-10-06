@@ -103,11 +103,11 @@ export default function App() {
         <p className="mt-5 max-w-md text-lg text-slate-600">
           Your app starts here. Tell the AI what you want in the chat on the left, and watch it appear.
         </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm font-medium text-slate-600">
-          <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-sm ring-1 ring-slate-200"><MessageCircle className="h-4 w-4 text-indigo-500" /> Describe it</span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-sm ring-1 ring-slate-200"><Sparkles className="h-4 w-4 text-pink-500" /> Watch it build</span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-sm ring-1 ring-slate-200"><Rocket className="h-4 w-4 text-emerald-500" /> Publish</span>
-        </div>
+        <ol className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium text-slate-500">
+          <li className="inline-flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-600">1</span><MessageCircle className="h-4 w-4 text-indigo-500" /> Describe it</li>
+          <li className="inline-flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-full bg-pink-100 text-xs font-bold text-pink-600">2</span><Sparkles className="h-4 w-4 text-pink-500" /> Watch it build</li>
+          <li className="inline-flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">3</span><Rocket className="h-4 w-4 text-emerald-500" /> Publish</li>
+        </ol>
       </section>
     </main>
   );

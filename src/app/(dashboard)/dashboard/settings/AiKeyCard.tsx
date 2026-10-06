@@ -40,7 +40,7 @@ export function AiKeyCard({ initialKey, canManage }: { initialKey: SavedKey | nu
           <div className="rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-200">
             <p className="font-semibold text-emerald-800">{LABEL[key.provider]} key {key.hint} is saved</p>
             <p className="mt-1 text-sm text-emerald-900/80">
-              Building with <span className="font-mono text-[13px]">{key.model}</span>. Open any app&apos;s builder and click <span className="font-semibold">Build with AI</span>. The key is stored encrypted and is never shown again.
+              Building with <span className="font-mono text-[13px]">{key.model}</span>. A BYOB app builds from its chat; in any other app, click <span className="font-semibold">Build with AI</span> in the builder. The key is stored encrypted and is never shown again.
             </p>
           </div>
           {canManage && (
@@ -51,7 +51,7 @@ export function AiKeyCard({ initialKey, canManage }: { initialKey: SavedKey | nu
         </div>
       ) : (
         <p className="text-sm text-neutral-600">
-          No key yet. Open any app&apos;s builder, click <span className="font-semibold">Build with AI</span> and paste a key from Anthropic (Claude) or OpenAI (ChatGPT). You pay your AI provider directly, usually a few cents per change.
+          No key yet. Create a <span className="font-semibold">BYOB: Bring your own bot</span> app, or click <span className="font-semibold">Build with AI</span> in any app&apos;s builder, and paste a key from Anthropic (Claude) or OpenAI (ChatGPT). You pay your AI provider directly, usually a few cents per change.
           {!canManage && " Only an organization admin can add one."}
         </p>
       )}

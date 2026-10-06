@@ -55,7 +55,7 @@ writes a React app, shown live next to the chat. The block-based chat above stil
   Tailwind from its CDN, Babel in the browser to turn JSX into JavaScript, an import map of blob URLs so files import each
   other as `@/components/X`, an in-memory `localStorage`, and error reporting to the parent.
 - `POST /api/apps/{id}/code-chat`: streams the AI's answer to the browser as it is written (`streamText`), then checks and
-  saves a new version with the owner's own session. 30 builds per person per hour (`ai_generations.kind = 'code'`).
+  saves a new version with the owner's own session. 100 builds per person per hour (`ai_generations.kind = 'code'`; raised from 30 on 2026-10-06, since a busy hour of small edits is 40 to 60 and the customer pays their own provider).
 - `app_code_versions` (migration 0031): every version's full file set. `apps.code_published_version` is what visitors see,
   so drafts stay private until Publish (a snapshot). Undo = restore, which saves a copy as the newest version.
 - `CodeBuilder.tsx`: chat on one side, live sandboxed preview on the other, phone/desktop toggle, version list with restore,
