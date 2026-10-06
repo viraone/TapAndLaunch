@@ -141,8 +141,6 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   };
 
   const studiosForHint = new Set((week?.classes ?? []).filter((c) => c.type !== "other" && chosen.has(c.type) && !c.online).map((c) => c.studioId)).size;
-  const readStudios = (week?.studios ?? []).filter((s) => s.readStatus === "ok");
-  const notRead = (week?.studios ?? []).filter((s) => s.readStatus !== "ok");
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-10 pt-4">
@@ -329,33 +327,6 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
         )}
       </section>
 
-      {week && week.studios.length > 0 && (
-        <details className="rounded-2xl border bg-background p-4 text-sm text-muted-foreground">
-          <summary className="cursor-pointer font-semibold text-foreground">
-            Schedules read for {readStudios.length} of {week.studios.length} studios
-          </summary>
-          <ul className="mt-3 flex flex-col gap-1.5">
-            {readStudios.map((s) => (
-              <li key={s.id} className="flex justify-between gap-3">
-                <span className="min-w-0 break-words text-foreground">{s.name}</span>
-                <span className="shrink-0 tabular-nums">{s.classCount} classes</span>
-              </li>
-            ))}
-            {notRead.map((s) => (
-              <li key={s.id} className="flex justify-between gap-3">
-                <span className="min-w-0 break-words text-foreground">{s.name}</span>
-                {s.website ? (
-                  <a href={s.website} target="_blank" rel="noopener noreferrer" className="shrink-0 text-[#df4f26] underline">
-                    Check their site
-                  </a>
-                ) : (
-                  <span className="shrink-0">Not available</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
       {week?.readAt && (
         <p className="text-xs text-muted-foreground">
           Classes read from each studio&apos;s own schedule on{" "}
