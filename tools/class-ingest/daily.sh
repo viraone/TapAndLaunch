@@ -20,7 +20,8 @@ NODE="$(command ls -d "$HOME"/.nvm/versions/node/*/bin/node 2>/dev/null | sort -
   rm -rf out.new && mkdir out.new
   ONLY=()
   [ -n "${FN_ONLY:-}" ] && ONLY=(--only "$FN_ONLY")
-  caffeinate -i "$NODE" read.mjs studios.json out.new "${ONLY[@]}"
+  # macOS ships bash 3.2, where an empty array breaks under `set -u`: expand it only when it has something in it.
+  caffeinate -i "$NODE" read.mjs studios.json out.new ${ONLY[@]+"${ONLY[@]}"}
   code=$?
   if [ $code -eq 0 ]; then
     rm -rf out && mv out.new out
