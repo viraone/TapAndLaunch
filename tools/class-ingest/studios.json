@@ -8,7 +8,8 @@
     "neighborhood": "Fremont",
     "id": "ChIJQY8d1JQVkFQRYw1KTQCFLyE",
     "lat": 47.651739,
-    "lng": -122.351015
+    "lng": -122.351015,
+    "skip": "private sessions only (Book a session goes to a contact form)"
   },
   {
     "kind": "pilates",
@@ -251,7 +252,8 @@
     "neighborhood": "Wallingford",
     "id": "ChIJfxgz2KkVkFQRrrWj6i6YGjE",
     "lat": 47.661105,
-    "lng": -122.330513
+    "lng": -122.330513,
+    "skip": "appointments only (Book now goes to an appointment page)"
   },
   {
     "kind": "pilates",
@@ -494,5 +496,16 @@
     "id": "ChIJkbR4di4VkFQRFXC1WtQIO_0",
     "lat": 47.622867,
     "lng": -122.321286
+  },
+  {
+    "kind": "lifting",
+    "name": "TRIBE Fitness",
+    "site": "http://tribeseattle.com/",
+    "km": 3.7,
+    "address": "606 Broadway E, Seattle, WA 98102, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJfSHf9C4VkFQRe9eqqvs_IUU",
+    "lat": 47.624571,
+    "lng": -122.320699
   }
 ]

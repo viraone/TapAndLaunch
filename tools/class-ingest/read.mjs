@@ -82,6 +82,12 @@ async function render(browser, url, { settle = 7000 } = {}) {
   const ctx = await browser.newContext({ userAgent: UA, viewport: { width: 1280, height: 1000 }, locale: "en-US", timezoneId: "America/Los_Angeles" });
   await ctx.route("**/*", (r) => (["image", "font", "media"].includes(r.request().resourceType()) ? r.abort() : r.continue()));
   const page = await ctx.newPage();
+  // A Mariana Tek booking widget on the page downloads the day's classes as data for every visitor; keep that data.
+  const mariana = [];
+  page.on("response", async (res) => {
+    if (!MARIANA_API.test(res.url()) || !res.ok()) return;
+    try { const j = await res.json(); if (Array.isArray(j.results)) mariana.push(...j.results); } catch {}
+  });
   try {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
     await page.waitForLoadState("networkidle", { timeout: 12000 }).catch(() => {});
@@ -144,8 +150,82 @@ async function render(browser, url, { settle = 7000 } = {}) {
     }
     const links = await page.evaluate(() => Array.from(document.querySelectorAll("a[href]")).map((a) => ({ href: a.getAttribute("href"), text: (a.innerText || a.getAttribute("aria-label") || "").trim().slice(0, 60) })));
     const iframes = await page.evaluate(() => Array.from(document.querySelectorAll("iframe[src]")).map((f) => f.src));
-    return { finalUrl: page.url(), text: parts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim(), links, frameUrls: [...new Set([...iframes, ...frameUrls])].filter((u) => /^https?:/.test(u)) };
+    return { finalUrl: page.url(), text: parts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim(), links, frameUrls: [...new Set([...iframes, ...frameUrls])].filter((u) => /^https?:/.test(u)), mariana };
   } finally { await ctx.close(); }
+}
+
+// ---- Mariana Tek: the widget's own data instead of the model ----
+// Studios on Mariana Tek (Inspire, Ahimsa, be here now., TRIBE) embed its schedule widget. The widget shows one day and keeps
+// the day in the page's own address (`?_mt=/schedule/daily/<id>?activeDate=YYYY-MM-DD&locations=<id>`), and downloads that
+// day's classes as data. So the week is read by loading the studio's page once per day and keeping what the widget
+// downloads: exact dates and times, no model, and no clicking through day tabs (which used to land on the wrong week).
+const MARIANA_API = /marianatek\.com\/api\/customer\/v1\/classes/;
+
+function marianaDayUrl(pageUrl, date) {
+  const u = new URL(pageUrl);
+  const mt = u.searchParams.get("_mt");
+  if (!mt) return null;
+  const [path, query = ""] = mt.split("?");
+  const q = new URLSearchParams(query);
+  q.set("activeDate", date);
+  u.searchParams.set("_mt", `${path}?${q.toString()}`);
+  return u.toString();
+}
+
+async function marianaDay(browser, url) {
+  const ctx = await browser.newContext({ userAgent: UA, viewport: { width: 1280, height: 1000 }, locale: "en-US", timezoneId: "America/Los_Angeles" });
+  await ctx.route("**/*", (r) => (["image", "font", "media"].includes(r.request().resourceType()) ? r.abort() : r.continue()));
+  const page = await ctx.newPage();
+  const got = [];
+  page.on("response", async (res) => {
+    if (!MARIANA_API.test(res.url()) || !res.ok()) return;
+    try { const j = await res.json(); if (Array.isArray(j.results)) got.push(...j.results); } catch {}
+  });
+  try {
+    const waited = page.waitForResponse((res) => MARIANA_API.test(res.url()), { timeout: 20000 }).catch(() => null);
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await waited;
+    await page.waitForTimeout(1500); // the response handler above finishes reading the body
+    return got;
+  } finally { await ctx.close(); }
+}
+
+/** The widget's class records as the rows the app shows. Cancelled classes are left out. */
+function marianaClasses(records) {
+  const seen = new Set();
+  const out = [];
+  for (const c of records) {
+    if (!c || c.is_cancelled || seen.has(c.id)) continue;
+    seen.add(c.id);
+    const start = String(c.start_time ?? "").slice(0, 5);
+    if (!/^\d{2}:\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(c.start_date ?? "")) continue;
+    const minutes = Number(c.class_type?.duration) || 0;
+    let end = null;
+    if (minutes) { const [h, m] = start.split(":").map(Number); const t = h * 60 + m + minutes; end = `${String(Math.floor(t / 60) % 24).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`; }
+    const who = (c.instructors ?? []).map((i) => i?.name || [i?.first_name, i?.last_name].filter(Boolean).join(" ")).filter(Boolean).join(", ") || null;
+    const cap = Number(c.capacity) || 0;
+    const left = Number(c.available_spot_count) || 0;
+    const spots = cap > 0 && c.is_remaining_spot_count_public !== false ? (left > 0 ? `${left} spot${left === 1 ? "" : "s"} left` : "Full") : null;
+    out.push({ date: c.start_date, start, end, name: String(c.class_type?.name ?? c.name ?? "Class").trim(), instructor: who, spots });
+  }
+  return out.sort((a, b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
+}
+
+/** The coming week, read from the widget. Null when the page has no Mariana Tek widget. */
+async function readMariana(browser, pg) {
+  if (!pg.mariana?.length) return null;
+  const records = [...pg.mariana];
+  const first = marianaDayUrl(pg.finalUrl, "2000-01-01");
+  if (first) {
+    const base = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+    const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(base); d.setDate(d.getDate() + i); return d.toISOString().slice(0, 10); });
+    for (const day of days) {
+      const url = marianaDayUrl(pg.finalUrl, day);
+      try { records.push(...(await marianaDay(browser, url))); } catch (e) { dbg("mariana day failed", day, String(e.message).slice(0, 60)); }
+    }
+  }
+  const classes = marianaClasses(records);
+  return classes.length ? { classes, days: new Set(classes.map((c) => c.date)).size } : null;
 }
 
 // ---- the model ----
@@ -292,11 +372,16 @@ async function readStudio(browser, s) {
   const t0 = Date.now();
   let modelMs = 0;
   const r = { name: s.name, kind: s.kind, site: s.site, tried: [], scheduleUrl: null, platform: null, status: "no_schedule", classes: [], dropped: [] };
+  // studios.json `skip`: a studio with no group classes to list (private sessions or appointments only) is not read.
+  if (s.skip) return { ...r, status: "skipped", error: s.skip };
   if (!(await allowed(s.site))) return { ...r, status: "blocked_robots" };
   const finish = (extra) => ({ ...r, ...extra, seconds: Math.round((Date.now() - t0) / 1000), modelSeconds: Math.round(modelMs / 1000) });
 
   // Reads one candidate schedule page. Returns the finished result when it holds classes, else null (what it dropped is kept).
   const attempt = async (url, pg) => {
+    // A Mariana Tek widget on the page: the week comes from its data, exact and without the model.
+    const mt = await readMariana(browser, pg);
+    if (mt) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "marianatek", classes: mt.classes, dropped: [] });
     const all = [];
     let anySchedule = false;
     const withTimes = chunk(pg.text).filter((c) => /\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b/i.test(c)).slice(0, 8);
