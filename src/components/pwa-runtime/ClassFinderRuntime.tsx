@@ -7,7 +7,6 @@ import {
   CLASS_TYPES,
   CLASS_TYPE_LABEL,
   classMinutes,
-  firstDayWithClasses,
   hasStarted,
   milesBetween,
   partOfDay,
@@ -111,7 +110,12 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   );
   const visible = useMemo(() => matching.filter((c) => !hasStarted(c, now)), [matching, now]);
   const startedToday = matching.filter((c) => c.date === now.slice(0, 10) && hasStarted(c, now)).length;
-  const shownDay = day ?? (week ? firstDayWithClasses(week.days, visible, now) : null);
+  // Always opens on today, however late it is: the page tracks the clock, and when today's classes are over it says so
+  // (and offers the next day) instead of quietly jumping to tomorrow's morning.
+  const today = now.slice(0, 10);
+  const days = useMemo(() => (week?.days ?? []).filter((d) => d >= today), [week, today]);
+  const shownDay = day ?? (days.includes(today) ? today : (days[0] ?? null));
+  const nextDay = days.find((d) => d > (shownDay ?? "") && visible.some((c) => c.date === d)) ?? null;
   const picked = applied.size > 0;
   const dayClasses = visible.filter((c) => c.date === shownDay);
   const dayStudios = new Set(dayClasses.map((c) => c.studioId)).size;
@@ -243,7 +247,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
               </div>
             )}
             <div role="group" aria-label="Pick a day" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
-              {week.days.map((d, i) => {
+              {days.map((d) => {
                 const n = visible.filter((c) => c.date === d).length;
                 const on = d === shownDay;
                 return (
@@ -255,7 +259,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                     className={`flex min-w-16 shrink-0 flex-col items-center rounded-xl border-[1.5px] px-1.5 py-2 ${on ? "border-foreground bg-foreground text-background" : "border-border"}`}
                   >
                     <span className={`text-[11px] font-bold uppercase tracking-wider ${on ? "opacity-80" : "text-muted-foreground"}`}>
-                      {i === 0 ? "Today" : dayLabel(d, { weekday: "short" })}
+                      {d === today ? "Today" : dayLabel(d, { weekday: "short" })}
                     </span>
                     <span className="text-[22px] font-extrabold tabular-nums leading-tight">{dayLabel(d, { day: "numeric" })}</span>
                     <span className={`text-[11px] tabular-nums ${on ? "opacity-80" : "text-muted-foreground"}`}>{n ? `${n} class${n === 1 ? "" : "es"}` : "—"}</span>
@@ -265,7 +269,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
             </div>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-xl font-bold">
-                {shownDay === week.days[0] ? `Today, ${dayLabel(shownDay, { month: "short", day: "numeric" })}` : dayLabel(shownDay, { weekday: "long", month: "short", day: "numeric" })}
+                {shownDay === today ? `Today, ${dayLabel(shownDay, { month: "short", day: "numeric" })}` : dayLabel(shownDay, { weekday: "long", month: "short", day: "numeric" })}
               </h2>
               {dayClasses.length > 0 && (
                 <p className="text-xs tabular-nums text-muted-foreground">
@@ -273,16 +277,25 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                 </p>
               )}
             </div>
-            {shownDay === now.slice(0, 10) && startedToday > 0 && dayClasses.length > 0 && (
+            {shownDay === today && startedToday > 0 && dayClasses.length > 0 && (
               <p className="-mt-1 text-xs text-muted-foreground">
                 {startedToday} earlier class{startedToday === 1 ? " has" : "es have"} already started. Showing what&apos;s still to come.
               </p>
             )}
             {dayClasses.length === 0 ? (
               <p className="rounded-xl border px-4 py-6 text-center text-sm text-muted-foreground">
-                {shownDay === now.slice(0, 10) && startedToday > 0
-                  ? "That's all the classes for today. Try another day."
-                  : `No ${[...applied].map((k) => CLASS_TYPE_LABEL[k].toLowerCase()).join(" or ")} classes listed${studioId ? ` at ${studios.get(studioId)?.name ?? "this studio"}` : ""} for ${dayLabel(shownDay, { weekday: "long" })}. Try another day${studioId ? ", show every studio," : ""} or add a class type.`}
+                {shownDay === today && startedToday > 0
+                  ? "That's all the classes for today."
+                  : `No ${[...applied].map((k) => CLASS_TYPE_LABEL[k].toLowerCase()).join(" or ")} classes listed${studioId ? ` at ${studios.get(studioId)?.name ?? "this studio"}` : ""} for ${shownDay === today ? "today" : dayLabel(shownDay, { weekday: "long" })}.${nextDay ? "" : ` Try another day${studioId ? ", show every studio," : ""} or add a class type.`}`}
+                {nextDay && (
+                  <button
+                    type="button"
+                    onClick={() => setDay(nextDay)}
+                    className="mx-auto mt-3 flex items-center rounded-full border-[1.5px] border-[#df4f26] px-4 py-2 text-sm font-bold text-[#df4f26]"
+                  >
+                    See {dayLabel(nextDay, { weekday: "long" })}&apos;s classes · {visible.filter((c) => c.date === nextDay).length}
+                  </button>
+                )}
               </p>
             ) : (
               PARTS.map((part) => {
