@@ -74,10 +74,9 @@ export async function POST(request: Request) {
     });
     return Response.json({ url: link.url });
   } catch (error) {
-    console.error("stripe connect failed:", error instanceof Error ? error.message : error);
-    return Response.json(
-      { error: "Stripe couldn't start the setup. Check that Connect is turned on for your Stripe account." },
-      { status: 502 }
-    );
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("stripe connect failed:", message);
+    // Stripe's own reason is what the admin needs to act on (a platform setting, a missing capability); it holds no secrets.
+    return Response.json({ error: `Stripe couldn't start the setup. Stripe said: ${message}` }, { status: 502 });
   }
 }
