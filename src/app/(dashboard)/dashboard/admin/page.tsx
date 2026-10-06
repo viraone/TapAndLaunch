@@ -64,7 +64,10 @@ export default async function AdminPage() {
               <dd className="mt-1 text-2xl font-semibold tabular-nums">{withMaps}</dd>
             </div>
           </dl>
-          <p className="mt-6">
+          <p className="mt-6 flex flex-wrap gap-2">
+            <Link href="/dashboard/admin/tapandlaunch" className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-semibold text-neutral-950 transition hover:bg-indigo-50">
+              Daily board (to-do) →
+            </Link>
             <Link href="/dashboard/admin/fitnessnav" className="inline-flex h-10 items-center gap-2 rounded-full bg-white/10 px-4 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/15">
               FitnessNav daily board →
             </Link>

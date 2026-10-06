@@ -506,6 +506,23 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["app_backends"]["Row"]>;
         Relationships: [];
       };
+      admin_todos: {
+        Row: {
+          id: string;
+          /** Set for items the board seeds from code (added once, tick kept); null for items typed in on the page. */
+          key: string | null;
+          title: string;
+          detail: string | null;
+          section: string;
+          sort: number;
+          created_at: string;
+          done_at: string | null;
+          done_by: string | null;
+        };
+        Insert: Partial<Database["public"]["Tables"]["admin_todos"]["Row"]> & { title: string };
+        Update: Partial<Database["public"]["Tables"]["admin_todos"]["Row"]>;
+        Relationships: [];
+      };
       app_reports: {
         Row: {
           id: string;
