@@ -362,12 +362,12 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                                     type="button"
                                     onClick={() => showStudio(c.studioId)}
                                     aria-label={`Show only ${s.name}`}
-                                    className="-my-1 py-1 text-left font-bold text-[color:var(--studio-text,inherit)] underline decoration-dotted decoration-1 underline-offset-[3px] dark:text-[color:var(--studio-text-dark,inherit)]"
+                                    className="-my-1 py-1 text-left text-sm font-bold text-[color:var(--studio-text,inherit)] underline decoration-dotted decoration-1 underline-offset-[3px] dark:text-[color:var(--studio-text-dark,inherit)]"
                                   >
                                     {s.name}
                                   </button>
                                 ) : (
-                                  <span className="font-bold text-[color:var(--studio-text,inherit)] dark:text-[color:var(--studio-text-dark,inherit)]">{s?.name ?? "Studio"}</span>
+                                  <span className="text-sm font-bold text-[color:var(--studio-text,inherit)] dark:text-[color:var(--studio-text-dark,inherit)]">{s?.name ?? "Studio"}</span>
                                 )}
                                 {mi != null ? ` · ${mi.toFixed(1)} mi` : ""}
                                 {c.instructor ? ` · ${c.instructor}` : ""}
