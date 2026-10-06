@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Dumbbell, Loader2, LocateFixed, MapPin } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Dumbbell, Loader2, LocateFixed, MapPin, X } from "lucide-react";
 import type { ClassFinderBlockConfig, FitnessClassType } from "@/types/database";
 import {
   CLASS_TYPES,
@@ -76,6 +76,9 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   const [applied, setApplied] = useState<Set<FitnessClassType>>(() => new Set());
   const [online, setOnline] = useState(false);
   const [day, setDay] = useState<string | null>(null);
+  // Set by tapping a studio's name: the page then shows only that studio, until the chip above the days is cleared.
+  const [studioId, setStudioId] = useState<string | null>(null);
+  const results = useRef<HTMLElement>(null);
   const [origin, setOrigin] = useState<{ lat: number; lng: number; mine: boolean } | null>(
     config.area_latitude != null && config.area_longitude != null ? { lat: config.area_latitude, lng: config.area_longitude, mine: false } : null
   );
@@ -103,8 +106,8 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   const studioColors = useMemo(() => studioPalette((week?.studios ?? []).map((s) => s.id)), [week]);
   // What matches the pick, split by the clock: classes that have started drop off the list as the day goes on.
   const matching = useMemo(
-    () => (week?.classes ?? []).filter((c) => c.type !== "other" && applied.has(c.type) && (online || !c.online)),
-    [week, applied, online]
+    () => (week?.classes ?? []).filter((c) => c.type !== "other" && applied.has(c.type) && (online || !c.online) && (!studioId || c.studioId === studioId)),
+    [week, applied, online, studioId]
   );
   const visible = useMemo(() => matching.filter((c) => !hasStarted(c, now)), [matching, now]);
   const startedToday = matching.filter((c) => c.date === now.slice(0, 10) && hasStarted(c, now)).length;
@@ -112,6 +115,13 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   const picked = applied.size > 0;
   const dayClasses = visible.filter((c) => c.date === shownDay);
   const dayStudios = new Set(dayClasses.map((c) => c.studioId)).size;
+
+  function showStudio(id: string | null) {
+    setStudioId(id);
+    setDay(null);
+    // The chip is above the days; bring it into view so the change is obvious.
+    requestAnimationFrame(() => results.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
+  }
 
   function search(e: React.FormEvent) {
     e.preventDefault();
@@ -207,7 +217,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
         </p>
       </form>
 
-      <section aria-live="polite" className="flex flex-col gap-3 rounded-2xl border bg-background p-4">
+      <section ref={results} aria-live="polite" className="flex scroll-mt-3 flex-col gap-3 rounded-2xl border bg-background p-4">
         {!week && !failed && (
           <p className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading this week&apos;s classes…
@@ -217,6 +227,21 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
         {week && !picked && <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">Pick what you want to do above, then tap Search classes.</p>}
         {week && picked && shownDay && (
           <>
+            {studioId && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => showStudio(null)}
+                  aria-label={`Showing only ${studios.get(studioId)?.name ?? "this studio"}. Show every studio`}
+                  style={{ "--studio": studioColors.get(studioId)?.stripe, "--studio-text": studioColors.get(studioId)?.text } as React.CSSProperties}
+                  className="inline-flex max-w-full items-center gap-2 rounded-full border-[1.5px] border-[color:var(--studio)] bg-[color-mix(in_oklab,var(--studio)_12%,transparent)] py-1.5 pl-3 pr-2.5 text-sm font-bold text-[color:var(--studio-text)]"
+                >
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[color:var(--studio)]" />
+                  <span className="min-w-0 truncate">{studios.get(studioId)?.name ?? "Studio"}</span>
+                  <X className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                </button>
+              </div>
+            )}
             <div role="group" aria-label="Pick a day" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
               {week.days.map((d, i) => {
                 const n = visible.filter((c) => c.date === d).length;
@@ -257,7 +282,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
               <p className="rounded-xl border px-4 py-6 text-center text-sm text-muted-foreground">
                 {shownDay === now.slice(0, 10) && startedToday > 0
                   ? "That's all the classes for today. Try another day."
-                  : `No ${[...applied].map((k) => CLASS_TYPE_LABEL[k].toLowerCase()).join(" or ")} classes listed for ${dayLabel(shownDay, { weekday: "long" })}. Try another day or add a class type.`}
+                  : `No ${[...applied].map((k) => CLASS_TYPE_LABEL[k].toLowerCase()).join(" or ")} classes listed${studioId ? ` at ${studios.get(studioId)?.name ?? "this studio"}` : ""} for ${dayLabel(shownDay, { weekday: "long" })}. Try another day${studioId ? ", show every studio," : ""} or add a class type.`}
               </p>
             ) : (
               PARTS.map((part) => {
@@ -297,7 +322,18 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                               <span className="break-words font-semibold">{c.name}</span>
                               <span className="break-words text-xs text-muted-foreground">
                                 {c.online ? "Online · " : ""}
-                                <span className="font-bold text-[color:var(--studio-text,inherit)] dark:text-[color:var(--studio-text-dark,inherit)]">{s?.name ?? "Studio"}</span>
+                                {s && !studioId ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => showStudio(c.studioId)}
+                                    aria-label={`Show only ${s.name}`}
+                                    className="-my-1 py-1 text-left font-bold text-[color:var(--studio-text,inherit)] underline decoration-dotted decoration-1 underline-offset-[3px] dark:text-[color:var(--studio-text-dark,inherit)]"
+                                  >
+                                    {s.name}
+                                  </button>
+                                ) : (
+                                  <span className="font-bold text-[color:var(--studio-text,inherit)] dark:text-[color:var(--studio-text-dark,inherit)]">{s?.name ?? "Studio"}</span>
+                                )}
                                 {mi != null ? ` · ${mi.toFixed(1)} mi` : ""}
                                 {c.instructor ? ` · ${c.instructor}` : ""}
                               </span>
