@@ -48,17 +48,12 @@ const TYPE_STYLE: Record<FitnessClassType, { dot: string; text: string; pill: st
 };
 const PARTS: PartOfDay[] = ["Morning", "Afternoon", "Evening"];
 
-const stored = <T,>(key: string, fallback: T): T => {
+// The page used to remember each device's last picks and tick them on the next visit. Visitors choose first, every
+// time, so those old saved picks are cleared away.
+const forgetOldPicks = () => {
   try {
-    const v = localStorage.getItem(key);
-    return v ? (JSON.parse(v) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-const store = (key: string, value: unknown) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
+    localStorage.removeItem("fitnessnav-types");
+    localStorage.removeItem("fitnessnav-online");
   } catch {}
 };
 const dayLabel = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", ...opts });
@@ -76,7 +71,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
 
   const [week, setWeek] = useState<Week | null>(null);
   const [failed, setFailed] = useState(false);
-  // Nothing is ticked until the visitor picks (this device's earlier picks come back once the week loads).
+  // Nothing is ticked until the visitor picks.
   const [chosen, setChosen] = useState<Set<FitnessClassType>>(() => new Set());
   const [applied, setApplied] = useState<Set<FitnessClassType>>(() => new Set());
   const [online, setOnline] = useState(false);
@@ -87,17 +82,12 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   const [locating, setLocating] = useState(false);
   const [now, setNow] = useState(() => seattleStamp());
 
-  // The week's classes, then this device's remembered choices (applied together, so the first list is already theirs).
+  // The week's classes. Nothing is ticked until the visitor picks.
   useEffect(() => {
+    forgetOldPicks();
     fetch("/fitness/classes", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((w: Week) => {
-        const types = new Set(stored<FitnessClassType[]>("fitnessnav-types", []));
-        setChosen(types);
-        setApplied(types);
-        setOnline(stored("fitnessnav-online", false));
-        setWeek(w);
-      })
+      .then((w: Week) => setWeek(w))
       .catch(() => setFailed(true));
     const tick = () => setNow(seattleStamp());
     const t = setInterval(tick, 30_000);
@@ -128,8 +118,6 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     if (chosen.size === 0) return;
     const next = new Set(chosen);
     setApplied(next);
-    store("fitnessnav-types", [...next]);
-    store("fitnessnav-online", online);
     if (week && shownDay && !visible.some((c) => c.date === shownDay)) setDay(null);
   }
 
