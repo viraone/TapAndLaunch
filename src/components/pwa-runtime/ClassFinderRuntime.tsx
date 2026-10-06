@@ -25,6 +25,19 @@ interface Week {
   readAt: string | null;
 }
 
+/**
+ * One color per studio, told apart by hue (spread around the wheel, so neighbours in the list never look alike).
+ * Assigned by the studio's place in a sorted list, so it is the same on every visit while the studios stay the same.
+ */
+function studioPalette(ids: string[]): Map<string, { stripe: string; text: string; textDark: string }> {
+  return new Map(
+    [...ids].sort().map((id, i) => {
+      const hue = Math.round((i * 137.508 + 12) % 360);
+      return [id, { stripe: `hsl(${hue} 68% 48%)`, text: `hsl(${hue} 72% 33%)`, textDark: `hsl(${hue} 78% 70%)` }];
+    })
+  );
+}
+
 /** Each class type's color, on its dot, its chip text and its selected pill. */
 const TYPE_STYLE: Record<FitnessClassType, { dot: string; text: string; pill: string }> = {
   pilates: { dot: "bg-pink-600", text: "text-pink-700 dark:text-pink-300", pill: "border-pink-600 bg-pink-600/10" },
@@ -97,6 +110,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   }, []);
 
   const studios = useMemo(() => new Map((week?.studios ?? []).map((s) => [s.id, s])), [week]);
+  const studioColors = useMemo(() => studioPalette((week?.studios ?? []).map((s) => s.id)), [week]);
   // What matches the pick, split by the clock: classes that have started drop off the list as the day goes on.
   const matching = useMemo(
     () => (week?.classes ?? []).filter((c) => c.type !== "other" && applied.has(c.type) && (online || !c.online)),
@@ -276,8 +290,15 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                         const mi = miles(c.studioId);
                         const book = s?.bookUrl ?? s?.website ?? null;
                         const type = c.type as FitnessClassType;
+                        const color = studioColors.get(c.studioId);
                         return (
-                          <li key={c.id} className={`grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-3 px-3.5 py-3`}>
+                          // Each studio has its own color, down the row's left edge and on its name, so a week of classes from
+                          // different studios never blends together.
+                          <li
+                            key={c.id}
+                            style={color ? ({ "--studio": color.stripe, "--studio-text": color.text, "--studio-text-dark": color.textDark } as React.CSSProperties) : undefined}
+                            className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-3 px-3.5 py-3 shadow-[inset_4px_0_0_var(--studio,transparent)]"
+                          >
                             <div className="font-bold tabular-nums leading-tight">
                               {time12(c.start)}
                               {len && <span className="block text-xs font-medium text-muted-foreground">{len} min</span>}
@@ -290,7 +311,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                               <span className="break-words font-semibold">{c.name}</span>
                               <span className="break-words text-xs text-muted-foreground">
                                 {c.online ? "Online · " : ""}
-                                {s?.name ?? "Studio"}
+                                <span className="font-bold text-[color:var(--studio-text,inherit)] dark:text-[color:var(--studio-text-dark,inherit)]">{s?.name ?? "Studio"}</span>
                                 {mi != null ? ` · ${mi.toFixed(1)} mi` : ""}
                                 {c.instructor ? ` · ${c.instructor}` : ""}
                               </span>
