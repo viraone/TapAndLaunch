@@ -30,6 +30,8 @@ node save.mjs out                         # to the live database (needs .env)
 ## Every night
 `./install-daily.sh` copies the job to `~/.fitnessnav-job` (macOS won't let background jobs read ~/Desktop) and runs it
 at 10:00 PM. Run it again after changing anything here. Log: `~/Library/Logs/fitnessnav.log`. `./install-daily.sh remove` turns it off.
+To pause the nightly run, write a date (YYYY-MM-DD) to `~/.fitnessnav-job/skip-until`: the job skips nights before that day,
+then runs again and removes the file. `launchctl kickstart gui/$(id -u)/com.tapandlaunch.fitnessnav` starts a run by hand.
 
 ## Known gaps
 Wix booking calendars (Seed Pilates) aren't clicked through yet; a studio whose schedule shows one day with no day tabs

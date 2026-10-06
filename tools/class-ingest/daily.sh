@@ -9,6 +9,13 @@ NODE="$(command ls -d "$HOME"/.nvm/versions/node/*/bin/node 2>/dev/null | sort -
 [ -n "$NODE" ] || NODE="$(command -v node || true)"
 {
   echo "=== $(date) ==="
+  # A date (YYYY-MM-DD) in a file named skip-until pauses the nightly run until that day; a run started by hand with
+  # FN_FORCE=1 ignores it. The file goes away by itself once the day has come.
+  if [ -f skip-until ] && [ -z "${FN_FORCE:-}" ]; then
+    until_day="$(tr -d '[:space:]' < skip-until)"
+    if [ "$(date +%F)" \< "$until_day" ]; then echo "Skipped on request until $until_day."; exit 0; fi
+    rm -f skip-until
+  fi
   [ -x "$NODE" ] || { echo "node not found"; exit 1; }
   [ -d node_modules/playwright ] || { echo "Packages missing in $(pwd): run ./install-daily.sh again."; exit 1; }
   if ! curl -s -m 3 http://localhost:11434/api/tags >/dev/null; then

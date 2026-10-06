@@ -56,12 +56,14 @@ const forgetOldPicks = () => {
   } catch {}
 };
 const FIX_OPTIONS: PositionOptions = { enableHighAccuracy: false, timeout: 10_000, maximumAge: 120_000 };
+/** "0.0 mi" for a studio right at the visitor's spot read like a mistake; under a tenth of a mile is said in words. */
+const milesLabel = (mi: number) => (mi < 0.05 ? "under 0.1 mi" : `${mi.toFixed(1)} mi`);
 const dayLabel = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", ...opts });
 
 /**
  * FitnessNav: tick the kinds of class you want, tap Search, then pick any day of the week and see every matching class
  * at nearby studios on one page, grouped Morning / Afternoon / Evening, each with a Book link to the studio's own
- * schedule. Classes come from /fitness/classes (read from studios' own sites by the morning job, tools/class-ingest).
+ * schedule. Classes come from /fitness/classes (read from studios' own sites by the nightly job, tools/class-ingest).
  */
 export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig }) {
   const offered = useMemo(() => {
@@ -192,30 +194,31 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-10 pt-4">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="flex items-center gap-2 text-2xl font-extrabold uppercase tracking-tight">
+      <header className="flex flex-col gap-2">
+        {/* The name never shrinks or wraps; on a phone the location pill drops under it instead of covering its last letters. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <h1 className="flex shrink-0 items-center gap-2 whitespace-nowrap text-2xl font-extrabold uppercase tracking-tight">
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#df4f26] text-white">
               <Dumbbell className="h-[18px] w-[18px]" strokeWidth={2.5} />
             </span>
             {config.title || "FitnessNav"}
           </h1>
-          {config.subtitle && <p className="mt-1 text-sm text-muted-foreground">{config.subtitle}</p>}
+          <button
+            type="button"
+            onClick={locate}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium text-muted-foreground"
+          >
+            {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : origin?.mine ? <LocateFixed className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
+            {locating && !origin?.mine ? "Finding you…" : origin?.mine ? "Near you" : config.area_label ? `Near ${config.area_label}` : "Use my location"}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={locate}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium text-muted-foreground"
-        >
-          {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : origin?.mine ? <LocateFixed className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
-          {locating && !origin?.mine ? "Finding you…" : origin?.mine ? "Near you" : config.area_label ? `Near ${config.area_label}` : "Use my location"}
-        </button>
+        {config.subtitle && <p className="text-sm text-muted-foreground">{config.subtitle}</p>}
+        {denied && !origin?.mine && (
+          <p className="text-xs text-muted-foreground">
+            Location is off, so distances are from {config.area_label ?? "the middle of the area"}. Allow it for this site in your browser settings to see what&apos;s closest.
+          </p>
+        )}
       </header>
-      {denied && !origin?.mine && (
-        <p className="-mt-2 text-xs text-muted-foreground">
-          Location is off, so distances are from {config.area_label ?? "the middle of the area"}. Allow location for this site in your browser settings to see the studios closest to you.
-        </p>
-      )}
 
       <form onSubmit={search} className="flex flex-col gap-3 rounded-2xl border bg-background p-4">
         <h2 className="text-lg font-bold">What do you want to do?</h2>
@@ -306,19 +309,11 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                 );
               })}
             </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xl font-bold">
                 {shownDay === today ? `Today, ${dayLabel(shownDay, { month: "short", day: "numeric" })}` : dayLabel(shownDay, { weekday: "long", month: "short", day: "numeric" })}
               </h2>
-              {dayClasses.length > 0 && (
-                <p className="text-xs tabular-nums text-muted-foreground">
-                  {dayClasses.length} class{dayClasses.length === 1 ? "" : "es"} · {dayStudios} studio{dayStudios === 1 ? "" : "s"}
-                </p>
-              )}
-            </div>
-            {dayClasses.length > 1 && dayClasses.some((c) => miles(c.studioId) != null) && (
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-xs text-muted-foreground">{origin?.mine ? "Distances are from where you are" : `Distances are from ${config.area_label ?? "the middle of the area"}`}</span>
+              {dayClasses.length > 1 && dayClasses.some((c) => miles(c.studioId) != null) && (
                 <div role="group" aria-label="Order the classes" className="flex shrink-0 rounded-full bg-muted p-0.5 text-xs font-semibold">
                   {(["soonest", "nearest"] as const).map((o) => (
                     <button
@@ -332,11 +327,12 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-            {shownDay === today && startedToday > 0 && dayClasses.length > 0 && (
-              <p className="-mt-1 text-xs text-muted-foreground">
-                {startedToday} earlier class{startedToday === 1 ? " has" : "es have"} already started. Showing what&apos;s still to come.
+              )}
+            </div>
+            {dayClasses.length > 0 && (
+              <p className="-mt-1 text-xs tabular-nums text-muted-foreground">
+                {dayClasses.length} class{dayClasses.length === 1 ? "" : "es"} · {dayStudios} studio{dayStudios === 1 ? "" : "s"}
+                {shownDay === today && startedToday > 0 ? ` · ${startedToday} already started` : ""}
               </p>
             )}
             {dayClasses.length === 0 ? (
@@ -380,7 +376,11 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                       >
                         {part}
                         <span>{rows.length}</span>
-                        <ChevronDown className={`ml-auto mr-1 h-4 w-4 shrink-0 transition-transform ${isFolded ? "" : "rotate-180"}`} strokeWidth={2.5} aria-hidden />
+                        {/* A bare arrow said nothing; the control says what a tap does and, when folded, what is hidden. */}
+                        <span className="ml-auto inline-flex items-center gap-1 rounded-full border bg-background px-2.5 py-1 text-xs font-semibold normal-case tracking-normal text-foreground">
+                          {isFolded ? `Show ${rows.length} ${rows.length === 1 ? "class" : "classes"}` : "Hide"}
+                          <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${isFolded ? "" : "rotate-180"}`} strokeWidth={2.5} aria-hidden />
+                        </span>
                       </button>
                     </h3>
                     <ul id={`part-${part}`} hidden={isFolded} className="divide-y overflow-hidden rounded-xl border">
@@ -397,49 +397,56 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                           <li
                             key={c.id}
                             style={color ? ({ "--studio": color.stripe, "--studio-text": color.text, "--studio-text-dark": color.textDark } as React.CSSProperties) : undefined}
-                            className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-3 px-3.5 py-3 shadow-[inset_4px_0_0_var(--studio,transparent)]"
+                            className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-x-3 px-3.5 py-2.5 shadow-[inset_4px_0_0_var(--studio,transparent)]"
                           >
-                            <div className="font-bold tabular-nums leading-tight">
+                            <div className="pt-px text-[15px] font-bold tabular-nums leading-tight">
                               {time12(c.start)}
-                              {len && <span className="block text-xs font-medium text-muted-foreground">{len} min</span>}
+                              {len && <span className="block text-[11px] font-medium text-muted-foreground">{len} min</span>}
                             </div>
-                            <div className="flex min-w-0 flex-col gap-0.5">
-                              <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide ${TYPE_STYLE[type].text}`}>
-                                <span className={`h-1.5 w-1.5 rounded-full ${TYPE_STYLE[type].dot}`} />
-                                {CLASS_TYPE_LABEL[type]}
-                              </span>
-                              <span className="break-words font-semibold">{c.name}</span>
-                              <span className="break-words text-xs text-muted-foreground">
-                                {c.online ? "Online · " : ""}
-                                {s && !studioId ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => showStudio(c.studioId)}
-                                    aria-label={`Show only ${s.name}`}
-                                    className="-my-1 py-1 text-left text-sm font-bold text-[color:var(--studio-text,inherit)] underline decoration-dotted decoration-1 underline-offset-[3px] dark:text-[color:var(--studio-text-dark,inherit)]"
+                            {/* The name has the whole width to itself, so it rarely needs more than two lines. */}
+                            <div className="flex min-w-0 flex-col gap-1">
+                              <span className="break-words font-semibold leading-snug">{c.name}</span>
+                              <div className="flex items-end justify-between gap-3">
+                                <span className="min-w-0 break-words text-xs leading-snug text-muted-foreground">
+                                  <span className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide ${TYPE_STYLE[type].text}`}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${TYPE_STYLE[type].dot}`} />
+                                    {CLASS_TYPE_LABEL[type]}
+                                  </span>
+                                  {" · "}
+                                  {c.online ? "Online · " : ""}
+                                  {s && !studioId ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => showStudio(c.studioId)}
+                                      aria-label={`Show only ${s.name}`}
+                                      className="-my-1 py-1 text-left text-[13px] font-bold text-[color:var(--studio-text,inherit)] underline decoration-dotted decoration-1 underline-offset-[3px] dark:text-[color:var(--studio-text-dark,inherit)]"
+                                    >
+                                      {s.name}
+                                    </button>
+                                  ) : (
+                                    <span className="text-[13px] font-bold text-[color:var(--studio-text,inherit)] dark:text-[color:var(--studio-text-dark,inherit)]">{s?.name ?? "Studio"}</span>
+                                  )}
+                                  {mi != null ? ` · ${milesLabel(mi)}` : ""}
+                                  {c.instructor ? ` · ${c.instructor}` : ""}
+                                  {c.spots && (
+                                    <>
+                                      {" · "}
+                                      <span className="font-semibold text-[#df4f26]">{c.spots}</span>
+                                    </>
+                                  )}
+                                </span>
+                                {book && (
+                                  <a
+                                    href={book}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="shrink-0 whitespace-nowrap rounded-full border-[1.5px] border-[#df4f26] px-3 py-1 text-xs font-bold text-[#df4f26]"
                                   >
-                                    {s.name}
-                                  </button>
-                                ) : (
-                                  <span className="text-sm font-bold text-[color:var(--studio-text,inherit)] dark:text-[color:var(--studio-text-dark,inherit)]">{s?.name ?? "Studio"}</span>
+                                    Book
+                                  </a>
                                 )}
-                                {mi != null ? ` · ${mi.toFixed(1)} mi` : ""}
-                                {c.instructor ? ` · ${c.instructor}` : ""}
-                              </span>
-                              {c.spots && <span className="text-xs font-semibold text-[#df4f26]">{c.spots}</span>}
+                              </div>
                             </div>
-                            {book ? (
-                              <a
-                                href={book}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="self-center whitespace-nowrap rounded-full border-[1.5px] border-[#df4f26] px-3 py-1.5 text-xs font-bold text-[#df4f26]"
-                              >
-                                Book
-                              </a>
-                            ) : (
-                              <span />
-                            )}
                           </li>
                         );
                       })}
