@@ -80,6 +80,12 @@ const SEEDED: SeededTodo[] = [
     ],
   },
   { key: "stripe-tax", section: "Later, optional", title: "Stripe Tax, after an accountant's advice on Washington sales tax for SaaS" },
+  {
+    key: "stagetime-host-messages",
+    section: "Feature roadmap",
+    title: "StageTime: comedians message the hosts from inside the app (decided Oct 6: later)",
+    detail: "Signed-in comedians get a Message the hosts button; each message emails Viradeth, Nick and Noah and shows in the dashboard; hosts reply there and the comedian gets a push. Private per comedian. Build the one-way-plus-replies version first (about a day), full chat later.",
+  },
   { key: "legal-review", section: "Before inviting real builders", title: "Lawyer review of Terms and Privacy" },
   {
     key: "byob-quality",
@@ -109,7 +115,7 @@ const SEEDED: SeededTodo[] = [
   { key: "seo-oct12", section: "Housekeeping", title: "SEO check around Oct 12", steps: [{ title: "On Oct 12 or later, type /seo in Claude Code. It audits tapandlaunch.com and fixes what it finds." }] },
   { key: "delete-artifact", section: "Housekeeping", title: "Delete the redundant claude.ai dashboard page", steps: [{ title: "Tell Claude \"delete the claude.ai dashboard\"." }] },
 ];
-const SECTIONS = ["Before real customers pay you (Stripe)", "Before inviting real builders", "Housekeeping", "Mine", "Later, optional"];
+const SECTIONS = ["Before real customers pay you (Stripe)", "Before inviting real builders", "Housekeeping", "Mine", "Feature roadmap", "Later, optional"];
 
 /** Platform admins only: the to-do list for today, then how the platform is doing. */
 export default async function TapAndLaunchBoard() {
