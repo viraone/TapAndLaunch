@@ -36,6 +36,7 @@ export function AppSettingsDialog({
   onSaved,
   domainsEnabled,
   rootDomain,
+  kind,
 }: {
   app: AppRow;
   pages: PageRow[];
@@ -43,20 +44,23 @@ export function AppSettingsDialog({
   /** False until the server has its Vercel keys; the tab then says "coming soon". */
   domainsEnabled: boolean;
   rootDomain: string;
+  /** An AI-written (BYOB) app has no block theme: it gets the icon & manifest and domain tabs only. */
+  kind?: "blocks" | "code";
 }) {
+  const code = kind === "code";
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState("theme");
+  const [tab, setTab] = useState(code ? "manifest" : "theme");
 
   // Lets the "Get live" checklist open this dialog straight on a tab
   // (e.g. the icon), without reaching into it from outside.
   useEffect(() => {
     function onOpen(e: Event) {
-      setTab((e as CustomEvent<{ tab?: string }>).detail?.tab ?? "theme");
+      setTab((e as CustomEvent<{ tab?: string }>).detail?.tab ?? (code ? "manifest" : "theme"));
       setOpen(true);
     }
     window.addEventListener("open-app-settings", onOpen);
     return () => window.removeEventListener("open-app-settings", onOpen);
-  }, []);
+  }, [code]);
   const [theme, setTheme] = useState<ThemeConfig>(app.theme);
   const [manifest, setManifest] = useState<ManifestConfig>(app.manifest);
   const [saving, setSaving] = useState(false);
@@ -67,7 +71,7 @@ export function AppSettingsDialog({
       const res = await fetch(`/api/apps/${app.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: { ...theme, looks_confirmed: true }, manifest }),
+        body: JSON.stringify(code ? { manifest } : { theme: { ...theme, looks_confirmed: true }, manifest }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -118,9 +122,11 @@ export function AppSettingsDialog({
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="w-full">
-            <TabsTrigger value="theme" className="flex-1">
-              Theme
-            </TabsTrigger>
+            {!code && (
+              <TabsTrigger value="theme" className="flex-1">
+                Theme
+              </TabsTrigger>
+            )}
             <TabsTrigger value="manifest" className="flex-1">
               App icon &amp; manifest
             </TabsTrigger>

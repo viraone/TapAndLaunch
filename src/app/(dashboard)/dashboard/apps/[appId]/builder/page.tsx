@@ -29,6 +29,8 @@ export default async function BuilderPage({ params, searchParams }: { params: Pa
     const [latest, versions] = await Promise.all([latestVersion(supabase, appId), listVersions(supabase, appId)]);
     return (
       <CodeBuilder
+        app={app}
+        domainsEnabled={isVercelDomainsConfigured()}
         appId={appId}
         appName={app.name}
         accent={app.theme.primary_color}

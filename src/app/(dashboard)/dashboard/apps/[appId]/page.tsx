@@ -166,17 +166,18 @@ export default async function AppHomePage({ params }: { params: Params }) {
           </section>
         )}
 
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <dl className={`grid grid-cols-2 gap-3 ${app.kind === "code" ? "" : "sm:grid-cols-4"}`}>
           <Stat label="Views" value={views.count ?? 0} sub="last 7 days" />
           <Stat label="Installs" value={installs.count ?? 0} sub="last 7 days" />
-          <Stat label="Members" value={members.count ?? 0} />
-          <Stat label="Notification subscribers" value={subscribers.count ?? 0} />
+          {app.kind !== "code" && <Stat label="Members" value={members.count ?? 0} />}
+          {app.kind !== "code" && <Stat label="Notification subscribers" value={subscribers.count ?? 0} />}
         </dl>
 
         <section>
           <h2 className="mb-3 text-lg font-semibold text-neutral-950">Manage</h2>
           <ul className="grid gap-3 sm:grid-cols-2">
-            {MANAGE.map(({ path, label, hint, icon: Icon }) => (
+            {/* An AI-written app has no blocks, so no members, forms, products, events or stations to manage: just its numbers. */}
+            {(app.kind === "code" ? MANAGE.filter((m) => m.path === "analytics") : MANAGE).map(({ path, label, hint, icon: Icon }) => (
               <li key={path}>
                 <Link
                   href={`/dashboard/apps/${appId}/${path}`}

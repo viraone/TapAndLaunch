@@ -12,6 +12,10 @@ import { isFreshApp, SHARED_PATH } from "@/lib/code/first-build";
 import { runnablePartial } from "@/lib/code/partial";
 import { createClient } from "@/lib/supabase/client";
 import { KeyForm, type SavedKey } from "@/components/builder/AiChatPanel";
+import { AppSettingsDialog } from "@/components/builder/AppSettingsDialog";
+import type { Database as DatabaseTypes } from "@/types/database";
+
+type AppRow = DatabaseTypes["public"]["Tables"]["apps"]["Row"];
 import { DictationButton } from "@/components/builder/DictationButton";
 import { DatabasePanel, type DbState } from "@/components/builder/DatabasePanel";
 
@@ -58,6 +62,8 @@ const shape = (files: Record<string, string>) => Object.keys(files).sort().map((
  * hits are sent back to the AI to fix, up to twice, like a developer reading the console.
  */
 export function CodeBuilder({
+  app,
+  domainsEnabled,
   appId,
   appName,
   accent,
@@ -70,6 +76,9 @@ export function CodeBuilder({
   initialPublished,
   takenDown = null,
 }: {
+  /** The app row, for the settings dialog (name, icon, domain). */
+  app: AppRow;
+  domainsEnabled: boolean;
   appId: string;
   appName: string;
   accent?: string;
@@ -84,6 +93,7 @@ export function CodeBuilder({
   takenDown?: string | null;
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const [appRow, setAppRow] = useState(app);
   const [files, setFiles] = useState(initialFiles);
   const [version, setVersion] = useState(initialVersion);
   const [versions, setVersions] = useState(initialVersions);
@@ -359,7 +369,7 @@ export function CodeBuilder({
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">{appName}</p>
+          <p className="truncate text-sm font-semibold">{appRow.manifest.name || appRow.name || appName}</p>
           <p className="text-xs text-neutral-400">
             {status === "published" ? (
               <a href={liveUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-emerald-300 hover:underline">
@@ -370,6 +380,7 @@ export function CodeBuilder({
             )}
           </p>
         </div>
+        <AppSettingsDialog app={appRow} pages={[]} kind="code" onSaved={setAppRow} domainsEnabled={domainsEnabled} rootDomain={rootDomain} />
         <label className="sr-only" htmlFor="version-select">
           Version
         </label>
