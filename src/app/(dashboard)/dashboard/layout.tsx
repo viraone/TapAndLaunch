@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, LayoutGrid, Settings, ShieldCheck } from "lucide-react";
+import { ArrowRight, LayoutGrid, LayoutTemplate, Settings, ShieldCheck } from "lucide-react";
 import { isPlatformAdmin } from "@/lib/platform/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
@@ -46,6 +46,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <ArrowRight className="h-4 w-4 -rotate-45" strokeWidth={2.5} />
             </span>
             <span className="hidden sm:inline">TapAndLaunch</span>
+          </Link>
+          <Link
+            aria-label="Browse Templates"
+            href="/dashboard/apps/new"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] text-neutral-300 transition hover:bg-white/5 hover:text-white sm:px-3.5"
+          >
+            <LayoutTemplate className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Browse Templates</span>
           </Link>
           <span className="h-6 w-px bg-white/10" aria-hidden />
           <OrgSwitcher
