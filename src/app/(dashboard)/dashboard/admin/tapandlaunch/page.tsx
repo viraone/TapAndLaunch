@@ -9,25 +9,118 @@ export const dynamic = "force-dynamic";
 
 const TZ = "America/Los_Angeles";
 
+interface Seed {
+  key: string;
+  section: string;
+  title: string;
+  detail?: string;
+  /** The steps to follow, each with its own tick. The last one ticked finishes the item. */
+  steps?: Array<{ title: string; detail?: string }>;
+}
+
 /**
- * The to-do items the code knows about, in the order they are shown. Each is added to the list once (by its key) and keeps
- * its tick after that, so finished ones can be left here or removed later without coming back.
+ * The to-do items the code knows about, in the order they are shown. Each item and each step is added to the list once
+ * (by its key) and keeps its tick after that, so finished ones can be left here or removed later without coming back.
  */
-const SEEDED: Array<{ key: string; section: string; title: string; detail?: string }> = [
-  { key: "fitnessnav-key", section: "FitnessNav", title: "Add the Anthropic key to the FitnessNav reader, then tell Claude \"key added\"", detail: "One line in ~/.fitnessnav-job/.env. Then a 3-studio test and a full timed run." },
-  { key: "stripe-connect-live", section: "Before real customers pay you (Stripe)", title: "Live store payments: Connect platform profile, connect the StageTimePNW store, one real purchase and refund", detail: "No store is connected in live mode yet. About 20 to 30 minutes clicking through Stripe." },
-  { key: "stripe-phone", section: "Before real customers pay you (Stripe)", title: "Phone verification on the Stripe account, if Stripe still asks for it" },
-  { key: "cleanup-firstrun3", section: "Before real customers pay you (Stripe)", title: "Delete the firstrun3 test account after its plan ends on Nov 4" },
-  { key: "cleanup-shop1", section: "Before real customers pay you (Stripe)", title: "Delete the shop1 test account after the live store test" },
-  { key: "vercel-test-domains", section: "Before real customers pay you (Stripe)", title: "Remove the 4 leftover tl-…test… domains in Vercel's Domains list", detail: "Vercel dashboard only; the API token can't do it." },
-  { key: "ein-phone", section: "Later, optional", title: "EIN by phone: 1-800-829-4933, mention reference 101" },
+const SEEDED: Seed[] = [
+  {
+    key: "fitnessnav-key",
+    section: "FitnessNav",
+    title: "Add the Anthropic key to the FitnessNav reader",
+    detail: "Turns the 95-minute morning run into minutes.",
+    steps: [
+      { title: "Create a key at console.anthropic.com → API Keys → Create key. Name it fitnessnav-reader." },
+      { title: "In Terminal, run: echo 'ANTHROPIC_API_KEY=sk-ant-…' >> ~/.fitnessnav-job/.env", detail: "Replace sk-ant-… with the key. Never paste the key into chat." },
+      { title: "Tell Claude \"key added\".", detail: "Claude test-reads 3 studios, then runs all 46 with timing and cost." },
+    ],
+  },
+  {
+    key: "stripe-connect-live",
+    section: "Before real customers pay you (Stripe)",
+    title: "Live store payments: connect a store in live mode and make one real purchase and refund",
+    detail: "No store is connected in live mode yet. About 20 to 30 minutes clicking through Stripe.",
+    steps: [
+      { title: "In Stripe with the sandbox switch off: Settings → Connect → Platform profile. Answer the questions and submit.", detail: "You run a platform; your users sell goods and services from their own stores; Stripe hosts their onboarding." },
+      { title: "Settings → Connect → Branding: name TapAndLaunch, upload the icon, set the brand color.", detail: "Store owners see this on Stripe's onboarding pages." },
+      { title: "In TapAndLaunch (StageTimePNW workspace): Settings → Payments → Connect Stripe. Follow Stripe's live onboarding with your real details.", detail: "Identity and bank details go into Stripe only, never into chat or screenshots." },
+      { title: "Back in TapAndLaunch Settings → Payments: it should say connected with charges enabled. If not, send Claude a screenshot." },
+      { title: "Add an Online store block with one $1 test product to a page in one of your apps (or make a quick app from the Online store template), and publish." },
+      { title: "On the live app, buy the $1 product with your own card. In the dashboard, the order should show Paid." },
+      { title: "In Stripe: Payments → that payment → Refund. The order should then show Refunded." },
+      { title: "Tell Claude \"store test done\".", detail: "Claude checks the webhook deliveries and the order rows; then the test product comes off." },
+    ],
+  },
+  {
+    key: "stripe-phone",
+    section: "Before real customers pay you (Stripe)",
+    title: "Phone verification on the Stripe account, if Stripe still asks for it",
+    steps: [{ title: "Stripe → Settings → Business → Account details. If a verification banner shows, follow it. If nothing is asked, tick this." }],
+  },
+  {
+    key: "cleanup-firstrun3",
+    section: "Before real customers pay you (Stripe)",
+    title: "Delete the firstrun3 test account after its plan ends on Nov 4",
+    steps: [
+      { title: "On or after Nov 5: Admin → Customers → the \"tesghhdyfjfgh\" workspace → delete it (or tell Claude to)." },
+      { title: "Tell Claude to delete the firstrun3 login too." },
+    ],
+  },
+  {
+    key: "cleanup-shop1",
+    section: "Before real customers pay you (Stripe)",
+    title: "Delete the shop1 test account after the live store test",
+    steps: [{ title: "Once the live store test above passes: tell Claude \"delete shop1\"." }],
+  },
+  {
+    key: "vercel-test-domains",
+    section: "Before real customers pay you (Stripe)",
+    title: "Remove the 4 leftover tl-…test… domains in Vercel's Domains list",
+    detail: "Vercel dashboard only; the API token can't do it.",
+    steps: [
+      { title: "vercel.com → your team → Domains (top tab)." },
+      { title: "Find the entries starting with tl- that contain test. There should be 4. Leave tapandlaunch.com and tapandlaunch.app alone." },
+      { title: "For each one: the ⋯ menu → Delete → confirm." },
+    ],
+  },
+  {
+    key: "ein-phone",
+    section: "Later, optional",
+    title: "EIN by phone",
+    steps: [
+      { title: "Call 1-800-829-4933 (IRS Business & Specialty Tax Line), Monday to Friday, 7 AM to 7 PM." },
+      { title: "Say the online form gave reference 101 for a sole proprietor EIN. Have your SSN and address ready (for the IRS only, never for Claude)." },
+      { title: "Write the EIN into docs/private/business.md only (ask Claude to; don't paste it in chat)." },
+    ],
+  },
   { key: "stripe-tax", section: "Later, optional", title: "Stripe Tax, after an accountant's advice on Washington sales tax for SaaS" },
   { key: "legal-review", section: "Before inviting real builders", title: "Lawyer review of Terms and Privacy" },
-  { key: "byob-quality", section: "Before inviting real builders", title: "BYOB quality pass: a few real-key builds of different app types, then fixes", detail: "The parallel first build has mostly been timed against a stand-in." },
+  {
+    key: "byob-quality",
+    section: "Before inviting real builders",
+    title: "BYOB quality pass: real-key builds of different app types, then fixes",
+    detail: "The parallel first build has mostly been timed against a stand-in.",
+    steps: [
+      { title: "Create 3 apps from Bring your own bot with your own key: a booking app, a menu and ordering app, and a community app with sign-in." },
+      { title: "Note what's wrong or slow in each (screenshots help) and send it to Claude." },
+      { title: "Claude fixes the prompts and code. Build the same three once more and compare." },
+    ],
+  },
   { key: "byob-stage3", section: "Before inviting real builders", title: "BYOB Stage 3: click an element in the preview to edit it, image upload, GitHub export" },
-  { key: "stage2-real-supabase", section: "Before inviting real builders", title: "Stage 2 with a real Supabase project, from the builder's Database button", detail: "About ten minutes." },
-  { key: "seo-oct12", section: "Housekeeping", title: "SEO check around Oct 12" },
-  { key: "delete-artifact", section: "Housekeeping", title: "Delete the redundant claude.ai dashboard page" },
+  {
+    key: "stage2-real-supabase",
+    section: "Before inviting real builders",
+    title: "Stage 2 with a real Supabase project, from the builder's Database button",
+    detail: "About ten minutes.",
+    steps: [
+      { title: "supabase.com/dashboard/new: create a free project, any name." },
+      { title: "Project Settings → API Keys: copy the Project URL and the anon / publishable key (not the secret one)." },
+      { title: "In a BYOB app: Database button → paste both → Connect database." },
+      { title: "Ask the AI: \"let people make an account and save their tasks\". Copy the SQL it writes, run it in Supabase's SQL editor, then click I ran it." },
+      { title: "In the preview: sign up, add a task, reload. It should still be there. Tell Claude how it went." },
+    ],
+  },
+  { key: "seo-oct12", section: "Housekeeping", title: "SEO check around Oct 12", steps: [{ title: "On Oct 12 or later, type /seo in Claude Code. It audits tapandlaunch.com and fixes what it finds." }] },
+  { key: "delete-artifact", section: "Housekeeping", title: "Delete the redundant claude.ai dashboard page", steps: [{ title: "Tell Claude \"delete the claude.ai dashboard\"." }] },
 ];
 const SECTIONS = ["FitnessNav", "Before real customers pay you (Stripe)", "Before inviting real builders", "Housekeeping", "Mine", "Later, optional"];
 
@@ -37,15 +130,18 @@ export default async function TapAndLaunchBoard() {
   if (!(await isPlatformAdmin(supabase))) notFound();
   const admin = createAdminClient();
 
-  // Seed what the code knows about, once per key.
-  const { data: existing } = await admin.from("admin_todos").select("key").not("key", "is", null);
-  const have = new Set((existing ?? []).map((r) => r.key));
-  const missing = SEEDED.filter((s) => !have.has(s.key)).map((s) => ({ key: s.key, section: s.section, title: s.title, detail: s.detail ?? null, sort: SEEDED.findIndex((x) => x.key === s.key) }));
-  if (missing.length) await admin.from("admin_todos").insert(missing);
+  // Seed what the code knows about, by key: an item or step is added once and keeps its tick; its wording and order follow the code.
+  const { data: parents } = await admin
+    .from("admin_todos")
+    .upsert(SEEDED.map((s, i) => ({ key: s.key, section: s.section, title: s.title, detail: s.detail ?? null, sort: i })), { onConflict: "key" })
+    .select("id, key");
+  const idByKey = new Map((parents ?? []).map((r) => [r.key as string, r.id]));
+  const steps = SEEDED.flatMap((s) => (s.steps ?? []).map((st, i) => ({ key: `${s.key}/${i + 1}`, parent_id: idByKey.get(s.key) ?? null, section: s.section, title: st.title, detail: st.detail ?? null, sort: i }))).filter((st) => st.parent_id);
+  if (steps.length) await admin.from("admin_todos").upsert(steps, { onConflict: "key" });
 
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());
   const [{ data: rows }, { count: orgs }, { count: liveApps }, { data: billing }, { count: openReports }] = await Promise.all([
-    admin.from("admin_todos").select("id, key, title, detail, section, sort, created_at, done_at").order("sort").order("created_at"),
+    admin.from("admin_todos").select("id, key, title, detail, section, sort, created_at, done_at, parent_id").order("sort").order("created_at"),
     admin.from("organizations").select("id", { count: "exact", head: true }),
     admin.from("apps").select("id", { count: "exact", head: true }).eq("status", "published").is("deleted_at", null),
     admin.from("org_billing").select("status"),
@@ -54,10 +150,19 @@ export default async function TapAndLaunchBoard() {
 
   const dateOf = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date(iso));
   const all = rows ?? [];
-  const todos: Todo[] = all
+  const items = all.filter((r) => !r.parent_id);
+  const todos: Todo[] = items
     .filter((r) => !r.done_at || dateOf(r.done_at) === today)
-    .map((r) => ({ id: r.id, key: r.key, title: r.title, detail: r.detail, section: r.section, done: !!r.done_at }));
-  const doneEarlier = all.filter((r) => r.done_at && dateOf(r.done_at) !== today).length;
+    .map((r) => ({
+      id: r.id,
+      key: r.key,
+      title: r.title,
+      detail: r.detail,
+      section: r.section,
+      done: !!r.done_at,
+      steps: all.filter((s) => s.parent_id === r.id).map((s) => ({ id: s.id, title: s.title, detail: s.detail, done: !!s.done_at })),
+    }));
+  const doneEarlier = items.filter((r) => r.done_at && dateOf(r.done_at) !== today).length;
   const paid = (billing ?? []).filter((b) => b.status === "active").length;
   const trials = (billing ?? []).filter((b) => b.status === "trialing").length;
   const nowLabel = new Date().toLocaleString("en-US", { timeZone: TZ, weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -97,9 +202,10 @@ export default async function TapAndLaunchBoard() {
         <section className="rounded-3xl bg-white p-6 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5">
           <h2 className="text-lg font-semibold tracking-tight">How this list works</h2>
           <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-neutral-700">
-            <li>Tick a box when something is done. It moves to &ldquo;Done today&rdquo; and drops off tomorrow.</li>
+            <li>An item with steps shows &ldquo;0 of N steps&rdquo;: open it and tick the steps as you go. The last step ticked finishes the item.</li>
+            <li>Tick an item itself when it&apos;s done. It moves to &ldquo;Done today&rdquo; and drops off tomorrow. Untick to bring it back.</li>
             <li>Anything you don&apos;t tick is still here tomorrow. Nothing is lost by not finishing.</li>
-            <li>Add your own items with the box above; the trash icon removes those. Items Claude put here are ticked off, not removed.</li>
+            <li>Add your own items with the box; the trash icon removes those. Items Claude put here are ticked off, not removed.</li>
             <li>The StageTime launch (Oct 23) has its own list with the StageTime agent and is not on this board.</li>
           </ul>
         </section>

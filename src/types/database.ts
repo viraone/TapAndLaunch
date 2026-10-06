@@ -518,6 +518,8 @@ export interface Database {
           created_at: string;
           done_at: string | null;
           done_by: string | null;
+          /** The item this is a step of; null for an item on the list itself. */
+          parent_id: string | null;
         };
         Insert: Partial<Database["public"]["Tables"]["admin_todos"]["Row"]> & { title: string };
         Update: Partial<Database["public"]["Tables"]["admin_todos"]["Row"]>;

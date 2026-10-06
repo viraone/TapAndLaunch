@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
+
+export interface Step {
+  id: string;
+  title: string;
+  detail: string | null;
+  done: boolean;
+}
 
 export interface Todo {
   id: string;
@@ -12,16 +19,21 @@ export interface Todo {
   detail: string | null;
   section: string;
   done: boolean;
+  steps: Step[];
 }
 
 /**
- * The to-do list at the top of the daily board. Ticking an item saves at once; anything left unticked is simply still
- * there tomorrow. Items ticked today sit under "Done today" (untick to bring one back) and drop off after that.
+ * The to-do list at the top of the daily board. Ticking saves at once; anything left unticked is simply still there
+ * tomorrow. An item with steps shows them underneath, each with its own tick: the last step ticked finishes the item.
+ * Items ticked today sit under "Done today" (untick to bring one back) and drop off after that.
  */
 export function TodoBoard({ todos, sections, doneEarlier }: { todos: Todo[]; sections: string[]; doneEarlier: number }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [title, setTitle] = useState("");
+  // Steps start folded unless the item is part-way through, so a long list stays scannable.
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const isOpen = (t: Todo) => open[t.id] ?? (t.steps.some((s) => s.done) && !t.steps.every((s) => s.done));
 
   async function call(body: Record<string, unknown>, onFail: string) {
     const res = await fetch("/api/admin/todos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
@@ -33,11 +45,11 @@ export function TodoBoard({ todos, sections, doneEarlier }: { todos: Todo[]; sec
     return true;
   }
 
-  async function setDone(t: Todo, done: boolean) {
-    setBusy(t.id);
-    const ok = await call({ action: "done", id: t.id, done }, "Couldn't save that tick. Try again.");
+  async function setDone(id: string, done: boolean, what: "item" | "step") {
+    setBusy(id);
+    const ok = await call({ action: "done", id, done }, "Couldn't save that tick. Try again.");
     setBusy(null);
-    if (ok && done) toast.success("Done. It'll drop off the list tomorrow.");
+    if (ok && done && what === "item") toast.success("Done. It'll drop off the list tomorrow.");
   }
 
   async function remove(t: Todo) {
@@ -56,48 +68,88 @@ export function TodoBoard({ todos, sections, doneEarlier }: { todos: Todo[]; sec
     if (ok) setTitle("");
   }
 
-  const open = todos.filter((t) => !t.done);
+  const openItems = todos.filter((t) => !t.done);
   const doneToday = todos.filter((t) => t.done);
-  const order = [...sections, ...open.map((t) => t.section).filter((s) => !sections.includes(s))];
-  const bySection = order.map((s) => ({ section: s, items: open.filter((t) => t.section === s) })).filter((g) => g.items.length);
+  const order = [...sections, ...openItems.map((t) => t.section).filter((s) => !sections.includes(s))];
+  const bySection = order.map((s) => ({ section: s, items: openItems.filter((t) => t.section === s) })).filter((g) => g.items.length);
 
   return (
     <section className="rounded-3xl bg-white p-6 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg font-semibold tracking-tight">To do</h2>
         <p className="text-xs text-neutral-500">
-          {open.length} open · {doneToday.length} done today{doneEarlier ? ` · ${doneEarlier} done before` : ""}
+          {openItems.length} open · {doneToday.length} done today{doneEarlier ? ` · ${doneEarlier} done before` : ""}
         </p>
       </div>
 
-      {open.length === 0 && <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-200">Nothing open. Add the next thing below.</p>}
+      {openItems.length === 0 && <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-200">Nothing open. Add the next thing below.</p>}
 
       <div className="mt-4 space-y-5">
         {bySection.map((g) => (
           <div key={g.section}>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">{g.section}</h3>
             <ul className="mt-2 divide-y divide-neutral-100">
-              {g.items.map((t) => (
-                <li key={t.id} className="flex items-start gap-3 py-2.5">
-                  <input
-                    id={`todo-${t.id}`}
-                    type="checkbox"
-                    checked={false}
-                    disabled={busy === t.id}
-                    onChange={() => void setDone(t, true)}
-                    className="mt-1 h-5 w-5 shrink-0 cursor-pointer rounded border-neutral-300 accent-emerald-600"
-                  />
-                  <label htmlFor={`todo-${t.id}`} className="min-w-0 flex-1 cursor-pointer">
-                    <span className="block font-medium">{t.title}</span>
-                    {t.detail && <span className="mt-0.5 block text-sm text-neutral-500">{t.detail}</span>}
-                  </label>
-                  {!t.key && (
-                    <button type="button" onClick={() => void remove(t)} disabled={busy === t.id} aria-label={`Remove ${t.title}`} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </li>
-              ))}
+              {g.items.map((t) => {
+                const doneSteps = t.steps.filter((s) => s.done).length;
+                const showSteps = isOpen(t);
+                return (
+                  <li key={t.id} className="py-2.5">
+                    <div className="flex items-start gap-3">
+                      <input
+                        id={`todo-${t.id}`}
+                        type="checkbox"
+                        checked={false}
+                        disabled={busy === t.id}
+                        onChange={() => void setDone(t.id, true, "item")}
+                        className="mt-1 h-5 w-5 shrink-0 cursor-pointer rounded border-neutral-300 accent-emerald-600"
+                      />
+                      <label htmlFor={`todo-${t.id}`} className="min-w-0 flex-1 cursor-pointer">
+                        <span className="block font-medium">{t.title}</span>
+                        {t.detail && <span className="mt-0.5 block text-sm text-neutral-500">{t.detail}</span>}
+                      </label>
+                      {t.steps.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setOpen({ ...open, [t.id]: !showSteps })}
+                          aria-expanded={showSteps}
+                          aria-controls={`steps-${t.id}`}
+                          className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold ring-1 transition ${doneSteps ? "bg-amber-50 text-amber-800 ring-amber-200" : "bg-neutral-100 text-neutral-700 ring-neutral-200 hover:bg-neutral-200"}`}
+                        >
+                          {doneSteps} of {t.steps.length} {t.steps.length === 1 ? "step" : "steps"}
+                          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showSteps ? "rotate-180" : ""}`} aria-hidden />
+                        </button>
+                      )}
+                      {!t.key && (
+                        <button type="button" onClick={() => void remove(t)} disabled={busy === t.id} aria-label={`Remove ${t.title}`} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    {t.steps.length > 0 && (
+                      <ol id={`steps-${t.id}`} hidden={!showSteps} className="ml-8 mt-2 space-y-1 border-l-2 border-neutral-100 pl-4">
+                        {t.steps.map((s, i) => (
+                          <li key={s.id} className="flex items-start gap-3 py-1.5">
+                            <input
+                              id={`step-${s.id}`}
+                              type="checkbox"
+                              checked={s.done}
+                              disabled={busy === s.id}
+                              onChange={() => void setDone(s.id, !s.done, "step")}
+                              className="mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer accent-emerald-600"
+                            />
+                            <label htmlFor={`step-${s.id}`} className={`min-w-0 flex-1 cursor-pointer text-sm ${s.done ? "text-neutral-400 line-through" : ""}`}>
+                              <span className="font-medium">
+                                {i + 1}. {s.title}
+                              </span>
+                              {s.detail && !s.done && <span className="mt-0.5 block text-neutral-500">{s.detail}</span>}
+                            </label>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ))}
@@ -126,7 +178,7 @@ export function TodoBoard({ todos, sections, doneEarlier }: { todos: Todo[]; sec
           <ul className="mt-2 divide-y divide-neutral-100">
             {doneToday.map((t) => (
               <li key={t.id} className="flex items-start gap-3 py-2">
-                <input id={`todo-${t.id}`} type="checkbox" checked disabled={busy === t.id} onChange={() => void setDone(t, false)} className="mt-1 h-5 w-5 shrink-0 cursor-pointer accent-emerald-600" />
+                <input id={`todo-${t.id}`} type="checkbox" checked disabled={busy === t.id} onChange={() => void setDone(t.id, false, "item")} className="mt-1 h-5 w-5 shrink-0 cursor-pointer accent-emerald-600" />
                 <label htmlFor={`todo-${t.id}`} className="min-w-0 flex-1 cursor-pointer text-neutral-500 line-through">
                   {t.title}
                 </label>

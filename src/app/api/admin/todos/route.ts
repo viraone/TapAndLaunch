@@ -29,11 +29,19 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, id: data.id });
   }
   if (body.action === "done") {
-    const { error } = await admin
-      .from("admin_todos")
-      .update(body.done ? { done_at: new Date().toISOString(), done_by: user.id } : { done_at: null, done_by: null })
-      .eq("id", body.id);
-    if (error) return Response.json({ error: error.message }, { status: 400 });
+    const mark = body.done ? { done_at: new Date().toISOString(), done_by: user.id } : { done_at: null, done_by: null };
+    const { data: row, error } = await admin.from("admin_todos").update(mark).eq("id", body.id).select("parent_id").maybeSingle();
+    if (error || !row) return Response.json({ error: error?.message ?? "Not found" }, { status: 400 });
+    if (body.done && !row.parent_id) {
+      // Ticking an item ticks its steps too.
+      await admin.from("admin_todos").update(mark).eq("parent_id", body.id).is("done_at", null);
+    }
+    if (row.parent_id) {
+      // The last step ticked finishes the item; a step unticked reopens it.
+      const { data: siblings } = await admin.from("admin_todos").select("done_at").eq("parent_id", row.parent_id);
+      const allDone = (siblings ?? []).length > 0 && (siblings ?? []).every((s) => s.done_at);
+      await admin.from("admin_todos").update(allDone ? mark : { done_at: null, done_by: null }).eq("id", row.parent_id);
+    }
     return Response.json({ ok: true });
   }
   // Only items typed in on the page can be removed; a seeded item would come straight back, so it is ticked instead.
