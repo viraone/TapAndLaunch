@@ -22,3 +22,33 @@ export function decideOnControllerChange(s: UpdateState): UpdateDecision {
   if (s.now - s.lastReloadAt < MIN_RELOAD_GAP_MS) return "ignore"; // never loop
   return s.typing ? "wait" : "reload";
 }
+
+/**
+ * The deploy a service worker file was built for: its first line is `// deploy <id>` (see lib/pwa/service-worker.ts).
+ * The server hands out this file with no caching, so it is a cheap way to ask "which version is live right now?"
+ */
+export function deployFromWorkerText(text: string): string | null {
+  const m = /^\/\/ deploy (\S+)/.exec(text);
+  return m ? (m[1] as string) : null;
+}
+
+export interface DeployCheck {
+  /** The deploy this page's own code came from. */
+  pageDeploy: string;
+  /** The deploy that is live now, from the server (null when it couldn't be read). */
+  liveDeploy: string | null;
+  typing: boolean;
+  lastReloadAt: number;
+  now: number;
+}
+
+/**
+ * Some browsers never run a service worker (in-app browsers such as WhatsApp's, private tabs), and some keep an old
+ * page alive in memory for days. So pages also compare their own deploy with the live one whenever they come back into
+ * view, and reload when a newer one is out: never while someone is typing, and never more than once every 30 seconds.
+ */
+export function decideOnLiveDeploy(c: DeployCheck): UpdateDecision {
+  if (!c.liveDeploy || c.pageDeploy === "dev" || c.liveDeploy === c.pageDeploy) return "ignore";
+  if (c.now - c.lastReloadAt < MIN_RELOAD_GAP_MS) return "ignore";
+  return c.typing ? "wait" : "reload";
+}

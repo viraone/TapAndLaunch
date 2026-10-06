@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { getPublishedApp, isTakenDown } from "@/lib/pwa/data";
 import { hostRoot } from "@/lib/tenant";
 import { ServiceWorkerRegister } from "@/components/pwa-runtime/ServiceWorkerRegister";
+import { deployId } from "@/lib/pwa/service-worker";
 import { PublishedBottomNav } from "@/components/pwa-runtime/PublishedBottomNav";
 import { MemberAccountBar } from "@/components/pwa-runtime/MemberAccountBar";
 import { AppHeader } from "@/components/pwa-runtime/AppHeader";
@@ -97,7 +98,7 @@ export default async function PublishedAppLayout({
   if (published.app.kind === "code") {
     return (
       <>
-        <ServiceWorkerRegister />
+        <ServiceWorkerRegister deploy={deployId()} />
         {children}
       </>
     );
@@ -132,7 +133,7 @@ export default async function PublishedAppLayout({
       {pageBackground && HEX_COLOR.test(pageBackground) && (
         <style>{`html,body{background:${pageBackground};color-scheme:dark}`}</style>
       )}
-      <ServiceWorkerRegister />
+      <ServiceWorkerRegister deploy={deployId()} />
       {theme.show_member_bar !== false && <MemberAccountBar member={member} />}
       <AppHeader theme={theme} />
       <div className="flex-1 overflow-y-auto">{children}</div>

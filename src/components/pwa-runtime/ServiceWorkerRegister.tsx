@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { decideOnControllerChange } from "@/lib/pwa/sw-update";
+import { decideOnControllerChange, decideOnLiveDeploy, deployFromWorkerText } from "@/lib/pwa/sw-update";
 
 const RELOAD_KEY = "sw-update-reload-at";
 
@@ -35,7 +35,40 @@ const reload = () => {
  *   return to the app), and never more than once every 30 seconds.
  * A no-op in unsupported browsers: a published PWA still works as a plain web page without offline support.
  */
-export function ServiceWorkerRegister() {
+export function ServiceWorkerRegister({ deploy }: { deploy: string }) {
+  // Works with or without a service worker: ask the server which deploy is live whenever the page comes back into view.
+  useEffect(() => {
+    let waiting = false;
+    let checking = false;
+    const check = async () => {
+      if (document.visibilityState !== "visible" || checking) return;
+      checking = true;
+      try {
+        if (waiting && !isTyping()) {
+          waiting = false;
+          reload();
+          return;
+        }
+        const res = await fetch(`/sw.js?check=${Date.now()}`, { cache: "no-store" });
+        const live = res.ok ? deployFromWorkerText(await res.text()) : null;
+        const decision = decideOnLiveDeploy({ pageDeploy: deploy, liveDeploy: live, typing: isTyping(), lastReloadAt: lastReload(), now: Date.now() });
+        if (decision === "reload") reload();
+        else if (decision === "wait") waiting = true;
+      } catch {
+        // offline or blocked: try again the next time the page comes back into view
+      } finally {
+        checking = false;
+      }
+    };
+    void check();
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("pageshow", check);
+    return () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("pageshow", check);
+    };
+  }, [deploy]);
+
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
