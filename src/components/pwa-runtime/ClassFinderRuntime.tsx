@@ -63,8 +63,9 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
 
   const [week, setWeek] = useState<Week | null>(null);
   const [failed, setFailed] = useState(false);
-  const [chosen, setChosen] = useState<Set<FitnessClassType>>(() => new Set(["pilates", "yoga"]));
-  const [applied, setApplied] = useState<Set<FitnessClassType>>(() => new Set(["pilates", "yoga"]));
+  // Nothing is ticked until the visitor picks (this device's earlier picks come back once the week loads).
+  const [chosen, setChosen] = useState<Set<FitnessClassType>>(() => new Set());
+  const [applied, setApplied] = useState<Set<FitnessClassType>>(() => new Set());
   const [online, setOnline] = useState(false);
   const [day, setDay] = useState<string | null>(null);
   const [origin, setOrigin] = useState<{ lat: number; lng: number; mine: boolean } | null>(
@@ -78,23 +79,33 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     fetch("/fitness/classes", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((w: Week) => {
-        const types = new Set(stored<FitnessClassType[]>("fitnessnav-types", ["pilates", "yoga"]));
+        const types = new Set(stored<FitnessClassType[]>("fitnessnav-types", []));
         setChosen(types);
         setApplied(types);
         setOnline(stored("fitnessnav-online", false));
         setWeek(w);
       })
       .catch(() => setFailed(true));
-    const t = setInterval(() => setNow(seattleStamp()), 60_000);
-    return () => clearInterval(t);
+    const tick = () => setNow(seattleStamp());
+    const t = setInterval(tick, 30_000);
+    const onVisible = () => document.visibilityState === "visible" && tick();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   const studios = useMemo(() => new Map((week?.studios ?? []).map((s) => [s.id, s])), [week]);
-  const visible = useMemo(
+  // What matches the pick, split by the clock: classes that have started drop off the list as the day goes on.
+  const matching = useMemo(
     () => (week?.classes ?? []).filter((c) => c.type !== "other" && applied.has(c.type) && (online || !c.online)),
     [week, applied, online]
   );
+  const visible = useMemo(() => matching.filter((c) => !hasStarted(c, now)), [matching, now]);
+  const startedToday = matching.filter((c) => c.date === now.slice(0, 10) && hasStarted(c, now)).length;
   const shownDay = day ?? (week ? firstDayWithClasses(week.days, visible, now) : null);
+  const picked = applied.size > 0;
   const dayClasses = visible.filter((c) => c.date === shownDay);
   const dayStudios = new Set(dayClasses.map((c) => c.studioId)).size;
 
@@ -203,7 +214,8 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
           </p>
         )}
         {failed && <p className="py-8 text-center text-sm text-muted-foreground">Couldn&apos;t load the class schedule. Pull to refresh or try again in a minute.</p>}
-        {week && shownDay && (
+        {week && !picked && <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">Pick what you want to do above, then tap Search classes.</p>}
+        {week && picked && shownDay && (
           <>
             <div role="group" aria-label="Pick a day" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
               {week.days.map((d, i) => {
@@ -236,9 +248,16 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                 </p>
               )}
             </div>
+            {shownDay === now.slice(0, 10) && startedToday > 0 && dayClasses.length > 0 && (
+              <p className="-mt-1 text-xs text-muted-foreground">
+                {startedToday} earlier class{startedToday === 1 ? " has" : "es have"} already started. Showing what&apos;s still to come.
+              </p>
+            )}
             {dayClasses.length === 0 ? (
               <p className="rounded-xl border px-4 py-6 text-center text-sm text-muted-foreground">
-                No {[...applied].map((k) => CLASS_TYPE_LABEL[k].toLowerCase()).join(" or ")} classes listed for {dayLabel(shownDay, { weekday: "long" })}. Try another day or add a class type.
+                {shownDay === now.slice(0, 10) && startedToday > 0
+                  ? "That's all the classes for today. Try another day."
+                  : `No ${[...applied].map((k) => CLASS_TYPE_LABEL[k].toLowerCase()).join(" or ")} classes listed for ${dayLabel(shownDay, { weekday: "long" })}. Try another day or add a class type.`}
               </p>
             ) : (
               PARTS.map((part) => {
@@ -253,13 +272,12 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                     <ul className="divide-y overflow-hidden rounded-xl border">
                       {rows.map((c) => {
                         const s = studios.get(c.studioId);
-                        const ended = hasStarted(c, now);
-                        const len = classMinutes(c.start, c.end);
+                                                const len = classMinutes(c.start, c.end);
                         const mi = miles(c.studioId);
                         const book = s?.bookUrl ?? s?.website ?? null;
                         const type = c.type as FitnessClassType;
                         return (
-                          <li key={c.id} className={`grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-3 px-3.5 py-3 ${ended ? "opacity-50" : ""}`}>
+                          <li key={c.id} className={`grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-3 px-3.5 py-3`}>
                             <div className="font-bold tabular-nums leading-tight">
                               {time12(c.start)}
                               {len && <span className="block text-xs font-medium text-muted-foreground">{len} min</span>}
@@ -276,11 +294,9 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                                 {mi != null ? ` · ${mi.toFixed(1)} mi` : ""}
                                 {c.instructor ? ` · ${c.instructor}` : ""}
                               </span>
-                              {c.spots && !ended && <span className="text-xs font-semibold text-[#df4f26]">{c.spots}</span>}
+                              {c.spots && <span className="text-xs font-semibold text-[#df4f26]">{c.spots}</span>}
                             </div>
-                            {ended ? (
-                              <span className="self-center text-xs font-semibold text-muted-foreground">Ended</span>
-                            ) : book ? (
+                            {book ? (
                               <a
                                 href={book}
                                 target="_blank"
