@@ -54,8 +54,8 @@ for (const s of studios) {
   if (!r) continue; // not part of this run (e.g. a one-studio test)
   const ok = r.status === "ok";
   const classes = ok ? r.classes.filter((c) => /^\d{4}-\d{2}-\d{2}$/.test(c.date ?? "") && c.date >= today && /^\d{2}:\d{2}$/.test(c.start ?? "") && !isNotAGroupClass(c.name, c.start, c.end)) : [];
-  // FN_REPLACE="Studio name": a deliberate one-off, for when the saved classes are the wrong ones (another location's, say).
-  if (ok && process.env.FN_REPLACE !== s.name) {
+  // FN_REPLACE="Studio name|Other studio": a deliberate one-off, for when the saved classes are the wrong ones (another location's, say).
+  if (ok && !(process.env.FN_REPLACE ?? "").split("|").includes(s.name)) {
     const why = await worseThanSaved(s.name, classes);
     if (why) { console.log(`  ${s.name}: kept what the site has (${why}).`); kept += 1; continue; }
   }

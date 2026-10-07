@@ -100,7 +100,8 @@
     "neighborhood": "Fremont",
     "id": "ChIJ06FH1gYVkFQRbkgAcNhG95Y",
     "lat": 47.649651,
-    "lng": -122.349112
+    "lng": -122.349112,
+    "location": "Fremont"
   },
   {
     "kind": "pilates",
@@ -392,7 +393,8 @@
     "neighborhood": "Capitol Hill",
     "id": "ChIJv1ol8NNqkFQRgBGP0CtaZHA",
     "lat": 47.616857,
-    "lng": -122.307818
+    "lng": -122.307818,
+    "location": "Capitol Hill"
   },
   {
     "kind": "yoga",
@@ -635,5 +637,128 @@
     "id": "ChIJF5Ueg8QUkFQR_jKzCDzRlts",
     "lat": 47.6393598,
     "lng": -122.3030903
+  },
+  {
+    "kind": "yoga",
+    "name": "Breathe Hot Yoga - Belltown",
+    "site": "http://www.breathehotyoga.com/",
+    "km": 3.66,
+    "address": "2720 4th Ave, Seattle, WA 98121, USA",
+    "neighborhood": "Belltown",
+    "id": "ChIJeQH-lkkVkFQRBi0ZHB3XIjg",
+    "lat": 47.6183388,
+    "lng": -122.3483838,
+    "location": "Belltown"
+  },
+  {
+    "kind": "yoga",
+    "name": "Flow Fitness - South Lake Union",
+    "site": "http://flowfitnessseattle.com/",
+    "km": 3.46,
+    "address": "311 Terry Ave N, Seattle, WA 98109, USA",
+    "neighborhood": "South Lake Union",
+    "id": "ChIJvSSesTcVkFQR4rkK4IpYwqs",
+    "lat": 47.62137,
+    "lng": -122.33746089999998,
+    "location": "South Lake Union"
+  },
+  {
+    "kind": "pilates",
+    "name": "Atlas Pilates",
+    "site": "https://atlaspilates.com/",
+    "km": 3.79,
+    "address": "2612 3rd Ave, Seattle, WA 98121, USA",
+    "neighborhood": "Belltown",
+    "id": "ChIJtzkDa0UVkFQR8A8jyhDL4M4",
+    "lat": 47.617126500000005,
+    "lng": -122.3486054
+  },
+  {
+    "kind": "lifting",
+    "name": "Belltown Strength & Conditioning",
+    "site": "http://www.belltownstrength.com/",
+    "km": 4.27,
+    "address": "2315 Western Ave, Seattle, WA 98121, USA",
+    "neighborhood": "Belltown",
+    "id": "ChIJjYbkjE0VkFQRlEBeVkYanKs",
+    "lat": 47.6128536,
+    "lng": -122.34825599999999
+  },
+  {
+    "kind": "pilates",
+    "name": "Club Pilates (Queen Anne)",
+    "site": "https://www.clubpilates.com/queenanne/?utm_source=google.com&utm_medium=referral&utm_campaign=yext",
+    "km": 3.62,
+    "address": "124 Denny Wy, Seattle, WA 98109, USA",
+    "neighborhood": "Belltown",
+    "id": "ChIJwfBMQkUVkFQRduP3Em36l5A",
+    "lat": 47.618793000000004,
+    "lng": -122.354506
+  },
+  {
+    "kind": "pilates",
+    "name": "Innerland Studio",
+    "site": "https://innerland.studio/",
+    "km": 4.56,
+    "address": "1921 1st Ave, Seattle, WA 98101, USA",
+    "neighborhood": "Belltown",
+    "id": "ChIJ72XlJaBrkFQRfYT-MDoKHVA",
+    "lat": 47.6105711,
+    "lng": -122.34225839999999
+  },
+  {
+    "kind": "lifting",
+    "name": "Persistence Athletics",
+    "site": "https://persistenceathletics.com/",
+    "km": 3.68,
+    "address": "3025 1st Ave, Seattle, WA 98121, USA",
+    "neighborhood": "Belltown",
+    "id": "ChIJzYs6lcoVkFQR_P-bu4y7R-Q",
+    "lat": 47.618230999999994,
+    "lng": -122.35510740000001
+  },
+  {
+    "kind": "yoga",
+    "name": "Take Care Yoga",
+    "site": "http://takecare.yoga/",
+    "km": 4.01,
+    "address": "2815 Elliott Ave, Seattle, WA 98121, USA",
+    "neighborhood": "Belltown",
+    "id": "ChIJIxh1PQ8VkFQR43SfVyaqUcM",
+    "lat": 47.615235399999996,
+    "lng": -122.35383789999999
+  },
+  {
+    "kind": "yoga",
+    "name": "Mother Yoga",
+    "site": "http://www.motheryogaseattle.com/",
+    "km": 6.23,
+    "address": "511 Maynard Alley S Ste 101, Seattle, WA 98104, USA",
+    "neighborhood": "Chinatown-International District",
+    "id": "ChIJkU25rqBrkFQRWpphsUyT_4c",
+    "lat": 47.598024599999995,
+    "lng": -122.32430450000001
+  },
+  {
+    "kind": "yoga",
+    "name": "Mind.Body.Hum",
+    "site": "http://www.mindbodyhum.com/",
+    "km": 5.38,
+    "address": "905 Western Ave, Seattle, WA 98104, USA",
+    "neighborhood": "Downtown",
+    "id": "ChIJhcW3YuBrkFQR-GPgkP1j1mY",
+    "lat": 47.6036559,
+    "lng": -122.3370922
+  },
+  {
+    "kind": "pilates",
+    "name": "Kinesia Pilates Fitness",
+    "site": "http://www.kinesiapilates.com/",
+    "km": 5.87,
+    "address": "314 1st Ave S, Seattle, WA 98104, USA",
+    "neighborhood": "Pioneer Square",
+    "id": "ChIJYUyLPbtqkFQRxV7yIWifeAo",
+    "lat": 47.5995874,
+    "lng": -122.3340029
   }
 ]

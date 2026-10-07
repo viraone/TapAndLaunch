@@ -16,7 +16,7 @@ export function classTypeOf(name, studioKind) {
 
 /** Classes you join from home (livestream, "at HOME"). */
 export function isOnlineClass(name) {
-  return /at home|live-?stream|livestream|online|zoom|virtual|digital training/i.test(name);
+  return /at home|live-?stream|livestream|\bstreaming\b|online|zoom|virtual|digital training/i.test(name);
 }
 
 /**

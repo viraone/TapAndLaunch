@@ -389,7 +389,8 @@ async function readStudio(browser, s) {
       if (Date.now() - t0 > STUDIO_BUDGET_MS) break;
       dbg("ask model, chars", part.length);
       const m0 = Date.now();
-      const a = await ask(s.name, part);
+      // studios.json `location`: the page lists several locations of one studio ("Capitol Hill, Studio" under each class).
+      const a = await ask(s.location ? `${s.name}. IMPORTANT: this page lists several locations and shows each class's location. Return ONLY the classes held at the ${s.location} location, and none from any other location.` : s.name, part);
       modelMs += Date.now() - m0;
       if (a.failed) r.modelFailed = true;
       dbg("model answered", a.classes.length, "classes");
