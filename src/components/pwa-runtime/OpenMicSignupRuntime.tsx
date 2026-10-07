@@ -310,6 +310,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
                 setRequest(row);
                 setPhase("requested");
               }}
+              onProfileSaved={setUser}
             />
           ) : showDayOn ? (
             <ShowDayScreen client={client} userId={user.id} signedIn requested={false} config={config} dateLabel={showDate} window={window_} now={now} />
@@ -568,11 +569,13 @@ function RequestForm({
   user,
   profile,
   onRequested,
+  onProfileSaved,
 }: {
   client: SupabaseClient;
   user: User;
   profile: Profile;
   onRequested: (row: RequestRow) => void;
+  onProfileSaved: (u: User) => void;
 }) {
   const [stageName, setStageName] = useState(profile.stage_name);
   const [instagram, setInstagram] = useState(profile.instagram);
@@ -599,8 +602,10 @@ function RequestForm({
       next.instagram !== profile.instagram ||
       next.performed_before !== profile.performed_before
     ) {
-      // Not fatal: the request below still carries the details.
-      await client.auth.updateUser({ data: next });
+      // Not fatal: the request below still carries the details. The updated user goes straight up so the
+      // account row shows the stage name now, not after the next sign-in (found by automation 2026-10-06).
+      const { data: updated } = await client.auth.updateUser({ data: next });
+      if (updated?.user) onProfileSaved(updated.user);
     }
 
     const email = (user.email ?? "").toLowerCase();
@@ -752,7 +757,8 @@ function RequestedCard({
         <Check className="h-7 w-7" strokeWidth={3} />
       </div>
       <h2 className="mt-4 text-xl font-bold">You&apos;re on the request list for {showDate}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Requested {at.replace(/, (\d+:)/, " · $1")}</p>
+      {/* Chrome: "Tue, Oct 6, 12:13 PM"; Safari: "Tue, Oct 6 at 12:13 PM" (found by automation 2026-10-06). Both -> " · ". */}
+      <p className="mt-1 text-sm text-muted-foreground">Requested {at.replace(/(?:, | at )(?=\d{1,2}:\d{2})/, " · ")}</p>
       <div className="mt-5 rounded-xl border bg-background p-4 text-left">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">What happens next</p>
         <ol className="mt-3 space-y-3 text-sm">
