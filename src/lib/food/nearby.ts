@@ -248,6 +248,8 @@ function veganFor(row: PlaceRow): VeganOptions | null {
   if (row.primary_type === "vegan_restaurant") return { kind: "restaurant", items };
   if (row.primary_type === "vegetarian_restaurant") return { kind: "vegetarian_restaurant", items };
   if (items.length) return { kind: "menu", items };
+  // The menu was read and nothing on it was labelled vegan: that beats an owner's loose tag on Google.
+  if (row.vegan_options_status === "none") return null;
   if (row.types.includes("vegan_restaurant")) return { kind: "listed_vegan", items };
   if (row.types.includes("vegetarian_restaurant")) return { kind: "listed_vegetarian", items };
   return null;

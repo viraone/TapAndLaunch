@@ -201,7 +201,8 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
       })
       // Happy Hour shows only places with one running now or starting later today; Vegan only places with known vegan options.
       .filter((x) => sort !== "happy" || x.happy.state !== "none")
-      .filter((x) => sort !== "vegan" || x.place.vegan !== null);
+      // The Vegan view needs vegan food that is actually known: a vegetarian tag with nothing labelled vegan is not enough.
+      .filter((x) => sort !== "vegan" || (x.place.vegan !== null && (x.place.vegan.items.length > 0 || x.place.vegan.kind === "restaurant" || x.place.vegan.kind === "listed_vegan")));
     const rank = (s: OpenStatus) => (s.state === "open" ? 0 : s.state === "closing_soon" ? 1 : s.state === "unknown" ? 2 : 3);
     withStatus.sort((a, b) => {
       if (sort === "happy") {
@@ -423,7 +424,7 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
         <ul className="mt-3 space-y-2">
           {ranked.map(({ place, status, happy }, i) => {
             const prev = ranked[i - 1];
-            const showClosedHeader = sort === "open" && status.state === "closed" && prev?.status.state !== "closed";
+            const showClosedHeader = (sort === "open" || sort === "vegan") && status.state === "closed" && prev?.status.state !== "closed";
             const showLaterHeader = sort === "happy" && happy.state === "later" && prev?.happy.state !== "later";
             return (
               <li key={place.id}>
@@ -929,6 +930,109 @@ function PlaceCard({ place, status, happy, onOpen }: { place: NearbyPlace; statu
  * The details sheet (Apple Maps style): slides up over the list, drag down / tap outside / Escape
  * to close. Everything here comes from data we already have, so it opens instantly.
  */
+/** Menus shout in capitals; the card speaks in title case. Names that already mix case are left alone. */
+function dishCase(name: string): string {
+  if (name !== name.toUpperCase() || !/[A-Z]/.test(name)) return name;
+  return name.toLowerCase().replace(/(^|[\s(\/-])([a-z])/g, (m, pre, ch) => pre + ch.toUpperCase());
+}
+
+const VEGAN_HEADLINE: Record<Exclude<VeganOptions["kind"], "menu">, string> = {
+  restaurant: "Google lists this as a vegan restaurant",
+  vegetarian_restaurant: "Google lists this as a vegetarian restaurant",
+  listed_vegan: "The owner lists vegan food on Google",
+  listed_vegetarian: "The owner lists vegetarian food on Google",
+};
+
+/** The sheet's vegan card: a leaf badge, the dishes grouped under their menu section, prices on the right. */
+function VeganSection({ vegan, checked }: { vegan: VeganOptions | null; checked: boolean }) {
+  const items = vegan?.items ?? [];
+  // Keep the menu's own order, grouped by section.
+  const groups: { section: string | null; items: VeganOptions["items"] }[] = [];
+  for (const it of items) {
+    const last = groups[groups.length - 1];
+    if (last && last.section === it.section) last.items.push(it);
+    else groups.push({ section: it.section, items: [it] });
+  }
+  const count = items.length;
+  const muted = !vegan;
+  return (
+    <section className="mt-6">
+      <div
+        className={`rounded-3xl p-4 ring-1 ${
+          muted
+            ? "bg-muted/50 ring-border"
+            : "bg-gradient-to-br from-emerald-50 via-lime-50/60 to-emerald-50 ring-emerald-200/70 dark:from-emerald-950/50 dark:via-emerald-950/30 dark:to-lime-950/30 dark:ring-emerald-800/50"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h3 className={`flex items-center gap-2.5 text-[15px] font-bold ${muted ? "text-muted-foreground" : "text-emerald-900 dark:text-emerald-100"}`}>
+            <span aria-hidden className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-base shadow-sm ${muted ? "bg-background" : "bg-emerald-600 text-white"}`}>
+              🌱
+            </span>
+            Vegan options
+          </h3>
+          {count > 0 && (
+            <span className="shrink-0 rounded-full bg-emerald-600/10 px-2.5 py-1 text-xs font-semibold tabular-nums text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-200">
+              {count} {count === 1 ? "dish" : "dishes"}
+            </span>
+          )}
+        </div>
+
+        {vegan && vegan.kind !== "menu" && (
+          <p className="mt-3 text-sm font-medium text-emerald-900/80 dark:text-emerald-100/80">
+            {VEGAN_HEADLINE[vegan.kind]}
+            {count === 0 && (vegan.kind === "listed_vegan" || vegan.kind === "listed_vegetarian") ? ". We haven\u2019t read the menu to confirm." : "."}
+          </p>
+        )}
+
+        {vegan && vegan.kind !== "menu" && vegan.kind !== "restaurant" && count === 0 && checked && (
+          <p className="mt-1 text-xs text-emerald-900/70 dark:text-emerald-100/70">Nothing on the menu we read was labelled vegan, so ask before you order.</p>
+        )}
+
+        {count > 0 && (
+          <div className="mt-3 overflow-hidden rounded-2xl bg-background/80 shadow-sm ring-1 ring-emerald-900/5 dark:bg-background/40 dark:ring-white/5">
+            {groups.map((g, gi) => (
+              <div key={gi}>
+                {g.section && (
+                  <p className="bg-emerald-600/[0.07] px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-800/80 dark:bg-emerald-400/10 dark:text-emerald-200/80">
+                    {g.section}
+                  </p>
+                )}
+                <ul className="divide-y divide-emerald-900/5 dark:divide-white/5">
+                  {g.items.map((it, i) => (
+                    <li key={i} className="flex items-baseline gap-3 px-4 py-2.5">
+                      <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 self-start rounded-full bg-emerald-500" />
+                      <span className="min-w-0 flex-1 text-[15px] font-medium leading-snug">
+                        {dishCase(it.name)}
+                        {it.note && (
+                          <span className="ml-2 inline-block rounded-full bg-amber-500/15 px-2 py-0.5 align-middle text-[11px] font-semibold text-amber-800 dark:text-amber-200">
+                            {it.note}
+                          </span>
+                        )}
+                      </span>
+                      {it.price && <span className="shrink-0 text-sm tabular-nums text-muted-foreground">{it.price}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className={`mt-3 text-xs ${muted ? "text-muted-foreground" : "text-emerald-900/60 dark:text-emerald-100/60"}`}>
+          {count > 0
+            ? "From the restaurant\u2019s own menu \u00b7 may be out of date"
+            : vegan
+              ? ""
+              : checked
+                ? "Nothing labelled vegan on the menu we read. Menus change, so it\u2019s worth asking."
+                : "Not checked yet: we haven\u2019t read this restaurant\u2019s menu for vegan dishes."}
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; onClose: () => void }) {
   const status = computeOpenStatus(place.openingPeriods, place.utcOffsetMinutes, now);
   const emoji = place.cuisine ? CUISINE_BY_KEY[place.cuisine].emoji : "🍽️";
@@ -1167,43 +1271,7 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
 
           {/* Vegan options: Google's own vegan / vegetarian tag, or the items the menu job read off the menu. Always shown,
               so "nothing labelled vegan" and "not checked yet" are honest answers too. */}
-          <section className="mt-6">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vegan options</h3>
-            {place.vegan ? (
-              <>
-                {place.vegan.kind !== "menu" && (
-                  <p className="mt-2 text-[15px] font-semibold">
-                    <span aria-hidden>🌱 </span>
-                    {place.vegan.kind === "restaurant"
-                      ? "Google lists this as a vegan restaurant."
-                      : place.vegan.kind === "vegetarian_restaurant"
-                        ? "Google lists this as a vegetarian restaurant."
-                        : place.vegan.kind === "listed_vegan"
-                          ? "The owner lists vegan food on Google. We haven't read the menu to confirm."
-                          : "The owner lists vegetarian food on Google. We haven't read the menu to confirm."}
-                  </p>
-                )}
-                {place.vegan.items.length > 0 && (
-                  <ul className="mt-2 divide-y rounded-2xl border bg-card">
-                    {place.vegan.items.map((it, i) => (
-                      <li key={i} className="flex items-baseline justify-between gap-3 px-4 py-2.5 text-[15px]">
-                        <span className="min-w-0">
-                          {it.name}
-                          {it.note && <span className="text-sm text-muted-foreground"> · {it.note}</span>}
-                        </span>
-                        {it.section && <span className="shrink-0 text-xs text-muted-foreground">{it.section}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {place.vegan.items.length > 0 && <p className="mt-1.5 text-xs text-muted-foreground">From the restaurant&apos;s menu · may be out of date</p>}
-              </>
-            ) : (
-              <p className="mt-2 text-sm text-muted-foreground">
-                {place.veganChecked ? "Nothing labelled vegan on the menu we read. Menus change, so it's worth asking." : "Not checked yet: we haven't been able to read this restaurant's menu."}
-              </p>
-            )}
-          </section>
+          <VeganSection vegan={place.vegan} checked={place.veganChecked} />
 
           {/* Dishes reviewers mention. Skeleton while it loads; the whole section goes away if there's nothing to show. */}
           {dishes === undefined && (

@@ -41,6 +41,7 @@ let offset = 0;
 let seen = 0;
 let found = 0;
 let changed = 0;
+let failed = 0;
 const examples = [];
 for (;;) {
   const rows = await rest(`food_places?select=id,name,menu_items,vegan_options_status,vegan_options&menu_items_status=eq.ok&order=id&limit=200&offset=${offset}`);
@@ -52,14 +53,21 @@ for (;;) {
       found += 1;
       if (examples.length < 8) examples.push(`${row.name}: ${vegan.items.slice(0, 3).map((i) => i.name).join(", ")}`);
     }
-    const same = row.vegan_options_status === vegan.status && JSON.stringify(row.vegan_options?.items ?? []) === JSON.stringify(vegan.items);
+    // jsonb hands keys back in its own order, so compare values, not key order.
+    const shape = (items) => JSON.stringify((items ?? []).map((i) => [i.name, i.section ?? null, i.price ?? null, i.note ?? null]));
+    const same = row.vegan_options_status === vegan.status && shape(row.vegan_options?.items) === shape(vegan.items);
     if (same) continue;
     changed += 1;
     if (!dry) {
-      await rest(`food_places?id=eq.${row.id}`, { method: "PATCH", body: { vegan_options: { items: vegan.items }, vegan_options_at: new Date().toISOString(), vegan_options_status: vegan.status } });
+      try {
+        await rest(`food_places?id=eq.${row.id}`, { method: "PATCH", body: { vegan_options: { items: vegan.items }, vegan_options_at: new Date().toISOString(), vegan_options_status: vegan.status } });
+      } catch (e) {
+        failed += 1;
+        console.log(`  ${row.name}: not saved (${String(e.message ?? e).slice(0, 120)})`);
+      }
     }
   }
   offset += rows.length;
 }
-console.log(`${dry ? "Would update" : "Updated"} ${changed} of ${seen} saved menus; ${found} have vegan options.`);
+console.log(`${dry ? "Would update" : "Updated"} ${changed} of ${seen} saved menus; ${found} have vegan options.${failed ? ` ${failed} could not be saved.` : ""}`);
 for (const e of examples) console.log("  " + e);
