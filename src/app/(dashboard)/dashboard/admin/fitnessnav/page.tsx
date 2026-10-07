@@ -40,6 +40,7 @@ const BUILT: Array<{ when: string; items: string[] }> = [
       "Phone polish: the fold control says \"Show less\" / \"Show all 52\" and a folded group keeps its first class in view; the name no longer gets clipped by the location pill; class rows are about half as tall (Book sits under the time, the name has the full width); two header lines instead of four; \"under 0.1 mi\" instead of \"0.0 mi\".",
       "After the first Search, ticking a class type updates the list straight away. Search scrolls to the results and keeps the day in view when the new picks have classes there.",
       "The day strip peeks the next day and follows the chosen day; a studio tap keeps the day; the location pill explains itself when the browser can't help; \"Try again\" when the schedule fails to load; a darker orange that passes the contrast bar; screen-reader announcements and focus sorted out.",
+      "Next to Capitol Hill: 11 studios added (Central District, Eastlake, South Lake Union, Montlake), each checked against its own calendar. Also fixed: Seattle Strength Queen Anne was showing classes from five other locations; it now keeps only its own.",
       "Experience Momentum (Fremont) reads from its Mindbody schedule: 39 classes live. JETSET, Coeur, Cambio and Studio Jacks are marked with why they can't be read; Seed stays in the list until it posts classes.",
       "The reader runs every night at 10 PM instead of 10 AM, still on the local Qwen model, so the page is fresh by morning.",
       "Claude as the reader is built but parked: no key for now; the local model does the job.",
@@ -67,6 +68,7 @@ const BUILT: Array<{ when: string; items: string[] }> = [
 
 const ROADMAP: Array<{ title: string; detail: string; status: "done" | "waiting" | "now" | "later" }> = [
   { title: "Capitol Hill", detail: "12 of 20 candidate studios read and live. Done Oct 5 to 6.", status: "done" },
+  { title: "Neighborhoods next to Capitol Hill", detail: "Done Oct 6: Central District, Eastlake, South Lake Union, Montlake, First Hill, Madison Park. 11 of 36 candidates added. Held back (partial or tricky reads): Barry's, SoulCycle, Pure Barre, CorePower Belltown, KlickWay. Not readable: F45 Central District, Eighth Haus, OmCulture and others.", status: "done" },
   { title: "Mariana Tek studios read exactly", detail: "Five of the busiest studios, from their widget's own data. Done Oct 6.", status: "done" },
   { title: "Faster reads with Claude", detail: "Built and parked Oct 6: the local Qwen model stays the reader. An Anthropic key in the job's .env turns it on any time; the 95-minute run would drop to minutes.", status: "later" },
   { title: "Studios that still don't read", detail: "Done Oct 6. Experience Momentum now reads from its Mindbody page (39 classes). The rest can't be read for good reasons: JETSET isn't open yet, Coeur opens Nov 9, Cambio and Studio Jacks are appointments only, Seed's calendar has no classes posted (the job keeps checking). Posto and Bouldering Project block readers.", status: "done" },

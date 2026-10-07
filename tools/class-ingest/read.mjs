@@ -397,7 +397,12 @@ async function readStudio(browser, s) {
       all.push(...a.classes);
     }
     if (!anySchedule || all.length === 0) return null;
-    const { kept, dropped } = verify(all, pg.text);
+    const verified = verify(all, pg.text);
+    // studios.json `only`: a chain's page lists every location's classes ("Strength Class (Ballard)"); a studio keeps just the
+    // ones whose name matches its own location tag.
+    const own = s.only ? new RegExp(s.only, "i") : null;
+    const kept = own ? verified.kept.filter((c) => own.test(c.name)) : verified.kept;
+    const dropped = own ? [...verified.dropped, ...verified.kept.filter((c) => !own.test(c.name))] : verified.dropped;
     if (kept.length >= 2) {
       const plat = (pg.frameUrls.join(" ") + " " + pg.finalUrl).match(PLATFORM)?.[0] ?? "own site";
       // pageUrl is the page as requested; finalUrl can carry the state of the last day tab clicked (Mindbody widgets put

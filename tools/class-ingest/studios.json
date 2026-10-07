@@ -179,7 +179,8 @@
     "neighborhood": "West Queen Anne",
     "id": "ChIJN7Ni07EVkFQRTkjgYLsQcfU",
     "lat": 47.639406,
-    "lng": -122.365284
+    "lng": -122.365284,
+    "only": "\\((QA|Queen Anne)\\)"
   },
   {
     "kind": "pilates",
@@ -513,5 +514,126 @@
     "id": "ChIJfSHf9C4VkFQRe9eqqvs_IUU",
     "lat": 47.624571,
     "lng": -122.320699
+  },
+  {
+    "kind": "lifting",
+    "name": "Left Side CrossFit",
+    "site": "http://leftsidecrossfit.com/",
+    "km": 6.93,
+    "address": "438 23rd Ave S, Seattle, WA 98144, USA",
+    "neighborhood": "Central District",
+    "id": "ChIJG9wFdXBrkFQRfISEECkjobk",
+    "lat": 47.5981281,
+    "lng": -122.30190719999997
+  },
+  {
+    "kind": "yoga",
+    "name": "Flight Room Central District",
+    "site": "http://www.flightroomseattle.com/",
+    "km": 6.9,
+    "address": "817 Hiawatha Pl S #2823, Seattle, WA 98144, USA",
+    "neighborhood": "Central District",
+    "id": "ChIJj3Er4qkVkFQR-US5yUA6lNw",
+    "lat": 47.595383299999995,
+    "lng": -122.31014060000001
+  },
+  {
+    "kind": "lifting",
+    "name": "F45 Training Eastlake",
+    "site": "https://f45training.com/studio/eastlake/",
+    "km": 2.61,
+    "address": "1800 Eastlake Ave E, Seattle, WA 98102, USA",
+    "neighborhood": "Eastlake",
+    "id": "ChIJwRTyhXUVkFQRG1WaJ2TD8is",
+    "lat": 47.6351156,
+    "lng": -122.32505609999998
+  },
+  {
+    "kind": "yoga",
+    "name": "Datza Studios",
+    "site": "http://www.datzastudios.com/",
+    "km": 2.31,
+    "address": "2201 Eastlake Ave E Ste b, Seattle, WA 98102, USA",
+    "neighborhood": "Eastlake",
+    "id": "ChIJ9xG18R8VkFQRbzMtOYXFHsY",
+    "lat": 47.638422299999995,
+    "lng": -122.32617619999999
+  },
+  {
+    "kind": "pilates",
+    "name": "MOOV SEATTLE",
+    "site": "http://moovseattle.com/",
+    "km": 3.46,
+    "address": "777 Thomas St, Seattle, WA 98109, USA",
+    "neighborhood": "South Lake Union",
+    "id": "ChIJdTejdEMVkFQRFXpbGJnuInk",
+    "lat": 47.6207182,
+    "lng": -122.3414466
+  },
+  {
+    "kind": "pilates",
+    "name": "[solidcore] SLU",
+    "site": "https://solidcore.co/studios/slu?siteId=5723430&locationId=1&utm_source=google&utm_medium=search&utm_content=local-listing&utm_campaign=gmb-listing",
+    "km": 4.06,
+    "address": "2139 6th Ave, Seattle, WA 98121, USA",
+    "neighborhood": "South Lake Union",
+    "id": "ChIJ4Vi9xnMVkFQRuXHtqaorj6Y",
+    "lat": 47.6153071,
+    "lng": -122.3404108
+  },
+  {
+    "kind": "yoga",
+    "name": "DRIFT Yoga + Juice Bar",
+    "site": "https://www.driftyogajuicebar.com/",
+    "km": 3.57,
+    "address": "1251 Harrison St, Seattle, WA 98109, USA",
+    "neighborhood": "South Lake Union",
+    "id": "ChIJYVamYlEVkFQR0XXuk96A-0k",
+    "lat": 47.6218176,
+    "lng": -122.331318
+  },
+  {
+    "kind": "lifting",
+    "name": "Felix Athletics",
+    "site": "https://www.crossfitfelix.com/",
+    "km": 4.03,
+    "address": "2211 5th Ave, Seattle, WA 98121, USA",
+    "neighborhood": "South Lake Union",
+    "id": "ChIJATha9ksVkFQRx0TFe1iEhrA",
+    "lat": 47.615394599999995,
+    "lng": -122.3422865
+  },
+  {
+    "kind": "pilates",
+    "name": "FS8 South Lake Union",
+    "site": "https://fs8.com/studio/southlakeunion/",
+    "km": 2.87,
+    "address": "700 Dexter Ave N, Seattle, WA 98109, USA",
+    "neighborhood": "South Lake Union",
+    "id": "ChIJFVk7eSAVkFQRukqVehMoVTo",
+    "lat": 47.626022999999996,
+    "lng": -122.34212199999999
+  },
+  {
+    "kind": "pilates",
+    "name": "BODYROK Belltown (Seattle)- Reformer Pilates",
+    "site": "https://bodyrok.com/studio/belltown/",
+    "km": 4.05,
+    "address": "2208 4th Ave, Seattle, WA 98121, USA",
+    "neighborhood": "South Lake Union",
+    "id": "ChIJcVqM4x0VkFQRME6vn6c3zng",
+    "lat": 47.6151073,
+    "lng": -122.3429044
+  },
+  {
+    "kind": "yoga",
+    "name": "Balanced Flow Yoga",
+    "site": "http://balancedflowyoga.net/",
+    "km": 3.79,
+    "address": "2080 23rd Ave E, Seattle, WA 98112, USA",
+    "neighborhood": "Montlake",
+    "id": "ChIJF5Ueg8QUkFQR_jKzCDzRlts",
+    "lat": 47.6393598,
+    "lng": -122.3030903
   }
 ]
