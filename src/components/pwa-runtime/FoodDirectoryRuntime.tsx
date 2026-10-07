@@ -846,7 +846,7 @@ function directionsUrl(place: NearbyPlace, mode: TravelMode): string {
 
 /** The card's one-line vegan note: what Google says about the whole place, or the first few vegan dishes off its menu. */
 function veganCardLabel(v: VeganOptions): string {
-  const names = (items: VeganOptions["items"], n: number) => items.slice(0, n).map((i) => i.name).join(", ");
+  const names = (items: VeganOptions["items"], n: number) => items.slice(0, n).map((i) => dishCase(i.name)).join(", ");
   if (v.kind === "restaurant") return "Vegan restaurant";
   if (v.kind === "vegetarian_restaurant") return v.items.length ? `Vegetarian restaurant · ${names(v.items, 2)}` : "Vegetarian restaurant";
   if (v.kind === "listed_vegan") return "Vegan-friendly · Google listing";
