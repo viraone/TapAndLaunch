@@ -618,9 +618,10 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                             {rows.length}
                             <span className="sr-only"> classes</span>
                           </span>
-                          {/* A bare arrow said nothing; the control says what a tap does. */}
+                          {/* A bare arrow said nothing; the control says what a tap does, and to which part of the day. "Show all" because
+                              one class stays in view when folded; no count here, the heading and the "more classes" row carry it. */}
                           <span className="ml-auto inline-flex items-center gap-1 rounded-full border bg-background px-2.5 py-1 text-xs font-semibold normal-case tracking-normal text-foreground">
-                            {isFolded ? `Show all ${rows.length}` : "Show less"}
+                            {isFolded ? `Show all ${part.toLowerCase()} classes` : `Hide ${part.toLowerCase()} classes`}
                             <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${isFolded ? "" : "rotate-180"}`} strokeWidth={2.5} aria-hidden />
                           </span>
                         </button>
