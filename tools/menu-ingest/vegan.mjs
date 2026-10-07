@@ -15,7 +15,7 @@ const MAX_ITEMS = 12;
 // Add bacon, sausage, vegan sausage" is an egg sandwich with a vegan add-on, and "2 Spam & Egg, 2 Vegan Vortex" is a tray
 // that happens to include a vegan item. Swapped-in things ("vegan sausage", "Beyond patty", "tofu-based pork skin",
 // "coconut milk") are blanked before the check, so they never count as the animal they replace.
-const SWAP = /\b(vegan|vegetarian|veggie|vegetable|plant[- ]based|tofu[- ]based|soy[- ]based|mock|beyond|impossible|soy|oat|almond|coconut|cashew|rice|nut|dairy[- ]free|non[- ]dairy)\s+(?:white\s+)?["“”']?[\w-]+["“”']?/gi;
+const SWAP = /\b(vegan|vegetarian|veggie|vegetable|plant[- ]based|tofu[- ]based|soy[- ]based|mock|beyond|impossible|soy|oat|almond|coconut|cashew|rice|nut|dairy[- ]free|non[- ]dairy)\s+(?:[\w-]+\s+)?["“”']?[\w-]+["“”']?/gi;
 const ANIMAL = /\b(eggs?|bacon|sausages?|cheese|cheddar|mozzarella|parmesan|feta|pork|chicken|beef|spam|shrimp|prawns?|fish|salmon|tuna|crab|lobster|clams?|oysters?|anchov(?:y|ies)|ham|lamb|turkey|duck|butter|milk|cream|honey|yogh?urt|mayo|mayonnaise|aioli|lard|chorizo|pepperoni|salami|prosciutto|brisket|katsu|tonkotsu|gelatin)\b/i;
 const hasAnimal = (text) => ANIMAL.test(String(text ?? "").replace(SWAP, " "));
 
@@ -58,8 +58,11 @@ export function findVeganOptions(menu) {
       if (wholeSection) add(item, sectionName);
       // "Can be made vegan" dishes list their meat defaults by nature, so the animal check does not apply.
       else if (ON_REQUEST.test(text)) add(item, sectionName, "on request");
-      // The restaurant put the word in the dish's own name: trust it.
-      else if (claims(name)) add(item, sectionName);
+      // The restaurant put the word in the dish's own name: trust it, unless the name itself is a list of choices with
+      // meat in it ("Bacon, sausage, Beyond vegan sausage").
+      else if (claims(name)) {
+        if (!hasAnimal(name)) add(item, sectionName);
+      }
       // A claim only in the description must be about the whole dish, not a swapped-in or added ingredient.
       else if (claims(description) && !hasAnimal(text)) add(item, sectionName);
     }

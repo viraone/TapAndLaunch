@@ -48,6 +48,11 @@ describe("findVeganOptions", () => {
     expect(r.items.map((i) => i.name)).toEqual(["Vegan Vortex *VG"]);
   });
 
+  it("does not count a choose-one side whose name lists meat next to a vegan option", () => {
+    const r = findVeganOptions(menu([{ name: "Sides", items: [item("Bacon, sausage, Beyond vegan sausage"), item("PLANT-BASED SWEET PORK")] }]));
+    expect(r.items.map((i) => i.name)).toEqual(["PLANT-BASED SWEET PORK"]);
+  });
+
   it("trusts a claim in the dish's own name or in a description with no animal ingredients", () => {
     const r = findVeganOptions(
       menu([
