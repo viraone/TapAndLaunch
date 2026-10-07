@@ -13,8 +13,13 @@ type PlaceRow = Database["public"]["Tables"]["food_places"]["Row"];
  * included: the client computes it from `openingPeriods` +
  * `utcOffsetMinutes` (lib/food/hours.ts) so it stays live between fetches. */
 export interface VeganOptions {
-  /** "restaurant": Google says the whole place is vegan. "vegetarian_restaurant": Google says vegetarian. "menu": items read off the menu. */
-  kind: "restaurant" | "vegetarian_restaurant" | "menu";
+  /**
+   * "restaurant" / "vegetarian_restaurant": Google's PRIMARY category for the place is vegan / vegetarian.
+   * "menu": vegan items read off the restaurant's own menu.
+   * "listed_vegan" / "listed_vegetarian": the owner added vegan / vegetarian as a secondary category on Google (a regular
+   * Vietnamese place with a vegan menu, say): worth showing, but said as a listing, not as what the place is.
+   */
+  kind: "restaurant" | "vegetarian_restaurant" | "menu" | "listed_vegan" | "listed_vegetarian";
   items: VeganItem[];
 }
 
@@ -233,12 +238,19 @@ function toNearby(row: PlaceRow, distanceMiles: number, wait: NearbyPlace["wait"
   };
 }
 
-/** Google's own vegan / vegetarian restaurant types first; otherwise the vegan items the menu job found. */
+/**
+ * What the place IS (Google's primary category) first, then what its menu says, then what the owner listed on Google as
+ * a secondary category. Google's secondary tags are loose (a chain salad bar tagged "vegetarian restaurant"), so they rank
+ * below the menu and are worded as a listing.
+ */
 function veganFor(row: PlaceRow): VeganOptions | null {
   const items = row.vegan_options_status === "found" ? (row.vegan_options?.items ?? []) : [];
-  if (row.types.includes("vegan_restaurant")) return { kind: "restaurant", items };
-  if (row.types.includes("vegetarian_restaurant")) return { kind: "vegetarian_restaurant", items };
-  return items.length ? { kind: "menu", items } : null;
+  if (row.primary_type === "vegan_restaurant") return { kind: "restaurant", items };
+  if (row.primary_type === "vegetarian_restaurant") return { kind: "vegetarian_restaurant", items };
+  if (items.length) return { kind: "menu", items };
+  if (row.types.includes("vegan_restaurant")) return { kind: "listed_vegan", items };
+  if (row.types.includes("vegetarian_restaurant")) return { kind: "listed_vegetarian", items };
+  return null;
 }
 
 /** The newest report per place within the TTL. */

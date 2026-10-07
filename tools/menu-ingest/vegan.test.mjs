@@ -38,6 +38,28 @@ describe("findVeganOptions", () => {
     expect(r.status).toBe("none");
   });
 
+  it("does not count a dish just because a vegan ingredient is an add-on or one item in a tray", () => {
+    const r = findVeganOptions(
+      menu([
+        { name: "Savory", items: [item("Classic Egg Sammy (Vegetarian)", "Scrambled egg, Tillamook cheddar, English muffin. Add bacon, sausage, vegan sausage $3"), item("Carnivore", "Breakfast sausage, white cheddar. Add Beyond vegan patty $3")] },
+        { name: "Bánh Mì", items: [item("[Tray] Banh Mi Variety Box", "2 Piggy, 2 Bok Bok, 2 Spam & Egg, 2 Vegan Vortex"), item("Vegan Vortex *VG", "Tofu, pickled carrot, vegan mayo")] },
+      ])
+    );
+    expect(r.items.map((i) => i.name)).toEqual(["Vegan Vortex *VG"]);
+  });
+
+  it("trusts a claim in the dish's own name or in a description with no animal ingredients", () => {
+    const r = findVeganOptions(
+      menu([
+        { name: "Signature", items: [item("VEGAN NIKUMISO ABURASOBA", "Plant-based sweet pork, spicy hatcho miso, green onions")] },
+        { name: "Noodle Soups", items: [item("Veggie Phở", "The vegan phở you've been looking for: rice noodles, veggie broth, mock meat")] },
+        { name: "Beverages", items: [item("Coconut Milk Vietnamese Coffee", "A vegan take on the classic.")] },
+        { name: "Sides", items: [item("Rice", "Traditional Mexican rice. VEGAN")] },
+      ])
+    );
+    expect(r.items.map((i) => i.name)).toEqual(["VEGAN NIKUMISO ABURASOBA", "Veggie Phở", "Coconut Milk Vietnamese Coffee", "Rice"]);
+  });
+
   it("reports none for an empty or missing menu and dedupes repeated names", () => {
     expect(findVeganOptions(null).status).toBe("none");
     expect(findVeganOptions(menu([])).status).toBe("none");

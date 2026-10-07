@@ -11,6 +11,13 @@ const ON_REQUEST = /\b(can|could) be (made )?vegan\b|\bvegan (option|version|upo
 // "no vegan options", "not vegan", "non-vegan", "isn't vegan", "we cannot guarantee … vegan"
 const NEGATED = /\b(no|not|non|isn'?t|aren'?t|never|without)[- ](?:\w+ ){0,2}vegan\b|\bvegan[- ](?:dishes|options|items) (?:are )?not\b|cannot guarantee|can'?t guarantee|not guaranteed/i;
 const MAX_ITEMS = 12;
+// A vegan claim in a DESCRIPTION is only about the dish when the dish has no animal ingredients. "Scrambled egg, cheddar.
+// Add bacon, sausage, vegan sausage" is an egg sandwich with a vegan add-on, and "2 Spam & Egg, 2 Vegan Vortex" is a tray
+// that happens to include a vegan item. Swapped-in things ("vegan sausage", "Beyond patty", "tofu-based pork skin",
+// "coconut milk") are blanked before the check, so they never count as the animal they replace.
+const SWAP = /\b(vegan|vegetarian|veggie|vegetable|plant[- ]based|tofu[- ]based|soy[- ]based|mock|beyond|impossible|soy|oat|almond|coconut|cashew|rice|nut|dairy[- ]free|non[- ]dairy)\s+(?:white\s+)?["“”']?[\w-]+["“”']?/gi;
+const ANIMAL = /\b(eggs?|bacon|sausages?|cheese|cheddar|mozzarella|parmesan|feta|pork|chicken|beef|spam|shrimp|prawns?|fish|salmon|tuna|crab|lobster|clams?|oysters?|anchov(?:y|ies)|ham|lamb|turkey|duck|butter|milk|cream|honey|yogh?urt|mayo|mayonnaise|aioli|lard|chorizo|pepperoni|salami|prosciutto|brisket|katsu|tonkotsu|gelatin)\b/i;
+const hasAnimal = (text) => ANIMAL.test(String(text ?? "").replace(SWAP, " "));
 
 const clean = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 const key = (s) => clean(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -44,11 +51,17 @@ export function findVeganOptions(menu) {
     // A "Vegan" section vouches for everything in it; a mixed "Vegetarian & Vegan" section does not.
     const wholeSection = claims(sectionName) && !/\bvegetarian\b|\bveggie\b/i.test(sectionName);
     for (const item of section?.items ?? []) {
-      const text = `${clean(item?.name)} ${clean(item?.description)}`;
+      const name = clean(item?.name);
+      const description = clean(item?.description);
+      const text = `${name} ${description}`;
       if (NEGATED.test(text)) continue;
       if (wholeSection) add(item, sectionName);
+      // "Can be made vegan" dishes list their meat defaults by nature, so the animal check does not apply.
       else if (ON_REQUEST.test(text)) add(item, sectionName, "on request");
-      else if (claims(text)) add(item, sectionName);
+      // The restaurant put the word in the dish's own name: trust it.
+      else if (claims(name)) add(item, sectionName);
+      // A claim only in the description must be about the whole dish, not a swapped-in or added ingredient.
+      else if (claims(description) && !hasAnimal(text)) add(item, sectionName);
     }
   }
   const items = out.slice(0, MAX_ITEMS);

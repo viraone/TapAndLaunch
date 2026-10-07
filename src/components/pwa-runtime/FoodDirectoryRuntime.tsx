@@ -845,10 +845,14 @@ function directionsUrl(place: NearbyPlace, mode: TravelMode): string {
 
 /** The card's one-line vegan note: what Google says about the whole place, or the first few vegan dishes off its menu. */
 function veganCardLabel(v: VeganOptions): string {
-  const names = (n: number) => v.items.slice(0, n).map((i) => i.name).join(", ");
+  const names = (items: VeganOptions["items"], n: number) => items.slice(0, n).map((i) => i.name).join(", ");
   if (v.kind === "restaurant") return "Vegan restaurant";
-  if (v.kind === "vegetarian_restaurant") return v.items.length ? `Vegetarian restaurant · ${names(2)}` : "Vegetarian restaurant";
-  return `Vegan options · ${names(3)}`;
+  if (v.kind === "vegetarian_restaurant") return v.items.length ? `Vegetarian restaurant · ${names(v.items, 2)}` : "Vegetarian restaurant";
+  if (v.kind === "listed_vegan") return "Vegan-friendly · Google listing";
+  if (v.kind === "listed_vegetarian") return "Vegetarian-friendly · Google listing";
+  // Dishes that ARE vegan come first; when the menu only says "can be made vegan", the card says so.
+  const firm = v.items.filter((i) => !i.note);
+  return firm.length ? `Vegan options · ${names(firm, 3)}` : `Vegan on request · ${names(v.items, 3)}`;
 }
 
 function PlaceCard({ place, status, happy, onOpen }: { place: NearbyPlace; status: OpenStatus; happy: HappyHourStatus | null; onOpen: () => void }) {
@@ -1170,7 +1174,13 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
                 {place.vegan.kind !== "menu" && (
                   <p className="mt-2 text-[15px] font-semibold">
                     <span aria-hidden>🌱 </span>
-                    {place.vegan.kind === "restaurant" ? "Google lists this as a vegan restaurant." : "Google lists this as a vegetarian restaurant."}
+                    {place.vegan.kind === "restaurant"
+                      ? "Google lists this as a vegan restaurant."
+                      : place.vegan.kind === "vegetarian_restaurant"
+                        ? "Google lists this as a vegetarian restaurant."
+                        : place.vegan.kind === "listed_vegan"
+                          ? "The owner lists vegan food on Google. We haven't read the menu to confirm."
+                          : "The owner lists vegetarian food on Google. We haven't read the menu to confirm."}
                   </p>
                 )}
                 {place.vegan.items.length > 0 && (
