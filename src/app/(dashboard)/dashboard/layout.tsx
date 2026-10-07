@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, LayoutGrid, LayoutTemplate, Settings, ShieldCheck } from "lucide-react";
+import { ArrowRight, LayoutGrid, Settings, ShieldCheck } from "lucide-react";
 import { isPlatformAdmin } from "@/lib/platform/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
@@ -47,19 +47,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </span>
             <span className="hidden sm:inline">TapAndLaunch</span>
           </Link>
-          <Link
-            aria-label="Browse Templates"
-            href="/dashboard/apps/new"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] font-semibold text-neutral-50 transition hover:bg-white/5 sm:px-3.5"
-          >
-            <LayoutTemplate className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Browse Templates</span>
-          </Link>
-          <span className="h-6 w-px bg-white/10" aria-hidden />
-          <OrgSwitcher
-            memberships={memberships}
-            activeOrganizationId={activeOrganizationId}
-            logoUrl={activeOrg?.branding.logo_url}
-          />
+          {/* "Browse Templates" used to sit here too; "New app" on the dashboard is the one way to start. The organization
+           * switcher only appears for someone who belongs to more than one: for everyone else it was a name they could
+           * not do anything with. A new organization can still be made from Settings. */}
+          {memberships.length > 1 && (
+            <>
+              <span className="h-6 w-px bg-white/10" aria-hidden />
+              <OrgSwitcher
+                memberships={memberships}
+                activeOrganizationId={activeOrganizationId}
+                logoUrl={activeOrg?.branding.logo_url}
+              />
+            </>
+          )}
         </div>
         <nav className="flex items-center gap-0.5 text-[15px] sm:gap-1">
           <Link

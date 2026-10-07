@@ -109,6 +109,13 @@ export default async function OrgSettingsPage({ searchParams }: { searchParams: 
               Only an organization admin can change these settings. You&rsquo;re a <strong className="text-neutral-800">{activeMembership?.role}</strong> here.
             </p>
           )}
+          {/* The header's organization switcher (and its "New organization" item) only shows for people in more than one. */}
+          <p className="mt-4 text-sm text-neutral-500">
+            Run another business or client separately?{" "}
+            <Link href="/dashboard/organizations/new" className="font-semibold text-neutral-950 underline underline-offset-2">
+              Start a new organization
+            </Link>
+          </p>
         </SettingsSection>
         <BillingCard state={plan} isAdmin={isAdmin} billingReady={isStripeConfigured()} testMode={isStripeTestMode()} />
         {showPayments && <PaymentsCard account={stripeAccount} testMode={isStripeTestMode()} />}

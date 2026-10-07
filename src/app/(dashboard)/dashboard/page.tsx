@@ -70,7 +70,8 @@ export default async function DashboardPage() {
         <div className="relative mx-auto w-full max-w-6xl px-6 pb-24 pt-10">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div className="min-w-0">
-              {orgName && <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">{orgName}</p>}
+              {/* The organization's name only matters to someone who belongs to more than one. */}
+              {orgName && memberships.length > 1 && <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">{orgName}</p>}
               <h1 className="mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">Your apps</h1>
               <p className="mt-2 max-w-md text-sm text-neutral-400">
                 {apps?.length
@@ -92,10 +93,12 @@ export default async function DashboardPage() {
           </div>
 
           {!!apps?.length && (
-            <dl className="mt-8 grid max-w-2xl grid-cols-3 gap-px overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/10">
+            // "Added to home screens" (an "install", in app-store words) only shows once it has happened: a zero in the
+            // headline row read as bad news.
+            <dl className={`mt-8 grid max-w-2xl gap-px overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/10 ${installs > 0 ? "grid-cols-3" : "grid-cols-2"}`}>
               <Stat label="Apps live" value={`${live}`} sub={`of ${apps.length}`} />
-              <Stat label="Views" value={views.toLocaleString()} sub="last 7 days" />
-              <Stat label="Installs" value={installs.toLocaleString()} sub="last 7 days" />
+              <Stat label="Views" value={views.toLocaleString()} sub="this week" />
+              {installs > 0 && <Stat label="Added to home screens" value={installs.toLocaleString()} sub="this week" />}
             </dl>
           )}
         </div>
@@ -170,16 +173,25 @@ async function weeklyActivity(supabase: Awaited<ReturnType<typeof createClient>>
   if (!appIds.length) return { perApp, views: 0, installs: 0 };
   const now = Date.now();
   const since = new Date(now - DAYS * 86_400_000);
-  const { data } = await supabase
-    .from("analytics_events")
-    .select("app_id, event_type, created_at")
-    .in("app_id", appIds)
-    .in("event_type", ["view", "install"])
-    .gte("created_at", since.toISOString())
-    .limit(20_000);
+  // The database answers at most 1,000 rows per request whatever limit is asked for, which once showed a busy week as
+  // exactly "1,000 views". The week is read a page at a time until a page comes back short (up to 50 pages).
+  const PAGE = 1000;
+  const data: { app_id: string; event_type: string; created_at: string }[] = [];
+  for (let from = 0; from < 50 * PAGE; from += PAGE) {
+    const { data: page } = await supabase
+      .from("analytics_events")
+      .select("app_id, event_type, created_at")
+      .in("app_id", appIds)
+      .in("event_type", ["view", "install"])
+      .gte("created_at", since.toISOString())
+      .order("created_at")
+      .range(from, from + PAGE - 1);
+    data.push(...(page ?? []));
+    if (!page || page.length < PAGE) break;
+  }
   let views = 0;
   let installs = 0;
-  for (const e of data ?? []) {
+  for (const e of data) {
     if (e.event_type === "install") {
       installs++;
       continue;
