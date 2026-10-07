@@ -691,7 +691,12 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                                     <span className="text-sm font-bold text-[color:var(--studio-text,inherit)] dark:text-[color:var(--studio-text-dark,inherit)]">{s?.name ?? "Studio"}</span>
                                   )}
                                   {mi != null ? ` · ${milesLabel(mi)}` : ""}
-                                  {c.instructor ? ` · ${c.instructor}` : ""}
+                                  {c.instructor && (
+                                    <>
+                                      {" · "}
+                                      <span className="font-semibold text-foreground">{c.instructor}</span>
+                                    </>
+                                  )}
                                   {c.spots && (
                                     <>
                                       {" · "}
