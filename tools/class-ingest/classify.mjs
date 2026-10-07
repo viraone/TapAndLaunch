@@ -1,7 +1,7 @@
 // Which kind of class a schedule row is, from its name (first rule that matches wins), else the studio's own kind.
 // "other" (dance, boxing, …) is stored but never shown. Shared by gen.mjs (preview) and save.mjs (database).
 export const TYPE_RULES = [
-  ["other", /dance|zumba|bolly|hip hop|twerk|pole|aerial|boxing|kickbox|swim|tennis|pickleball/i],
+  ["other", /dance|zumba|bolly|hip hop|twerk|pole|aerial|boxing|kickbox|swim|tennis|pickleball|basketball|volleyball|racquetball|aquatic|aqua ?(fit|cise|aerobics)|splash|water (aerobics|fitness|walking)|toddler|\bkids?\b|\bteens?\b|\byouth\b|open play/i],
   ["climbing", /climb|boulder|belay|top rope|lead class|crag/i],
   ["spin", /\bspin|cycle\b|flowcycle|cycling|\bride\b|bike|peloton/i],
   ["pilates", /pilates|reformer|lagree|megaformer|xformer|barre|\bmat\b|springboard|jumpboard/i],
@@ -24,7 +24,7 @@ export function isOnlineClass(name) {
  * seminars, retreats, private sessions, and anything over 2.5 hours. Dropped before saving.
  */
 export function isNotAGroupClass(name, start, end) {
-  if (/teacher training|instructor (training|course)|certification|continuing education|\bce\b|protocols|seminar|workshop|masterclass|retreat|immersion|private (session|lesson)|one[- ]on[- ]one|consultation|assessment|\bdemo\b|open house|orientation|tour\b/i.test(name)) return true;
+  if (/teacher training|instructor (training|course)|certification|continuing education|\bce\b|protocols|seminar|workshop|masterclass|retreat|immersion|private (session|lesson)|one[- ]on[- ]one|consultation|assessment|\bdemo\b|open house|orientation|tour\b|open gym|open climb|drop[- ]in personalized/i.test(name)) return true;
   const m1 = /^(\d{2}):(\d{2})$/.exec(start ?? ""), m2 = /^(\d{2}):(\d{2})$/.exec(end ?? "");
   if (m1 && m2) {
     const len = +m2[1] * 60 + +m2[2] - (+m1[1] * 60 + +m1[2]);

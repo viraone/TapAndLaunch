@@ -301,6 +301,25 @@ async function readMariana(browser, pg) {
   return classes.length ? { classes, days: new Set(classes.map((c) => c.date)).size } : null;
 }
 
+/**
+ * studios.json `mariana: { tenant, location }`: a studio on Mariana Tek whose own page does not hand the widget's data to the
+ * reader (barre3's widget sits in an iframe that only loads the schedule on a click). The tenant's public class feed answers
+ * for the week directly: exact dates, times and spots, no model. Returns the rows the app shows, [] when the feed has none.
+ */
+async function readMarianaFeed({ tenant, location }) {
+  const plus = (n) => new Date(Date.UTC(+TODAY_ISO.slice(0, 4), +TODAY_ISO.slice(5, 7) - 1, +TODAY_ISO.slice(8, 10) + n)).toISOString().slice(0, 10);
+  let url = `https://${tenant}.marianatek.com/api/customer/v1/classes?location=${encodeURIComponent(location)}&min_start_date=${TODAY_ISO}&max_start_date=${plus(8)}&page_size=200`;
+  const records = [];
+  for (let page = 0; url && page < 6; page++) {
+    const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" }, signal: AbortSignal.timeout(20000) });
+    if (!res.ok) throw new Error(`Mariana feed ${res.status}`);
+    const j = await res.json();
+    records.push(...(j.results ?? []));
+    url = j.next || null;
+  }
+  return marianaClasses(records);
+}
+
 // ---- the model ----
 const SCHEMA = { type: "object", properties: { is_schedule: { type: "boolean" }, classes: { type: "array", items: { type: "object", properties: { date: { type: ["string", "null"] }, start: { type: "string" }, end: { type: ["string", "null"] }, name: { type: "string" }, instructor: { type: ["string", "null"] }, spots: { type: ["string", "null"] } }, required: ["date", "start", "end", "name", "instructor", "spots"] } } }, required: ["is_schedule", "classes"] };
 const prompt = (studio, text) => `You read the text of a fitness studio's web page and extract its CLASS SCHEDULE (group classes with a date and start time).
@@ -471,6 +490,15 @@ async function readStudio(browser, s) {
   if (s.skip) return { ...r, status: "skipped", error: s.skip };
   if (!(await allowed(s.site))) return { ...r, status: "blocked_robots" };
   const finish = (extra) => ({ ...r, ...extra, seconds: Math.round((Date.now() - t0) / 1000), modelSeconds: Math.round(modelMs / 1000) });
+
+  // studios.json `mariana`: read the tenant's public class feed instead of the page (see readMarianaFeed).
+  if (s.mariana) {
+    try {
+      const classes = await readMarianaFeed(s.mariana);
+      if (classes.length) return finish({ status: "ok", scheduleUrl: s.site, pageUrl: s.site, platform: "marianatek", classes, dropped: [] });
+      r.tried.push(`mariana feed ${s.mariana.tenant}/${s.mariana.location}: no classes`);
+    } catch (e) { r.tried.push(`mariana feed ${s.mariana.tenant}/${s.mariana.location}: ${String(e.message).slice(0, 60)}`); }
+  }
 
   // Reads one candidate schedule page. Returns the finished result when it holds classes, else null (what it dropped is kept).
   const attempt = async (url, pg) => {

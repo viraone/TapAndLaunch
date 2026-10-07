@@ -157,7 +157,8 @@
     "neighborhood": "Fremont",
     "id": "ChIJ6U6tp6kVkFQRWt9fBoeK3rE",
     "lat": 47.652902,
-    "lng": -122.35586
+    "lng": -122.35586,
+    "location": "Fremont"
   },
   {
     "kind": "lifting",
@@ -371,7 +372,8 @@
     "neighborhood": "Phinney Ridge",
     "id": "ChIJ06dnHDsUkFQRGCCMlZ42Ppo",
     "lat": 47.681586,
-    "lng": -122.35512
+    "lng": -122.35512,
+    "location": "Phinney Ridge"
   },
   {
     "kind": "pilates",
@@ -537,7 +539,9 @@
     "neighborhood": "Central District",
     "id": "ChIJj3Er4qkVkFQR-US5yUA6lNw",
     "lat": 47.595383299999995,
-    "lng": -122.31014060000001
+    "lng": -122.31014060000001,
+    "schedule": "https://www.flightroomseattle.com/schedule",
+    "location": "Central District"
   },
   {
     "kind": "lifting",
@@ -807,5 +811,470 @@
     "lat": 47.6144,
     "lng": -122.3414,
     "schedule": "https://www.corepoweryoga.com/yoga-schedules/studio?centerId=f4e68bb3-8dfb-4a22-a6a5-d1e4b7224b91"
+  },
+  {
+    "kind": "lifting",
+    "name": "Olympic Athletic Club",
+    "site": "http://www.olympicathleticclub.com/?utm_campaign=gmb",
+    "km": 2.95,
+    "address": "5301 Leary Ave NW, Seattle, WA 98107, USA",
+    "neighborhood": "Ballard",
+    "id": "ChIJQ-6exLYVkFQRd8Fg0Qp0R4A",
+    "lat": 47.666415199999996,
+    "lng": -122.38283239999998
+  },
+  {
+    "kind": "yoga",
+    "name": "Woven Yoga",
+    "site": "https://wovenyoga.co/",
+    "km": 5.22,
+    "address": "8815 Roosevelt Way NE, Seattle, WA 98115, USA",
+    "neighborhood": "Maple Leaf",
+    "id": "ChIJ1T2qQ3UVkFQRj5yhnwWOxjQ",
+    "lat": 47.692730399999995,
+    "lng": -122.31795199999999
+  },
+  {
+    "kind": "pilates",
+    "name": "Pure Barre Seattle (Green Lake)",
+    "site": "https://www.purebarre.com/location/seattle-green-lake-wa",
+    "km": 3.76,
+    "address": "406 NE 71st St, Seattle, WA 98115, USA",
+    "neighborhood": "Green Lake",
+    "id": "ChIJ69z1A20UkFQRRcIL7xYjq24",
+    "lat": 47.680025699999995,
+    "lng": -122.3241741
+  },
+  {
+    "kind": "yoga",
+    "name": "Halea Yoga",
+    "site": "https://haleayoga.com/",
+    "km": 3.79,
+    "address": "7110 Woodlawn Ave NE, Seattle, WA 98115, USA",
+    "neighborhood": "Green Lake",
+    "id": "ChIJJ1qcBG0UkFQRxXjuR5SptUM",
+    "lat": 47.680211899999996,
+    "lng": -122.3238908
+  },
+  {
+    "kind": "lifting",
+    "name": "Ballard Health Club",
+    "site": "http://www.ballardhealthclub.com/",
+    "km": 3.24,
+    "address": "Lower Level, 2208 NW Market St, Seattle, WA 98107, USA",
+    "neighborhood": "Ballard",
+    "id": "ChIJY-Vf3MUVkFQRYOnuWWGF3G4",
+    "lat": 47.6688823,
+    "lng": -122.3848907
+  },
+  {
+    "kind": "lifting",
+    "name": "ATTN Seattle",
+    "site": "http://www.attnseattle.com/",
+    "km": 4.36,
+    "address": "2943 NE Blakeley St, Seattle, WA 98105, USA",
+    "neighborhood": "University Village",
+    "id": "ChIJ7b44IAAVkFQRRFFUXgQQooE",
+    "lat": 47.664837299999995,
+    "lng": -122.29587919999999
+  },
+  {
+    "kind": "lifting",
+    "name": "Kettlebility",
+    "site": "https://www.kettlebility.com/",
+    "km": 3.63,
+    "address": "905 NE 65th St, Seattle, WA 98115, USA",
+    "neighborhood": "Roosevelt",
+    "id": "ChIJW22xA8NqkFQRTl-W2DeBZ3k",
+    "lat": 47.675691,
+    "lng": -122.31838689999998
+  },
+  {
+    "kind": "pilates",
+    "name": "The Box Lagree Studio",
+    "site": "http://theboxlagree.com/",
+    "km": 6.54,
+    "address": "10706 5th Ave NE, Seattle, WA 98125, USA",
+    "neighborhood": "Maple Leaf",
+    "id": "ChIJRTcr40URkFQRSMzsyAm9RL4",
+    "lat": 47.706997699999995,
+    "lng": -122.32299760000001
+  },
+  {
+    "kind": "yoga",
+    "name": "Praxis Yoga & Cafe",
+    "site": "http://www.praxisballard.com/",
+    "km": 2.94,
+    "address": "5599 17th Ave NW, Seattle, WA 98107, USA",
+    "neighborhood": "Ballard",
+    "id": "ChIJaaYK1poVkFQRGIVACYpi0Sg",
+    "lat": 47.669342099999994,
+    "lng": -122.3790809
+  },
+  {
+    "kind": "lifting",
+    "name": "CFPR Functional Fitness",
+    "site": "http://cfpr.fitness/",
+    "km": 3.69,
+    "address": "7601 Greenwood Ave N #100, Seattle, WA 98103, USA",
+    "neighborhood": "Phinney Ridge",
+    "id": "ChIJXbQ_uyQUkFQRzzA-uvXLLjg",
+    "lat": 47.684239,
+    "lng": -122.355565
+  },
+  {
+    "kind": "pilates",
+    "name": "FLX Lagree",
+    "site": "https://www.flxlagree.com/",
+    "km": 4.51,
+    "address": "8604 Palatine Ave N, Seattle, WA 98103, USA",
+    "neighborhood": "Greenwood",
+    "id": "ChIJGa_xpDIVkFQRIuVe-CGaMQU",
+    "lat": 47.6915912,
+    "lng": -122.35612409999999
+  },
+  {
+    "kind": "spin",
+    "name": "Community Fitness",
+    "site": "http://www.communityfitness.com/",
+    "km": 3.49,
+    "address": "6110 Roosevelt Way NE, Seattle, WA 98115, USA",
+    "neighborhood": "Roosevelt",
+    "id": "ChIJ6WTBhWUUkFQRik52RcPwvU8",
+    "lat": 47.673218899999995,
+    "lng": -122.31724369999999
+  },
+  {
+    "kind": "yoga",
+    "name": "Flood Yoga",
+    "site": "http://floodyoga.com/",
+    "km": 2.99,
+    "address": "2108 NW Vernon Pl, Seattle, WA 98107, USA",
+    "neighborhood": "Ballard",
+    "id": "ChIJaXcFAQgVkFQRovloWUb0V2Y",
+    "lat": 47.666275600000006,
+    "lng": -122.38357599999999
+  },
+  {
+    "kind": "lifting",
+    "name": "Ballard CrossFit",
+    "site": "http://www.ballardcrossfit.com/",
+    "km": 3.34,
+    "address": "6419 15th Ave NW, Seattle, WA 98107, USA",
+    "neighborhood": "Ballard",
+    "id": "ChIJuXM2ns0VkFQRCxkzVBzC9lU",
+    "lat": 47.6755128,
+    "lng": -122.3767189
+  },
+  {
+    "kind": "lifting",
+    "name": "Crown Hill Fitness and Wellness",
+    "site": "https://www.crownhillfw.com/",
+    "km": 4.77,
+    "address": "1414 NW 85th St, Seattle, WA 98117, USA",
+    "neighborhood": "Greenwood",
+    "id": "ChIJR6EYwMgXkFQRA1d7MLaFc7k",
+    "lat": 47.690804799999995,
+    "lng": -122.37500980000002
+  },
+  {
+    "kind": "yoga",
+    "name": "Live Love Flow - Hot Yoga & Fitness",
+    "site": "https://www.liveloveflowstudios.com/",
+    "km": 3.51,
+    "address": "6900 East Green Lake Way N Ste L, Seattle, WA 98115, USA",
+    "neighborhood": "Green Lake",
+    "id": "ChIJkWN2H8sVkFQRk5ynWmSjtR0",
+    "lat": 47.6782518,
+    "lng": -122.32633479999998
+  },
+  {
+    "kind": "spin",
+    "name": "City Cycle",
+    "site": "http://www.citycycleseattle.com/about",
+    "km": 4.41,
+    "address": "117 NW 85th St, Seattle, WA 98117, USA",
+    "neighborhood": "Greenwood",
+    "id": "ChIJO5B6HSEUkFQRp1m8_k_Qi2Q",
+    "lat": 47.6904647,
+    "lng": -122.35896219999998
+  },
+  {
+    "kind": "pilates",
+    "name": "Pure Barre Seattle (University)",
+    "site": "https://www.purebarre.com/location/seattle-university-wa",
+    "km": 4.42,
+    "address": "4602 Union Bay Pl NE, Seattle, WA 98105, USA",
+    "neighborhood": "University Village",
+    "id": "ChIJy33FEU9AkFQRYp3u7bHcTzE",
+    "lat": 47.66272300000001,
+    "lng": -122.2940682
+  },
+  {
+    "kind": "yoga",
+    "name": "atdStudios",
+    "site": "https://www.atdstudiosseattle.com/",
+    "km": 4.4,
+    "address": "3012 NE Blakeley St, Seattle, WA 98105, USA",
+    "neighborhood": "University Village",
+    "id": "ChIJsWmjcCwVkFQRcyA3jxwq5_c",
+    "lat": 47.66460610000001,
+    "lng": -122.2951825
+  },
+  {
+    "kind": "yoga",
+    "name": "8 Limbs Yoga Centers - Phinney Ridge",
+    "site": "https://www.8limbsyoga.com/",
+    "km": 3.11,
+    "address": "6801 Greenwood Ave N, Seattle, WA 98103, USA",
+    "neighborhood": "Phinney Ridge",
+    "id": "ChIJ013oEzoUkFQRyha6SjA_j2o",
+    "lat": 47.678942299999996,
+    "lng": -122.35559749999999
+  },
+  {
+    "kind": "lifting",
+    "name": "Ballard Barbell and Boxing Club",
+    "site": "http://ballardboxing.com/",
+    "km": 2.41,
+    "address": "1107 NW 54th St, Seattle, WA 98107, USA",
+    "neighborhood": "Ballard",
+    "id": "ChIJS4p1Js8VkFQRxlftCxv4B7w",
+    "lat": 47.6676582,
+    "lng": -122.3713425
+  },
+  {
+    "kind": "pilates",
+    "name": "Body & Brain Yoga Tai Chi",
+    "site": "http://bodynbrain.com/wedgwood",
+    "km": 6.23,
+    "address": "8501 35th Ave NE, Seattle, WA 98115, USA",
+    "neighborhood": "Wedgwood",
+    "id": "ChIJLx3f9EMRkFQRRHSR0iCKVF0",
+    "lat": 47.6903106,
+    "lng": -122.2909732
+  },
+  {
+    "kind": "yoga",
+    "name": "The Cycle Sanctuary",
+    "site": "http://www.thecyclesanctuary.com/",
+    "km": 3.46,
+    "address": "2420 NW Market St, Seattle, WA 98107, USA",
+    "neighborhood": "Ballard",
+    "id": "ChIJ01ViGsEVkFQRQmymQtmlJZI",
+    "lat": 47.668891699999996,
+    "lng": -122.38858470000001
+  },
+  {
+    "kind": "yoga",
+    "name": "Wallingford Yoga",
+    "site": "https://wallingfordyoga.com/",
+    "km": 1.15,
+    "address": "1405 N 43rd St, Seattle, WA 98103, USA",
+    "neighborhood": "Wallingford",
+    "id": "ChIJM8jOkjkUkFQRLXX7uuuhVDA",
+    "lat": 47.659035499999995,
+    "lng": -122.3404676
+  },
+  {
+    "kind": "yoga",
+    "name": "Magnolia Yoga and Healing Arts",
+    "site": "https://www.magnoliayogaandhealingarts.com/",
+    "km": 3.75,
+    "address": "3150 W Government Way # B, Seattle, WA 98199, USA",
+    "neighborhood": "Ballard",
+    "id": "ChIJ_X6doFkVkFQReN6t0Ht5nI8",
+    "lat": 47.6604567,
+    "lng": -122.3986334
+  },
+  {
+    "kind": "pilates",
+    "name": "GreenLake Fitness",
+    "site": "http://www.greenlakefitness.com/",
+    "km": 3.79,
+    "address": "7203 Woodlawn Ave NE, Seattle, WA 98115, USA",
+    "neighborhood": "Green Lake",
+    "id": "ChIJS3toGG0UkFQRdIZVSwDBDaw",
+    "lat": 47.6806541,
+    "lng": -122.32499510000001
+  },
+  {
+    "kind": "yoga",
+    "name": "Hatha Yoga Center",
+    "site": "http://www.hathayogacenter.com/",
+    "km": 7.01,
+    "address": "1020 NE 112th St, Seattle, WA 98125, USA",
+    "neighborhood": "Northgate",
+    "id": "ChIJeWWCp4oUkFQR1WlURkDfPj8",
+    "lat": 47.7100141,
+    "lng": -122.31694459999999
+  },
+  {
+    "kind": "yoga",
+    "name": "Aligned Yoga with Jenny Rhodes",
+    "site": "https://alignedyoga.net/",
+    "km": 4.12,
+    "address": "Private Yoga Studio, 319 1/2, NW 81st St, Seattle, WA 98117, USA",
+    "neighborhood": "Greenwood",
+    "id": "ChIJeyZfr2MXkFQRanaOS9vPqmY",
+    "lat": 47.6874816,
+    "lng": -122.36152430000001
+  },
+  {
+    "kind": "yoga",
+    "name": "Yoga with Anna",
+    "site": "https://yoga-with-anna.square.site/",
+    "km": 5.41,
+    "address": "9250 14th Ave NW, Seattle, WA 98117, USA",
+    "neighborhood": "Greenwood",
+    "id": "ChIJH6YQ4FkXkFQRrEi5t_snhYU",
+    "lat": 47.6973067,
+    "lng": -122.37374489999999
+  },
+  {
+    "kind": "yoga",
+    "name": "InsideOut Yoga",
+    "site": "http://www.ioystudio.com/",
+    "km": 3.49,
+    "address": "5623 University Wy NE, Seattle, WA 98105, USA",
+    "neighborhood": "Roosevelt",
+    "id": "ChIJPV4xWiIUkFQRMFGQrZTxFNg",
+    "lat": 47.670110799999996,
+    "lng": -122.3132678
+  },
+  {
+    "kind": "lifting",
+    "name": "F45 Training Northgate WA",
+    "site": "https://f45training.com/studio/northgatewa/",
+    "km": 6.05,
+    "address": "301 NE 103rd St Ste 2A, Seattle, WA 98125, USA",
+    "neighborhood": "Northgate",
+    "id": "ChIJL9Y-fPARkFQRCQn1pR2tvIc",
+    "lat": 47.7029785,
+    "lng": -122.32568510000002
+  },
+  {
+    "kind": "pilates",
+    "name": "Club Pilates (Crown Hill)",
+    "site": "https://www.clubpilates.com/location/crownhill",
+    "km": 5.68,
+    "address": "9749 Holman Rd NW, Seattle, WA 98117, USA",
+    "neighborhood": "Crown Hill",
+    "id": "ChIJ11rVBGsXkFQRnZ2cVl7NStE",
+    "lat": 47.7014013,
+    "lng": -122.36454579999999
+  },
+  {
+    "kind": "pilates",
+    "name": "The Bar Method - Phinney Ridge",
+    "site": "https://barmethod.com/locations/seattle-phinney-ridge/?utm_source=google&utm_medium=organic-businesslisting&utm_campaign=gbp-listing",
+    "km": 3.06,
+    "address": "6726 Greenwood Ave N Ste B, Seattle, WA 98103, USA",
+    "neighborhood": "Phinney Ridge",
+    "id": "ChIJWftABfMVkFQRaFhOpGOE1nY",
+    "lat": 47.6785042,
+    "lng": -122.3550703
+  },
+  {
+    "kind": "pilates",
+    "name": "barre3 - Ballard",
+    "site": "https://barre3.com/studio-locations/ballard",
+    "km": 3.54,
+    "address": "5711 24th Ave NW, Seattle, WA 98107, USA",
+    "neighborhood": "Ballard",
+    "id": "ChIJO4FYCMUVkFQRXK7bgBOnQC8",
+    "lat": 47.6705656,
+    "lng": -122.3879453,
+    "mariana": {
+      "tenant": "barre3",
+      "location": "48759"
+    }
+  },
+  {
+    "kind": "pilates",
+    "name": "barre3 - Roosevelt",
+    "site": "https://online.barre3.com/studio-locations/roosevelt",
+    "km": 3.65,
+    "address": "6408 Roosevelt Way NE, Seattle, WA 98115, USA",
+    "neighborhood": "Roosevelt",
+    "id": "ChIJw0uqvm8UkFQRLmTS_h04Y2s",
+    "lat": 47.6751035,
+    "lng": -122.31708830000001,
+    "mariana": {
+      "tenant": "barre3",
+      "location": "48760"
+    }
+  },
+  {
+    "kind": "yoga",
+    "name": "8 Limbs Yoga Centers - Wedgwood",
+    "site": "https://www.8limbsyoga.com/",
+    "km": 5.68,
+    "address": "7345 35th Ave NE, Seattle, WA 98115, USA",
+    "neighborhood": "Wedgwood",
+    "id": "ChIJQxUNnY8TkFQRaho5WFkYe4U",
+    "lat": 47.682558,
+    "lng": -122.2907,
+    "schedule": "https://www.8limbsyoga.com/wedgwood"
+  },
+  {
+    "kind": "yoga",
+    "name": "CorePower Yoga - University District",
+    "site": "https://www.corepoweryoga.com/yoga-studios/wa/seattle/university-district",
+    "km": 2.88,
+    "address": "4535 12th Ave NE Ste A, Seattle, WA 98105, USA",
+    "neighborhood": "U-District",
+    "id": "ChIJUzwsyooUkFQR6EapL8ifjS0",
+    "lat": 47.662177199999995,
+    "lng": -122.31565060000001,
+    "schedule": "https://www.corepoweryoga.com/yoga-schedules/studio?centerId=e5cd5673-f260-4290-bf9e-8f53d31668cd"
+  },
+  {
+    "kind": "pilates",
+    "name": "Studio 45 - U Village",
+    "site": "https://www.studio45.com/",
+    "km": 4.1,
+    "address": "5101 25th Ave NE, Seattle, WA 98105, USA",
+    "neighborhood": "University Village",
+    "id": "ChIJj1gEj4cUkFQRelPXcDxGiNk",
+    "lat": 47.6667023,
+    "lng": -122.30080710000001
+  },
+  {
+    "kind": "pilates",
+    "name": "Vitality Pilates - Ravenna",
+    "site": "http://www.vitalitypilates.com/",
+    "km": 4.41,
+    "address": "2201 NE 65th St, Seattle, WA 98115, USA",
+    "neighborhood": "Ravenna",
+    "id": "ChIJzZcXkHkUkFQR0mSbsV9iP2c",
+    "lat": 47.6756812,
+    "lng": -122.3042297,
+    "location": "Ravenna"
+  },
+  {
+    "kind": "yoga",
+    "name": "Flight Room Green Lake",
+    "site": "http://www.flightroomseattle.com/greenlake",
+    "km": 3.7,
+    "address": "412 NE 70th St, Seattle, WA 98115, USA",
+    "neighborhood": "Green Lake",
+    "id": "ChIJxePhD5IVkFQRudzlx4-1f3Y",
+    "lat": 47.679338,
+    "lng": -122.324176,
+    "schedule": "https://www.flightroomseattle.com/schedule",
+    "location": "Green Lake"
+  },
+  {
+    "kind": "pilates",
+    "name": "PIVOT Movement Studio - Green Lake",
+    "site": "http://pivotmovementstudio.com/",
+    "km": 3.96,
+    "address": "919 NE 70th St C1, Seattle, WA 98115, USA",
+    "neighborhood": "Green Lake",
+    "id": "ChIJtQM0flUVkFQRpubCq1uAQVw",
+    "lat": 47.6792777,
+    "lng": -122.31793830000001,
+    "schedule": "https://www.pivotmovementstudio.com/greenlake-classes"
   }
 ]

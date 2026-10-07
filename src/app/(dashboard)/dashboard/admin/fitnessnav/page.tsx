@@ -32,6 +32,15 @@ const TODO_SECTIONS = ["Reader", "Studios", "Mine"];
 /** What shipped, newest first. Kept here on purpose: it changes when the work ships, with the same commit. */
 const BUILT: Array<{ when: string; items: string[] }> = [
   {
+    when: "Oct 7",
+    items: [
+      "North Seattle searched: Wallingford, Green Lake, Phinney Ridge, Greenwood, U-District and University Village, Roosevelt and Ravenna, Wedgwood, Maple Leaf and Northgate, Lake City, Broadview, Sand Point and the Ballard sub-areas. 146 candidates found, 88 test-read, 41 studios added (about 1,900 classes), each checked against its own page.",
+      "Found and fixed a third kind of the mixed-locations bug: Vitality Pilates (Phinney Ridge showed Ravenna and Mount Baker classes), Flight Room (Central District showed Green Lake's), and NW Fitness Project (Fremont showed West Seattle's) now show only their own club. PIVOT's Roosevelt-area studio was reading its Bellevue page; it now reads Green Lake's.",
+      "barre3 (Ballard and Roosevelt) reads exactly from Mariana Tek's public class feed: a new optional `mariana` setting in studios.json that works for any studio whose page hides its widget.",
+      "Open gym sessions, kids and youth classes, basketball and water classes no longer show up as lifting classes.",
+    ],
+  },
+  {
     when: "Oct 6",
     items: [
       "A safety net: a bad read can never replace a good week on the site (7 studios protected on the first morning).",
@@ -74,6 +83,8 @@ const ROADMAP: Array<{ title: string; detail: string; status: "done" | "waiting"
   { title: "Capitol Hill, second pass", detail: "Done Oct 6. 18 more candidates read; all personal-training gyms, dance, or no schedule. Nothing to add.", status: "done" },
   { title: "Downtown, Belltown and Chinatown-ID", detail: "Done Oct 6. 9 studios added (Atlas, Club Pilates Queen Anne, Innerland, Kinesia, Mind.Body.Hum, Mother Yoga, Take Care, Belltown Strength, Persistence). Chinatown-ID has few class studios. Held back: Bodytonic, Cue Fitness (every class named just \"Fitness Class\"), CorePower Belltown, Barry's, SoulCycle. No readable schedule: Demco, Emerald City Pilates, Northwest Strong, Seattle Athletic Club, ZUM, Bouldering Project Poplar.", status: "done" },
   { title: "Neighborhoods next to Capitol Hill", detail: "Done Oct 6: Central District, Eastlake, South Lake Union, Montlake, First Hill, Madison Park. 11 of 36 candidates added. Held back (partial or tricky reads): Barry's, SoulCycle, Pure Barre, CorePower Belltown, KlickWay. Not readable: F45 Central District, Eighth Haus, OmCulture and others.", status: "done" },
+  { title: "North Seattle", detail: "Done Oct 7. 41 studios added across Wallingford, Green Lake, Phinney Ridge, Greenwood, U-District / U Village, Roosevelt, Ravenna, Wedgwood, Northgate and the Ballard sub-areas. Held back: Seattle Strength (Ballard, Phinney, Wedgwood: its page shows only 1 to 2 days), Ekstasis (personal-training slots), and 22 studios with dates the reader gets wrong or events rather than classes. No readable schedule: 9Round, Ampersand, Corsair, Edgeworks, Vertical World, Half Moon, Bouldering Project U District, Ten Kicks and 20 more. Laurelhurst, Windermere, Bryant, View Ridge and Lake City have almost no class studios.", status: "done" },
+  { title: "Two live studios still mix locations", detail: "HIIT Lab (Central District + West Seattle) and The Grinning Yogi Capitol Hill (+ Greenwood) list every club on one page. The `location` filter is ready but their week view starts on a past Sunday and the day-tab reader mis-dates it, so the new read is worse than what is live. Fix the day-tab reader first, then add `location` to both.", status: "now" },
   { title: "Mariana Tek studios read exactly", detail: "Five of the busiest studios, from their widget's own data. Done Oct 6.", status: "done" },
   { title: "Faster reads with Claude", detail: "Built and parked Oct 6: the local Qwen model stays the reader. An Anthropic key in the job's .env turns it on any time; the 95-minute run would drop to minutes.", status: "later" },
   { title: "Studios that still don't read", detail: "Done Oct 6. Experience Momentum now reads from its Mindbody page (39 classes). The rest can't be read for good reasons: JETSET isn't open yet, Coeur opens Nov 9, Cambio and Studio Jacks are appointments only, Seed's calendar has no classes posted (the job keeps checking). Posto and Bouldering Project block readers.", status: "done" },
@@ -84,7 +95,6 @@ const ROADMAP: Array<{ title: string; detail: string; status: "done" | "waiting"
 ];
 
 const AHEAD: Array<{ area: string; hoods: string }> = [
-  { area: "North Seattle", hoods: "Wallingford · Green Lake · Phinney Ridge · Greenwood · U-District & University Village · Ravenna & Roosevelt · Laurelhurst & Windermere · Wedgwood, Bryant & View Ridge · Sand Point & Magnuson · Lake City · Northgate · Broadview & Bitter Lake" },
   { area: "Central & Downtown", hoods: "Downtown / Waterfront · Belltown · Pioneer Square · Chinatown-ID · First Hill · South Lake Union · Denny Triangle · Magnolia · Interbay · Eastlake & Westlake · Central District" },
   { area: "South Seattle", hoods: "Beacon Hill · Rainier Valley · SoDo · Georgetown · South Park · Seward Park · NewHolly" },
   { area: "West Seattle", hoods: "Alki · North Admiral · The Junction · Fauntleroy · Delridge · Gatewood & Genesee · Arbor Heights & Westwood" },
