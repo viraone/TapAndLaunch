@@ -65,9 +65,11 @@ function dateFromLabel(label) {
   if (/^tomorrow\b/i.test(l)) return plusDays(1);
   if ((m = /(?:^|\s)(\d{1,2})(?:\s|$)/.exec(l)) && /\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b|^[SMTWF]\s/i.test(l)) {
     // A bare day of the month next to a weekday ("T 6", "Wed 7", "7 Wed"): this month, or next month once it has passed.
+    // A week strip often starts on a Sunday already past (Sun 4 on Wed 7): that is this month. Only a number far below
+    // today's is next month's.
     const d = +m[1];
     let mo = tm, y = ty;
-    if (d < td - 1) { mo += 1; if (mo > 12) { mo = 1; y += 1; } }
+    if (d < td - 7) { mo += 1; if (mo > 12) { mo = 1; y += 1; } }
     return d >= 1 && d <= 31 ? iso(y, mo, d) : null;
   }
   if ((m = /\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/i.exec(l))) {
@@ -150,20 +152,23 @@ async function render(browser, url, { settle = 7000 } = {}) {
       const dayTabs = () => f.evaluate(() => {
         const WD = "(sun|mon|tue|wed|thu|fri|sat)[a-z]*\\.?", MO = "(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?";
         const res = [new RegExp(`^${WD}\\s*\\d{1,2}$`, "i"), new RegExp(`^\\d{1,2}\\s*${WD}$`, "i"), new RegExp(`^${MO}\\s*\\d{1,2}\\s+${WD}$`, "i"), new RegExp(`^(today|tomorrow)\\s+${WD}$`, "i"), /^[SMTWF]\s\d{1,2}$/, new RegExp(`^(today|${WD})\\s+\\d{1,2}/\\d{1,2}$`, "i")];
-        const label = (e) => (e.innerText || "").replace(/\s+/g, " ").trim();
+        // Momence marks days that have classes with dots under the number ("WED 7 • •"): decoration, not part of the label.
+        const label = (e) => (e.innerText || "").replace(/\s+/g, " ").replace(/[\s•·∙]+$/g, "").trim();
         const els = Array.from(document.querySelectorAll("button, a, [role=button], [role=tab], li, td, div, span")).filter((e) => e.getBoundingClientRect().width > 0 && res.some((re) => re.test(label(e))));
         return els.filter((e) => !els.some((o) => o !== e && e.contains(o))).slice(0, 8).map(label);
       }).catch(() => []);
       const clickTab = (label) => f.evaluate((want) => {
-        const els = Array.from(document.querySelectorAll("button, a, [role=button], [role=tab], li, td, div, span")).filter((e) => (e.innerText || "").replace(/\s+/g, " ").trim() === want && e.getBoundingClientRect().width > 0);
+        const els = Array.from(document.querySelectorAll("button, a, [role=button], [role=tab], li, td, div, span")).filter((e) => (e.innerText || "").replace(/\s+/g, " ").replace(/[\s•·∙]+$/g, "").trim() === want && e.getBoundingClientRect().width > 0);
         const leaf = els.find((e) => !els.some((o) => o !== e && e.contains(o)));
         if (!leaf) return false;
         leaf.click();
         return true;
       }, label).catch(() => false);
       const walk = async () => {
-        const tabs = await dayTabs();
-        if (tabs.length < 3) return false; // not a day strip
+        const allTabs = await dayTabs();
+        if (allTabs.length < 3) return false; // not a day strip
+        // Days already past have no classes to book (a Momence strip starts on the Sunday): don't read them as if they did.
+        const tabs = allTabs.filter((l) => { const d = dateFromLabel(l); return !d || d >= TODAY_ISO; });
         const seen = [];
         for (const label of tabs) {
           if (!(await clickTab(label))) continue;

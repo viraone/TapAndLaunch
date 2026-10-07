@@ -418,7 +418,9 @@
     "neighborhood": "Capitol Hill",
     "id": "ChIJDV91YisVkFQRIF0j9AE3T48",
     "lat": 47.621789,
-    "lng": -122.312984
+    "lng": -122.312984,
+    "location": "Capitol Hill",
+    "schedule": "https://thegrinningyogiseattle.com/schedule"
   },
   {
     "kind": "yoga",
@@ -495,7 +497,9 @@
     "neighborhood": "Capitol Hill",
     "id": "ChIJC62NmmVrkFQRR9A_pyMfEFE",
     "lat": 47.612306,
-    "lng": -122.302388
+    "lng": -122.302388,
+    "location": "Central District",
+    "schedule": "https://hiitlab.com/schedule/"
   },
   {
     "kind": "lifting",
@@ -1276,5 +1280,41 @@
     "lat": 47.6792777,
     "lng": -122.31793830000001,
     "schedule": "https://www.pivotmovementstudio.com/greenlake-classes"
+  },
+  {
+    "kind": "lifting",
+    "name": "HIIT Lab - West Seattle",
+    "site": "http://www.hiitlab.com/",
+    "km": 11.9,
+    "address": "6323 35th Ave SW, Seattle, WA 98126, USA",
+    "neighborhood": "Morgan Junction-Gatewood",
+    "id": "ChIJ-28BzhtBkFQR0vbjHD8sxB0",
+    "lat": 47.5456776,
+    "lng": -122.37675159999999,
+    "types": [
+      "health"
+    ],
+    "schedule": "https://hiitlab.com/schedule/",
+    "location": "West Seattle"
+  },
+  {
+    "kind": "pilates",
+    "name": "barre3 - West Seattle",
+    "site": "https://barre3.com/studio-locations/west-seattle",
+    "km": 8.91,
+    "address": "3218 California Ave SW, Seattle, WA 98116, USA",
+    "neighborhood": "Alki-Admiral",
+    "id": "ChIJeR6dq2BAkFQRA0iwIUck8gk",
+    "lat": 47.5748438,
+    "lng": -122.386479,
+    "types": [
+      "gym",
+      "sports_activity_location",
+      "health"
+    ],
+    "mariana": {
+      "tenant": "barre3",
+      "location": "48763"
+    }
   }
 ]
