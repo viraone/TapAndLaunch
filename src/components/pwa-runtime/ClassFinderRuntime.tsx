@@ -254,6 +254,18 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     });
   const dayStudios = new Set(dayClasses.map((c) => c.studioId)).size;
 
+  // Moving to another day keeps the parts of the day as the visitor had them: what was open stays open, what was
+  // folded stays folded. A part that was not on screen for the day they left (the morning, once today's mornings have
+  // passed) comes in folded with its one-class preview, so tomorrow opens on the afternoon they were looking at
+  // rather than pushing it down under a full morning. `pool` is the classes the new day will show, when it is not `visible`.
+  function goToDay(d: string, pool: FitnessClass[] = visible) {
+    const before = new Set(dayClasses.map((c) => partOfDay(c.start)));
+    const after = new Set(pool.filter((c) => c.date === d).map((c) => partOfDay(c.start)));
+    const newParts = PARTS.filter((p) => after.has(p) && !before.has(p));
+    if (newParts.length && before.size) setFolded((prev) => new Set([...prev, ...newParts]));
+    setDay(d);
+  }
+
   function showStudio(id: string | null) {
     setStudioId(id);
     if (id && shownDay) {
@@ -261,7 +273,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
       const mine = visible.filter((c) => c.studioId === id);
       if (!mine.some((c) => c.date === shownDay)) {
         const first = days.find((d) => mine.some((c) => c.date === d));
-        if (first) setDay(first);
+        if (first) goToDay(first, mine);
       }
     }
     focusStudio.current = true;
@@ -507,7 +519,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                     data-day={d}
                     aria-pressed={on}
                     aria-label={`${d === today ? "Today" : dayLabel(d, { weekday: "long" })}, ${dayLabel(d, { month: "long", day: "numeric" })}, ${n ? `${n} class${n === 1 ? "" : "es"}` : "no classes"}`}
-                    onClick={() => setDay(d)}
+                    onClick={() => goToDay(d)}
                     className={`flex min-w-16 shrink-0 snap-start flex-col items-center rounded-xl border-[1.5px] px-1.5 py-2 ${on ? "border-foreground bg-foreground text-background" : "border-border"}`}
                   >
                     <span className={`text-[11px] font-bold uppercase tracking-wider ${on ? "opacity-80" : "text-muted-foreground"}`}>
@@ -562,7 +574,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                   {nextDay && (
                     <button
                       type="button"
-                      onClick={() => setDay(nextDay)}
+                      onClick={() => goToDay(nextDay)}
                       className="flex items-center rounded-full border-[1.5px] border-[#c23f1a] bg-background px-4 py-2 text-sm font-bold text-[#c23f1a] dark:border-[#ff7a52] dark:text-[#ff7a52]"
                     >
                       See {dayLabel(nextDay, { weekday: "long" })}&apos;s classes · {visible.filter((c) => c.date === nextDay).length}
