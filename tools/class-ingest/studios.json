@@ -20,7 +20,8 @@
     "neighborhood": "Fremont",
     "id": "ChIJYTzWaJsVkFQRV2U6X-sKokQ",
     "lat": 47.651618,
-    "lng": -122.351106
+    "lng": -122.351106,
+    "note": "Wix calendar on /group-classes showed no bookable classes for two weeks (Oct 6 2026); left in so the job keeps checking"
   },
   {
     "kind": "pilates",
@@ -31,7 +32,8 @@
     "neighborhood": "East Queen Anne",
     "id": "ChIJJeK07ZoVkFQR18wstVYQ49c",
     "lat": 47.645565,
-    "lng": -122.349497
+    "lng": -122.349497,
+    "skip": "not open yet (site says Coming Soon, Oct 2026); re-check when it opens"
   },
   {
     "kind": "pilates",
@@ -134,7 +136,7 @@
     "lng": -122.341729
   },
   {
-    "kind": "climbing",
+    "kind": "lifting",
     "name": "Experience Momentum",
     "site": "https://www.experiencemomentum.com/",
     "km": 0.52,
@@ -142,7 +144,8 @@
     "neighborhood": "Fremont",
     "id": "ChIJKflFIxsVkFQRLWUNPOEb2gE",
     "lat": 47.649823,
-    "lng": -122.343831
+    "lng": -122.343831,
+    "schedule": "https://clients.mindbodyonline.com/classic/ws?studioid=214947&stype=-7&sView=week&sLoc=2"
   },
   {
     "kind": "lifting",
@@ -164,7 +167,8 @@
     "neighborhood": "Fremont",
     "id": "ChIJj3Er4qkVkFQRYnEm4JLh1WE",
     "lat": 47.651669,
-    "lng": -122.35259
+    "lng": -122.35259,
+    "skip": "personal training only (Schedule now goes to Calendly)"
   },
   {
     "kind": "lifting",
@@ -208,7 +212,8 @@
     "neighborhood": "East Queen Anne",
     "id": "ChIJRydnKbBqkFQRW_oSRhpDr7Q",
     "lat": 47.64447,
-    "lng": -122.345044
+    "lng": -122.345044,
+    "skip": "appointments only (Sessions page, Make Your First Appointment)"
   },
   {
     "kind": "pilates",
@@ -241,7 +246,8 @@
     "neighborhood": "Wallingford",
     "id": "ChIJw-lbrQQVkFQR5xoOL6Tgytk",
     "lat": 47.661177,
-    "lng": -122.334681
+    "lng": -122.334681,
+    "skip": "opens November 9, 2026 (site); re-check after that"
   },
   {
     "kind": "pilates",
