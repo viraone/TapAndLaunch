@@ -179,7 +179,12 @@ async function render(browser, url, { settle = 7000 } = {}) {
         // Some pages (CorePower) don't swap the day: each tab click appends that day to one growing list under day headings.
         // Reading every snapshot would hand the model the same days over and over; the last snapshot alone holds the week.
         const grows = seen.length > 1 && seen.every((x, i) => i === 0 || (x.t.length > seen[i - 1].t.length && x.t.includes(seen[i - 1].t.slice(-300))));
-        if (grows) parts.push(`[All day tabs shown, in one list with day headings]\n${seen[seen.length - 1].t}`);
+        // Other pages (Club Pilates, week grids like Loft Fitness) show the whole week at once and the "day tabs" are only
+        // links or column headers: every snapshot is the same page. Marking each with a day would copy one week onto every
+        // day, so it is handed over once, unmarked (its own day headings, if any, still split it).
+        const fixed = seen.length >= 3 && new Set(seen.map((x) => x.t.replace(/\s+/g, " ").trim())).size <= Math.max(1, Math.floor(seen.length / 3));
+        if (fixed) parts.push(seen.reduce((a, x) => (x.t.length > a.length ? x.t : a), ""));
+        else if (grows) parts.push(`[All day tabs shown, in one list with day headings]\n${seen[seen.length - 1].t}`);
         else for (const { label, t } of seen) parts.push(`[Day tab shown: ${label}]\n${t}`);
         return true;
       };
@@ -187,7 +192,9 @@ async function render(browser, url, { settle = 7000 } = {}) {
       walkedFrames.add(f);
       for (let week = 0; week < 1; week++) {
         const clicked = await f.evaluate(() => {
-          const next = Array.from(document.querySelectorAll("button, a, [role=button]")).find((e) => /next[- ]week|next-arrow/i.test((e.getAttribute("aria-label") || "") + " " + (e.getAttribute("data-hook") || "")) && e.getBoundingClientRect().width > 0);
+          let next = Array.from(document.querySelectorAll("button, a, [role=button]")).find((e) => /next[- ]week|next-arrow/i.test((e.getAttribute("aria-label") || "") + " " + (e.getAttribute("data-hook") || "")) && e.getBoundingClientRect().width > 0);
+          // Momence's day strip has a previous and a next arrow with no label; the next one is the last.
+          if (!next) { const arrows = Array.from(document.querySelectorAll("button")).filter((e) => /day_selection-arrow/.test(e.className) && e.getBoundingClientRect().width > 0); if (arrows.length >= 2) next = arrows[arrows.length - 1]; }
           if (!next) return false;
           next.click();
           return true;
