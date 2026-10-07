@@ -671,7 +671,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                             <div className="flex min-w-0 flex-col gap-1">
                               <span className="break-words font-semibold leading-snug">{c.name}</span>
                               <div>
-                                <span className="break-words text-xs leading-snug text-muted-foreground">
+                                <span className="break-words text-[13px] leading-snug text-muted-foreground">
                                   <span className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide ${TYPE_STYLE[type].text}`}>
                                     <span className={`h-1.5 w-1.5 rounded-full ${TYPE_STYLE[type].dot}`} />
                                     {CLASS_TYPE_LABEL[type]}
@@ -683,12 +683,12 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                                       type="button"
                                       onClick={() => showStudio(c.studioId)}
                                       aria-label={`Show only ${s.name}`}
-                                      className="-my-1 py-1 text-left text-[13px] font-bold text-[color:var(--studio-text,inherit)] underline decoration-dotted decoration-1 underline-offset-[3px] dark:text-[color:var(--studio-text-dark,inherit)]"
+                                      className="-my-1 py-1 text-left text-sm font-bold text-[color:var(--studio-text,inherit)] underline decoration-dotted decoration-1 underline-offset-[3px] dark:text-[color:var(--studio-text-dark,inherit)]"
                                     >
                                       {s.name}
                                     </button>
                                   ) : (
-                                    <span className="text-[13px] font-bold text-[color:var(--studio-text,inherit)] dark:text-[color:var(--studio-text-dark,inherit)]">{s?.name ?? "Studio"}</span>
+                                    <span className="text-sm font-bold text-[color:var(--studio-text,inherit)] dark:text-[color:var(--studio-text-dark,inherit)]">{s?.name ?? "Studio"}</span>
                                   )}
                                   {mi != null ? ` · ${milesLabel(mi)}` : ""}
                                   {c.instructor ? ` · ${c.instructor}` : ""}
