@@ -760,5 +760,52 @@
     "id": "ChIJYUyLPbtqkFQRxV7yIWifeAo",
     "lat": 47.5995874,
     "lng": -122.3340029
+  },
+  {
+    "kind": "lifting",
+    "name": "Barry's Seattle",
+    "site": "https://www.barrys.com/studio/seattle",
+    "km": 3.71,
+    "address": "112 Westlake Ave N, Seattle, WA 98109, USA",
+    "neighborhood": "South Lake Union",
+    "id": "ChIJq8epeK8VkFQRyDXkY0PwAho",
+    "lat": 47.6188612,
+    "lng": -122.3382048,
+    "schedule": "https://www.barrys.com/schedule/seattle"
+  },
+  {
+    "kind": "spin",
+    "name": "SoulCycle South Lake Union",
+    "site": "https://www.soul-cycle.com/studios/wa-south-lake-union/",
+    "km": 3.91,
+    "address": "2105 9th Ave, Seattle, WA 98121, USA",
+    "neighborhood": "South Lake Union",
+    "id": "ChIJVVWVGUoVkFQR3znEfIakf78",
+    "lat": 47.617207699999994,
+    "lng": -122.33735929999997,
+    "schedule": "https://www.soul-cycle.com/find-a-class/studio/1093/"
+  },
+  {
+    "kind": "pilates",
+    "name": "Pure Barre Seattle (Capitol Hill)",
+    "site": "https://www.purebarre.com/location/seattle-capitol-hill-wa",
+    "km": 4.74,
+    "address": "1222 E Pine St, Capitol Hill, WA 98122, USA",
+    "neighborhood": "Capitol Hill",
+    "id": "ChIJZUUlkM1qkFQR670yNiECvAc",
+    "lat": 47.6154423,
+    "lng": -122.3159457
+  },
+  {
+    "kind": "yoga",
+    "name": "CorePower Yoga - Belltown",
+    "site": "https://www.corepoweryoga.com/yoga-studios/wa/seattle/belltown",
+    "km": 2.4,
+    "address": "2301 5th Ave Suite 101, Seattle, WA 98121, USA",
+    "neighborhood": "Belltown",
+    "id": "ChIJ-corepower-belltown",
+    "lat": 47.6144,
+    "lng": -122.3414,
+    "schedule": "https://www.corepoweryoga.com/yoga-schedules/studio?centerId=f4e68bb3-8dfb-4a22-a6a5-d1e4b7224b91"
   }
 ]

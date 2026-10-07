@@ -35,6 +35,50 @@ const dbg = (...a) => process.env.FN_DEBUG && console.error("  [debug]", ...a);
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 FitnessNavBot/0.1";
 // "Monday, October 5, 2026" in Seattle time: the model needs it to turn "Today" / "Tomorrow" into dates.
 const TODAY = new Date().toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", year: "numeric", month: "long", day: "numeric" });
+const TODAY_ISO = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()); // YYYY-MM-DD
+
+/**
+ * The date a day tab or day heading stands for: "Today 10/06", "Thursday 10/08", "T 6", "Wed 7", "7 Wed", "Oct 7 Thu",
+ * "Tue, Oct 06", "WEDNESDAY, OCTOBER 7", "Mon October 5, 2026", "Tomorrow Wed", "Today". Null when it names no day.
+ */
+function dateFromLabel(label) {
+  const [ty, tm, td] = TODAY_ISO.split("-").map(Number);
+  const iso = (y, m, d) => `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const plusDays = (n) => { const t = new Date(Date.UTC(ty, tm - 1, td + n)); return iso(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()); };
+  const l = String(label ?? "").replace(/\s+/g, " ").trim();
+  let m;
+  if ((m = /\b(\d{4})-(\d{2})-(\d{2})\b/.exec(l))) return m[0];
+  if ((m = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/.exec(l))) {
+    const mo = +m[1], d = +m[2];
+    let y = m[3] ? (+m[3] < 100 ? 2000 + +m[3] : +m[3]) : ty;
+    if (!m[3] && mo < tm - 6) y += 1;
+    return mo >= 1 && mo <= 12 && d >= 1 && d <= 31 ? iso(y, mo, d) : null;
+  }
+  const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  if ((m = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s+(\d{1,2})(?:st|nd|rd|th)?\b(?:,?\s+(\d{4}))?/i.exec(l))) {
+    const mo = MONTHS.indexOf(m[1].slice(0, 3).toLowerCase()) + 1, d = +m[2];
+    let y = m[3] ? +m[3] : ty;
+    if (!m[3] && mo < tm - 6) y += 1;
+    return iso(y, mo, d);
+  }
+  if (/^today\b/i.test(l)) return plusDays(0);
+  if (/^tomorrow\b/i.test(l)) return plusDays(1);
+  if ((m = /(?:^|\s)(\d{1,2})(?:\s|$)/.exec(l)) && /\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b|^[SMTWF]\s/i.test(l)) {
+    // A bare day of the month next to a weekday ("T 6", "Wed 7", "7 Wed"): this month, or next month once it has passed.
+    const d = +m[1];
+    let mo = tm, y = ty;
+    if (d < td - 1) { mo += 1; if (mo > 12) { mo = 1; y += 1; } }
+    return d >= 1 && d <= 31 ? iso(y, mo, d) : null;
+  }
+  if ((m = /\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/i.exec(l))) {
+    const want = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].indexOf(m[1].toLowerCase());
+    const todayWd = new Date(Date.UTC(ty, tm - 1, td)).getUTCDay();
+    return plusDays((want - todayWd + 7) % 7);
+  }
+  return null;
+}
+/** A line that is only a day heading ("Wed, Oct 07", "WEDNESDAY, OCTOBER 7", "Mon October 5, 2026", "Thursday 10/08"). */
+const DAY_HEADING = /^\s*(?:(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*,?\s+)?(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s*(?:PDT|PST)?\s*$/i;
 
 // ---- robots.txt ----
 const robotsCache = new Map();
@@ -86,7 +130,7 @@ async function render(browser, url, { settle = 7000 } = {}) {
   const mariana = [];
   page.on("response", async (res) => {
     if (!MARIANA_API.test(res.url()) || !res.ok()) return;
-    try { const j = await res.json(); if (Array.isArray(j.results)) mariana.push(...j.results); } catch {}
+    try { const j = await res.json(); const rows = j.results ?? j.data; if (Array.isArray(rows)) mariana.push(...rows); } catch {}
   });
   try {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -99,12 +143,13 @@ async function render(browser, url, { settle = 7000 } = {}) {
     await page.waitForTimeout(3000);
     // Text of the page AND every frame (schedules usually live in a booking widget's iframe).
     const parts = [];
+    const walkedFrames = new Set(); // frames read day by day below: not read again whole afterwards
     // Widgets that show one day at a time (Mindbody, Mariana Tek, Wix agenda): click each day tab and read every day.
     // Day tabs read "Mon 5", "5 Mon", "Oct 1 THU" or "Today SUN"; a "next week" arrow, when there is one, gets the week after.
     for (const f of page.frames()) {
       const dayTabs = () => f.evaluate(() => {
         const WD = "(sun|mon|tue|wed|thu|fri|sat)[a-z]*\\.?", MO = "(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?";
-        const res = [new RegExp(`^${WD}\\s*\\d{1,2}$`, "i"), new RegExp(`^\\d{1,2}\\s*${WD}$`, "i"), new RegExp(`^${MO}\\s*\\d{1,2}\\s+${WD}$`, "i"), new RegExp(`^(today|tomorrow)\\s+${WD}$`, "i")];
+        const res = [new RegExp(`^${WD}\\s*\\d{1,2}$`, "i"), new RegExp(`^\\d{1,2}\\s*${WD}$`, "i"), new RegExp(`^${MO}\\s*\\d{1,2}\\s+${WD}$`, "i"), new RegExp(`^(today|tomorrow)\\s+${WD}$`, "i"), /^[SMTWF]\s\d{1,2}$/, new RegExp(`^(today|${WD})\\s+\\d{1,2}/\\d{1,2}$`, "i")];
         const label = (e) => (e.innerText || "").replace(/\s+/g, " ").trim();
         const els = Array.from(document.querySelectorAll("button, a, [role=button], [role=tab], li, td, div, span")).filter((e) => e.getBoundingClientRect().width > 0 && res.some((re) => re.test(label(e))));
         return els.filter((e) => !els.some((o) => o !== e && e.contains(o))).slice(0, 8).map(label);
@@ -119,15 +164,22 @@ async function render(browser, url, { settle = 7000 } = {}) {
       const walk = async () => {
         const tabs = await dayTabs();
         if (tabs.length < 3) return false; // not a day strip
+        const seen = [];
         for (const label of tabs) {
           if (!(await clickTab(label))) continue;
           await page.waitForTimeout(2500);
           const t = await f.evaluate(() => document.body?.innerText ?? "").catch(() => "");
-          if (t.trim()) parts.push(`[Day tab shown: ${label}]\n${t}`);
+          if (t.trim()) seen.push({ label, t });
         }
+        // Some pages (CorePower) don't swap the day: each tab click appends that day to one growing list under day headings.
+        // Reading every snapshot would hand the model the same days over and over; the last snapshot alone holds the week.
+        const grows = seen.length > 1 && seen.every((x, i) => i === 0 || (x.t.length > seen[i - 1].t.length && x.t.includes(seen[i - 1].t.slice(-300))));
+        if (grows) parts.push(`[All day tabs shown, in one list with day headings]\n${seen[seen.length - 1].t}`);
+        else for (const { label, t } of seen) parts.push(`[Day tab shown: ${label}]\n${t}`);
         return true;
       };
       if (!(await walk())) continue;
+      walkedFrames.add(f);
       for (let week = 0; week < 1; week++) {
         const clicked = await f.evaluate(() => {
           const next = Array.from(document.querySelectorAll("button, a, [role=button]")).find((e) => /next[- ]week|next-arrow/i.test((e.getAttribute("aria-label") || "") + " " + (e.getAttribute("data-hook") || "")) && e.getBoundingClientRect().width > 0);
@@ -140,11 +192,31 @@ async function render(browser, url, { settle = 7000 } = {}) {
         await walk();
       }
     }
+    // Week grids (SoulCycle's find-a-class page): every day is a column, and the page text flattens them so the model can't
+    // tell which day a class is under. Label each column with its date instead.
+    const gridFrames = new Set();
+    for (const f of page.frames()) {
+      const grid = await f.evaluate(() => {
+        const cols = Array.from(document.querySelectorAll(".classes-week-cols .column-day[data-date]"));
+        if (cols.length < 5) return null;
+        const head = document.querySelector(".days-of-week-container")?.innerText ?? "";
+        const m = /This Week,\s*([A-Za-z]{3,9})\s+(\d{4})/.exec(head);
+        return m ? { month: m[1], year: Number(m[2]), cols: cols.map((c) => ({ day: Number(c.getAttribute("data-date")), text: (c.innerText || "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim() })) } : null;
+      }).catch(() => null);
+      if (!grid) continue;
+      let month = new Date(`${grid.month} 1, ${grid.year}`).getMonth(), year = grid.year, prev = 0;
+      for (const c of grid.cols) {
+        if (c.day < prev) { month += 1; if (month > 11) { month = 0; year += 1; } }
+        prev = c.day;
+        parts.push(`[Day column: ${year}-${String(month + 1).padStart(2, "0")}-${String(c.day).padStart(2, "0")}]\n${c.text}`);
+      }
+      gridFrames.add(f);
+    }
     const frameUrls = [];
     for (const f of page.frames()) {
       try {
         const t = await f.evaluate(() => document.body?.innerText ?? "");
-        if (t.trim()) parts.push(t);
+        if (t.trim() && !gridFrames.has(f) && !walkedFrames.has(f)) parts.push(t);
         if (f !== page.mainFrame()) frameUrls.push(f.url());
       } catch {}
     }
@@ -159,7 +231,8 @@ async function render(browser, url, { settle = 7000 } = {}) {
 // the day in the page's own address (`?_mt=/schedule/daily/<id>?activeDate=YYYY-MM-DD&locations=<id>`), and downloads that
 // day's classes as data. So the week is read by loading the studio's page once per day and keeping what the widget
 // downloads: exact dates and times, no model, and no clicking through day tabs (which used to land on the wrong week).
-const MARIANA_API = /marianatek\.com\/api\/customer\/v1\/classes/;
+// Barry's runs the same system behind its own address (app.barrys.com/api/mt/classes), answering with `data` instead of `results`.
+const MARIANA_API = /marianatek\.com\/api\/customer\/v1\/classes|\/api\/mt\/classes\?/;
 
 function marianaDayUrl(pageUrl, date) {
   const u = new URL(pageUrl);
@@ -179,7 +252,7 @@ async function marianaDay(browser, url) {
   const got = [];
   page.on("response", async (res) => {
     if (!MARIANA_API.test(res.url()) || !res.ok()) return;
-    try { const j = await res.json(); if (Array.isArray(j.results)) got.push(...j.results); } catch {}
+    try { const j = await res.json(); const rows = j.results ?? j.data; if (Array.isArray(rows)) got.push(...rows); } catch {}
   });
   try {
     const waited = page.waitForResponse((res) => MARIANA_API.test(res.url()), { timeout: 20000 }).catch(() => null);
@@ -237,6 +310,7 @@ Today is ${TODAY}. The studio is in Seattle (Pacific time).
 Rules:
 - Only classes that appear in the text with a start time. Never invent classes, times, dates or instructors.
 - date: "YYYY-MM-DD" for the day the class is listed under (work it out from headings like "Mon 10/5", "Tomorrow", "Today"). null if the page gives no way to tell the day.
+- A line like "[Day tab shown: Thursday 10/08]" or "[Day column: 2026-10-08]" means EVERY class after it, up to the next such line, is on that day, whatever other day names appear in the text (a strip of day tabs is not a heading).
 - start / end: 24-hour "HH:MM" (end null if not shown; if only a length like "50 min" is shown, work out the end).
 - name: the class name exactly as written. instructor: as written, or null. spots: text like "3 spots left" / "Waitlist" / "Full", or null.
 - Skip opening hours, workshops priced as events, private sessions, and anything without a start time.
@@ -348,6 +422,27 @@ function verify(classes, text) {
   const seen = new Set();
   return { kept: kept.filter((c) => { const k = `${c.date}|${c.start}|${norm(c.name)}`; return seen.has(k) ? false : seen.add(k); }), dropped };
 }
+/**
+ * Splits page text into day pieces: at the reader's own "[Day tab shown: …]" / "[Day column: …]" markers, and inside a
+ * piece at day-heading lines when there are at least three (a week listed under headings). Each piece carries the date its
+ * marker or heading names, or null when the text names no day (then the model works it out as before).
+ */
+function dayPieces(text) {
+  const out = [];
+  const marked = text.split(/^(?=\[Day (?:tab shown|column):[^\]]*\])/m);
+  for (const block of marked) {
+    const m = /^\[Day (?:tab shown|column):\s*([^\]]*)\]\n?/.exec(block);
+    const date = m ? dateFromLabel(m[1]) : null;
+    const body = m ? block.slice(m[0].length) : block;
+    const lines = body.split("\n");
+    const heads = lines.map((l, i) => (DAY_HEADING.test(l) && dateFromLabel(l) ? i : -1)).filter((i) => i >= 0);
+    if (!date && heads.length >= 3) {
+      out.push({ date: null, text: lines.slice(0, heads[0]).join("\n") });
+      heads.forEach((h, k) => out.push({ date: dateFromLabel(lines[h]), text: lines.slice(h, heads[k + 1] ?? lines.length).join("\n") }));
+    } else out.push({ date, text: body });
+  }
+  return out.filter((x) => x.text.trim());
+}
 const chunk = (t, n = 14000) => { const out = []; let cur = ""; for (const l of t.split("\n")) { if (cur && cur.length + l.length > n) { out.push(cur); cur = ""; } cur += (cur ? "\n" : "") + l.slice(0, n); } if (cur) out.push(cur); return out; };
 
 
@@ -379,23 +474,31 @@ async function readStudio(browser, s) {
 
   // Reads one candidate schedule page. Returns the finished result when it holds classes, else null (what it dropped is kept).
   const attempt = async (url, pg) => {
+    // FN_DUMP=1: keep the text the model was given, next to the result, for checking a read by hand.
+    if (process.env.FN_DUMP) fs.writeFileSync(path.join(outDir, `${s.name.replace(/[^\w]+/g, "_")}.text.txt`), `${url}\n\n${pg.text}`);
     // A Mariana Tek widget on the page: the week comes from its data, exact and without the model.
     const mt = await readMariana(browser, pg);
     if (mt) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "marianatek", classes: mt.classes, dropped: [] });
     const all = [];
     let anySchedule = false;
-    const withTimes = chunk(pg.text).filter((c) => /\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b/i.test(c)).slice(0, 8);
-    for (const part of withTimes) {
-      if (Date.now() - t0 > STUDIO_BUDGET_MS) break;
-      dbg("ask model, chars", part.length);
-      const m0 = Date.now();
-      // studios.json `location`: the page lists several locations of one studio ("Capitol Hill, Studio" under each class).
-      const a = await ask(s.location ? `${s.name}. IMPORTANT: this page lists several locations and shows each class's location. Return ONLY the classes held at the ${s.location} location, and none from any other location.` : s.name, part);
-      modelMs += Date.now() - m0;
-      if (a.failed) r.modelFailed = true;
-      dbg("model answered", a.classes.length, "classes");
-      if (a.is) anySchedule = true;
-      all.push(...a.classes);
+    // studios.json `location`: the page lists several locations of one studio ("Capitol Hill, Studio" under each class).
+    const who = s.location ? `${s.name}. IMPORTANT: this page lists several locations and shows each class's location. Return ONLY the classes held at the ${s.location} location, and none from any other location.` : s.name;
+    // One request per day, with the day fixed by the tab the reader clicked or the heading the page printed, so the model
+    // never has to work out which of a week's days a class sits under (it got that wrong on long pages).
+    const hasTimes = (c) => /\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b/i.test(c);
+    const pieces = dayPieces(pg.text).filter((x) => hasTimes(x.text)).slice(0, 16);
+    for (const { date, text } of pieces) {
+      for (const part of chunk(text)) {
+        if (Date.now() - t0 > STUDIO_BUDGET_MS) break;
+        dbg("ask model, chars", part.length, date ? `(day ${date})` : "");
+        const m0 = Date.now();
+        const a = await ask(date ? `${who}. Every class in this text is on ${date}: set date to "${date}" for all of them.` : who, part);
+        modelMs += Date.now() - m0;
+        if (a.failed) r.modelFailed = true;
+        dbg("model answered", a.classes.length, "classes");
+        if (a.is) anySchedule = true;
+        all.push(...(date ? a.classes.map((c) => ({ ...c, date })) : a.classes));
+      }
     }
     if (!anySchedule || all.length === 0) return null;
     const verified = verify(all, pg.text);
@@ -414,6 +517,7 @@ async function readStudio(browser, s) {
     return null;
   };
 
+  const rendered = new Map(); // pages already rendered in this read (the home page), by address
   // Last time, the schedule was here: go straight to it (no home page, no link search). If it no longer works, search as usual.
   const remembered = !s.schedule ? cache[s.name]?.url : null;
   if (remembered) {
@@ -427,21 +531,28 @@ async function readStudio(browser, s) {
     }
   }
 
-  const home = await render(browser, s.site, { settle: 3000 });
-  // "West Queen Anne" should still match a "Queen Anne" link.
-  const hood = s.neighborhood ? [s.neighborhood, s.neighborhood.replace(/^(north|south|east|west|upper|lower)\s+/i, "")] : [];
-  const places = [...new Set([...hood, ...s.name.split(/\s[-|–]\s|[()]/).slice(1)].filter(Boolean).map((x) => x.toLowerCase().trim()).filter((x) => x.length >= 4))];
-  const linked = [...home.frameUrls.filter((u) => PLATFORM.test(u)), ...scheduleLinks(home.links, home.finalUrl, places)];
-  // s.schedule: a schedule page confirmed by hand for a chain whose own pages don't say which location they show.
-  const candidates = s.schedule ? [s.schedule] : [...new Set([...linked.slice(0, 3), ...(await guessedSchedulePages(home.finalUrl)), ...linked.slice(3)])].slice(0, 6);
-  // A studio page that already lists class times (Club Pilates' location page shows the day's classes) is read first.
-  const homeHasTimes = (home.text.match(/\b\d{1,2}(:\d{2})?\s*(am|pm)\b/gi) ?? []).length >= 5;
-  for (const url of homeHasTimes ? [home.finalUrl, ...candidates] : [...candidates, home.finalUrl]) {
+  // s.schedule: a schedule page confirmed by hand (a chain whose pages don't say which location they show, or a studio whose
+  // home page lists a few upcoming classes that would otherwise pass for the schedule). Only that page is read.
+  let order;
+  if (s.schedule) order = [s.schedule];
+  else {
+    const home = await render(browser, s.site, { settle: 3000 });
+    // "West Queen Anne" should still match a "Queen Anne" link.
+    const hood = s.neighborhood ? [s.neighborhood, s.neighborhood.replace(/^(north|south|east|west|upper|lower)\s+/i, "")] : [];
+    const places = [...new Set([...hood, ...s.name.split(/\s[-|–]\s|[()]/).slice(1)].filter(Boolean).map((x) => x.toLowerCase().trim()).filter((x) => x.length >= 4))];
+    const linked = [...home.frameUrls.filter((u) => PLATFORM.test(u)), ...scheduleLinks(home.links, home.finalUrl, places)];
+    const candidates = [...new Set([...linked.slice(0, 3), ...(await guessedSchedulePages(home.finalUrl)), ...linked.slice(3)])].slice(0, 6);
+    // A studio page that already lists class times (Club Pilates' location page shows the day's classes) is read first.
+    const homeHasTimes = (home.text.match(/\b\d{1,2}(:\d{2})?\s*(am|pm)\b/gi) ?? []).length >= 5;
+    order = homeHasTimes ? [home.finalUrl, ...candidates] : [...candidates, home.finalUrl];
+    rendered.set(home.finalUrl, home);
+  }
+  for (const url of order) {
     if (Date.now() - t0 > STUDIO_BUDGET_MS) break;
     if (r.tried.includes(url)) continue;
     r.tried.push(url);
     if (!(await allowed(url))) { r.status = "blocked_robots"; continue; }
-    const pg = url === home.finalUrl ? home : await render(browser, url).catch(() => null);
+    const pg = rendered.get(url) ?? (await render(browser, url).catch(() => null));
     if (!pg || pg.text.length < 200) continue;
     const done = await attempt(url, pg);
     if (done) return done;

@@ -34,9 +34,13 @@ const kmFrom = (lat, lng) => {
 // One search per kind of class the page offers; the kind is a first guess, the class names decide later (classify.mjs).
 const QUERIES = [
   ["pilates", "pilates studio"],
+  ["pilates", "reformer pilates barre studio"],
   ["yoga", "yoga studio"],
+  ["yoga", "hot yoga meditation sound bath"],
   ["spin", "indoor cycling spin studio"],
-  ["lifting", "gym fitness classes strength training crossfit"],
+  ["lifting", "gym fitness classes strength training"],
+  ["lifting", "crossfit functional fitness"],
+  ["lifting", "hiit bootcamp boxing group fitness"],
   ["climbing", "climbing gym"],
 ];
 // Not studios: physical therapy, personal-training-only, apparel, big-box with no class schedule we can read.
