@@ -5,13 +5,19 @@ import { fetchGooglePlaces, isGoogleConfigured, type GooglePlace } from "@/lib/f
 import { CUISINE_BY_KEY, cuisineLabelFor, cuisineOf } from "@/lib/food/cuisines";
 import { isCellFresh } from "@/lib/food/cellFreshness";
 import { happyHourFor } from "@/lib/food/happyHour";
-import type { CuisineKey, Database, HappyHourWindow, OpeningPeriod } from "@/types/database";
+import type { CuisineKey, Database, HappyHourWindow, OpeningPeriod, VeganItem } from "@/types/database";
 
 type PlaceRow = Database["public"]["Tables"]["food_places"]["Row"];
 
 /** One restaurant as the published app renders it. Open/closed is *not*
  * included: the client computes it from `openingPeriods` +
  * `utcOffsetMinutes` (lib/food/hours.ts) so it stays live between fetches. */
+export interface VeganOptions {
+  /** "restaurant": Google says the whole place is vegan. "vegetarian_restaurant": Google says vegetarian. "menu": items read off the menu. */
+  kind: "restaurant" | "vegetarian_restaurant" | "menu";
+  items: VeganItem[];
+}
+
 export interface NearbyPlace {
   id: string;
   googlePlaceId: string;
@@ -33,6 +39,13 @@ export interface NearbyPlace {
   website: string | null;
   /** Happy hours read from the restaurant's own website (tools/menu-ingest); empty when none were found. */
   happyHour: HappyHourWindow[];
+  /**
+   * Vegan options: Google lists the place as a vegan or vegetarian restaurant, or the menu job found vegan items on its
+   * menu. Null when nothing is known; `veganChecked` says whether the menu was read at all, so "none" can be told from
+   * "not checked yet".
+   */
+  vegan: VeganOptions | null;
+  veganChecked: boolean;
   /** Most recent crowd-sourced wait report within WAIT_REPORT_TTL_MS. */
   wait: { minutes: number; reportedAt: string } | null;
 }
@@ -214,8 +227,18 @@ function toNearby(row: PlaceRow, distanceMiles: number, wait: NearbyPlace["wait"
     phoneInternational: row.phone_international,
     website: row.website,
     happyHour: happyHourFor(row.happy_hour, row.happy_hour_at),
+    vegan: veganFor(row),
+    veganChecked: row.vegan_options_status !== null,
     wait,
   };
+}
+
+/** Google's own vegan / vegetarian restaurant types first; otherwise the vegan items the menu job found. */
+function veganFor(row: PlaceRow): VeganOptions | null {
+  const items = row.vegan_options_status === "found" ? (row.vegan_options?.items ?? []) : [];
+  if (row.types.includes("vegan_restaurant")) return { kind: "restaurant", items };
+  if (row.types.includes("vegetarian_restaurant")) return { kind: "vegetarian_restaurant", items };
+  return items.length ? { kind: "menu", items } : null;
 }
 
 /** The newest report per place within the TTL. */

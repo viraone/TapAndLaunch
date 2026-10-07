@@ -269,6 +269,14 @@ export interface OpeningPeriod {
  * `fallback_*` is only used when the browser can't provide a position. */
 /** One happy hour as the restaurant's website states it: which days (0 = Sunday), local start/end as "HH:MM",
  * and the deal in the restaurant's own words. `end` null = "until close". Read by tools/menu-ingest, shown by lib/food/happyHour.ts. */
+/** One vegan item read off a restaurant's own menu by the menu job (tools/menu-ingest/vegan.mjs). */
+export interface VeganItem {
+  name: string;
+  section: string | null;
+  /** "on request" when the menu says the dish can be made vegan rather than that it is. */
+  note?: string;
+}
+
 export interface HappyHourWindow {
   days: number[];
   start: string;
@@ -851,6 +859,9 @@ export interface Database {
           happy_hour_source_url: string | null;
           happy_hour_at: string | null;
           happy_hour_status: string | null;
+          vegan_options: { items: VeganItem[] } | null;
+          vegan_options_at: string | null;
+          vegan_options_status: string | null;
           google_synced_at: string;
           created_at: string;
           updated_at: string;

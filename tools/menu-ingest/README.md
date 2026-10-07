@@ -86,3 +86,15 @@ The app hides a happy hour that hasn't been re-confirmed from the restaurant's w
 ## What it can't read
 Menus that are only pictures the model can't read well (very stylised, tiny or tall images), and sites whose `robots.txt` says no.
 Prices are only as current as the restaurant's page.
+
+## Vegan options
+
+`vegan.mjs` finds the vegan options on a menu the job has read: only the restaurant's own labels count ("vegan", "VG",
+"VGN", "(ve)", "plant-based", a "Vegan" section, "can be made vegan" as *on request*); "(V)" alone, tofu or Impossible
+dishes with no label do not. `run.mjs` saves the result with every menu it reads (`vegan_options`, `vegan_options_at`,
+`vegan_options_status` on `food_places`). The app adds Google's own `vegan_restaurant` / `vegetarian_restaurant` types.
+
+One-off for menus saved before this existed (from the job folder, which has the live keys):
+
+    node backfill-vegan.mjs --dry    # counts only
+    node backfill-vegan.mjs          # writes

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, Copy, ExternalLink, Globe, LocateFixed, Loader2, MapPin, Phone, Navigation, RefreshCw, Search, Star, UtensilsCrossed, X } from "lucide-react";
 import type { CuisineKey, FoodDirectoryBlockConfig } from "@/types/database";
-import type { NearbyPlace } from "@/lib/food/nearby";
+import type { NearbyPlace, VeganOptions } from "@/lib/food/nearby";
 import { CUISINES, CUISINE_BY_KEY } from "@/lib/food/cuisines";
 import { computeOpenStatus, type OpenStatus } from "@/lib/food/hours";
 import { computeHappyHour, daysLabel, windowTimeLabel, type CloseInfo, type HappyHourStatus } from "@/lib/food/happyHour";
@@ -15,7 +15,7 @@ import { filterMenu, type MenuSection } from "@/lib/food/menuItems";
 
 type Position = { latitude: number; longitude: number; label: string; live: boolean };
 type Filter = "all" | CuisineKey;
-type Sort = "open" | "distance" | "happy";
+type Sort = "open" | "distance" | "vegan" | "happy";
 
 /** What a place's own hours say about closing, for happy hours that run "until close"; null when it isn't open now. */
 function closeInfoOf(status: OpenStatus): CloseInfo {
@@ -199,8 +199,9 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
         const status = computeOpenStatus(p.openingPeriods, p.utcOffsetMinutes, now);
         return { place: p, status, happy: computeHappyHour(p.happyHour, p.utcOffsetMinutes, now, closeInfoOf(status)) };
       })
-      // Happy Hour shows only places with one running now or starting later today.
-      .filter((x) => sort !== "happy" || x.happy.state !== "none");
+      // Happy Hour shows only places with one running now or starting later today; Vegan only places with known vegan options.
+      .filter((x) => sort !== "happy" || x.happy.state !== "none")
+      .filter((x) => sort !== "vegan" || x.place.vegan !== null);
     const rank = (s: OpenStatus) => (s.state === "open" ? 0 : s.state === "closing_soon" ? 1 : s.state === "unknown" ? 2 : 3);
     withStatus.sort((a, b) => {
       if (sort === "happy") {
@@ -209,7 +210,7 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
         if (a.happy.state === "later" && b.happy.state === "later" && a.happy.startsInMinutes !== b.happy.startsInMinutes) {
           return a.happy.startsInMinutes - b.happy.startsInMinutes;
         }
-      } else if (sort === "open") {
+      } else if (sort === "open" || sort === "vegan") {
         const d = rank(a.status) - rank(b.status);
         if (d !== 0) return d;
       }
@@ -328,7 +329,7 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
 
       {/* ── Sticky search + sort ────────────────────────────────────── */}
       <div className="sticky top-0 z-10 mt-4 border-b border-border/60 bg-background/90 px-4 py-2.5 backdrop-blur-xl">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2">
           <label className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-muted px-3 py-2">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <input
@@ -345,15 +346,15 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
               </button>
             )}
           </label>
-          <div className="flex shrink-0 rounded-full bg-muted p-0.5 text-xs font-medium">
-            {(["open", "distance", "happy"] as const).map((s) => (
+          <div className="flex rounded-full bg-muted p-0.5 text-xs font-medium">
+            {(["open", "distance", "vegan", "happy"] as const).map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setSort(s)}
-                className={`whitespace-nowrap rounded-full px-2.5 py-1.5 transition min-[380px]:px-3 ${sort === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+                className={`flex-1 whitespace-nowrap rounded-full px-2 py-1.5 text-center transition min-[380px]:px-3 ${sort === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
               >
-                {s === "open" ? "Open" : s === "distance" ? "Nearest" : "Happy Hour"}
+                {s === "open" ? "Open" : s === "distance" ? "Nearest" : s === "vegan" ? "Vegan" : "Happy Hour"}
               </button>
             ))}
           </div>
@@ -408,7 +409,9 @@ export function FoodDirectoryRuntime({ config }: { config: FoodDirectoryBlockCon
           <div className="mt-4 rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
             {query
               ? `Nothing matches "${query}".`
-              : sort === "happy"
+              : sort === "vegan"
+                ? `No places with known vegan options${activeCuisine ? ` in ${activeCuisine.label}` : ""} within ${radius} miles. We read vegan options off restaurants' own menus, so some places may be missing.`
+                : sort === "happy"
                 ? `No happy hours running right now${activeCuisine ? ` in ${activeCuisine.label}` : ""}. We list the ones restaurants post on their own websites, so some places may be missing.`
                 : activeCuisine
                   ? `No ${activeCuisine.label} spots within ${radius} miles.`
@@ -524,6 +527,8 @@ const SAMPLE_PLACES: Array<{ place: NearbyPlace; status: OpenStatus }> = (
     phoneInternational: null,
     website: null,
     happyHour: [],
+    vegan: null,
+    veganChecked: false,
     wait: null,
     ...rest,
   } as NearbyPlace,
@@ -838,6 +843,14 @@ function directionsUrl(place: NearbyPlace, mode: TravelMode): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&destination_place_id=${encodeURIComponent(place.googlePlaceId)}&travelmode=${mode}`;
 }
 
+/** The card's one-line vegan note: what Google says about the whole place, or the first few vegan dishes off its menu. */
+function veganCardLabel(v: VeganOptions): string {
+  const names = (n: number) => v.items.slice(0, n).map((i) => i.name).join(", ");
+  if (v.kind === "restaurant") return "Vegan restaurant";
+  if (v.kind === "vegetarian_restaurant") return v.items.length ? `Vegetarian restaurant · ${names(2)}` : "Vegetarian restaurant";
+  return `Vegan options · ${names(3)}`;
+}
+
 function PlaceCard({ place, status, happy, onOpen }: { place: NearbyPlace; status: OpenStatus; happy: HappyHourStatus | null; onOpen: () => void }) {
   const closed = status.state === "closed";
   const emoji = place.cuisine ? CUISINE_BY_KEY[place.cuisine].emoji : "🍽️";
@@ -882,6 +895,12 @@ function PlaceCard({ place, status, happy, onOpen }: { place: NearbyPlace; statu
               {happy.state === "active" ? `Happy hour ${happyEndsLabel(happy)}` : `Happy hour at ${happy.startsAtLabel}`}
               {happy.deal && <span className="font-normal text-muted-foreground"> · {happy.deal}</span>}
             </span>
+          </p>
+        )}
+        {place.vegan && (
+          <p className="mt-1 flex min-w-0 items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+            <span aria-hidden>🌱</span>
+            <span className="min-w-0 truncate">{veganCardLabel(place.vegan)}</span>
           </p>
         )}
         <div className="mt-1.5 flex items-center justify-between gap-2">
@@ -1141,6 +1160,40 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
               <p className="mt-1.5 text-xs text-muted-foreground">From the restaurant&apos;s website · may be out of date</p>
             </section>
           )}
+
+          {/* Vegan options: Google's own vegan / vegetarian tag, or the items the menu job read off the menu. Always shown,
+              so "nothing labelled vegan" and "not checked yet" are honest answers too. */}
+          <section className="mt-6">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vegan options</h3>
+            {place.vegan ? (
+              <>
+                {place.vegan.kind !== "menu" && (
+                  <p className="mt-2 text-[15px] font-semibold">
+                    <span aria-hidden>🌱 </span>
+                    {place.vegan.kind === "restaurant" ? "Google lists this as a vegan restaurant." : "Google lists this as a vegetarian restaurant."}
+                  </p>
+                )}
+                {place.vegan.items.length > 0 && (
+                  <ul className="mt-2 divide-y rounded-2xl border bg-card">
+                    {place.vegan.items.map((it, i) => (
+                      <li key={i} className="flex items-baseline justify-between gap-3 px-4 py-2.5 text-[15px]">
+                        <span className="min-w-0">
+                          {it.name}
+                          {it.note && <span className="text-sm text-muted-foreground"> · {it.note}</span>}
+                        </span>
+                        {it.section && <span className="shrink-0 text-xs text-muted-foreground">{it.section}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {place.vegan.items.length > 0 && <p className="mt-1.5 text-xs text-muted-foreground">From the restaurant&apos;s menu · may be out of date</p>}
+              </>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {place.veganChecked ? "Nothing labelled vegan on the menu we read. Menus change, so it's worth asking." : "Not checked yet: we haven't been able to read this restaurant's menu."}
+              </p>
+            )}
+          </section>
 
           {/* Dishes reviewers mention. Skeleton while it loads; the whole section goes away if there's nothing to show. */}
           {dishes === undefined && (

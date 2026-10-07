@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import robotsParser from "robots-parser";
 import { buildHappyHourPrompt, buildPrompt, chunkText, findHappyHourLink, findMenuLink, findPdfMenuLinks, HAPPY_HOUR_SCHEMA, happyHourExcerpts, joinTranscripts, MENU_SCHEMA, mentionsHappyHour, orderQueue, mergePhotoReadings, mergeSections, pdfItemsToLines, sameSite, sanitizeHappyHour, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, tileGrid, webUrl } from "./lib.mjs";
+import { findVeganOptions } from "./vegan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -523,13 +524,27 @@ async function save(place, r) {
   if (r.status === "ok") {
     await rest(`food_places?id=eq.${place.id}`, {
       method: "PATCH",
-      body: { menu_items: r.fromPhoto ? { sections: r.sections, fromPhoto: true } : { sections: r.sections }, menu_items_source_url: r.sourceUrl, menu_items_at: new Date().toISOString(), menu_items_status: "ok", menu_items_model: opts.model },
+      body: {
+        menu_items: r.fromPhoto ? { sections: r.sections, fromPhoto: true } : { sections: r.sections },
+        menu_items_source_url: r.sourceUrl,
+        menu_items_at: new Date().toISOString(),
+        menu_items_status: "ok",
+        menu_items_model: opts.model,
+        // Vegan options come straight off the menu just read (tools/menu-ingest/vegan.mjs): no extra reading, no Google.
+        ...veganColumns(r.sections),
+      },
     });
   } else if (place.menu_items_status !== "ok") {
     // Remember the miss so we don't retry for a while; never replace a good saved menu with a failure.
     await rest(`food_places?id=eq.${place.id}`, { method: "PATCH", body: { menu_items_at: new Date().toISOString(), menu_items_status: r.status } });
   }
   await saveHappyHour(place, r.happy);
+}
+
+/** The vegan_options columns for a menu, found or none, stamped now. */
+function veganColumns(sections) {
+  const vegan = findVeganOptions({ sections });
+  return { vegan_options: { items: vegan.items }, vegan_options_at: new Date().toISOString(), vegan_options_status: vegan.status };
 }
 
 async function saveHappyHour(place, h) {
