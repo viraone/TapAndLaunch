@@ -13,6 +13,10 @@ export async function GET(_request: Request, context: { params: Promise<{ appSlu
     return Response.json({ error: "Not found" }, { status: 404 });
   }
   const week = await getClassWeek(published.app.id, seattleToday());
-  // Public, read-only data; other sites (the owner's dashboard page) may read it too.
-  return Response.json(week, { headers: { "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } });
+  // Public, read-only data; other sites (the owner's dashboard page) may read it too. The schedules change once a night
+  // (the reader job) and the week is close to a megabyte, so the CDN keeps a copy for five minutes and hands it out in
+  // milliseconds; a browser never keeps its own (max-age=0), so a reopened page still asks the CDN.
+  return Response.json(week, {
+    headers: { "Cache-Control": "public, max-age=0, s-maxage=300, stale-while-revalidate=600", "Access-Control-Allow-Origin": "*" },
+  });
 }

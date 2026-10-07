@@ -25,17 +25,36 @@ interface Week {
 }
 
 /**
- * One color per studio, told apart by hue (spread around the wheel, so neighbours in the list never look alike).
- * Assigned by the studio's place in a sorted list, so it is the same on every visit while the studios stay the same.
+ * One color per studio, told apart by hue. Only the studios that can appear in the list (the visitor's class types,
+ * within their distance) get a color, and the hues are spread evenly around the wheel between them: a dozen studios
+ * are 30° apart, where a hue for each of the city's 115 studios left neighbours looking alike. Past twelve, the next
+ * dozen share the wheel again at a darker shade, then a lighter one. Assigned by the studio's place in a sorted list,
+ * so a studio keeps its color while the picks stay the same.
  */
-function studioPalette(ids: string[]): Map<string, { stripe: string; text: string; textDark: string }> {
+function studioPalette(ids: Iterable<string>): Map<string, { stripe: string; text: string; textDark: string }> {
+  const sorted = [...new Set(ids)].sort();
+  const RING = 12;
+  const SHADES = [
+    [68, 48],
+    [62, 36],
+    [78, 60],
+  ];
   return new Map(
-    [...ids].sort().map((id, i) => {
-      const hue = Math.round((i * 137.508 + 12) % 360);
-      return [id, { stripe: `hsl(${hue} 68% 48%)`, text: `hsl(${hue} 72% 33%)`, textDark: `hsl(${hue} 78% 70%)` }];
+    sorted.map((id, i) => {
+      const ring = Math.floor(i / RING);
+      const inRing = Math.min(RING, sorted.length - ring * RING);
+      const hue = Math.round(((i % RING) * 360) / inRing + 12 + ring * 15) % 360;
+      const [sat, light] = SHADES[ring % SHADES.length];
+      return [id, { stripe: `hsl(${hue} ${sat}% ${light}%)`, text: `hsl(${hue} 72% 33%)`, textDark: `hsl(${hue} 78% 70%)` }];
     })
   );
 }
+
+/** How far from the visitor a studio may be, in miles; null is any distance. */
+type Within = 1 | 2 | 5 | null;
+const WITHIN_OPTIONS: Within[] = [1, 2, 5, null];
+/** The page starts at 2 miles once the visitor's own location is known (a walk or a short ride); otherwise any distance. */
+const DEFAULT_WITHIN: Within = 2;
 
 /** Each class type's color, on its dot, its chip text and its selected pill. */
 const TYPE_STYLE: Record<FitnessClassType, { dot: string; text: string; pill: string }> = {
@@ -98,6 +117,9 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   const [tip, setTip] = useState<string | null>(null);
   // "soonest": by start time, nearest studio first when times match. "nearest": closest studio first, within each part of the day.
   const [sort, setSort] = useState<"soonest" | "nearest">("soonest");
+  // "auto" until the visitor picks a distance: 2 miles once their own location is known, any distance before that
+  // (distances from the middle of the area say little about how far a studio is from them).
+  const [within, setWithin] = useState<Within | "auto">("auto");
   const [now, setNow] = useState(() => seattleStamp());
 
   // Finds where the visitor is, so every distance on the page is from them and the closest studios can come first.
@@ -130,7 +152,8 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   // spinner that never ends; "Try again" and coming back online call this again.
   const [retrying, setRetrying] = useState(false);
   const load = useCallback(() => {
-    fetch("/fitness/classes", { cache: "no-store", signal: typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(15_000) : undefined })
+    // The browser never keeps a copy (the feed says max-age=0); the CDN's five-minute copy answers most visits.
+    fetch("/fitness/classes", { signal: typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(15_000) : undefined })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((w: Week) => {
         setWeek(w);
@@ -178,13 +201,22 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     return milesBetween(origin.lat, origin.lng, s.latitude, s.longitude);
   };
 
-  const studioColors = useMemo(() => studioPalette((week?.studios ?? []).map((s) => s.id)), [week]);
-  // What matches the pick, split by the clock: classes that have started drop off the list as the day goes on.
-  const matching = useMemo(
-    () => (week?.classes ?? []).filter((c) => c.type !== "other" && applied.has(c.type) && (online || !c.online) && (!studioId || c.studioId === studioId)),
-    [week, applied, online, studioId]
+  const withinMi: Within = within === "auto" ? (origin?.mine ? DEFAULT_WITHIN : null) : within;
+  // A studio whose place is unknown only shows at any distance.
+  const inRange = (id: string) => withinMi == null || (miles(id) ?? Infinity) <= withinMi;
+  // What matches the pick: the class types, online or not, and within the chosen distance...
+  const matchingAnywhere = useMemo(
+    () => (week?.classes ?? []).filter((c) => c.type !== "other" && applied.has(c.type) && (online || !c.online)),
+    [week, applied, online]
   );
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- inRange depends on origin and withinMi, both listed
+  const matchingAll = useMemo(() => matchingAnywhere.filter((c) => inRange(c.studioId)), [matchingAnywhere, origin, withinMi, studios]);
+  // ...and, after a tap on a studio's name, that studio alone. Split by the clock: classes that have started drop off
+  // the list as the day goes on.
+  const matching = useMemo(() => (studioId ? matchingAll.filter((c) => c.studioId === studioId) : matchingAll), [matchingAll, studioId]);
   const visible = useMemo(() => matching.filter((c) => !hasStarted(c, now)), [matching, now]);
+  // Colors for the studios that can appear in the list (not for the one tapped, so its chip keeps the color it had).
+  const studioColors = useMemo(() => studioPalette(matchingAll.map((c) => c.studioId)), [matchingAll]);
   const startedToday = matching.filter((c) => c.date === now.slice(0, 10) && hasStarted(c, now)).length;
   // Always opens on today, however late it is: the page tracks the clock, and when today's classes are over it says so
   // (and offers the next day) instead of quietly jumping to tomorrow's morning.
@@ -196,6 +228,20 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   const atStudio = studioId ? ` at ${studios.get(studioId)?.name ?? "this studio"}` : "";
   const nextDay = days.find((d) => d > (shownDay ?? "") && visible.some((c) => c.date === d)) ?? null;
   const picked = applied.size > 0;
+  const withinLabel = withinMi != null ? ` within ${withinMi} mi` : "";
+  // When the distance alone is hiding the day's classes, the "nothing to show" message offers the next distance up that
+  // has some (2 mi before 5 mi before any), with the count, so one tap shows the closest classes rather than the whole city.
+  const farther = useMemo(() => {
+    if (withinMi == null || !shownDay) return null;
+    const left = matchingAnywhere.filter((c) => c.date === shownDay && !hasStarted(c, now) && (!studioId || c.studioId === studioId));
+    for (const o of WITHIN_OPTIONS) {
+      if (o != null && o <= withinMi) continue;
+      const n = left.filter((c) => o == null || (miles(c.studioId) ?? Infinity) <= o).length;
+      if (n) return { within: o, n };
+    }
+    return null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- miles depends on origin and studios, both listed
+  }, [withinMi, shownDay, matchingAnywhere, now, studioId, origin, studios]);
   const dayTitle = !shownDay ? "" : shownDay === today ? `Today, ${dayLabel(shownDay, { month: "short", day: "numeric" })}` : dayLabel(shownDay, { weekday: "long", month: "short", day: "numeric" });
   const dayClasses = visible
     .filter((c) => c.date === shownDay)
@@ -228,7 +274,11 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   function apply(next: Set<FitnessClassType>) {
     setApplied(next);
     const stillThere =
-      !!week && !!shownDay && week.classes.some((c) => c.date === shownDay && c.type !== "other" && next.has(c.type) && (online || !c.online) && (!studioId || c.studioId === studioId) && !hasStarted(c, now));
+      !!week &&
+      !!shownDay &&
+      week.classes.some(
+        (c) => c.date === shownDay && c.type !== "other" && next.has(c.type) && (online || !c.online) && inRange(c.studioId) && (!studioId || c.studioId === studioId) && !hasStarted(c, now)
+      );
     if (week && shownDay && !stillThere) setDay(null);
   }
 
@@ -270,7 +320,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     else focusDayChip();
   }, [studioId]);
 
-  const studiosForHint = new Set((week?.classes ?? []).filter((c) => c.type !== "other" && chosen.has(c.type) && !c.online).map((c) => c.studioId)).size;
+  const studiosForHint = new Set((week?.classes ?? []).filter((c) => c.type !== "other" && chosen.has(c.type) && !c.online && inRange(c.studioId)).map((c) => c.studioId)).size;
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-10 pt-4">
@@ -331,14 +381,19 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
           <input type="checkbox" className="h-[18px] w-[18px] accent-[#df4f26]" checked={online} onChange={(e) => setOnline(e.target.checked)} />
           Include online classes
         </label>
-        <button type="submit" disabled={chosen.size === 0} className="rounded-xl bg-[#c23f1a] px-4 py-3.5 text-base font-bold text-white disabled:opacity-50">
+        {/* Disabled: a paler orange with the label still white. Fading the whole button left grey-on-brown on a dark page. */}
+        <button
+          type="submit"
+          disabled={chosen.size === 0}
+          className="rounded-xl bg-[#c23f1a] px-4 py-3.5 text-base font-bold text-white disabled:bg-[#c23f1a]/45 disabled:text-white/85"
+        >
           Search classes
         </button>
         <p className="text-xs text-muted-foreground">
           {chosen.size === 0
             ? "Pick the kinds of class you want."
             : week
-              ? `${[...chosen].map((k) => CLASS_TYPE_LABEL[k]).join(", ")} at ${studiosForHint} studio${studiosForHint === 1 ? "" : "s"} near you.`
+              ? `${[...chosen].map((k) => CLASS_TYPE_LABEL[k]).join(", ")} at ${studiosForHint} studio${studiosForHint === 1 ? "" : "s"} ${withinMi != null ? `within ${withinMi} mi` : "near you"}.`
               : " "}
         </p>
       </form>
@@ -347,9 +402,42 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
         {/* One status region from the first paint, so a failed load or the "pick above" note is read out when it appears. */}
         <div role="status" aria-busy={!week && !failed} className={!week || !picked ? "flex flex-col" : "sr-only"}>
           {!week && !failed && (
-            <p className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading this week&apos;s classes…
-            </p>
+            <>
+              {/* The shape of what is coming (a row of days, a heading, three classes), so a slow connection shows a page
+                  filling in rather than an empty card with one line in it. */}
+              <div aria-hidden className="flex animate-pulse flex-col gap-3">
+                <div className="-mx-4 flex gap-2 overflow-hidden px-4">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-[74px] w-[72px] shrink-0 rounded-xl bg-foreground/[0.07]" />
+                  ))}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="h-6 w-36 rounded-md bg-foreground/[0.07]" />
+                  <div className="h-8 w-32 rounded-full bg-foreground/[0.07]" />
+                </div>
+                <div className="h-3 w-44 rounded bg-foreground/[0.07]" />
+                <div className="mt-1 h-3 w-24 rounded bg-foreground/[0.07]" />
+                <div className="flex flex-col gap-px overflow-hidden rounded-xl border">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 px-3.5 py-3">
+                      <div className="flex flex-col gap-2">
+                        <div className="h-4 w-14 rounded bg-foreground/[0.07]" />
+                        <div className="h-3 w-10 rounded bg-foreground/[0.07]" />
+                        <div className="h-6 w-14 rounded-full bg-foreground/[0.07]" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <div className="h-4 w-4/5 rounded bg-foreground/[0.07]" />
+                        <div className="h-3 w-3/5 rounded bg-foreground/[0.07]" />
+                        <div className="h-3 w-2/5 rounded bg-foreground/[0.07]" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <p className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading this week&apos;s classes…
+              </p>
+            </>
           )}
           {failed && !week && (
             <div className="flex flex-col items-center gap-3 py-8 text-center text-sm text-muted-foreground">
@@ -383,6 +471,29 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
                   <span className="min-w-0 truncate">{studios.get(studioId)?.name ?? "Studio"}</span>
                   <X className="h-4 w-4 shrink-0" strokeWidth={2.5} />
                 </button>
+              </div>
+            )}
+            {/* How far to look. With over a hundred studios across the city, one class type on a weekday is hundreds of
+                rows; this keeps the week to studios the visitor can get to. Hidden when no distance can be worked out. */}
+            {origin && (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                {/* Where the distances are from (the visitor, or the middle of the area) is what the location pill in the header says. */}
+                <span aria-hidden className="font-semibold text-muted-foreground">
+                  Within
+                </span>
+                <div role="group" aria-label={`How far from ${origin.mine ? "you" : area}`} className="flex rounded-full bg-muted p-0.5 font-semibold">
+                  {WITHIN_OPTIONS.map((o) => (
+                    <button
+                      key={String(o)}
+                      type="button"
+                      aria-pressed={withinMi === o}
+                      onClick={() => setWithin(o)}
+                      className={`min-h-9 rounded-full px-3 tabular-nums ${withinMi === o ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+                    >
+                      {o == null ? "Any distance" : `${o} mi`}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             <div ref={strip} role="group" aria-label="Pick a day" className="-mx-4 flex snap-x gap-2 overflow-x-auto scroll-px-4 px-4 pb-1 [scrollbar-width:none]">
@@ -429,16 +540,25 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
             <p role="status" className={dayClasses.length ? "-mt-1 text-xs tabular-nums text-muted-foreground" : "sr-only"}>
               {dayClasses.length
                 ? `${dayClasses.length} class${dayClasses.length === 1 ? "" : "es"} · ${dayStudios} studio${dayStudios === 1 ? "" : "s"}${shownDay === today && startedToday > 0 ? ` · ${startedToday} already started` : ""}`
-                : `No ${pickedLabel} classes${atStudio} for ${dayTitle}.`}
+                : `No ${pickedLabel} classes${atStudio}${withinLabel} for ${dayTitle}.`}
             </p>
             {dayClasses.length === 0 ? (
               <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-[#df4f26]/30 bg-[#df4f26]/5 px-4 py-8 text-center">
                 <p className="text-xl font-extrabold leading-snug text-foreground">
                   {shownDay === today
-                    ? `There are no ${pickedLabel} classes${atStudio} at this time.`
-                    : `No ${pickedLabel} classes listed${atStudio} for ${dayLabel(shownDay, { weekday: "long" })}.${nextDay || studioId ? "" : " Try another day or add a class type."}`}
+                    ? `There are no ${pickedLabel} classes${atStudio}${withinLabel} at this time.`
+                    : `No ${pickedLabel} classes listed${atStudio}${withinLabel} for ${dayLabel(shownDay, { weekday: "long" })}.${nextDay || studioId || farther ? "" : " Try another day or add a class type."}`}
                 </p>
                 <div className="flex flex-wrap justify-center gap-2">
+                  {farther && (
+                    <button
+                      type="button"
+                      onClick={() => setWithin(farther.within)}
+                      className="flex items-center rounded-full border-[1.5px] border-[#c23f1a] bg-background px-4 py-2 text-sm font-bold text-[#c23f1a] dark:border-[#ff7a52] dark:text-[#ff7a52]"
+                    >
+                      {farther.within == null ? "Look any distance" : `Look within ${farther.within} mi`} · {farther.n}
+                    </button>
+                  )}
                   {nextDay && (
                     <button
                       type="button"
