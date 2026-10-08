@@ -38,7 +38,7 @@ export function RecentlyDeleted({ apps, rootDomain }: { apps: DeletedApp[]; root
 
   if (apps.length === 0) return null;
   return (
-    <section className="mt-10">
+    <section>
       <h2 className="text-sm font-semibold text-neutral-950">Recently deleted</h2>
       <p className="mt-0.5 text-sm text-neutral-500">Restore an app within 30 days of deleting it. After that it is erased for good.</p>
       <ul className="mt-3 divide-y divide-neutral-200 overflow-hidden rounded-2xl bg-white ring-1 ring-black/5">

@@ -9,8 +9,6 @@ import { getRootDomain } from "@/lib/tenant";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 import { getChecklists } from "@/lib/apps/signals";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { restoreDaysLeft } from "@/lib/apps/deletion";
-import { RecentlyDeleted, type DeletedApp } from "@/components/dashboard/RecentlyDeleted";
 
 const DAYS = 7;
 
@@ -41,20 +39,7 @@ export default async function DashboardPage() {
     if ((count ?? 0) === 0) redirect("/dashboard/apps/new?welcome=1");
   }
 
-  // Deleted apps are hidden from the user's own session by the database, so admins see them via the server.
-  let deletedApps: DeletedApp[] = [];
-  if (isAdmin) {
-    const { data } = await createAdminClient()
-      .from("apps")
-      .select("id, name, slug, deleted_at")
-      .eq("organization_id", organizationId)
-      .not("deleted_at", "is", null)
-      .order("deleted_at", { ascending: false });
-    const now = new Date();
-    deletedApps = (data ?? [])
-      .map((a) => ({ id: a.id, name: a.name, slug: a.slug, daysLeft: restoreDaysLeft(a.deleted_at as string, now) }))
-      .filter((a) => a.daysLeft > 0);
-  }
+  // Deleted apps and their Restore buttons live in Settings, not here: this page is the apps someone is working on.
   const rootDomain = getRootDomain();
   const [{ perApp, views, installs }, checklists] = await Promise.all([
     weeklyActivity(supabase, (apps ?? []).map((a) => a.id)),
@@ -148,7 +133,6 @@ export default async function DashboardPage() {
             </Link>
           </div>
         )}
-      <RecentlyDeleted apps={deletedApps} rootDomain={rootDomain} />
       </div>
     </main>
   );

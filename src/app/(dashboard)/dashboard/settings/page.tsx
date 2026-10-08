@@ -14,6 +14,9 @@ import { syncOrgSubscription } from "@/lib/billing/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripeAccountRow, syncStripeAccount } from "@/lib/stripe/accounts";
 import { isStripeConfigured, isStripeTestMode } from "@/lib/stripe/server";
+import { getRootDomain } from "@/lib/tenant";
+import { restoreDaysLeft } from "@/lib/apps/deletion";
+import { RecentlyDeleted, type DeletedApp } from "@/components/dashboard/RecentlyDeleted";
 
 export default async function OrgSettingsPage({ searchParams }: { searchParams: Promise<{ stripe?: string; billing?: string }> }) {
   const { stripe: stripeReturn, billing: billingReturn } = await searchParams;
@@ -69,6 +72,22 @@ export default async function OrgSettingsPage({ searchParams }: { searchParams: 
   const paymentsOn = stripeAccount?.charges_enabled === true;
   const tile = tileGradient(organization.id);
 
+  // Apps deleted in the last 30 days, with a way back. Hidden from the user's own session by the database, so admins
+  // see them via the server. (They used to sit under the app list, where nobody wanted them.)
+  let deletedApps: DeletedApp[] = [];
+  if (isAdmin) {
+    const { data } = await createAdminClient()
+      .from("apps")
+      .select("id, name, slug, deleted_at")
+      .eq("organization_id", organizationId)
+      .not("deleted_at", "is", null)
+      .order("deleted_at", { ascending: false });
+    const now = new Date();
+    deletedApps = (data ?? [])
+      .map((a) => ({ id: a.id, name: a.name, slug: a.slug, daysLeft: restoreDaysLeft(a.deleted_at as string, now) }))
+      .filter((a) => a.daysLeft > 0);
+  }
+
   return (
     <main className="flex-1 bg-neutral-100/70">
       <section className="relative overflow-hidden bg-neutral-950 text-white">
@@ -120,6 +139,7 @@ export default async function OrgSettingsPage({ searchParams }: { searchParams: 
         <BillingCard state={plan} isAdmin={isAdmin} billingReady={isStripeConfigured()} testMode={isStripeTestMode()} />
         {showPayments && <PaymentsCard account={stripeAccount} testMode={isStripeTestMode()} />}
         <AiKeyCard initialKey={aiKey ? { provider: aiKey.provider, hint: aiKey.key_hint, model: aiKey.model } : null} canManage={isAdmin} />
+        <RecentlyDeleted apps={deletedApps} rootDomain={getRootDomain()} />
       </div>
     </main>
   );
