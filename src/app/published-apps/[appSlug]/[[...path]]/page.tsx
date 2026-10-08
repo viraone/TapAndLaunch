@@ -27,7 +27,7 @@ export default async function PublishedAppPage({ params }: { params: Params }) {
     // AI-written apps live on their own domain once it's set up; their old address on TapAndLaunch's domain forwards there.
     const codeDomain = getCodeAppsDomain();
     if (codeDomain && hostRoot((await headers()).get("host")) === "main") redirect(`${appOrigin(appSlug, codeDomain)}/${(path ?? []).join("/")}`);
-    void recordAnalyticsEvent({ appId: published.app.id, eventType: "view" });
+    if (!published.preview) void recordAnalyticsEvent({ appId: published.app.id, eventType: "view" });
     return <CodeAppFrame name={published.app.name} />;
   }
 
@@ -51,8 +51,9 @@ export default async function PublishedAppPage({ params }: { params: Params }) {
     needsListings ? getActiveListings(published.app.id) : Promise.resolve(undefined),
   ]);
 
-  // Fire-and-forget: a page view should never block or fail the render.
-  void recordAnalyticsEvent({ appId: published.app.id, pageId: page.id, eventType: "view" });
+  // Fire-and-forget: a page view should never block or fail the render. The owner trying their app from the builder
+  // is not a visitor, so that view is not counted (and does not tick the "someone opened it" step).
+  if (!published.preview) void recordAnalyticsEvent({ appId: published.app.id, pageId: page.id, eventType: "view" });
 
   return (
     <main className="flex-1">

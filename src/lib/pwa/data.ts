@@ -1,6 +1,8 @@
 import "server-only";
 import { cache } from "react";
+import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { PREVIEW_HEADER, verifyPreviewToken } from "@/lib/pwa/preview";
 import type { Database } from "@/types/database";
 
 type AppRow = Database["public"]["Tables"]["apps"]["Row"];
@@ -10,6 +12,8 @@ type BlockRow = Database["public"]["Tables"]["blocks"]["Row"];
 export interface PublishedApp {
   app: AppRow;
   pages: PageRow[];
+  /** Opened with the builder's preview key (lib/pwa/preview.ts): the owner trying their app, not a visitor. */
+  preview: boolean;
 }
 
 /**
@@ -38,14 +42,18 @@ export const isTakenDown = cache(async (slug: string): Promise<boolean> => {
 export const getPublishedApp = cache(async (slug: string): Promise<PublishedApp | null> => {
   const admin = createAdminClient();
 
-  const { data: app, error } = await admin
+  // The one exception to "drafts are never served": the builder's "Try it" mode, whose signed key the proxy passes
+  // along in a header. It is checked against this slug and its expiry before a draft is allowed through.
+  const preview = verifyPreviewToken((await headers()).get(PREVIEW_HEADER), slug);
+
+  let query = admin
     .from("apps")
     .select("*")
     .eq("slug", slug)
-    .eq("status", "published")
     // A taken-down app isn't served anywhere: every route that loads the app through here treats it as gone.
-    .is("suspended_at", null)
-    .maybeSingle();
+    .is("suspended_at", null);
+  if (!preview) query = query.eq("status", "published");
+  const { data: app, error } = await query.maybeSingle();
 
   if (error) throw error;
   if (!app) return null;
@@ -58,7 +66,7 @@ export const getPublishedApp = cache(async (slug: string): Promise<PublishedApp 
 
   if (pagesError) throw pagesError;
 
-  return { app, pages: pages ?? [] };
+  return { app, pages: pages ?? [], preview };
 });
 
 /**

@@ -50,9 +50,30 @@ export async function proxy(request: NextRequest) {
 
   const url = request.nextUrl.clone();
   url.pathname = `/published-apps/${appSlug}${request.nextUrl.pathname}`;
-  const rewritten = NextResponse.rewrite(url);
+
+  // The builder's "Try it" mode opens a draft at its real address with a signed preview key (lib/pwa/preview.ts):
+  // first on the address, then from a cookie so the app's own requests (places, bookings…) carry it too. The key
+  // travels on to the app's routes as one request header; `getPublishedApp` is what checks it.
+  const fromQuery = request.nextUrl.searchParams.get("tl_preview");
+  const previewKey = fromQuery ?? request.cookies.get("tl_preview")?.value ?? null;
+  const requestHeaders = new Headers(request.headers);
+  if (previewKey) requestHeaders.set("x-tl-preview", previewKey);
+  else requestHeaders.delete("x-tl-preview");
+
+  const rewritten = NextResponse.rewrite(url, { request: { headers: requestHeaders } });
   for (const cookie of sessionResponse.cookies.getAll()) {
     rewritten.cookies.set(cookie);
+  }
+  if (fromQuery) {
+    // The app sits in an iframe on the dashboard. SameSite=None + Secure is what a browser needs to keep a cookie
+    // set inside an embedded frame; Chrome allows Secure cookies on plain-http localhost, so this works there too.
+    rewritten.cookies.set("tl_preview", fromQuery, {
+      path: "/",
+      maxAge: 60 * 60,
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
+    });
   }
   return rewritten;
 }
