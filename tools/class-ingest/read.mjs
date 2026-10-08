@@ -160,6 +160,35 @@ async function render(browser, url, { settle = 7000 } = {}) {
         return m ? { month: m[1], year: Number(m[2]), cols: cols.map((c) => ({ day: Number(c.getAttribute("data-date")), text: (c.innerText || "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim() })) } : null;
       }).catch(() => null);
       if (!grid) {
+        // FullCalendar (PushPress calendars: Loft Fitness, Rainier Health, 777 Strength, South Seattle CrossFit; also many
+        // others): every day column carries its own date as data-date, so the columns are labelled exactly. The widget's
+        // next arrow (an unlabelled icon button, or .fc-next-button) gives the second week.
+        const readFc = () => f.evaluate(() => {
+          const clean = (e) => (e.innerText || "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim();
+          const v5 = Array.from(document.querySelectorAll(".fc-timegrid-col[data-date], .fc-daygrid-day[data-date]")).map((c) => ({ date: c.getAttribute("data-date"), text: clean(c) }));
+          if (v5.length >= 5) return v5;
+          // FullCalendar 3/4 (Fitli): dates sit on the background table's cells, the events in a skeleton table whose cells follow the same order.
+          const dates = Array.from(document.querySelectorAll(".fc-bg td[data-date]")).map((e) => e.getAttribute("data-date")).filter((d, i, a) => a.indexOf(d) === i);
+          const skel = Array.from(document.querySelectorAll(".fc-content-skeleton table")).find((t) => t.querySelector(".fc-event"));
+          const cells = skel ? Array.from(skel.querySelectorAll("tbody tr > td")).filter((td) => !td.classList.contains("fc-axis")) : [];
+          return dates.length >= 5 && cells.length === dates.length ? dates.map((d, i) => ({ date: d, text: clean(cells[i]) })) : [];
+        }).catch(() => []);
+        const week1 = await readFc();
+        if (week1.length >= 5) {
+          const seenDays = new Set();
+          const push = (cols) => { for (const c of cols) if (c.date && c.date >= TODAY_ISO && c.text && !seenDays.has(c.date)) { seenDays.add(c.date); parts.push(`[Day column: ${c.date}]\n${c.text}`); } };
+          push(week1);
+          const moved = await f.evaluate(() => {
+            const el = document.querySelector(".fc-next-button") ?? Array.from(document.querySelectorAll("button[class*='icon-button'], button[aria-label*='next' i]")).filter((e) => e.getBoundingClientRect().width > 0).pop();
+            if (!el) return false;
+            el.click();
+            return true;
+          }).catch(() => false);
+          if (moved) { await page.waitForTimeout(3000); push(await readFc()); }
+          dbg("fullcalendar columns", f.url().slice(0, 60), "week 1:", week1.length, "next week:", moved, "days kept:", seenDays.size);
+          gridFrames.add(f);
+          continue;
+        }
         // Arketa's calendar (Flood Yoga, NW Fitness Project): seven .calendar-view__column sections under a strip of
         // .week-range__day headers ("Wed" over "7"); the text of the columns runs together without them.
         const ark = await f.evaluate(() => {
@@ -453,7 +482,8 @@ function timeOnPage(hhmm, text) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm ?? ""); if (!m) return false;
   const h = +m[1], mi = m[2], h12 = ((h + 11) % 12) + 1, ap = h < 12 ? "a" : "p";
   const t = text.toLowerCase().replace(/\s+/g, " ");
-  return [`${h12}:${mi} ${ap}`, `${h12}:${mi}${ap}`, `${h12}:${mi} ${ap}.m`, `${String(h).padStart(2, "0")}:${mi}`, `${h}:${mi}`, mi === "00" ? `${h12} ${ap}m` : "#", mi === "00" ? `${h12}${ap}m` : "#"].some((v) => v !== "#" && t.includes(v));
+  // "3:00 - 3:50" (a range with no am/pm, Fitli): the 12-hour start followed by a dash.
+  return [`${h12}:${mi} -`, `${h12}:${mi}-`, `${h12}:${mi} ${ap}`, `${h12}:${mi}${ap}`, `${h12}:${mi} ${ap}.m`, `${String(h).padStart(2, "0")}:${mi}`, `${h}:${mi}`, mi === "00" ? `${h12} ${ap}m` : "#", mi === "00" ? `${h12}${ap}m` : "#"].some((v) => v !== "#" && t.includes(v));
 }
 function verify(classes, text) {
   const pageNorm = norm(text);
@@ -539,7 +569,8 @@ async function readStudio(browser, s) {
     const who = s.location ? `${s.name}. IMPORTANT: this page lists several locations and shows each class's location. Return ONLY the classes held at the ${s.location} location, and none from any other location.` : s.name;
     // One request per day, with the day fixed by the tab the reader clicked or the heading the page printed, so the model
     // never has to work out which of a week's days a class sits under (it got that wrong on long pages).
-    const hasTimes = (c) => /\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b/i.test(c);
+    // "5:30amRHF CrossFit" (a calendar's cell text runs the time into the name) counts: minutes need no word boundary after am/pm.
+    const hasTimes = (c) => /\b\d{1,2}:\d{2}\s*(am|pm)|\b\d{1,2}\s*(am|pm)\b|\b\d{1,2}:\d{2}\b/i.test(c);
     const pieces = dayPieces(pg.text).filter((x) => hasTimes(x.text)).slice(0, 16);
     for (const { date, text } of pieces) {
       for (const part of chunk(text)) {

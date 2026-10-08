@@ -1586,5 +1586,82 @@
     "lng": -122.3551114,
     "location": "Greenwood",
     "schedule": "https://thegrinningyogiseattle.com/schedule"
+  },
+  {
+    "kind": "lifting",
+    "name": "Vice Athletics",
+    "site": "http://www.viceathletics.com/",
+    "km": 2.4,
+    "address": "3243 20th Ave W, Seattle, WA 98199, USA",
+    "neighborhood": "Interbay",
+    "id": "ChIJfVxuEvIVkFQRHyYiPPOhhLg",
+    "lat": 47.6498053,
+    "lng": -122.3824176
+  },
+  {
+    "kind": "pilates",
+    "name": "Rainier Health & Fitness",
+    "site": "http://www.rainierhealth.com/",
+    "km": 14.48,
+    "address": "7722 Rainier Ave S, Seattle, WA 98118, USA",
+    "neighborhood": "NewHolly-Brighton",
+    "id": "ChIJ7_R0QQhCkFQR_awvzc_YEDQ",
+    "lat": 47.532973999999996,
+    "lng": -122.26968329999998
+  },
+  {
+    "kind": "lifting",
+    "name": "RHF CrossFit",
+    "site": "http://rhfcrossfit.com/",
+    "km": 14.48,
+    "address": "7722 Rainier Ave S, Seattle, WA 98118, USA",
+    "neighborhood": "NewHolly-Brighton",
+    "id": "ChIJzT9BTwhCkFQRRHDQLmtGjqE",
+    "lat": 47.5329568,
+    "lng": -122.2696531
+  },
+  {
+    "kind": "lifting",
+    "name": "Loft Fitness",
+    "site": "http://www.loft-fitness.com/",
+    "km": 9.93,
+    "address": "4140 California Ave SW, Seattle, WA 98116, USA",
+    "neighborhood": "Alaska Junction",
+    "id": "ChIJ-WE6lPdAkFQREnuOapPN620",
+    "lat": 47.565276399999995,
+    "lng": -122.38647569999999
+  },
+  {
+    "kind": "lifting",
+    "name": "Delridge Strength",
+    "site": "https://delridgestrength.com/",
+    "km": 10.65,
+    "address": "5050 Delridge Wy SW, Seattle, WA 98106, USA",
+    "neighborhood": "Delridge-High Point",
+    "id": "ChIJz3oinq9BkFQR7qF4W04Hjhw",
+    "lat": 47.555794,
+    "lng": -122.3625385
+  },
+  {
+    "kind": "lifting",
+    "name": "South Seattle CrossFit",
+    "site": "http://www.southseattlecrossfit.com/",
+    "km": 9.41,
+    "address": "2653 SW Yancy St, Seattle, WA 98126, USA",
+    "neighborhood": "Delridge-High Point",
+    "id": "ChIJMSn6t0tAkFQRbd_Wp3o8ohg",
+    "lat": 47.567312,
+    "lng": -122.36749060000001
+  },
+  {
+    "kind": "pilates",
+    "name": "West Seattle Pilates and Fitness",
+    "site": "http://www.westseattlepilates.com/",
+    "km": 12.22,
+    "address": "6521 California Ave SW, Seattle, WA 98136, USA",
+    "neighborhood": "Morgan Junction-Gatewood",
+    "id": "ChIJmcyN7URAkFQRFATHqKqikEc",
+    "lat": 47.5441244,
+    "lng": -122.38746739999999
   }
 ]
