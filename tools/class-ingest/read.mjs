@@ -517,8 +517,16 @@ function dayPieces(text) {
     const m = /^\[Day (?:tab shown|column):\s*([^\]]*)\]\n?/.exec(block);
     const date = m ? dateFromLabel(m[1]) : null;
     const body = m ? block.slice(m[0].length) : block;
-    const lines = body.split("\n");
-    const heads = lines.map((l, i) => (DAY_HEADING.test(l) && dateFromLabel(l) ? i : -1)).filter((i) => i >= 0);
+    // A header printed over two lines ("MON" then "05", Olympic Athletic Club) is one heading: "MON 05".
+    const lines = body.split("\n").reduce((acc, l) => { const prev = acc[acc.length - 1]; if (prev !== undefined && /^\s*(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?\s*$/i.test(prev) && /^\s*\d{1,2}\s*$/.test(l)) acc[acc.length - 1] = `${prev.trim()} ${l.trim()}`; else acc.push(l); return acc; }, []);
+    let heads = lines.map((l, i) => (DAY_HEADING.test(l) && dateFromLabel(l) ? i : -1)).filter((i) => i >= 0);
+    if (!date && heads.length < 3) {
+      // "MON 05" headings count only when a week really hangs under them: at least three of the days have class times. A strip
+      // of day buttons at the top of a page (every day, then the classes of one) never does.
+      const wd = lines.map((l, i) => (/^\s*(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?\s+\d{1,2}\s*$/i.test(l) && dateFromLabel(l) ? i : -1)).filter((i) => i >= 0);
+      const timed = wd.filter((h, k) => /\b\d{1,2}:\d{2}\s*(am|pm)/i.test(lines.slice(h, wd[k + 1] ?? lines.length).join("\n"))).length;
+      if (wd.length >= 3 && timed >= 3) heads = wd;
+    }
     if (!date && heads.length >= 3) {
       out.push({ date: null, text: lines.slice(0, heads[0]).join("\n") });
       heads.forEach((h, k) => out.push({ date: dateFromLabel(lines[h]), text: lines.slice(h, heads[k + 1] ?? lines.length).join("\n") }));
@@ -547,6 +555,17 @@ async function guessedSchedulePages(pageUrl) {
 // ---- one studio ----
 const STUDIO_BUDGET_MS = HOSTED ? 10 * 60 * 1000 : 8 * 60 * 1000 * PARALLEL; // one slow or huge site must not hold up the rest (longer when studios share the local model)
 async function readStudio(browser, s) {
+  // studios.json `schedules`: a studio that splits its week across several pages (Olympic Athletic Club: morning, afternoon and
+  // evening). Each page is read as its own studio would be, and the classes are put together.
+  if (Array.isArray(s.schedules) && s.schedules.length) {
+    const subs = [];
+    for (const u of s.schedules) subs.push(await readStudio(browser, { ...s, schedules: undefined, schedule: u }));
+    const good = subs.filter((x) => x.status === "ok");
+    if (!good.length) return { ...subs[0], tried: subs.flatMap((x) => x.tried ?? []) };
+    const seen = new Set(), classes = [];
+    for (const c of good.flatMap((x) => x.classes)) { const k = `${c.date}|${c.start}|${c.name}`; if (!seen.has(k)) { seen.add(k); classes.push(c); } }
+    return { ...good[0], classes, tried: subs.flatMap((x) => x.tried ?? []), dropped: subs.flatMap((x) => x.dropped ?? []), seconds: subs.reduce((a, x) => a + (x.seconds ?? 0), 0), modelSeconds: subs.reduce((a, x) => a + (x.modelSeconds ?? 0), 0), pages: good.length + "/" + subs.length };
+  }
   const t0 = Date.now();
   let modelMs = 0;
   const r = { name: s.name, kind: s.kind, site: s.site, tried: [], scheduleUrl: null, platform: null, status: "no_schedule", classes: [], dropped: [] };

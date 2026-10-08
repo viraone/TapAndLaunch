@@ -825,7 +825,12 @@
     "neighborhood": "Ballard",
     "id": "ChIJQ-6exLYVkFQRd8Fg0Qp0R4A",
     "lat": 47.666415199999996,
-    "lng": -122.38283239999998
+    "lng": -122.38283239999998,
+    "schedules": [
+      "https://www.olympicathleticclub.com/schedule-classes-morning/",
+      "https://www.olympicathleticclub.com/schedule-classes-afternoon/",
+      "https://www.olympicathleticclub.com/schedule-classes-evening/"
+    ]
   },
   {
     "kind": "yoga",
