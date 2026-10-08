@@ -43,15 +43,15 @@ export function buildChecklist(s: ChecklistSignals): Checklist {
     {
       id: "content",
       title: "Add your content",
-      hint: "Pick a block from the library on the left to start this page.",
-      action: "Add a block",
+      hint: "Pick a section from the list on the left, like a banner or your opening hours, to start this page.",
+      action: "Add a section",
       done: s.hasContent,
     },
     {
       id: "look",
       title: "Pick your colors and icon",
       hint: "Make it look like you: a brand color, and the picture people see when they add your app to their home screen.",
-      action: "Open app settings",
+      action: "Pick colors and icon",
       done: s.hasIcon || s.hasLook,
     },
     {

@@ -92,9 +92,9 @@ export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
 };
 
 export const BLOCK_GROUPS: Array<{ label: string; types: BlockType[] }> = [
-  { label: "Showcase", types: ["hero", "stats", "gallery", "reviews"] },
-  { label: "Content", types: ["text", "image", "video", "price_list", "hours"] },
-  { label: "Engage", types: ["contact_form", "zoom_meeting", "canva_embed"] },
-  { label: "Sell & book", types: ["product_list", "event_calendar"] },
-  { label: "Live data", types: ["listing_directory", "gas_directory", "food_directory", "open_mic_signup", "class_finder"] },
+  { label: "Make it look good", types: ["hero", "stats", "gallery", "reviews"] },
+  { label: "Words, pictures and prices", types: ["text", "image", "video", "price_list", "hours"] },
+  { label: "Hear from people", types: ["contact_form", "zoom_meeting", "canva_embed"] },
+  { label: "Sell and book", types: ["product_list", "event_calendar"] },
+  { label: "Live, updated for you", types: ["listing_directory", "gas_directory", "food_directory", "open_mic_signup", "class_finder"] },
 ];

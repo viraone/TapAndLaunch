@@ -25,17 +25,17 @@ export function Palette({ onAdd, mapsEnabled = true }: { onAdd: (type: BlockType
   return (
     <div className="flex flex-col gap-4 p-4">
       <div>
-        <p className="text-sm font-semibold text-neutral-100">Add a block</p>
+        <p className="text-sm font-semibold text-neutral-100">Add a section</p>
         <p className="mt-0.5 text-xs text-neutral-500">Click to add it to this page.</p>
       </div>
       <label className="relative block">
-        <span className="sr-only">Search blocks</span>
+        <span className="sr-only">Search sections</span>
         <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-500" />
         <input
           id="block-search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search blocks"
+          placeholder="Search sections"
           className="h-9 w-full rounded-full border border-white/10 bg-white/[0.04] pl-8 pr-3 text-xs text-neutral-100 outline-none placeholder:text-neutral-500 focus:border-white/25"
         />
       </label>
@@ -67,7 +67,7 @@ export function Palette({ onAdd, mapsEnabled = true }: { onAdd: (type: BlockType
           })}
         </section>
       ))}
-      {!groups.length && <p className="px-1 text-xs text-neutral-500">No block matches “{query}”.</p>}
+      {!groups.length && <p className="px-1 text-xs text-neutral-500">No section matches “{query}”.</p>}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   DndContext,
   closestCenter,
@@ -12,7 +12,7 @@ import {
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { toast } from "sonner";
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, Rocket, Save } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowUpRight, Check, Loader2, Rocket } from "lucide-react";
 import { tileGradient, tileInitial } from "@/lib/apps/tile";
 import { buildChecklist, type ChecklistStepId } from "@/lib/apps/checklist";
 import { BuilderPhoneNotice } from "@/components/builder/BuilderPhoneNotice";
@@ -74,12 +74,20 @@ export function BuilderClient({
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [device, setDevice] = useState<DeviceFrame>("ios");
   const [visited] = useState(hasVisit);
-  const [isSaving, startSaving] = useTransition();
   const [isPublishing, startPublishing] = useTransition();
   // What the current page looked like when it was last loaded or saved, to tell whether there are unsaved changes.
   const snapshot = (list: BuilderBlock[]) => JSON.stringify(list.map((b) => [b.type, b.config, b.minTier]));
   const [savedSnapshot, setSavedSnapshot] = useState(() => snapshot(initialBlocks.map(toBuilderBlock)));
   const dirty = snapshot(blocks) !== savedSnapshot;
+  // Changes save on their own, a moment after the last edit: a "Save" button next to "Publish" made people wonder
+  // whether they had to press it first, and whether closing the tab would lose their work. The toolbar says where
+  // things stand ("Saving…", "All changes saved", or an error with a retry).
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
+  const blocksRef = useRef(blocks);
+  blocksRef.current = blocks;
+  const pageIdRef = useRef(currentPageId);
+  pageIdRef.current = currentPageId;
+  const inFlight = useRef<Promise<boolean> | null>(null);
 
   // The AI chat (outside this component) works on the saved app, so it needs to know when there are unsaved edits.
   useEffect(() => {
@@ -131,6 +139,8 @@ export function BuilderClient({
   }
 
   async function switchPage(pageId: string) {
+    // Whatever was being edited on this page is kept before the other page loads.
+    if (snapshot(blocksRef.current) !== savedSnapshot && !(await saveBlocks())) return;
     setCurrentPageId(pageId);
     setSelectedBlockId(null);
     const { data, error } = await supabase
@@ -167,37 +177,73 @@ export function BuilderClient({
     setSelectedBlockId(null);
   }
 
-  /** Persists the current page's blocks. Returns whether it succeeded so
-   * `togglePublish` can bail out instead of publishing a stale page. */
-  async function saveBlocks(): Promise<boolean> {
-    const res = await fetch(`/api/apps/${currentApp.id}/pages/${currentPageId}/blocks`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        blocks: blocks.map((b, index) => ({
-          type: b.type,
-          config: b.config,
-          min_tier: b.minTier,
-          position: index,
-        })),
-      }),
+  /** Persists the current page's blocks as they are right now. Returns whether it succeeded so `togglePublish` can
+   * bail out instead of publishing a stale page. One request at a time: a call made while one is running waits for
+   * it, then sends the latest state. The local blocks are kept as they are (the server gives every block a new id on
+   * each save, and swapping them in mid-edit would drop the selection and the cursor); the ids only need to agree
+   * again on the next full load. */
+  function saveBlocks(): Promise<boolean> {
+    const run = async (): Promise<boolean> => {
+      if (inFlight.current) await inFlight.current;
+      const list = blocksRef.current;
+      const sent = snapshot(list);
+      const pageId = pageIdRef.current;
+      setSaveStatus("saving");
+      try {
+        const res = await fetch(`/api/apps/${currentApp.id}/pages/${pageId}/blocks`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            blocks: list.map((b, index) => ({
+              type: b.type,
+              config: b.config,
+              min_tier: b.minTier,
+              position: index,
+            })),
+          }),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          setSaveStatus("error");
+          toast.error(body.error ?? "Couldn't save your changes");
+          return false;
+        }
+      } catch {
+        setSaveStatus("error");
+        toast.error("Couldn't save your changes. Check your connection.");
+        return false;
+      }
+      setSavedSnapshot(sent);
+      setSaveStatus("saved");
+      return true;
+    };
+    const p = run().finally(() => {
+      if (inFlight.current === p) inFlight.current = null;
     });
-    const body = await res.json();
-    if (!res.ok) {
-      toast.error(body.error ?? "Failed to save");
-      return false;
-    }
-    const saved = (body.blocks as BlockRow[]).map(toBuilderBlock);
-    setBlocks(saved);
-    setSavedSnapshot(snapshot(saved));
-    return true;
+    inFlight.current = p;
+    return p;
   }
 
-  function save() {
-    startSaving(async () => {
-      if (await saveBlocks()) toast.success("Saved");
-    });
-  }
+  // Autosave: a moment after the last edit. Every edit re-arms the timer, so typing is one save at the end, not one
+  // per keystroke. A failed save waits for the next edit (or the toolbar's Retry) rather than hammering the server.
+  useEffect(() => {
+    if (!dirty) return;
+    const t = window.setTimeout(() => void saveBlocks(), 1200);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-armed on each edit (blocks); saveBlocks reads refs
+  }, [dirty, blocks]);
+  // What the toolbar says: a request in flight or a failure first, otherwise whether anything is still unsaved.
+  const saveState: "saved" | "saving" | "unsaved" | "error" = saveStatus !== "saved" ? saveStatus : dirty ? "unsaved" : "saved";
+
+  // Closing the tab in the second or two before a save lands would lose the edit; the browser asks first.
+  useEffect(() => {
+    if (saveState === "saved") return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [saveState]);
 
   function togglePublish() {
     const nextStatus = currentApp.status === "published" ? "draft" : "published";
@@ -218,7 +264,7 @@ export function BuilderClient({
         return;
       }
       setCurrentApp(body.app);
-      toast.success(nextStatus === "published" ? "Saved and published" : "App unpublished");
+      toast.success(nextStatus === "published" ? "Your app is live" : "App unpublished");
     });
   }
 
@@ -280,61 +326,62 @@ export function BuilderClient({
                 {live ? "Live" : "Draft"}
               </span>
             </div>
-            <a
-              href={`//${currentApp.slug}.${rootDomain}`}
-              target="_blank"
-              rel="noreferrer"
-              className="hidden items-center gap-1 truncate text-xs text-neutral-500 transition hover:text-white sm:inline-flex"
-            >
-              {currentApp.slug}.{rootDomain} <ArrowUpRight className="h-3 w-3" />
-            </a>
+            {/* A draft's address goes nowhere yet, so it is named, not linked. */}
+            {live ? (
+              <a
+                href={liveUrl ?? "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="hidden items-center gap-1 truncate text-xs text-neutral-500 transition hover:text-white sm:inline-flex"
+              >
+                {currentApp.slug}.{rootDomain} <ArrowUpRight className="h-3 w-3" />
+              </a>
+            ) : (
+              <p className="hidden truncate text-xs text-neutral-500 sm:block">
+                When live: {currentApp.slug}.{rootDomain}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {!checklist.complete && (
-            <button
-              type="button"
-              onClick={() => setSelectedBlockId(null)}
-              title="Show the Get live checklist"
-              className="hidden items-center gap-2 rounded-full bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-200 ring-1 ring-white/10 transition hover:bg-white/10 md:inline-flex"
-            >
-              <span className="h-1.5 w-12 overflow-hidden rounded-full bg-white/15">
-                <span className="block h-full rounded-full bg-gradient-to-r from-indigo-400 to-pink-400" style={{ width: `${(checklist.doneCount / checklist.total) * 100}%` }} />
-              </span>
-              Get live · {checklist.doneCount}/{checklist.total}
-            </button>
-          )}
+          {/* Where the work stands. Changes save on their own; this is the only place that needs to say so. */}
+          <p role="status" className="hidden items-center gap-1.5 text-xs text-neutral-400 md:inline-flex">
+            {saveState === "saving" && (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…
+              </>
+            )}
+            {saveState === "saved" && (
+              <>
+                <Check className="h-3.5 w-3.5 text-emerald-400" /> {live ? "Live · all changes saved" : "All changes saved"}
+              </>
+            )}
+            {saveState === "unsaved" && "Unsaved changes…"}
+            {saveState === "error" && (
+              <>
+                <AlertCircle className="h-3.5 w-3.5 text-amber-400" /> Couldn&apos;t save.
+                <button type="button" onClick={() => void saveBlocks()} className="font-semibold text-white underline underline-offset-2">
+                  Try again
+                </button>
+              </>
+            )}
+          </p>
           <DeviceFrameSwitcher value={device} onChange={setDevice} />
           <AppSettingsDialog app={currentApp} pages={pages} onSaved={setCurrentApp} domainsEnabled={domainsEnabled} rootDomain={rootDomain} />
           <span className="mx-1 h-6 w-px bg-white/10" aria-hidden />
           {live ? (
-            <>
-              <button
-                type="button"
-                onClick={togglePublish}
-                disabled={isPublishing}
-                className="inline-flex h-9 items-center rounded-full px-3 text-xs font-medium text-neutral-400 transition hover:bg-white/5 hover:text-white disabled:opacity-50"
-              >
-                {isPublishing ? "Unpublishing…" : "Unpublish"}
-              </button>
-              <button type="button" onClick={save} disabled={isSaving} className={PRIMARY}>
-                <Save className="h-4 w-4" /> {isSaving ? "Saving…" : "Save changes"}
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={togglePublish}
+              disabled={isPublishing}
+              className="inline-flex h-9 items-center rounded-full border border-white/10 bg-white/5 px-4 text-xs font-medium text-neutral-200 transition hover:bg-white/10 disabled:opacity-50"
+            >
+              {isPublishing ? "Unpublishing…" : "Unpublish"}
+            </button>
           ) : (
-            <>
-              <button
-                type="button"
-                onClick={save}
-                disabled={isSaving}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-4 text-xs font-medium text-neutral-200 transition hover:bg-white/10 disabled:opacity-50"
-              >
-                <Save className="h-3.5 w-3.5" /> {isSaving ? "Saving…" : "Save draft"}
-              </button>
-              <button type="button" onClick={togglePublish} disabled={isPublishing} className={PRIMARY}>
-                <Rocket className="h-4 w-4" /> {isPublishing ? "Publishing…" : "Publish"}
-              </button>
-            </>
+            <button type="button" onClick={togglePublish} disabled={isPublishing} className={PRIMARY}>
+              <Rocket className="h-4 w-4" /> {isPublishing ? "Publishing…" : "Publish"}
+            </button>
           )}
         </div>
       </header>
@@ -357,12 +404,8 @@ export function BuilderClient({
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-neutral-900/70 px-3.5 py-1.5 text-xs text-neutral-400 backdrop-blur">
               <span className="font-semibold text-neutral-100">{currentPage?.name ?? "Page"}</span>
               <span aria-hidden>·</span>
-              {blocks.length} block{blocks.length === 1 ? "" : "s"}
-              {blocks.length > 1 && (
-                <>
-                  <span aria-hidden>·</span> drag to reorder
-                </>
-              )}
+              {blocks.length} section{blocks.length === 1 ? "" : "s"}
+              <span aria-hidden>·</span> {blocks.length > 1 ? "tap one to change it, drag to reorder" : blocks.length === 1 ? "tap it to change it" : "add one on the left"}
             </span>
           </div>
           <MobilePreviewFrame device={device} theme={currentApp.theme}>
@@ -373,7 +416,7 @@ export function BuilderClient({
                   {blocks.length === 0 ? (
                     <div className="m-4 rounded-2xl border border-dashed border-border p-6 text-center">
                       <p className="text-sm font-medium">This page is empty</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Pick a block on the left to start building.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Pick a section on the left to start building.</p>
                     </div>
                   ) : (
                     blocks.map((block) => (

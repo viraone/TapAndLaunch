@@ -10,21 +10,28 @@ export function DeviceFrameSwitcher({
   value: DeviceFrame;
   onChange: (value: DeviceFrame) => void;
 }) {
+  // Says what it is for: it only changes the phone drawn around the preview. Bare "iOS / Android" read as two apps to build.
   return (
-    <div className="inline-flex rounded-full border border-white/10 bg-white/5 p-0.5">
-      {(["ios", "android"] as const).map((frame) => (
-        <button
-          key={frame}
-          type="button"
-          onClick={() => onChange(frame)}
-          className={cn(
-            "rounded-full px-3 py-1 text-xs font-medium transition",
-            value === frame ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-400 hover:text-white"
-          )}
-        >
-          {frame === "ios" ? "iOS" : "Android"}
-        </button>
-      ))}
+    <div role="group" aria-label="Preview on" className="inline-flex items-center gap-2">
+      <span className="hidden text-xs text-neutral-500 lg:inline" aria-hidden>
+        Preview on
+      </span>
+      <div className="inline-flex rounded-full border border-white/10 bg-white/5 p-0.5">
+        {(["ios", "android"] as const).map((frame) => (
+          <button
+            key={frame}
+            type="button"
+            aria-pressed={value === frame}
+            onClick={() => onChange(frame)}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium transition",
+              value === frame ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-400 hover:text-white"
+            )}
+          >
+            {frame === "ios" ? "iPhone" : "Android"}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Lock, Trash2 } from "lucide-react";
+import { GripVertical, Lock, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BlockRenderer } from "@/components/pwa-runtime/BlockRenderer";
 import type { BuilderBlock } from "@/components/builder/types";
@@ -39,6 +39,15 @@ export function SortableBlockItem({
       <div className="pointer-events-none">
         <BlockRenderer block={block} />
       </div>
+      {/* Says what a tap does, the moment the pointer is over a section. Nothing on the phone looked clickable before. */}
+      {!selected && (
+        <span
+          aria-hidden
+          className={`pointer-events-none absolute left-1.5 ${block.minTier ? "top-7" : "top-1.5"} inline-flex items-center gap-1 rounded-md bg-indigo-600 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-md opacity-0 transition group-hover:opacity-100`}
+        >
+          <Pencil className="h-3 w-3" /> Tap to edit
+        </span>
+      )}
       {block.minTier && (
         <div
           className="absolute left-1 top-1 flex items-center gap-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] text-muted-foreground shadow-sm"
@@ -62,7 +71,7 @@ export function SortableBlockItem({
           type="button"
           variant="ghost"
           size="icon"
-          aria-label="Remove block"
+          aria-label="Remove section"
           className="h-6 w-6 rounded-md bg-neutral-950 text-neutral-200 shadow-md hover:bg-red-600 hover:text-white"
           onClick={(e) => {
             e.stopPropagation();

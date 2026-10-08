@@ -15,7 +15,7 @@ import { GalleryBlockEditor, HeroBlockEditor, HoursBlockEditor, PriceListBlockEd
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
 import { GetLiveChecklist } from "@/components/builder/GetLiveChecklist";
 import type { Checklist, ChecklistStepId } from "@/lib/apps/checklist";
-import { GripVertical, MousePointerClick, X } from "lucide-react";
+import { MousePointerClick, Pencil, X } from "lucide-react";
 import { BLOCK_ACCENTS, BLOCK_ICONS } from "@/components/builder/blockMeta";
 import { BLOCK_TYPE_LABELS } from "@/lib/builder/block-defaults";
 import type { BlockConfig } from "@/types/database";
@@ -53,12 +53,13 @@ export function Inspector({
 }) {
   if (!block) {
     return (
-      <div className="flex flex-col gap-5 p-4">
+      // Extra room at the bottom so the floating "Build with AI" button never covers the last item or the tip.
+      <div className="flex flex-col gap-5 p-4 pb-24">
         <GetLiveChecklist checklist={checklist} liveUrl={liveUrl} busy={publishing} onAction={onChecklistAction} />
         <div>
           <p className="text-sm font-semibold text-neutral-100">{pageName}</p>
           <p className="mt-0.5 text-xs text-neutral-500">
-            {blocks.length ? `${blocks.length} block${blocks.length === 1 ? "" : "s"} on this page. Pick one to edit it.` : "No blocks yet."}
+            {blocks.length ? `${blocks.length} section${blocks.length === 1 ? "" : "s"} on this page. Tap one on the phone, or here, to change it.` : "No sections yet."}
           </p>
         </div>
         {blocks.length ? (
@@ -77,7 +78,10 @@ export function Inspector({
                       <Icon className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-neutral-100">{BLOCK_TYPE_LABELS[b.type]}</span>
-                    <GripVertical className="h-4 w-4 text-neutral-600 transition group-hover:text-neutral-400" />
+                    {/* A word, not a grip icon: what a tap on this row does. */}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-neutral-200 transition group-hover:bg-white group-hover:text-neutral-950">
+                      <Pencil className="h-3 w-3" /> Edit
+                    </span>
                   </button>
                 </li>
               );
@@ -88,11 +92,11 @@ export function Inspector({
             <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/5 text-neutral-400">
               <MousePointerClick className="h-5 w-5" />
             </span>
-            <p className="text-xs leading-relaxed text-neutral-500">Add a block from the library on the left to start this page.</p>
+            <p className="text-xs leading-relaxed text-neutral-500">Add a section from the list on the left to start this page.</p>
           </div>
         )}
         <p className="rounded-2xl bg-white/[0.03] p-3 text-[11px] leading-relaxed text-neutral-500">
-          Tip: drag blocks on the phone to reorder them. Save changes when you&apos;re done.
+          Tip: drag a section on the phone to move it up or down. Your changes save on their own.
         </p>
       </div>
     );
