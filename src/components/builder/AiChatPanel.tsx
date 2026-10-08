@@ -91,7 +91,9 @@ export function AiChatPanel({ appId, appName, initiallyOpen = false }: { appId: 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-40 inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 px-5 text-sm font-semibold text-white shadow-xl shadow-indigo-500/30 transition hover:brightness-110"
+        // On the wide builder it floats at the bottom of the phone preview column, clear of the right-hand panel (320 px),
+        // which it used to cover: the tip and the last section's Edit button sat under it.
+        className="fixed bottom-5 right-5 z-40 inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 px-5 text-sm font-semibold text-white shadow-xl shadow-indigo-500/30 transition hover:brightness-110 lg:right-[340px]"
       >
         <Bot className="h-5 w-5" /> Build with AI
       </button>
