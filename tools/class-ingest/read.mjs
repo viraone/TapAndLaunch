@@ -191,14 +191,22 @@ async function render(browser, url, { settle = 7000 } = {}) {
         }
         // Arketa's calendar (Flood Yoga, NW Fitness Project): seven .calendar-view__column sections under a strip of
         // .week-range__day headers ("Wed" over "7"); the text of the columns runs together without them.
-        const ark = await f.evaluate(() => {
+        const readArk = () => f.evaluate(() => {
           const cols = Array.from(document.querySelectorAll(".calendar-view .calendar-view__column"));
           const heads = Array.from(document.querySelectorAll(".week-range__day")).map((h) => (h.innerText || "").replace(/\s+/g, " ").trim());
           if (cols.length < 5 || heads.length !== cols.length) return null;
           return cols.map((c, i) => ({ label: heads[i], text: (c.innerText || "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim() }));
         }).catch(() => null);
+        const ark = await readArk();
         if (!ark) continue;
-        for (const c of ark) { const d = dateFromLabel(c.label); if (d && d >= TODAY_ISO && c.text && !/^No Classes$/i.test(c.text)) parts.push(`[Day column: ${d}]\n${c.text}`); }
+        const arkDays = new Set();
+        const pushArk = (cols) => { for (const c of cols ?? []) { const d = dateFromLabel(c.label); if (d && d >= TODAY_ISO && c.text && !/^No Classes$/i.test(c.text) && !arkDays.has(d)) { arkDays.add(d); parts.push(`[Day column: ${d}]\n${c.text}`); } } };
+        pushArk(ark);
+        // The week's next arrow answers only a real mouse click (a click() from the page does nothing), so it is pressed from here.
+        const nextArrow = f.locator(".week-range__arrow").last();
+        const pressed = await nextArrow.click({ timeout: 4000 }).then(() => true, () => false);
+        if (pressed) { await page.waitForTimeout(3500); pushArk(await readArk()); }
+        dbg("arketa columns", f.url().slice(0, 50), "next week:", pressed, "days kept:", arkDays.size);
         gridFrames.add(f);
         continue;
       }
