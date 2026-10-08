@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CUISINE_KEYS } from "@/lib/food/cuisines";
-import { DISH_LISTS, extractDishes, MAX_DISHES_SHOWN } from "@/lib/food/dishes";
+import { DISH_LISTS, extractDishes, MAX_DISHES_SHOWN, reviewsMentioningDish } from "@/lib/food/dishes";
 
 const r = (rating: number, text: string) => ({ rating, text });
 
@@ -48,5 +48,29 @@ describe("extractDishes", () => {
         for (const a of dish.aliases) expect(a).toBe(a.toLowerCase().trim());
       }
     }
+  });
+});
+
+describe("reviewsMentioningDish", () => {
+  const reviews = [
+    { rating: 5, text: "The injera was soft and the doro wat was amazing.", author: "A" },
+    { rating: 4, text: "Veggie combo with extra Injera!", author: "B" },
+    { rating: 2, text: "Cold injera, slow service.", author: "C" },
+    { rating: 5, text: "Great atmosphere and friendly staff.", author: "D" },
+  ];
+
+  it("returns the 4★ and 5★ reviews that mention the dish, with their other fields intact", () => {
+    const out = reviewsMentioningDish(reviews, "Injera", "ethiopian");
+    expect(out.map((x) => x.author)).toEqual(["A", "B"]);
+  });
+
+  it("agrees with the count shown for the dish", () => {
+    const counted = extractDishes(reviews, "ethiopian").find((x) => x.name === "Injera")?.mentions;
+    expect(reviewsMentioningDish(reviews, "Injera", "ethiopian")).toHaveLength(counted ?? -1);
+  });
+
+  it("finds the dish when the place's cuisine is read differently, and returns nothing for an unknown dish", () => {
+    expect(reviewsMentioningDish(reviews, "Injera", null)).toHaveLength(2);
+    expect(reviewsMentioningDish(reviews, "Not a dish", "ethiopian")).toEqual([]);
   });
 });

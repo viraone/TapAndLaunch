@@ -255,6 +255,11 @@ function normalize(text: string): string {
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/** The pattern that finds a dish in a normalized review: any alias, as a whole word, with a plural "s" or "es". */
+function dishPattern(dish: Dish): RegExp {
+  return new RegExp(`(?<![a-z0-9])(?:${dish.aliases.map((a) => escapeRegExp(a)).join("|")})(?:s|es)?(?![a-z0-9])`);
+}
+
 /** Dishes from the cuisine's list that positive reviews mention, most-mentioned first (ties keep the list's order). */
 export function extractDishes(reviews: ReviewText[], cuisine: CuisineKey | null): PopularDish[] {
   if (!cuisine) return [];
@@ -263,7 +268,7 @@ export function extractDishes(reviews: ReviewText[], cuisine: CuisineKey | null)
 
   const found: (PopularDish & { order: number })[] = [];
   DISH_LISTS[cuisine].forEach((dish, order) => {
-    const pattern = new RegExp(`(?<![a-z0-9])(?:${dish.aliases.map((a) => escapeRegExp(a)).join("|")})(?:s|es)?(?![a-z0-9])`);
+    const pattern = dishPattern(dish);
     const mentions = texts.filter((t) => pattern.test(t)).length;
     if (mentions > 0) found.push({ name: dish.name, emoji: dish.emoji, mentions, order });
   });
@@ -271,4 +276,16 @@ export function extractDishes(reviews: ReviewText[], cuisine: CuisineKey | null)
     .sort((a, b) => b.mentions - a.mentions || a.order - b.order)
     .slice(0, MAX_DISHES_SHOWN)
     .map(({ name, emoji, mentions }) => ({ name, emoji, mentions }));
+}
+
+/**
+ * The reviews behind a dish's count: those rated 4★ and up that mention it, by the same matching as `extractDishes`, so
+ * a tap on "Injera · 2 reviews" can show them. The dish is looked up in the place's cuisine first, then in every list
+ * (a name can move between lists if a place's cuisine is read differently from one visit to the next).
+ */
+export function reviewsMentioningDish<T extends ReviewText>(reviews: T[], dishName: string, cuisine: CuisineKey | null): T[] {
+  const dish = (cuisine ? DISH_LISTS[cuisine].find((x) => x.name === dishName) : undefined) ?? Object.values(DISH_LISTS).flat().find((x) => x.name === dishName);
+  if (!dish) return [];
+  const pattern = dishPattern(dish);
+  return reviews.filter((r) => (r.rating ?? 0) >= MIN_REVIEW_RATING && r.text.trim() && pattern.test(normalize(r.text)));
 }

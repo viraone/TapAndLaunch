@@ -9,7 +9,7 @@ import { computeOpenStatus, type OpenStatus } from "@/lib/food/hours";
 import { computeHappyHour, daysLabel, windowTimeLabel, type CloseInfo, type HappyHourStatus } from "@/lib/food/happyHour";
 import { driveMinutes, travelEstimate, walkLabel, walkMinutes, type TravelMode } from "@/lib/food/walk";
 import { hoursRows, mapsPlaceUrl, menuSearchUrl, safeWebsite, telHref } from "@/lib/food/placeSheet";
-import type { PopularDish } from "@/lib/food/dishes";
+import { reviewsMentioningDish, type PopularDish } from "@/lib/food/dishes";
 import type { PlaceReview } from "@/lib/food/reviews";
 import { filterMenu, type MenuSection } from "@/lib/food/menuItems";
 
@@ -718,7 +718,12 @@ function ReviewCard({ review }: { review: PlaceReview }) {
  * hands out its top few, so the screen always offers the full list on Google Maps, which is also what shows when the monthly
  * free allowance is used up or Google doesn't answer.
  */
-function ReviewsPanel({ place, onBack }: { place: NearbyPlace; onBack: () => void }) {
+/**
+ * Google's reviews for a place. With `dish`, only the reviews that mention that dish (the ones behind its "N reviews"
+ * count in "Popular with diners"), found in the same live list: review text is never stored, so a tap on a dish asks
+ * Google again, like a tap on the rating does, and the visit's cache means the second tap costs nothing.
+ */
+function ReviewsPanel({ place, dish, onBack }: { place: NearbyPlace; dish?: PopularDish | null; onBack: () => void }) {
   const [reviews, setReviews] = useState<PlaceReview[] | null | undefined>(() => reviewsCache.get(place.id)); // undefined = loading, null = unavailable
   const googleUrl = mapsPlaceUrl(place.name, place.googlePlaceId);
 
@@ -748,6 +753,8 @@ function ReviewsPanel({ place, onBack }: { place: NearbyPlace; onBack: () => voi
   }, [place.id]);
 
   const total = place.ratingCount;
+  // Which of the loaded reviews to list: all of them, or only those that mention the dish that was tapped.
+  const list = reviews && dish ? reviewsMentioningDish(reviews, dish.name, place.cuisine) : reviews;
   const seeAll = (
     <a
       href={googleUrl}
@@ -767,14 +774,27 @@ function ReviewsPanel({ place, onBack }: { place: NearbyPlace; onBack: () => voi
           <ChevronLeft className="h-6 w-6" aria-hidden /> Back
         </button>
         <div className="min-w-0 flex-1 text-center">
-          <p className="text-[15px] font-bold leading-tight">Reviews</p>
+          <p className="truncate text-[15px] font-bold leading-tight">{dish ? `Reviews mentioning ${dish.name}` : "Reviews"}</p>
           <p className="truncate text-xs text-muted-foreground">{place.name}</p>
         </div>
         <span className="w-14" aria-hidden />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
-        {place.rating !== null && (
+        {dish && (
+          <div className="flex items-center gap-3">
+            <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-orange-500/10 text-2xl">
+              {dish.emoji}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-xl font-bold leading-tight">{dish.name}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {dish.mentions} {dish.mentions === 1 ? "review mentions" : "reviews mention"} it, in recent 4★ and 5★ Google reviews
+              </p>
+            </div>
+          </div>
+        )}
+        {!dish && place.rating !== null && (
           <div className="flex items-center gap-3">
             <span className="text-4xl font-bold tabular-nums leading-none">{place.rating.toFixed(1)}</span>
             <div>
@@ -801,20 +821,31 @@ function ReviewsPanel({ place, onBack }: { place: NearbyPlace; onBack: () => voi
           </ul>
         )}
 
-        {reviews && reviews.length > 0 && (
+        {list && list.length > 0 && (
           <>
-            <p className="mt-4 text-xs text-muted-foreground">Google&apos;s most relevant reviews for this place.</p>
+            <p className="mt-4 text-xs text-muted-foreground">
+              {dish ? `What diners wrote about ${dish.name.toLowerCase()}.` : "Google\u2019s most relevant reviews for this place."}
+            </p>
             <ul className="mt-2 space-y-3">
-              {reviews.map((r, i) => (
+              {list.map((r, i) => (
                 <ReviewCard key={`${r.author}-${i}`} review={r} />
               ))}
             </ul>
+            {/* Google changes which few reviews it hands out; if fewer match than were counted, say where the rest are. */}
+            {dish && list.length < dish.mentions && (
+              <p className="mt-3 text-xs text-muted-foreground">Google isn&apos;t showing every review that mentioned it right now. The rest are on Google Maps.</p>
+            )}
           </>
         )}
 
-        {reviews !== undefined && (!reviews || reviews.length === 0) && (
+        {reviews !== undefined && (!list || list.length === 0) && (
           <div className="mt-6 rounded-2xl border border-dashed p-5 text-center text-sm text-muted-foreground">
-            {reviews === null ? "Reviews can't be shown here right now." : "Google has no written reviews to show for this place."} Everything is on Google Maps.
+            {reviews === null
+              ? "Reviews can't be shown here right now."
+              : reviews.length === 0
+                ? "Google has no written reviews to show for this place."
+                : `Google isn't showing the reviews that mentioned ${dish?.name.toLowerCase() ?? "this"} right now.`}{" "}
+            Everything is on Google Maps.
           </div>
         )}
 
@@ -1049,6 +1080,8 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
     menuOpenRef.current = menuOpen;
   }, [menuOpen]);
   const [reviewsOpen, setReviewsOpen] = useState(false);
+  // Set when the reviews were opened from a dish in "Popular with diners"; null when from the rating.
+  const [reviewDish, setReviewDish] = useState<PopularDish | null>(null);
   const reviewsOpenRef = useRef(false);
   useEffect(() => {
     reviewsOpenRef.current = reviewsOpen;
@@ -1186,7 +1219,10 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
                     {/* Tapping the rating opens Google's reviews for this place (ReviewsPanel). */}
                     <button
                       type="button"
-                      onClick={() => setReviewsOpen(true)}
+                      onClick={() => {
+                        setReviewDish(null);
+                        setReviewsOpen(true);
+                      }}
                       aria-label={`Read reviews for ${place.name}, rated ${place.rating.toFixed(1)}${place.ratingCount !== null ? ` from ${place.ratingCount.toLocaleString()} reviews` : ""}`}
                       className="-my-1 inline-flex items-center gap-1 rounded-full bg-foreground/[0.07] py-1 pl-1.5 pr-1 transition active:bg-foreground/15"
                     >
@@ -1292,18 +1328,30 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Popular with diners</h3>
               <ul className="mt-2 divide-y rounded-2xl border bg-card">
                 {dishes.map((dish) => (
-                  <li key={dish.name} className="flex items-center gap-3 px-4 py-2.5">
-                    <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-orange-500/10 text-xl">
-                      {dish.emoji}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{dish.name}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                      {dish.mentions} {dish.mentions === 1 ? "review" : "reviews"}
-                    </span>
+                  <li key={dish.name}>
+                    {/* A tap opens what diners wrote about this dish (ReviewsPanel, filtered). */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReviewDish(dish);
+                        setReviewsOpen(true);
+                      }}
+                      aria-label={`Read the ${dish.mentions} ${dish.mentions === 1 ? "review" : "reviews"} that mention ${dish.name}`}
+                      className="flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left transition active:bg-foreground/10"
+                    >
+                      <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-orange-500/10 text-xl">
+                        {dish.emoji}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{dish.name}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                        {dish.mentions} {dish.mentions === 1 ? "review" : "reviews"}
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 opacity-50" aria-hidden />
+                    </button>
                   </li>
                 ))}
               </ul>
-              <p className="mt-1.5 text-xs text-muted-foreground">Mentioned in recent 4★ and 5★ Google reviews</p>
+              <p className="mt-1.5 text-xs text-muted-foreground">Mentioned in recent 4★ and 5★ Google reviews. Tap a dish to read them.</p>
             </section>
           )}
 
@@ -1342,7 +1390,7 @@ function PlaceSheet({ place, now, onClose }: { place: NearbyPlace; now: Date; on
       </div>
       {/* Outside the sliding sheet on purpose: a fixed panel inside a transformed element would be clipped to it. */}
       {menuOpen && <MenuPanel place={place} dishes={dishes} onBack={() => setMenuOpen(false)} />}
-      {reviewsOpen && <ReviewsPanel place={place} onBack={() => setReviewsOpen(false)} />}
+      {reviewsOpen && <ReviewsPanel place={place} dish={reviewDish} onBack={() => setReviewsOpen(false)} />}
     </div>
   );
 }
