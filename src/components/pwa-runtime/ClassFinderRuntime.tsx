@@ -11,6 +11,7 @@ import {
   milesBetween,
   partOfDay,
   seattleStamp,
+  seattleToday,
   time12,
   type FitnessClass,
   type FitnessStudio,
@@ -22,6 +23,8 @@ interface Week {
   classes: FitnessClass[];
   studios: FitnessStudio[];
   readAt: string | null;
+  /** Set while the answer holds one day's classes only (the feed asked with ?day=). */
+  day?: string;
 }
 
 /**
@@ -151,13 +154,30 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   // The week's classes. A request that hangs (a flaky connection) becomes the error state after 15 seconds instead of a
   // spinner that never ends; "Try again" and coming back online call this again.
   const [retrying, setRetrying] = useState(false);
+  // The week comes a day at a time: today first (a seventh of the week, so the first list is on screen after one small
+  // answer), then the other six days together behind it. Until they arrive, a tapped day says it is loading.
+  const [rest, setRest] = useState<"loading" | "ok" | "failed">("loading");
   const load = useCallback(() => {
     // The browser never keeps a copy (the feed says max-age=0); the CDN's five-minute copy answers most visits.
-    fetch("/fitness/classes", { signal: typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(15_000) : undefined })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((w: Week) => {
+    const get = (url: string): Promise<Week> =>
+      fetch(url, { signal: typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(15_000) : undefined }).then((r) =>
+        r.ok ? r.json() : Promise.reject(new Error(String(r.status)))
+      );
+    const first = seattleToday();
+    get(`/fitness/classes?day=${first}`)
+      .then((w) => {
         setWeek(w);
         setFailed(false);
+        const others = w.days.filter((d) => d !== first);
+        const fetchRest = () => Promise.all(others.map((d) => get(`/fitness/classes?day=${d}`)));
+        // One more try after a moment before giving up on the other days (today stays on screen either way).
+        return fetchRest()
+          .catch(() => new Promise<Week[]>((resolve, reject) => setTimeout(() => fetchRest().then(resolve, reject), 4_000)))
+          .then((parts) => {
+            setWeek({ ...w, day: undefined, classes: [...w.classes, ...parts.flatMap((p) => p.classes)] });
+            setRest("ok");
+          })
+          .catch(() => setRest("failed"));
       })
       .catch(() => setFailed(true))
       .finally(() => setRetrying(false));
@@ -165,6 +185,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   // Keeps the "Try again" button on screen (and focus on it) while the request runs, instead of swapping in the spinner.
   const retry = useCallback(() => {
     setRetrying(true);
+    setRest("loading");
     load();
   }, [load]);
 
@@ -242,6 +263,8 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     return null;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- miles depends on origin and studios, both listed
   }, [withinMi, shownDay, matchingAnywhere, now, studioId, origin, studios]);
+  // A day other than today, asked for before the other six days have arrived: say so instead of "no classes".
+  const dayPending = !!shownDay && shownDay !== today && rest !== "ok";
   const dayTitle = !shownDay ? "" : shownDay === today ? `Today, ${dayLabel(shownDay, { month: "short", day: "numeric" })}` : dayLabel(shownDay, { weekday: "long", month: "short", day: "numeric" });
   const dayClasses = visible
     .filter((c) => c.date === shownDay)
@@ -552,9 +575,28 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
             <p role="status" className={dayClasses.length ? "-mt-1 text-xs tabular-nums text-muted-foreground" : "sr-only"}>
               {dayClasses.length
                 ? `${dayClasses.length} class${dayClasses.length === 1 ? "" : "es"} · ${dayStudios} studio${dayStudios === 1 ? "" : "s"}${shownDay === today && startedToday > 0 ? ` · ${startedToday} already started` : ""}`
-                : `No ${pickedLabel} classes${atStudio}${withinLabel} for ${dayTitle}.`}
+                : dayPending
+                  ? `Loading ${dayLabel(shownDay, { weekday: "long" })}…`
+                  : `No ${pickedLabel} classes${atStudio}${withinLabel} for ${dayTitle}.`}
             </p>
-            {dayClasses.length === 0 ? (
+            {dayClasses.length === 0 && dayPending ? (
+              rest === "failed" ? (
+                <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-[#df4f26]/30 bg-[#df4f26]/5 px-4 py-8 text-center">
+                  <p className="text-xl font-extrabold leading-snug text-foreground">Couldn&apos;t load {dayLabel(shownDay, { weekday: "long" })}&apos;s classes.</p>
+                  <button
+                    type="button"
+                    onClick={retry}
+                    className="flex items-center gap-2 rounded-full border-[1.5px] border-[#c23f1a] bg-background px-4 py-2 text-sm font-bold text-[#c23f1a] dark:border-[#ff7a52] dark:text-[#ff7a52]"
+                  >
+                    {retrying && <Loader2 className="h-4 w-4 animate-spin" />} Try again
+                  </button>
+                </div>
+              ) : (
+                <p className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading {dayLabel(shownDay, { weekday: "long" })}…
+                </p>
+              )
+            ) : dayClasses.length === 0 ? (
               <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-[#df4f26]/30 bg-[#df4f26]/5 px-4 py-8 text-center">
                 <p className="text-xl font-extrabold leading-snug text-foreground">
                   {shownDay === today

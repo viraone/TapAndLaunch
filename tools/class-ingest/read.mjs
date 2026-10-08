@@ -148,7 +148,41 @@ async function render(browser, url, { settle = 7000 } = {}) {
     const walkedFrames = new Set(); // frames read day by day below: not read again whole afterwards
     // Widgets that show one day at a time (Mindbody, Mariana Tek, Wix agenda): click each day tab and read every day.
     // Day tabs read "Mon 5", "5 Mon", "Oct 1 THU" or "Today SUN"; a "next week" arrow, when there is one, gets the week after.
+    // Week grids (SoulCycle's find-a-class page): every day is a column, and the page text flattens them so the model can't
+    // tell which day a class is under. Label each column with its date instead.
+    const gridFrames = new Set();
     for (const f of page.frames()) {
+      const grid = await f.evaluate(() => {
+        const cols = Array.from(document.querySelectorAll(".classes-week-cols .column-day[data-date]"));
+        if (cols.length < 5) return null;
+        const head = document.querySelector(".days-of-week-container")?.innerText ?? "";
+        const m = /This Week,\s*([A-Za-z]{3,9})\s+(\d{4})/.exec(head);
+        return m ? { month: m[1], year: Number(m[2]), cols: cols.map((c) => ({ day: Number(c.getAttribute("data-date")), text: (c.innerText || "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim() })) } : null;
+      }).catch(() => null);
+      if (!grid) {
+        // Arketa's calendar (Flood Yoga, NW Fitness Project): seven .calendar-view__column sections under a strip of
+        // .week-range__day headers ("Wed" over "7"); the text of the columns runs together without them.
+        const ark = await f.evaluate(() => {
+          const cols = Array.from(document.querySelectorAll(".calendar-view .calendar-view__column"));
+          const heads = Array.from(document.querySelectorAll(".week-range__day")).map((h) => (h.innerText || "").replace(/\s+/g, " ").trim());
+          if (cols.length < 5 || heads.length !== cols.length) return null;
+          return cols.map((c, i) => ({ label: heads[i], text: (c.innerText || "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim() }));
+        }).catch(() => null);
+        if (!ark) continue;
+        for (const c of ark) { const d = dateFromLabel(c.label); if (d && d >= TODAY_ISO && c.text && !/^No Classes$/i.test(c.text)) parts.push(`[Day column: ${d}]\n${c.text}`); }
+        gridFrames.add(f);
+        continue;
+      }
+      let month = new Date(`${grid.month} 1, ${grid.year}`).getMonth(), year = grid.year, prev = 0;
+      for (const c of grid.cols) {
+        if (c.day < prev) { month += 1; if (month > 11) { month = 0; year += 1; } }
+        prev = c.day;
+        parts.push(`[Day column: ${year}-${String(month + 1).padStart(2, "0")}-${String(c.day).padStart(2, "0")}]\n${c.text}`);
+      }
+      gridFrames.add(f);
+    }
+    for (const f of page.frames()) {
+      if (gridFrames.has(f)) continue; // its columns are already labelled with their dates; its day strip changes nothing
       const dayTabs = () => f.evaluate(() => {
         const WD = "(sun|mon|tue|wed|thu|fri|sat)[a-z]*\\.?", MO = "(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?";
         const res = [new RegExp(`^${WD}\\s*\\d{1,2}$`, "i"), new RegExp(`^\\d{1,2}\\s*${WD}$`, "i"), new RegExp(`^${MO}\\s*\\d{1,2}\\s+${WD}$`, "i"), new RegExp(`^(today|tomorrow)\\s+${WD}$`, "i"), /^[SMTWF]\s\d{1,2}$/, new RegExp(`^(today|${WD})\\s+\\d{1,2}/\\d{1,2}$`, "i")];
@@ -203,26 +237,6 @@ async function render(browser, url, { settle = 7000 } = {}) {
         await page.waitForTimeout(2500);
         await walk();
       }
-    }
-    // Week grids (SoulCycle's find-a-class page): every day is a column, and the page text flattens them so the model can't
-    // tell which day a class is under. Label each column with its date instead.
-    const gridFrames = new Set();
-    for (const f of page.frames()) {
-      const grid = await f.evaluate(() => {
-        const cols = Array.from(document.querySelectorAll(".classes-week-cols .column-day[data-date]"));
-        if (cols.length < 5) return null;
-        const head = document.querySelector(".days-of-week-container")?.innerText ?? "";
-        const m = /This Week,\s*([A-Za-z]{3,9})\s+(\d{4})/.exec(head);
-        return m ? { month: m[1], year: Number(m[2]), cols: cols.map((c) => ({ day: Number(c.getAttribute("data-date")), text: (c.innerText || "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim() })) } : null;
-      }).catch(() => null);
-      if (!grid) continue;
-      let month = new Date(`${grid.month} 1, ${grid.year}`).getMonth(), year = grid.year, prev = 0;
-      for (const c of grid.cols) {
-        if (c.day < prev) { month += 1; if (month > 11) { month = 0; year += 1; } }
-        prev = c.day;
-        parts.push(`[Day column: ${year}-${String(month + 1).padStart(2, "0")}-${String(c.day).padStart(2, "0")}]\n${c.text}`);
-      }
-      gridFrames.add(f);
     }
     const frameUrls = [];
     for (const f of page.frames()) {
