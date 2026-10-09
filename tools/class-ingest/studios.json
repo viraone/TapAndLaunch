@@ -1869,7 +1869,8 @@
     "neighborhood": "Shoreline",
     "id": "ChIJQXiVsYcRkFQRdCm08902-OI",
     "lat": 47.764398,
-    "lng": -122.36470329999999
+    "lng": -122.36470329999999,
+    "location": "Richmond Beach"
   },
   {
     "kind": "lifting",
@@ -2288,5 +2289,68 @@
     "id": "ChIJuZMW6gUbkFQRUTHI68NGGGo",
     "lat": 47.8069043,
     "lng": -122.37722489999999
+  },
+  {
+    "kind": "yoga",
+    "name": "Hot Yoga Inc. Bellevue",
+    "site": "http://www.hotyogainc.com/",
+    "km": 13.8,
+    "address": "1331 118th Ave SE #200, Bellevue, WA 98005, USA",
+    "neighborhood": "Bellevue",
+    "id": "ChIJCQPseX1skFQRlG_z-so8Bdo",
+    "lat": 47.5989487,
+    "lng": -122.1835028,
+    "location": "Bellevue"
+  },
+  {
+    "kind": "pilates",
+    "name": "barre3 - Edmonds",
+    "site": "https://online.barre3.com/studio-locations/edmonds",
+    "km": 17.72,
+    "address": "201 5th Ave S, Edmonds, WA 98020, USA",
+    "neighborhood": "Edmonds",
+    "id": "ChIJcQRqBRgbkFQROwm75NUgZqk",
+    "lat": 47.8095357,
+    "lng": -122.37738660000001,
+    "mariana": {
+      "tenant": "barre3",
+      "location": "48754"
+    }
+  },
+  {
+    "kind": "pilates",
+    "name": "Core Havn - Mercer Island",
+    "site": "https://www.corehavn.com/",
+    "km": 11.23,
+    "address": "7687 SE 27th St, Mercer Island, WA 98040, USA",
+    "neighborhood": "Mercer Island",
+    "id": "ChIJUZpdhx5rkFQR709XuF9O7u0",
+    "lat": 47.5864638,
+    "lng": -122.2354233,
+    "location": "Mercer Island"
+  },
+  {
+    "kind": "pilates",
+    "name": "Core Havn - Renton",
+    "site": "https://www.corehavn.com/renton-location",
+    "km": 19.73,
+    "address": "1089 Lake Washington Blvd N Bldg b unit 3, Renton, WA 98056, USA",
+    "neighborhood": "Renton",
+    "id": "ChIJ6yIK6UFpkFQR6ZyX1Qf7I8o",
+    "lat": 47.503656199999995,
+    "lng": -122.20449769999999,
+    "location": "Renton"
+  },
+  {
+    "kind": "yoga",
+    "name": "Twist Yoga - Edmonds",
+    "site": "http://www.twistyogaedmonds.com/",
+    "km": 17.77,
+    "address": "122 5th Ave S, Edmonds, WA 98020, USA",
+    "neighborhood": "Edmonds",
+    "id": "ChIJOQykKUURkFQR_b93F2ru0Pc",
+    "lat": 47.809980599999996,
+    "lng": -122.37770119999999,
+    "location": "Edmonds"
   }
 ]

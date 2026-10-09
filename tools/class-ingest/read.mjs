@@ -56,6 +56,13 @@ function dateFromLabel(label) {
     return mo >= 1 && mo <= 12 && d >= 1 && d <= 31 ? iso(y, mo, d) : null;
   }
   const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  // Day before month ("FRIDAY 09 OCT", F45): the same as "Oct 9".
+  if ((m = /\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\b(?:,?\s+(\d{4}))?/i.exec(l))) {
+    const mo = MONTHS.indexOf(m[2].slice(0, 3).toLowerCase()) + 1, d = +m[1];
+    let y = m[3] ? +m[3] : ty;
+    if (!m[3] && mo < tm - 6) y += 1;
+    return iso(y, mo, d);
+  }
   if ((m = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s+(\d{1,2})(?:st|nd|rd|th)?\b(?:,?\s+(\d{4}))?/i.exec(l))) {
     const mo = MONTHS.indexOf(m[1].slice(0, 3).toLowerCase()) + 1, d = +m[2];
     let y = m[3] ? +m[3] : ty;
@@ -81,7 +88,7 @@ function dateFromLabel(label) {
   return null;
 }
 /** A line that is only a day heading ("Wed, Oct 07", "WEDNESDAY, OCTOBER 7", "Mon October 5, 2026", "Thursday 10/08"). */
-const DAY_HEADING = /^\s*(?:(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*,?\s+)?(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s*(?:PDT|PST)?\s*$/i;
+const DAY_HEADING = /^\s*(?:(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*,?\s+)?(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(?:,?\s+\d{4})?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s*(?:PDT|PST)?\s*$/i;
 
 // ---- robots.txt ----
 const robotsCache = new Map();
@@ -530,7 +537,10 @@ function dayPieces(text) {
       const timed = wd.filter((h, k) => /\b\d{1,2}:\d{2}\s*(am|pm)/i.test(lines.slice(h, wd[k + 1] ?? lines.length).join("\n"))).length;
       if (wd.length >= 3 && timed >= 3) heads = wd;
     }
-    if (!date && heads.length >= 3) {
+    // A tab that shows the whole fortnight under dated headings (F45 Eastlake: "FRIDAY 09 OCT" … with classes under each)
+    // is not one day, whatever its label says: the headings win when at least three of them have class times under them.
+    const timedHeads = heads.filter((h, k) => /\b\d{1,2}:\d{2}/.test(lines.slice(h, heads[k + 1] ?? lines.length).join("\n"))).length;
+    if ((!date || timedHeads >= 3) && heads.length >= 3) {
       out.push({ date: null, text: lines.slice(0, heads[0]).join("\n") });
       heads.forEach((h, k) => out.push({ date: dateFromLabel(lines[h]), text: lines.slice(h, heads[k + 1] ?? lines.length).join("\n") }));
     } else out.push({ date, text: body });
