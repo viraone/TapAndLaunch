@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classMinutes, milesBetween, firstDayWithClasses, hasStarted, nextDays, partOfDay, seattleStamp, seattleToday, time12 } from "@/lib/fitness/schedule";
+import { areasFromStudios, classMinutes, milesBetween, firstDayWithClasses, hasStarted, nextDays, partOfDay, seattleStamp, seattleToday, time12 } from "@/lib/fitness/schedule";
 
 describe("FitnessNav schedule helpers", () => {
   it("tells Seattle time, not the server's", () => {
@@ -28,5 +28,21 @@ describe("FitnessNav schedule helpers", () => {
     const days = nextDays("2026-10-04", 3);
     expect(firstDayWithClasses(days, [{ date: "2026-10-04", start: "17:30" }, { date: "2026-10-05", start: "06:15" }], "2026-10-04 21:15")).toBe("2026-10-05");
     expect(firstDayWithClasses(days, [], "2026-10-04 21:15")).toBe("2026-10-04");
+  });
+});
+
+describe("areasFromStudios", () => {
+  it("centres each neighborhood on its studios, counts them, sorts A to Z, and skips studios without a place", () => {
+    const areas = areasFromStudios([
+      { neighborhood: "Fremont", latitude: 47.65, longitude: -122.35 },
+      { neighborhood: "Fremont", latitude: 47.67, longitude: -122.37 },
+      { neighborhood: "Ballard", latitude: 47.68, longitude: -122.38 },
+      { neighborhood: "Capitol Hill", latitude: null, longitude: null },
+      { neighborhood: null, latitude: 47.6, longitude: -122.3 },
+    ]);
+    expect(areas.map((a) => ({ ...a, lat: +a.lat.toFixed(3), lng: +a.lng.toFixed(3) }))).toEqual([
+      { name: "Ballard", lat: 47.68, lng: -122.38, n: 1 },
+      { name: "Fremont", lat: 47.66, lng: -122.36, n: 2 },
+    ]);
   });
 });

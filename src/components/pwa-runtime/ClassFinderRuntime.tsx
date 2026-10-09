@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Dumbbell, Loader2, LocateFixed, MapPin, X } from "lucide-react";
 import type { ClassFinderBlockConfig, FitnessClassType } from "@/types/database";
 import {
+  areasFromStudios,
   CLASS_TYPES,
   CLASS_TYPE_LABEL,
   classMinutes,
@@ -219,15 +220,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   const studios = useMemo(() => new Map((week?.studios ?? []).map((s) => [s.id, s])), [week]);
   // Areas a visitor can look near instead of sharing their location: the neighborhoods the studios are filed under, each
   // centred on its own studios. "Ballard (12)" says how many studios are there.
-  const areas = useMemo(() => {
-    const sums = new Map<string, { lat: number; lng: number; n: number }>();
-    for (const s of week?.studios ?? []) {
-      if (!s.neighborhood || s.latitude == null || s.longitude == null) continue;
-      const a = sums.get(s.neighborhood) ?? { lat: 0, lng: 0, n: 0 };
-      sums.set(s.neighborhood, { lat: a.lat + s.latitude, lng: a.lng + s.longitude, n: a.n + 1 });
-    }
-    return [...sums].map(([name, a]) => ({ name, lat: a.lat / a.n, lng: a.lng / a.n, n: a.n })).sort((x, y) => x.name.localeCompare(y.name));
-  }, [week]);
+  const areas = useMemo(() => areasFromStudios(week?.studios ?? []), [week]);
   // Picking an area moves the distances there; "Use my location" asks the browser again; the blank choice is the app's own area.
   function pickArea(name: string) {
     if (name === "me") return locate();

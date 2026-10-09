@@ -110,3 +110,22 @@ export function milesBetween(lat1: number, lng1: number, lat2: number, lng2: num
   const a = Math.sin(((lat2 - lat1) * r) / 2) ** 2 + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(((lng2 - lng1) * r) / 2) ** 2;
   return 2 * 3958.8 * Math.asin(Math.sqrt(a));
 }
+
+/** An area a visitor can look near: a neighborhood, centred on its studios, with how many studios are there. */
+export interface StudioArea {
+  name: string;
+  lat: number;
+  lng: number;
+  n: number;
+}
+
+/** The neighborhoods the studios are filed under, each at the middle of its own studios, A to Z. Studios without a place are left out. */
+export function areasFromStudios(studios: Pick<FitnessStudio, "neighborhood" | "latitude" | "longitude">[]): StudioArea[] {
+  const sums = new Map<string, { lat: number; lng: number; n: number }>();
+  for (const s of studios) {
+    if (!s.neighborhood || s.latitude == null || s.longitude == null) continue;
+    const a = sums.get(s.neighborhood) ?? { lat: 0, lng: 0, n: 0 };
+    sums.set(s.neighborhood, { lat: a.lat + s.latitude, lng: a.lng + s.longitude, n: a.n + 1 });
+  }
+  return [...sums].map(([name, a]) => ({ name, lat: a.lat / a.n, lng: a.lng / a.n, n: a.n })).sort((x, y) => x.name.localeCompare(y.name));
+}
