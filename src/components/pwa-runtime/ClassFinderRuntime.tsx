@@ -111,7 +111,8 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   const results = useRef<HTMLElement>(null);
   // Morning / Afternoon / Evening groups the visitor has folded away (all open to begin with).
   const [folded, setFolded] = useState<Set<PartOfDay>>(() => new Set());
-  const [origin, setOrigin] = useState<{ lat: number; lng: number; mine: boolean } | null>(
+  // Where distances are from: the visitor (mine), an area they picked (area), or the middle of the app's area.
+  const [origin, setOrigin] = useState<{ lat: number; lng: number; mine: boolean; area?: string } | null>(
     config.area_latitude != null && config.area_longitude != null ? { lat: config.area_latitude, lng: config.area_longitude, mine: false } : null
   );
   const [locating, setLocating] = useState(false);
@@ -134,7 +135,7 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
     setTip(null);
   }, []);
   const noFix = useCallback(() => setLocating(false), []);
-  const area = config.area_label?.trim() || "the middle of the area";
+  const area = origin?.area ?? (config.area_label?.trim() || "the middle of the area");
   // The pill: asks again and shows "Finding you…" while it waits. It always asks (a prompt that was swiped away looks
   // like a "no" to the page, and a browser that really remembers a block answers at once); when the browser cannot
   // help, one line under the header says what to do, worded for what the page is actually showing.
@@ -216,13 +217,33 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   // A kind of class nobody has listed yet (rock climbing, for now) is not offered: a button that only ever says "none" looks broken.
   const available = useMemo(() => (week ? offered.filter((t) => week.classes.some((c) => c.type === t.key)) : []), [offered, week]);
   const studios = useMemo(() => new Map((week?.studios ?? []).map((s) => [s.id, s])), [week]);
+  // Areas a visitor can look near instead of sharing their location: the neighborhoods the studios are filed under, each
+  // centred on its own studios. "Ballard (12)" says how many studios are there.
+  const areas = useMemo(() => {
+    const sums = new Map<string, { lat: number; lng: number; n: number }>();
+    for (const s of week?.studios ?? []) {
+      if (!s.neighborhood || s.latitude == null || s.longitude == null) continue;
+      const a = sums.get(s.neighborhood) ?? { lat: 0, lng: 0, n: 0 };
+      sums.set(s.neighborhood, { lat: a.lat + s.latitude, lng: a.lng + s.longitude, n: a.n + 1 });
+    }
+    return [...sums].map(([name, a]) => ({ name, lat: a.lat / a.n, lng: a.lng / a.n, n: a.n })).sort((x, y) => x.name.localeCompare(y.name));
+  }, [week]);
+  // Picking an area moves the distances there; "Use my location" asks the browser again; the blank choice is the app's own area.
+  function pickArea(name: string) {
+    if (name === "me") return locate();
+    const a = areas.find((x) => x.name === name);
+    if (a) setOrigin({ lat: a.lat, lng: a.lng, mine: false, area: a.name });
+    else if (config.area_latitude != null && config.area_longitude != null) setOrigin({ lat: config.area_latitude, lng: config.area_longitude, mine: false });
+    else setOrigin(null);
+    setTip(null);
+  }
   const miles = (studioId: string) => {
     const s = studios.get(studioId);
     if (!origin || s?.latitude == null || s.longitude == null) return null;
     return milesBetween(origin.lat, origin.lng, s.latitude, s.longitude);
   };
 
-  const withinMi: Within = within === "auto" ? (origin?.mine ? DEFAULT_WITHIN : null) : within;
+  const withinMi: Within = within === "auto" ? (origin?.mine || origin?.area ? DEFAULT_WITHIN : null) : within;
   // A studio whose place is unknown only shows at any distance.
   const inRange = (id: string) => withinMi == null || (miles(id) ?? Infinity) <= withinMi;
   // What matches the pick: the class types, online or not, and within the chosen distance...
@@ -374,9 +395,28 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
             className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium text-muted-foreground"
           >
             {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : origin?.mine ? <LocateFixed className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
-            {locating && !origin?.mine ? "Finding you…" : origin?.mine ? "Near you" : config.area_label ? `Near ${config.area_label}` : "Use my location"}
+            {locating && !origin?.mine ? "Finding you…" : origin?.mine ? "Near you" : origin?.area ? `Near ${origin.area}` : config.area_label ? `Near ${config.area_label}` : "Use my location"}
           </button>
         </div>
+        {/* Or pick a neighborhood: distances and the "within" filter then work from the middle of that area's studios. */}
+        {areas.length > 0 && (
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="shrink-0 font-semibold">Look near</span>
+            <select
+              value={origin?.mine ? "me" : (origin?.area ?? "")}
+              onChange={(e) => pickArea(e.target.value)}
+              className="min-h-9 min-w-0 flex-1 rounded-full border bg-background px-3 text-sm font-medium text-foreground"
+            >
+              {typeof navigator !== "undefined" && "geolocation" in navigator && <option value="me">{origin?.mine ? "You (your location)" : "Use my location"}</option>}
+              <option value="">{config.area_label ? `${config.area_label} (the app's area)` : "The app's area"}</option>
+              {areas.map((a) => (
+                <option key={a.name} value={a.name}>
+                  {a.name} ({a.n})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {config.subtitle && <p className="text-sm text-muted-foreground">{config.subtitle}</p>}
         <p role="status" className={tip ? "text-xs text-muted-foreground" : "sr-only"}>
           {tip}

@@ -69,6 +69,7 @@ export async function getClassWeek(appId: string, from: string, onlyDay?: string
       website: s.website,
       readStatus: s.read_status,
       classCount: s.class_count,
+      neighborhood: s.neighborhood ?? null,
     })),
     readAt: (studios ?? []).reduce<string | null>((max, s) => (s.read_at && (!max || s.read_at > max) ? s.read_at : max), null),
   };

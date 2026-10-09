@@ -5,6 +5,7 @@
 // Usage: node read.mjs studios.json out-dir [--only "name"]
 // ANTHROPIC_API_KEY (env or .env here): read with Claude (FN_CLAUDE_MODEL, default claude-haiku-4-5), 10 studios at a time;
 // without it, the local Ollama model, 3 at a time. FN_PARALLEL overrides; FN_CACHE=where schedule pages are remembered.
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -536,6 +537,21 @@ function dayPieces(text) {
   }
   return out.filter((x) => x.text.trim());
 }
+/**
+ * The part of a day's text that holds its classes: from a little before the first line with a time to a little after the
+ * last. Menus, intro copy and footers around it are most of a page and cost the model time without ever naming a class.
+ */
+function trimToTimes(text) {
+  const lines = text.split("\n");
+  const timed = lines.map((l, i) => (/\b\d{1,2}:\d{2}\s*(am|pm)|\b\d{1,2}\s*(am|pm)\b|\b\d{1,2}:\d{2}\b/i.test(l) ? i : -1)).filter((i) => i >= 0);
+  if (!timed.length) return text;
+  const from = Math.max(0, timed[0] - 20), to = Math.min(lines.length, timed[timed.length - 1] + 12);
+  return (from > 0 ? "…\n" : "") + lines.slice(from, to).join("\n") + (to < lines.length ? "\n…" : "");
+}
+// Last run's results (daily.sh writes to out.new next to out): a page whose text is the same as last time gets last time's
+// classes back without the model. FN_PREVIOUS points elsewhere; a test run into a scratch folder finds nothing there.
+const PREVIOUS_DIR = process.env.FN_PREVIOUS ?? path.join(path.dirname(path.resolve(outDir)), "out");
+const resultFile = (dir, name) => path.join(dir, `${name.replace(/[^a-z0-9]+/gi, "_")}.json`);
 const chunk = (t, n = 14000) => { const out = []; let cur = ""; for (const l of t.split("\n")) { if (cur && cur.length + l.length > n) { out.push(cur); cur = ""; } cur += (cur ? "\n" : "") + l.slice(0, n); } if (cur) out.push(cur); return out; };
 
 
@@ -601,8 +617,19 @@ async function readStudio(browser, s) {
     // "5:30amRHF CrossFit" (a calendar's cell text runs the time into the name) counts: minutes need no word boundary after am/pm.
     const hasTimes = (c) => /\b\d{1,2}:\d{2}\s*(am|pm)|\b\d{1,2}\s*(am|pm)\b|\b\d{1,2}:\d{2}\b/i.test(c);
     const pieces = dayPieces(pg.text).filter((x) => hasTimes(x.text)).slice(0, 16);
+    // Same page text as the last run (and the same instructions), with every day's date fixed by the text itself: the
+    // classes are the same too. Last run's answer is reused and the model is not asked. A page whose dates the model has to
+    // work out from "today" is never reused, since the same words mean other days tomorrow.
+    const textHash = crypto.createHash("sha1").update(`${who}|${s.only ?? ""}|${pg.text}`).digest("hex");
+    if (pieces.length && pieces.every((x) => x.date) && cache[s.name]?.textHash === textHash && cache[s.name]?.url === url) {
+      try {
+        const prev = JSON.parse(fs.readFileSync(resultFile(PREVIOUS_DIR, s.name), "utf8"));
+        if (prev.status === "ok" && prev.classes?.length) { dbg("page unchanged since last run: reusing", prev.classes.length, "classes"); return finish({ ...prev, pageUrl: url, textHash, reused: true }); }
+      } catch {}
+    }
+    r.textHash = textHash;
     for (const { date, text } of pieces) {
-      for (const part of chunk(text)) {
+      for (const part of chunk(trimToTimes(text))) {
         if (Date.now() - t0 > STUDIO_BUDGET_MS) break;
         dbg("ask model, chars", part.length, date ? `(day ${date})` : "");
         const m0 = Date.now();
@@ -690,11 +717,11 @@ async function worker() {
     // Remember where the schedule was found (and forget a page that stopped working). Never the site's own home page:
     // a home page that lists today's few classes must not stand in for the schedule page on later runs.
     const worth = r.status === "ok" && r.pageUrl && !isHomePage(r.pageUrl) && r.pageUrl.replace(/\/$/, "") !== String(s.site).replace(/\/$/, "");
-    if (worth) cache[s.name] = { url: r.pageUrl, at: new Date().toISOString() };
+    if (worth) cache[s.name] = { url: r.pageUrl, at: new Date().toISOString(), ...(r.textHash ? { textHash: r.textHash } : {}) };
     else if (r.status === "no_schedule" && cache[s.name]) delete cache[s.name]; // only when the page itself stopped working
     try { fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 1)); } catch {}
     const days = [...new Set(r.classes.map((c) => c.date))].sort();
-    console.log(`[${i + 1}/${studios.length}] ${s.name.slice(0, 34).padEnd(34)} ${r.status.padEnd(14)} ${String(r.classes.length).padStart(3)} classes  days: ${days.join(",") || "-"}  via ${r.platform ?? "-"} ${r.seconds ? `(${r.seconds}s, model ${r.modelSeconds ?? 0}s)` : ""}${r.error ? " " + r.error : ""}`);
+    console.log(`[${i + 1}/${studios.length}] ${s.name.slice(0, 34).padEnd(34)} ${r.status.padEnd(14)} ${String(r.classes.length).padStart(3)} classes  days: ${days.join(",") || "-"}  via ${r.reused ? "last run (page unchanged) " : ""}${r.platform ?? "-"} ${r.seconds ? `(${r.seconds}s, model ${r.modelSeconds ?? 0}s)` : ""}${r.error ? " " + r.error : ""}`);
   }
 }
 const started = Date.now();

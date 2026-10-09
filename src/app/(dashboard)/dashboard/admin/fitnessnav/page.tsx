@@ -32,6 +32,13 @@ const TODO_SECTIONS = ["Reader", "Studios", "Mine"];
 /** What shipped, newest first. Kept here on purpose: it changes when the work ships, with the same commit. */
 const BUILT: Array<{ when: string; items: string[] }> = [
   {
+    when: "Oct 8",
+    items: [
+      "Look near an area: a \"Look near\" picker under the title lists every neighborhood the studios are filed under, with its studio count. Picking one moves the distances and the Within filter to the middle of that area's studios, for a visitor who would rather not share a location or wants to look across town. \"Use my location\" is in the same list.",
+      "The nightly run is faster: the reader sends the model only the lines around each day's class times (menus and footers were half of every page), and a page whose text has not changed since the last run gets last night's classes back without the model. Tested on three studios: the second pass took 1.6 minutes instead of 4.3.",
+    ],
+  },
+  {
     when: "Oct 7",
     items: [
       "Retried the 53 studios that had no readable schedule or only one day, with everything the reader learned this week: 13 now read, 1 added (Magnolia CrossFit Village, 5 CrossFit classes a day for 10 days, exact against its page, with its Open Gym slots left out). \"begin again\" turned out to be a copy of be here now.'s cycle schedule and was dropped. The rest still have no schedule or show one to three days. Seattle Strength Ballard, Phinney Ridge and Wedgwood are in too: each runs two Saturday group classes (Strength at 9, Metabolic Conditioning at 10) and mostly personal training, so each shows a few classes a week. Personal training slots no longer appear anywhere.",

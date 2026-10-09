@@ -46,6 +46,8 @@ export interface FitnessStudio {
   website: string | null;
   readStatus: string | null;
   classCount: number;
+  /** The neighborhood the studio is filed under (Ballard, Capitol Hill…); the page offers these as areas to look near. */
+  neighborhood?: string | null;
 }
 
 export const SEATTLE_TZ = "America/Los_Angeles";
