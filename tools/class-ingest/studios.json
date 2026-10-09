@@ -1668,5 +1668,55 @@
     "id": "ChIJmcyN7URAkFQRFATHqKqikEc",
     "lat": 47.5441244,
     "lng": -122.38746739999999
+  },
+  {
+    "kind": "lifting",
+    "name": "Magnolia CrossFit Village",
+    "site": "http://www.magnoliacrossfit.com/",
+    "km": 3.94,
+    "address": "3310 W McGraw St, Seattle, WA 98199, USA",
+    "neighborhood": "Magnolia",
+    "id": "ChIJR03miUgVkFQRGvP5cHZ_1H0",
+    "lat": 47.6398991,
+    "lng": -122.40031499999999
+  },
+  {
+    "kind": "lifting",
+    "name": "Seattle Strength & Performance - Ballard",
+    "site": "https://seattlesp.com/",
+    "km": 4.49,
+    "address": "6410 32nd Ave NW, Seattle, WA 98107, USA",
+    "neighborhood": "Ballard",
+    "id": "ChIJz_06y3AVkFQRpzZv3-JdrZs",
+    "lat": 47.6756569,
+    "lng": -122.39818670000001,
+    "schedule": "https://www.seattlesp.com/class-schedule/",
+    "only": "\\((Ballard)\\)"
+  },
+  {
+    "kind": "lifting",
+    "name": "Seattle Strength & Performance - Phinney Ridge",
+    "site": "https://seattlesp.com/",
+    "km": 3.53,
+    "address": "7408 Greenwood Ave N, Seattle, WA 98103, USA",
+    "neighborhood": "Phinney Ridge",
+    "id": "ChIJs-PKnkQVkFQRuC076nZwb0M",
+    "lat": 47.6828132,
+    "lng": -122.3550354,
+    "schedule": "https://www.seattlesp.com/class-schedule/",
+    "only": "\\((Phinney|PR|Phinney Ridge)\\)"
+  },
+  {
+    "kind": "lifting",
+    "name": "Seattle Strength & Performance - Wedgwood",
+    "site": "https://seattlesp.com/",
+    "km": 6.8,
+    "address": "9425 35th Ave NE Ste B, Seattle, WA 98115, USA",
+    "neighborhood": "Wedgwood",
+    "id": "ChIJVQY0v98TkFQRhT3GfnH2Sq8",
+    "lat": 47.6972861,
+    "lng": -122.2908777,
+    "schedule": "https://www.seattlesp.com/class-schedule/",
+    "only": "\\((Wedgwood)\\)"
   }
 ]

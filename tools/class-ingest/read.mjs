@@ -501,6 +501,8 @@ function verify(classes, text) {
     const timeOk = timeOnPage(c.start, text);
     (nameOk && timeOk ? kept : dropped).push({ ...c, why: nameOk ? (timeOk ? "" : "time not on page") : "name not on page" });
   }
+  // A name that begins with its own time ("5am CrossFit", Magnolia CrossFit Village) is shown without it; the time is on the row.
+  for (const c of kept) c.name = c.name.replace(/^\d{1,2}(?::\d{2})?\s?(?:am|pm)\s+(?=\S)/i, "");
   // one row per (date, start, name)
   const seen = new Set();
   return { kept: kept.filter((c) => { const k = `${c.date}|${c.start}|${norm(c.name)}`; return seen.has(k) ? false : seen.add(k); }), dropped };

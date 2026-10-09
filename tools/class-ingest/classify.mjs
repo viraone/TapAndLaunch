@@ -24,7 +24,7 @@ export function isOnlineClass(name) {
  * seminars, retreats, private sessions, and anything over 2.5 hours. Dropped before saving.
  */
 export function isNotAGroupClass(name, start, end) {
-  if (/teacher training|instructor (training|course)|certification|continuing education|\bce\b|protocols|seminar|workshop|masterclass|retreat|immersion|private (session|lesson)|one[- ]on[- ]one|consultation|assessment|\bdemo\b|open house|orientation|tour\b|open gym|open climb|drop[- ]in personalized/i.test(name)) return true;
+  if (/teacher training|instructor (training|course)|certification|continuing education|\bce\b|protocols|seminar|workshop|masterclass|retreat|immersion|private (session|lesson)|one[- ]on[- ]one|personal training|consultation|assessment|\bdemo\b|open house|orientation|tour\b|open gym|open climb|drop[- ]in personalized/i.test(name)) return true;
   const m1 = /^(\d{2}):(\d{2})$/.exec(start ?? ""), m2 = /^(\d{2}):(\d{2})$/.exec(end ?? "");
   if (m1 && m2) {
     const len = +m2[1] * 60 + +m2[2] - (+m1[1] * 60 + +m1[2]);
