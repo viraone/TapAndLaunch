@@ -15,7 +15,7 @@ if [ "${1:-}" = "remove" ]; then
   exit 0
 fi
 mkdir -p "$DEST" "$HOME/Library/LaunchAgents"
-for f in read.mjs gen.mjs save.mjs classify.mjs template.html studios.json daily.sh package.json; do cp "$SRC/$f" "$DEST/$f"; done
+for f in read.mjs helpers.mjs gen.mjs save.mjs classify.mjs template.html studios.json daily.sh package.json; do cp "$SRC/$f" "$DEST/$f"; done
 [ -f "$SRC/.env" ] && cp "$SRC/.env" "$DEST/.env" && chmod 600 "$DEST/.env"
 [ -f "$SRC/package-lock.json" ] && cp "$SRC/package-lock.json" "$DEST/package-lock.json"
 chmod +x "$DEST/daily.sh"

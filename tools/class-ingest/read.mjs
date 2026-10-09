@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import robotsParser from "robots-parser";
 import Anthropic from "@anthropic-ai/sdk";
+import { makeHelpers } from "./helpers.mjs";
 
 const [studiosFile, outDir] = process.argv.slice(2);
 const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1].toLowerCase() : null;
@@ -37,58 +38,7 @@ const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 // "Monday, October 5, 2026" in Seattle time: the model needs it to turn "Today" / "Tomorrow" into dates.
 const TODAY = new Date().toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", year: "numeric", month: "long", day: "numeric" });
 const TODAY_ISO = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()); // YYYY-MM-DD
-
-/**
- * The date a day tab or day heading stands for: "Today 10/06", "Thursday 10/08", "T 6", "Wed 7", "7 Wed", "Oct 7 Thu",
- * "Tue, Oct 06", "WEDNESDAY, OCTOBER 7", "Mon October 5, 2026", "Tomorrow Wed", "Today". Null when it names no day.
- */
-function dateFromLabel(label) {
-  const [ty, tm, td] = TODAY_ISO.split("-").map(Number);
-  const iso = (y, m, d) => `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-  const plusDays = (n) => { const t = new Date(Date.UTC(ty, tm - 1, td + n)); return iso(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()); };
-  const l = String(label ?? "").replace(/\s+/g, " ").trim();
-  let m;
-  if ((m = /\b(\d{4})-(\d{2})-(\d{2})\b/.exec(l))) return m[0];
-  if ((m = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/.exec(l))) {
-    const mo = +m[1], d = +m[2];
-    let y = m[3] ? (+m[3] < 100 ? 2000 + +m[3] : +m[3]) : ty;
-    if (!m[3] && mo < tm - 6) y += 1;
-    return mo >= 1 && mo <= 12 && d >= 1 && d <= 31 ? iso(y, mo, d) : null;
-  }
-  const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-  // Day before month ("FRIDAY 09 OCT", F45): the same as "Oct 9".
-  if ((m = /\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\b(?:,?\s+(\d{4}))?/i.exec(l))) {
-    const mo = MONTHS.indexOf(m[2].slice(0, 3).toLowerCase()) + 1, d = +m[1];
-    let y = m[3] ? +m[3] : ty;
-    if (!m[3] && mo < tm - 6) y += 1;
-    return iso(y, mo, d);
-  }
-  if ((m = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s+(\d{1,2})(?:st|nd|rd|th)?\b(?:,?\s+(\d{4}))?/i.exec(l))) {
-    const mo = MONTHS.indexOf(m[1].slice(0, 3).toLowerCase()) + 1, d = +m[2];
-    let y = m[3] ? +m[3] : ty;
-    if (!m[3] && mo < tm - 6) y += 1;
-    return iso(y, mo, d);
-  }
-  if (/^today\b/i.test(l)) return plusDays(0);
-  if (/^tomorrow\b/i.test(l)) return plusDays(1);
-  if ((m = /(?:^|\s)(\d{1,2})(?:\s|$)/.exec(l)) && /\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b|^[SMTWF]\s/i.test(l)) {
-    // A bare day of the month next to a weekday ("T 6", "Wed 7", "7 Wed"): this month, or next month once it has passed.
-    // A week strip often starts on a Sunday already past (Sun 4 on Wed 7): that is this month. Only a number far below
-    // today's is next month's.
-    const d = +m[1];
-    let mo = tm, y = ty;
-    if (d < td - 7) { mo += 1; if (mo > 12) { mo = 1; y += 1; } }
-    return d >= 1 && d <= 31 ? iso(y, mo, d) : null;
-  }
-  if ((m = /\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/i.exec(l))) {
-    const want = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].indexOf(m[1].toLowerCase());
-    const todayWd = new Date(Date.UTC(ty, tm - 1, td)).getUTCDay();
-    return plusDays((want - todayWd + 7) % 7);
-  }
-  return null;
-}
-/** A line that is only a day heading ("Wed, Oct 07", "WEDNESDAY, OCTOBER 7", "Mon October 5, 2026", "Thursday 10/08"). */
-const DAY_HEADING = /^\s*(?:(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*,?\s+)?(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(?:,?\s+\d{4})?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s*(?:PDT|PST)?\s*$/i;
+const { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes } = makeHelpers(TODAY_ISO);
 
 // ---- robots.txt ----
 const robotsCache = new Map();
@@ -141,6 +91,9 @@ async function render(browser, url, { settle = 7000 } = {}) {
   // Mindbody's schedule widget (go.mindbodyonline.com/book/widgets/schedules/view/<id>/schedule): its id is enough to read
   // the week straight from the widget's own page, without the model (readMindbodyWidget).
   const mindbody = new Set();
+  // FullCalendar events read exactly (parseFcEvent): `fcSeen` events were on the page, `fcClasses` of them parsed.
+  let fcSeen = 0;
+  const fcClasses = [];
   // Momence's schedule plugin reads a public feed (readonly-api.momence.com/host-plugins/host/<id>/…): the host id is enough.
   const momence = new Set();
   // Walla's widget calls api.hellowalla.com with the business's integration id in a header: the id is enough for the feed.
@@ -186,18 +139,34 @@ async function render(browser, url, { settle = 7000 } = {}) {
         // next arrow (an unlabelled icon button, or .fc-next-button) gives the second week.
         const readFc = () => f.evaluate(() => {
           const clean = (e) => (e.innerText || "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim();
-          const v5 = Array.from(document.querySelectorAll(".fc-timegrid-col[data-date], .fc-daygrid-day[data-date]")).map((c) => ({ date: c.getAttribute("data-date"), text: clean(c) }));
+          // The pieces of each event as the calendars print them: PushPress BoxEvent title/time/coach, Zen Planner
+          // fc-event-time/fc-event-title, Fitli fc-time[data-full]/fc-title/fc-details. Read by the node side (parseFcEvent).
+          const events = (col) => Array.from(col.querySelectorAll(".fc-event")).map((e) => {
+            const q = (sel) => e.querySelector(sel);
+            const time = q('[class*="BoxEvent-module__time"]')?.innerText || q(".fc-time")?.getAttribute("data-full") || q(".fc-event-time")?.innerText || "";
+            const title = q('[class*="BoxEvent-module__title"]')?.innerText || q(".fc-title")?.innerText || q(".fc-event-title")?.innerText || "";
+            const coach = q('[class*="BoxEvent-module__coach"]')?.innerText || q(".fc-details")?.innerText || "";
+            return { time: time.trim(), title: title.trim(), coach: coach.trim(), raw: (e.innerText || "").replace(/\s+/g, " ").trim() };
+          });
+          const v5 = Array.from(document.querySelectorAll(".fc-timegrid-col[data-date], .fc-daygrid-day[data-date]")).map((c) => ({ date: c.getAttribute("data-date"), text: clean(c), events: events(c) }));
           if (v5.length >= 5) return v5;
           // FullCalendar 3/4 (Fitli): dates sit on the background table's cells, the events in a skeleton table whose cells follow the same order.
           const dates = Array.from(document.querySelectorAll(".fc-bg td[data-date]")).map((e) => e.getAttribute("data-date")).filter((d, i, a) => a.indexOf(d) === i);
           const skel = Array.from(document.querySelectorAll(".fc-content-skeleton table")).find((t) => t.querySelector(".fc-event"));
           const cells = skel ? Array.from(skel.querySelectorAll("tbody tr > td")).filter((td) => !td.classList.contains("fc-axis")) : [];
-          return dates.length >= 5 && cells.length === dates.length ? dates.map((d, i) => ({ date: d, text: clean(cells[i]) })) : [];
+          return dates.length >= 5 && cells.length === dates.length ? dates.map((d, i) => ({ date: d, text: clean(cells[i]), events: events(cells[i]) })) : [];
         }).catch(() => []);
         const week1 = await readFc();
         if (week1.length >= 5) {
           const seenDays = new Set();
-          const push = (cols) => { for (const c of cols) if (c.date && c.date >= TODAY_ISO && c.text && !seenDays.has(c.date)) { seenDays.add(c.date); parts.push(`[Day column: ${c.date}]\n${c.text}`); } };
+          const push = (cols) => {
+            for (const c of cols) {
+              if (!(c.date && c.date >= TODAY_ISO && c.text && !seenDays.has(c.date))) continue;
+              seenDays.add(c.date);
+              parts.push(`[Day column: ${c.date}]\n${c.text}`);
+              for (const ev of c.events ?? []) { fcSeen += 1; const k = parseFcEvent(ev, c.date); if (k) fcClasses.push(k); }
+            }
+          };
           push(week1);
           const moved = await f.evaluate(() => {
             const el = document.querySelector(".fc-next-button") ?? Array.from(document.querySelectorAll("button[class*='icon-button'], button[aria-label*='next' i]")).filter((e) => e.getBoundingClientRect().width > 0).pop();
@@ -309,7 +278,7 @@ async function render(browser, url, { settle = 7000 } = {}) {
     }
     const links = await page.evaluate(() => Array.from(document.querySelectorAll("a[href]")).map((a) => ({ href: a.getAttribute("href"), text: (a.innerText || a.getAttribute("aria-label") || "").trim().slice(0, 60) })));
     const iframes = await page.evaluate(() => Array.from(document.querySelectorAll("iframe[src]")).map((f) => f.src));
-    return { finalUrl: page.url(), text: parts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim(), links, frameUrls: [...new Set([...iframes, ...frameUrls])].filter((u) => /^https?:/.test(u)), mariana, mindbody: [...mindbody], momence: [...momence], walla: [...walla] };
+    return { finalUrl: page.url(), text: parts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim(), links, frameUrls: [...new Set([...iframes, ...frameUrls])].filter((u) => /^https?:/.test(u)), mariana, mindbody: [...mindbody], momence: [...momence], walla: [...walla], fc: { seen: fcSeen, classes: fcClasses } };
   } finally { await ctx.close(); }
 }
 
@@ -640,71 +609,6 @@ async function askOllama(studio, text) {
 }
 
 // ---- checking the answer against the page ----
-const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-function timeOnPage(hhmm, text) {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm ?? ""); if (!m) return false;
-  const h = +m[1], mi = m[2], h12 = ((h + 11) % 12) + 1, ap = h < 12 ? "a" : "p";
-  const t = text.toLowerCase().replace(/\s+/g, " ");
-  // "3:00 - 3:50" (a range with no am/pm, Fitli): the 12-hour start followed by a dash.
-  return [`${h12}:${mi} -`, `${h12}:${mi}-`, `${h12}:${mi} ${ap}`, `${h12}:${mi}${ap}`, `${h12}:${mi} ${ap}.m`, `${String(h).padStart(2, "0")}:${mi}`, `${h}:${mi}`, mi === "00" ? `${h12} ${ap}m` : "#", mi === "00" ? `${h12}${ap}m` : "#"].some((v) => v !== "#" && t.includes(v));
-}
-function verify(classes, text) {
-  const pageNorm = norm(text);
-  const kept = [], dropped = [];
-  for (const c of classes) {
-    const nameOk = norm(c.name).length >= 3 && pageNorm.includes(norm(c.name));
-    const timeOk = timeOnPage(c.start, text);
-    (nameOk && timeOk ? kept : dropped).push({ ...c, why: nameOk ? (timeOk ? "" : "time not on page") : "name not on page" });
-  }
-  // A name that begins with its own time ("5am CrossFit", Magnolia CrossFit Village) is shown without it; the time is on the row.
-  for (const c of kept) c.name = c.name.replace(/^\d{1,2}(?::\d{2})?\s?(?:am|pm)\s+(?=\S)/i, "");
-  // one row per (date, start, name)
-  const seen = new Set();
-  return { kept: kept.filter((c) => { const k = `${c.date}|${c.start}|${norm(c.name)}`; return seen.has(k) ? false : seen.add(k); }), dropped };
-}
-/**
- * Splits page text into day pieces: at the reader's own "[Day tab shown: …]" / "[Day column: …]" markers, and inside a
- * piece at day-heading lines when there are at least three (a week listed under headings). Each piece carries the date its
- * marker or heading names, or null when the text names no day (then the model works it out as before).
- */
-function dayPieces(text) {
-  const out = [];
-  const marked = text.split(/^(?=\[Day (?:tab shown|column):[^\]]*\])/m);
-  for (const block of marked) {
-    const m = /^\[Day (?:tab shown|column):\s*([^\]]*)\]\n?/.exec(block);
-    const date = m ? dateFromLabel(m[1]) : null;
-    const body = m ? block.slice(m[0].length) : block;
-    // A header printed over two lines ("MON" then "05", Olympic Athletic Club) is one heading: "MON 05".
-    const lines = body.split("\n").reduce((acc, l) => { const prev = acc[acc.length - 1]; if (prev !== undefined && /^\s*(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?\s*$/i.test(prev) && /^\s*\d{1,2}\s*$/.test(l)) acc[acc.length - 1] = `${prev.trim()} ${l.trim()}`; else acc.push(l); return acc; }, []);
-    let heads = lines.map((l, i) => (DAY_HEADING.test(l) && dateFromLabel(l) ? i : -1)).filter((i) => i >= 0);
-    if (!date && heads.length < 3) {
-      // "MON 05" headings count only when a week really hangs under them: at least three of the days have class times. A strip
-      // of day buttons at the top of a page (every day, then the classes of one) never does.
-      const wd = lines.map((l, i) => (/^\s*(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?\s+\d{1,2}\s*$/i.test(l) && dateFromLabel(l) ? i : -1)).filter((i) => i >= 0);
-      const timed = wd.filter((h, k) => /\b\d{1,2}:\d{2}\s*(am|pm)/i.test(lines.slice(h, wd[k + 1] ?? lines.length).join("\n"))).length;
-      if (wd.length >= 3 && timed >= 3) heads = wd;
-    }
-    // A tab that shows the whole fortnight under dated headings (F45 Eastlake: "FRIDAY 09 OCT" … with classes under each)
-    // is not one day, whatever its label says: the headings win when at least three of them have class times under them.
-    const timedHeads = heads.filter((h, k) => /\b\d{1,2}:\d{2}/.test(lines.slice(h, heads[k + 1] ?? lines.length).join("\n"))).length;
-    if ((!date || timedHeads >= 3) && heads.length >= 3) {
-      out.push({ date: null, text: lines.slice(0, heads[0]).join("\n") });
-      heads.forEach((h, k) => out.push({ date: dateFromLabel(lines[h]), text: lines.slice(h, heads[k + 1] ?? lines.length).join("\n") }));
-    } else out.push({ date, text: body });
-  }
-  return out.filter((x) => x.text.trim());
-}
-/**
- * The part of a day's text that holds its classes: from a little before the first line with a time to a little after the
- * last. Menus, intro copy and footers around it are most of a page and cost the model time without ever naming a class.
- */
-function trimToTimes(text) {
-  const lines = text.split("\n");
-  const timed = lines.map((l, i) => (/\b\d{1,2}:\d{2}\s*(am|pm)|\b\d{1,2}\s*(am|pm)\b|\b\d{1,2}:\d{2}\b/i.test(l) ? i : -1)).filter((i) => i >= 0);
-  if (!timed.length) return text;
-  const from = Math.max(0, timed[0] - 20), to = Math.min(lines.length, timed[timed.length - 1] + 12);
-  return (from > 0 ? "…\n" : "") + lines.slice(from, to).join("\n") + (to < lines.length ? "\n…" : "");
-}
 // Last run's results (daily.sh writes to out.new next to out): a page whose text is the same as last time gets last time's
 // classes back without the model. FN_PREVIOUS points elsewhere; a test run into a scratch folder finds nothing there.
 const PREVIOUS_DIR = process.env.FN_PREVIOUS ?? path.join(path.dirname(path.resolve(outDir)), "out");
@@ -765,6 +669,15 @@ async function readStudio(browser, s) {
     // A Mariana Tek widget on the page: the week comes from its data, exact and without the model.
     const mt = await readMariana(browser, pg);
     if (mt) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "marianatek", classes: mt.classes, dropped: [] });
+    // A FullCalendar whose events were all read straight off the page (parseFcEvent): exact and without the model.
+    if (pg.fc?.classes?.length >= 3 && pg.fc.classes.length === pg.fc.seen) {
+      const own = s.only ? new RegExp(s.only, "i") : null;
+      const classes = pg.fc.classes.filter((c) => (own ? own.test(c.name) : true) && (!s.location || true));
+      const seenKeys = new Set();
+      const uniq = classes.filter((c) => { const k = `${c.date}|${c.start}|${c.name}`; return seenKeys.has(k) ? false : seenKeys.add(k); });
+      dbg("fullcalendar events read exactly:", uniq.length);
+      if (uniq.length >= 3) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "fullcalendar", classes: uniq, dropped: [] });
+    }
     // A Walla widget on the page: the week comes from Walla's class feed, exact and without the model.
     for (const id of pg.walla ?? []) {
       try {

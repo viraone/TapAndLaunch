@@ -35,5 +35,6 @@ describe("FitnessNav class sorting", () => {
     // One-on-one appointments listed on a gym's page next to its group classes.
     expect(isNotAGroupClass("Personal Training (Ballard)", "08:00", "09:00")).toBe(true);
     expect(isNotAGroupClass("Strength Class (Ballard)", "09:00", "10:00")).toBe(false);
+    expect(isNotAGroupClass("Childcare", "09:10", "10:10")).toBe(true);
   });
 });
