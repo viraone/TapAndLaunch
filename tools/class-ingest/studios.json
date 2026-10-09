@@ -2352,5 +2352,196 @@
     "lat": 47.809980599999996,
     "lng": -122.37770119999999,
     "location": "Edmonds"
+  },
+  {
+    "kind": "lifting",
+    "name": "F45 Training Bothell",
+    "site": "https://f45training.com/studio/bothell/",
+    "km": 16.3,
+    "address": "10125 Main St, Bothell, WA 98011, USA",
+    "neighborhood": "Bothell",
+    "id": "ChIJLQ1ekqwPkFQRZnV2NPZHN_g",
+    "lat": 47.7599362,
+    "lng": -122.20441269999998
+  },
+  {
+    "kind": "lifting",
+    "name": "F45 Training Lynnwood WA",
+    "site": "https://f45training.com/studio/lynnwoodwa/",
+    "km": 21.63,
+    "address": "17214 Hwy 99 Suite C, Lynnwood, WA 98037, USA",
+    "neighborhood": "Lynnwood",
+    "id": "ChIJb61O6WwFkFQR_huZKo3Uhzc",
+    "lat": 47.8425065,
+    "lng": -122.2980927
+  },
+  {
+    "kind": "yoga",
+    "name": "The Studio in Issaquah",
+    "site": "http://www.studioissaquah.com/",
+    "km": 24.41,
+    "address": "1871 NW Gilman Blvd Ste 3, Issaquah, WA 98027, USA",
+    "neighborhood": "Issaquah",
+    "id": "ChIJpQk_LYBlkFQRCiSS8NmzrX4",
+    "lat": 47.54492380000001,
+    "lng": -122.06560510000001
+  },
+  {
+    "kind": "pilates",
+    "name": "Club Pilates (Bothell)",
+    "site": "http://www.clubpilates.com/bothell/?utm_source=google.com&utm_medium=referral&utm_campaign=yext",
+    "km": 18.47,
+    "address": "22833 Bothell Everett Hwy Unit 147, Bothell, WA 98021, USA",
+    "neighborhood": "Bothell",
+    "id": "ChIJZ7vP5oEPkFQR1tDfYkZ1NGw",
+    "lat": 47.790005199999996,
+    "lng": -122.21479989999997
+  },
+  {
+    "kind": "lifting",
+    "name": "CrossFit Chateau - Woodinville, WA",
+    "site": "http://www.crossfitchateau.com/",
+    "km": 20,
+    "address": "19400 144th Ave NE Ste A, Woodinville, WA 98072, USA",
+    "neighborhood": "Woodinville",
+    "id": "ChIJaSSshdINkFQRoBpYGhl7Ieo",
+    "lat": 47.7680376,
+    "lng": -122.14722429999999
+  },
+  {
+    "kind": "pilates",
+    "name": "Club Pilates (Woodinville)",
+    "site": "http://www.clubpilates.com/woodinville/?utm_source=google.com&utm_medium=referral&utm_campaign=yext",
+    "km": 18.81,
+    "address": "14039 NE Woodinville Duvall Rd, Woodinville, WA 98072, USA",
+    "neighborhood": "Woodinville",
+    "id": "ChIJZwb_DYINkFQRSfriSpFjYh0",
+    "lat": 47.753436099999995,
+    "lng": -122.15018599999998
+  },
+  {
+    "kind": "pilates",
+    "name": "barre3 - Issaquah",
+    "site": "http://barre3.com/studio-locations/issaquah-highlands",
+    "km": 27.83,
+    "address": "1091 NE High St, Issaquah, WA 98029, USA",
+    "neighborhood": "Issaquah",
+    "id": "ChIJSwu5QvNvkFQRtio8Ce-I3iY",
+    "lat": 47.5443305,
+    "lng": -122.0149253,
+    "mariana": {
+      "tenant": "barre3",
+      "location": "48757"
+    }
+  },
+  {
+    "kind": "yoga",
+    "name": "Fusion Hot Yoga",
+    "site": "http://www.fusionhotyoga.com/",
+    "km": 18.66,
+    "address": "22618 Bothell Everett Hwy, Bothell, WA 98021, USA",
+    "neighborhood": "Bothell",
+    "id": "ChIJAyNvCggPkFQRBxwIKXAsbNk",
+    "lat": 47.793114599999996,
+    "lng": -122.21735369999998
+  },
+  {
+    "kind": "yoga",
+    "name": "Three Trees Yoga",
+    "site": "http://threetreesyoga.com/",
+    "km": 40.15,
+    "address": "204 S 348th St #2, Federal Way, WA 98003, USA",
+    "neighborhood": "Federal Way",
+    "id": "ChIJ9-6d9bRXkFQRkooCm31uatw",
+    "lat": 47.290383,
+    "lng": -122.3318455
+  },
+  {
+    "kind": "yoga",
+    "name": "Hot Yoga Experience Issaquah",
+    "site": "http://www.hotyogaexperience.com/",
+    "km": 25.59,
+    "address": "755 NW Gilman Blvd, Issaquah, WA 98027, USA",
+    "neighborhood": "Issaquah",
+    "id": "ChIJv1zDlZ1vkFQR05xBy3zdHJA",
+    "lat": 47.5424181,
+    "lng": -122.0497247
+  },
+  {
+    "kind": "pilates",
+    "name": "Elev8 Hot Yoga",
+    "site": "http://www.elev8hotyoga.com/",
+    "km": 36.91,
+    "address": "2000 S 314th St, Federal Way, WA 98003, USA",
+    "neighborhood": "Federal Way",
+    "id": "ChIJ0SfKkH5XkFQRRzkYzIj4-pM",
+    "lat": 47.3204883,
+    "lng": -122.307749
+  },
+  {
+    "kind": "pilates",
+    "name": "Pilates Studio 11, Issaquah",
+    "site": "https://pilatestudio11.com/issaquah-highlands/",
+    "km": 27.81,
+    "address": "1012 NE Park Dr, Issaquah, WA 98029, USA",
+    "neighborhood": "Issaquah",
+    "id": "ChIJ9c5tpPJvkFQR1lvfV2yrsbk",
+    "lat": 47.5435498,
+    "lng": -122.01576770000001
+  },
+  {
+    "kind": "pilates",
+    "name": "Pure Barre Lynnwood",
+    "site": "https://www.purebarre.com/location/lynnwood-wa",
+    "km": 18.92,
+    "address": "19723 Hwy 99 Ste B, Lynnwood, WA 98036, USA",
+    "neighborhood": "Lynnwood",
+    "id": "ChIJYVKw5LcFkFQRO2uYjTitP48",
+    "lat": 47.8196495,
+    "lng": -122.31520499999999
+  },
+  {
+    "kind": "yoga",
+    "name": "YogaSix Issaquah",
+    "site": "http://www.yogasix.com/Issaquah",
+    "km": 25.68,
+    "address": "700 NW Gilman Blvd e101, Issaquah, WA 98027, USA",
+    "neighborhood": "Issaquah",
+    "id": "ChIJ_UasYCFvkFQRLlaH_akW_WQ",
+    "lat": 47.543852199999996,
+    "lng": -122.04732089999999
+  },
+  {
+    "kind": "yoga",
+    "name": "Wise Studios Yoga and Cycle",
+    "site": "https://wisestudiosyoga.com/",
+    "km": 18.03,
+    "address": "19017 120th Ave NE #105, Bothell, WA 98011, USA",
+    "neighborhood": "Bothell",
+    "id": "ChIJk5z6tnYPkFQRKmTiLPpcyA4",
+    "lat": 47.7657297,
+    "lng": -122.1799989
+  },
+  {
+    "kind": "yoga",
+    "name": "Spira Power Yoga",
+    "site": "http://www.spirapoweryoga.com/",
+    "km": 25.12,
+    "address": "1135 NW Gilman Blvd STE F1, Issaquah, WA 98027, USA",
+    "neighborhood": "Issaquah",
+    "id": "ChIJv6vkl9tvkFQREnsj53n5dY4",
+    "lat": 47.5449656,
+    "lng": -122.05485159999999
+  },
+  {
+    "kind": "yoga",
+    "name": "Root 2 Rise Yoga",
+    "site": "http://www.theroot2riseyoga.com/",
+    "km": 18.21,
+    "address": "13317 NE 175th St C, Woodinville, WA 98072, USA",
+    "neighborhood": "Woodinville",
+    "id": "ChIJvSfjaCoMkFQRJRfPHBsElsE",
+    "lat": 47.7534084,
+    "lng": -122.1603727
   }
 ]
