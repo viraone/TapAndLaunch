@@ -140,5 +140,42 @@ export function makeHelpers(TODAY_ISO) {
     return (from > 0 ? "…\n" : "") + lines.slice(from, to).join("\n") + (to < lines.length ? "\n…" : "");
   }
 
-  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes };
+  /**
+   * A classic Mindbody class-schedule page (clients.mindbodyonline.com/classic/mainclass …) as its text: a date heading ("Mon
+   * October 5, 2026"), then one row per class made of lines: start time ("5:00 am PDT"), class, teacher, location, length
+   * ("1 hour"). Returns the classes from today on, or [] when the text has no such rows. `location` keeps one location's rows.
+   */
+  function parseMindbodyClassic(text, location) {
+    const lines = String(text ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
+    const HEAD = /^(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*\s+([a-z]+)\s+(\d{1,2}),\s*(\d{4})$/i;
+    const TIME = /^(\d{1,2}):(\d{2})\s*([ap])m(?:\s+[A-Z]{3})?$/i;
+    const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+    const out = [];
+    let date = null;
+    for (let i = 0; i < lines.length; i++) {
+      const h = HEAD.exec(lines[i]);
+      if (h) { const mo = MONTHS.indexOf(h[1].slice(0, 3).toLowerCase()) + 1; date = mo ? `${h[3]}-${String(mo).padStart(2, "0")}-${String(+h[2]).padStart(2, "0")}` : null; continue; }
+      const t = TIME.exec(lines[i]);
+      if (!t || !date) continue;
+      const row = [];
+      for (let j = i + 1; j < lines.length && row.length < 4 && !TIME.test(lines[j]) && !HEAD.test(lines[j]); j++) row.push(lines[j]);
+      if (row.length < 3) continue;
+      // Some studios print no location column (SweatBox): then the third line is already the length.
+      const isLength = (l) => /^\d+(?:\.\d+)?\s*(?:hours?|mins?|minutes?)\b/i.test(l ?? "") || /^(?:\d+\s*hours?\s*&?\s*)?\d*\s*minutes?$/i.test(l ?? "");
+      const hasWhere = row.length >= 4 || !isLength(row[2]);
+      const name = row[0], teacher = row[1], where = hasWhere ? row[2] : null, length = hasWhere ? row[3] : row[2];
+      const startH = (+t[1] % 12) + (t[3].toLowerCase() === "p" ? 12 : 0);
+      // "1 hour", "45 minutes", "1 hour &30 minutes": hours and minutes both count.
+      const mins = (/(\d+)\s*hours?/i.exec(length ?? "")?.[1] ?? 0) * 60 + +(/(\d+)\s*min/i.exec(length ?? "")?.[1] ?? 0);
+      const start = `${String(startH).padStart(2, "0")}:${t[2]}`;
+      const total = startH * 60 + +t[2] + mins;
+      const end = mins ? `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}` : null;
+      if (date < TODAY_ISO) continue;
+      if (location && !String(where ?? "").toLowerCase().includes(location.toLowerCase())) continue;
+      out.push({ date, start, end, name, instructor: teacher && !/^(staff|tbd)$/i.test(teacher) ? teacher.replace(/\s*\(\d+\)\s*$/, "") : null, spots: null, location: where ?? null });
+    }
+    return out;
+  }
+
+  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic };
 }

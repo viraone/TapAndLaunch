@@ -166,3 +166,50 @@ describe("timeOnPage and verify", () => {
     expect(dropped.map((c: { name: string }) => c.name)).toEqual(["Invented Class"]);
   });
 });
+
+describe("parseMindbodyClassic", () => {
+  const page = [
+    "Class Schedule",
+    "Mon October 5, 2026",
+    "5:00 am PDT",
+    "Strength & Conditioning",
+    "Anthony",
+    "Fremont",
+    "1 hour",
+    "Thursday October 8, 2026".replace("Thursday", "Thu"),
+    "6:00 pm PDT",
+    "Bootcamp",
+    "Brysten",
+    "Fremont",
+    "1 hour",
+    "Fri October 9, 2026",
+    "7:30 am PDT",
+    "Hot Hybrid",
+    "Chelsi Alexandria (3)",
+    "1 hour &30 minutes",
+    "5:15 pm PDT",
+    "Bootcamp",
+    "Anthony",
+    "Lynnwood",
+    "1 hour",
+  ].join("\n");
+
+  it("reads rows under date headings, drops days before today, and works out the end from the length", () => {
+    const out = h.parseMindbodyClassic(page);
+    expect(out.map((c: { date: string }) => c.date)).toEqual(["2026-10-08", "2026-10-09", "2026-10-09"]);
+    expect(out[0]).toMatchObject({ start: "18:00", end: "19:00", name: "Bootcamp", instructor: "Brysten", location: "Fremont" });
+  });
+  it("keeps one location's rows when a location is given", () => {
+    const out = h.parseMindbodyClassic(page, "Fremont");
+    expect(out).toHaveLength(1);
+    expect(out[0].name).toBe("Bootcamp");
+  });
+  it("reads a row with no location column (the third line is the length) and drops a '(3)' after the teacher", () => {
+    const out = h.parseMindbodyClassic(page);
+    const hot = out.find((c: { name: string }) => c.name === "Hot Hybrid");
+    expect(hot).toMatchObject({ start: "07:30", end: "09:00", instructor: "Chelsi Alexandria", location: null });
+  });
+  it("gives nothing for a page with no rows", () => {
+    expect(h.parseMindbodyClassic("Welcome to our studio\nBook a class")).toEqual([]);
+  });
+});

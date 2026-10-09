@@ -38,7 +38,7 @@ const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 // "Monday, October 5, 2026" in Seattle time: the model needs it to turn "Today" / "Tomorrow" into dates.
 const TODAY = new Date().toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", year: "numeric", month: "long", day: "numeric" });
 const TODAY_ISO = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()); // YYYY-MM-DD
-const { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes } = makeHelpers(TODAY_ISO);
+const { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic } = makeHelpers(TODAY_ISO);
 
 // ---- robots.txt ----
 const robotsCache = new Map();
@@ -669,6 +669,13 @@ async function readStudio(browser, s) {
     // A Mariana Tek widget on the page: the week comes from its data, exact and without the model.
     const mt = await readMariana(browser, pg);
     if (mt) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "marianatek", classes: mt.classes, dropped: [] });
+    // A classic Mindbody schedule page (clients.mindbodyonline.com/classic/mainclass): its text is rows of time, class, teacher,
+    // location and length under date headings, read as it is. An address with `sLoc=<n>` shows one location already.
+    if (/clients\.mindbodyonline\.com\/classic\//.test(pg.finalUrl)) {
+      const classes = parseMindbodyClassic(pg.text, s.location);
+      dbg("mindbody classic rows:", classes.length);
+      if (classes.length >= 3) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "mindbodyonline", classes, dropped: [] });
+    }
     // A FullCalendar whose events were all read straight off the page (parseFcEvent): exact and without the model.
     if (pg.fc?.classes?.length >= 3 && pg.fc.classes.length === pg.fc.seen) {
       const own = s.only ? new RegExp(s.only, "i") : null;
