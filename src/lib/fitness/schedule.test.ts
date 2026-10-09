@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { areasFromStudios, classMinutes, milesBetween, firstDayWithClasses, hasStarted, nextDays, partOfDay, seattleStamp, seattleToday, time12 } from "@/lib/fitness/schedule";
+import { areaForLabel, areasFromStudios, classMinutes, milesBetween, firstDayWithClasses, hasStarted, nextDays, partOfDay, seattleStamp, seattleToday, time12 } from "@/lib/fitness/schedule";
 
 describe("FitnessNav schedule helpers", () => {
   it("tells Seattle time, not the server's", () => {
@@ -44,5 +44,21 @@ describe("areasFromStudios", () => {
       { name: "Ballard", lat: 47.68, lng: -122.38, n: 1 },
       { name: "Fremont", lat: 47.66, lng: -122.36, n: 2 },
     ]);
+  });
+});
+
+describe("areaForLabel", () => {
+  const areas = [{ name: "Ballard" }, { name: "Capitol" }, { name: "Capitol Hill" }, { name: "Fremont" }];
+  it("finds the neighborhood an app's label starts with", () => {
+    expect(areaForLabel(areas, "Fremont, Seattle")).toBe("Fremont");
+    expect(areaForLabel(areas, "fremont")).toBe("Fremont");
+  });
+  it("prefers the longest matching name", () => {
+    expect(areaForLabel(areas, "Capitol Hill, Seattle")).toBe("Capitol Hill");
+  });
+  it("gives null for a label no neighborhood starts, or no label", () => {
+    expect(areaForLabel(areas, "Downtown Seattle")).toBeNull();
+    expect(areaForLabel(areas, "")).toBeNull();
+    expect(areaForLabel(areas, null)).toBeNull();
   });
 });

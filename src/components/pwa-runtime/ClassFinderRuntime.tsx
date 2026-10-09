@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Dumbbell, Loader2, LocateFixed, MapPin, X } from "lucide-react";
 import type { ClassFinderBlockConfig, FitnessClassType } from "@/types/database";
 import {
+  areaForLabel,
   areasFromStudios,
   CLASS_TYPES,
   CLASS_TYPE_LABEL,
@@ -221,7 +222,10 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
   // Areas a visitor can look near instead of sharing their location: the neighborhoods the studios are filed under, each
   // centred on its own studios. "Ballard (12)" says how many studios are there.
   const areas = useMemo(() => areasFromStudios(week?.studios ?? []), [week]);
-  // Picking an area moves the distances there; "Use my location" asks the browser again; the blank choice is the app's own area.
+  // The app's own area ("Fremont, Seattle") is just the neighborhood of that name in the list, not a special line of its own:
+  // it is what the picker shows until the visitor picks something else. Only an app whose area matches no neighborhood keeps a blank choice.
+  const startArea = useMemo(() => areaForLabel(areas, config.area_label), [areas, config.area_label]);
+  // Picking an area moves the distances there; "Use my location" asks the browser again.
   function pickArea(name: string) {
     if (name === "me") return locate();
     const a = areas.find((x) => x.name === name);
@@ -396,12 +400,12 @@ export function ClassFinderRuntime({ config }: { config: ClassFinderBlockConfig 
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="shrink-0 font-semibold">Look near</span>
             <select
-              value={origin?.mine ? "me" : (origin?.area ?? "")}
+              value={origin?.mine ? "me" : (origin?.area ?? startArea ?? "")}
               onChange={(e) => pickArea(e.target.value)}
               className="min-h-9 min-w-0 flex-1 rounded-full border bg-background px-3 text-sm font-medium text-foreground"
             >
               {typeof navigator !== "undefined" && "geolocation" in navigator && <option value="me">{origin?.mine ? "You (your location)" : "Use my location"}</option>}
-              <option value="">{config.area_label ? `${config.area_label} (the app's area)` : "The app's area"}</option>
+              {!startArea && <option value="">{config.area_label ? config.area_label : "The app's area"}</option>}
               {areas.map((a) => (
                 <option key={a.name} value={a.name}>
                   {a.name} ({a.n})

@@ -129,3 +129,12 @@ export function areasFromStudios(studios: Pick<FitnessStudio, "neighborhood" | "
   }
   return [...sums].map(([name, a]) => ({ name, lat: a.lat / a.n, lng: a.lng / a.n, n: a.n })).sort((x, y) => x.name.localeCompare(y.name));
 }
+
+/** The area an app's own label stands for ("Fremont, Seattle" is the Fremont neighborhood), or null when no neighborhood starts the label. */
+export function areaForLabel(areas: Pick<StudioArea, "name">[], label: string | null | undefined): string | null {
+  const l = label?.trim().toLowerCase();
+  if (!l) return null;
+  // The longest name wins, so "Capitol Hill, Seattle" is not taken for a shorter "Capitol" area.
+  const hit = areas.filter((a) => l.startsWith(a.name.toLowerCase())).sort((x, y) => y.name.length - x.name.length)[0];
+  return hit?.name ?? null;
+}
