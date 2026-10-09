@@ -34,6 +34,7 @@ const BUILT: Array<{ when: string; items: string[] }> = [
   {
     when: "Oct 9",
     items: [
+      "Redmond, Mercer Island, Edmonds and Renton searched (88 candidates, 71 test-read): 21 studios added (about 800 classes), checked against their pages. Club Pilates Redmond and Mercer Island, F45 Redmond, Pure Barre Redmond, YogaSix Redmond and Mercer Island, CycleBar Redmond, PIVOT Mercer Island, Solace Yoga, Soma Pilates, Acuo CrossFit, Discover Yoga, Hot Yoga Renton, Be Yoga Renton, Highland Fitness, APT, Pink Llama, Turn It Loose CrossFit, MoveFree Academy, Woodway Wellness and Technique Pilates. Core Havn's Mercer Island and Renton clubs, Twist Yoga Edmonds and barre3 Edmonds follow once their location filters and feeds are checked.",
       "East of the lake and beyond: Shoreline, Bellevue, Kirkland and Burien searched (132 candidates, 78 test-read), 30 studios added (about 1,450 classes), each checked against its own page. Among them [solidcore] Bellevue and Totem Lake, Club Pilates Bellevue and Kirkland, barre3 Bellevue and Kirkland (exact, from their feed), Pure Barre Bellevue, Kirkland and Shoreline, F45 Kirkland, Lake Washington CrossFit, Renascent, Invictus, PIVOT Bellevue, Main Street Pilates, SOOP, Be Yoga Burien, bodySTRONG, Hola House, Twist Yoga, Tramp Stamp Fit and YogaRama. Hot Yoga Inc Bellevue is held until its Mill Creek classes are filtered out; TruFusion Bellevue reads the wrong dates; 25 had no readable schedule.",
     ],
   },
@@ -122,7 +123,7 @@ const AHEAD: Array<{ area: string; hoods: string }> = [
   { area: "Central & Downtown", hoods: "Downtown / Waterfront · Belltown · Pioneer Square · Chinatown-ID · First Hill · South Lake Union · Denny Triangle · Magnolia · Interbay · Eastlake & Westlake · Central District" },
   { area: "South Seattle", hoods: "Beacon Hill · Rainier Valley · SoDo · Georgetown · South Park · Seward Park · NewHolly" },
   { area: "West Seattle", hoods: "Alki · North Admiral · The Junction · Fauntleroy · Delridge · Gatewood & Genesee · Arbor Heights & Westwood" },
-  { area: "Beyond the city", hoods: "Shoreline · Bellevue · Kirkland · Burien (done Oct 9) · Redmond · Mercer Island · Edmonds · Renton (in progress)" },
+  { area: "Beyond the city", hoods: "Shoreline · Bellevue · Kirkland · Burien · Redmond · Mercer Island · Edmonds · Renton (all done Oct 9)" },
 ];
 
 const CHIP: Record<string, string> = {
