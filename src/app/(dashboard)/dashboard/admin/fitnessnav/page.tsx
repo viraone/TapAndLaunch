@@ -32,6 +32,12 @@ const TODO_SECTIONS = ["Reader", "Studios", "Mine"];
 /** What shipped, newest first. Kept here on purpose: it changes when the work ships, with the same commit. */
 const BUILT: Array<{ when: string; items: string[] }> = [
   {
+    when: "Oct 9",
+    items: [
+      "East of the lake and beyond: Shoreline, Bellevue, Kirkland and Burien searched (132 candidates, 78 test-read), 30 studios added (about 1,450 classes), each checked against its own page. Among them [solidcore] Bellevue and Totem Lake, Club Pilates Bellevue and Kirkland, barre3 Bellevue and Kirkland (exact, from their feed), Pure Barre Bellevue, Kirkland and Shoreline, F45 Kirkland, Lake Washington CrossFit, Renascent, Invictus, PIVOT Bellevue, Main Street Pilates, SOOP, Be Yoga Burien, bodySTRONG, Hola House, Twist Yoga, Tramp Stamp Fit and YogaRama. Hot Yoga Inc Bellevue is held until its Mill Creek classes are filtered out; TruFusion Bellevue reads the wrong dates; 25 had no readable schedule.",
+    ],
+  },
+  {
     when: "Oct 8",
     items: [
       "Look near an area: a \"Look near\" picker under the title lists every neighborhood the studios are filed under, with its studio count. Picking one moves the distances and the Within filter to the middle of that area's studios, for a visitor who would rather not share a location or wants to look across town. \"Use my location\" is in the same list.",
@@ -116,6 +122,7 @@ const AHEAD: Array<{ area: string; hoods: string }> = [
   { area: "Central & Downtown", hoods: "Downtown / Waterfront · Belltown · Pioneer Square · Chinatown-ID · First Hill · South Lake Union · Denny Triangle · Magnolia · Interbay · Eastlake & Westlake · Central District" },
   { area: "South Seattle", hoods: "Beacon Hill · Rainier Valley · SoDo · Georgetown · South Park · Seward Park · NewHolly" },
   { area: "West Seattle", hoods: "Alki · North Admiral · The Junction · Fauntleroy · Delridge · Gatewood & Genesee · Arbor Heights & Westwood" },
+  { area: "Beyond the city", hoods: "Shoreline · Bellevue · Kirkland · Burien (done Oct 9) · Redmond · Mercer Island · Edmonds · Renton (in progress)" },
 ];
 
 const CHIP: Record<string, string> = {
