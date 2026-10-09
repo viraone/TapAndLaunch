@@ -1,5 +1,5 @@
 #!/bin/bash
-# FitnessNav's nightly run (started by launchd at 10 PM, see install-daily.sh): reads every studio's class schedule,
+# FitnessNav's nightly run (started by launchd at 5 AM, see install-daily.sh): reads every studio's class schedule,
 # then rebuilds the preview page. Keeps the Mac awake while it works, starts Ollama if needed, logs to ~/Library/Logs/fitnessnav.log.
 set -u
 cd "$(dirname "$0")"
