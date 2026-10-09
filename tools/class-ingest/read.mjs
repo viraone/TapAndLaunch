@@ -138,6 +138,19 @@ async function render(browser, url, { settle = 7000 } = {}) {
   const page = await ctx.newPage();
   // A Mariana Tek booking widget on the page downloads the day's classes as data for every visitor; keep that data.
   const mariana = [];
+  // Mindbody's schedule widget (go.mindbodyonline.com/book/widgets/schedules/view/<id>/schedule): its id is enough to read
+  // the week straight from the widget's own page, without the model (readMindbodyWidget).
+  const mindbody = new Set();
+  // Momence's schedule plugin reads a public feed (readonly-api.momence.com/host-plugins/host/<id>/…): the host id is enough.
+  const momence = new Set();
+  // Walla's widget calls api.hellowalla.com with the business's integration id in a header: the id is enough for the feed.
+  const walla = new Set();
+  page.on("request", (req) => {
+    let m;
+    if ((m = /go\.mindbodyonline\.com\/book\/widgets\/schedules\/view\/(\w+)\//.exec(req.url()))) mindbody.add(m[1]);
+    if ((m = /readonly-api\.momence\.com\/host-plugins\/host\/(\d+)\//.exec(req.url()))) momence.add(m[1]);
+    if (/api\.hellowalla\.com\/api\//.test(req.url())) { const id = req.headers()["integration-id"]; if (id) walla.add(id); }
+  });
   page.on("response", async (res) => {
     if (!MARIANA_API.test(res.url()) || !res.ok()) return;
     try { const j = await res.json(); const rows = j.results ?? j.data; if (Array.isArray(rows)) mariana.push(...rows); } catch {}
@@ -228,6 +241,9 @@ async function render(browser, url, { settle = 7000 } = {}) {
     }
     for (const f of page.frames()) {
       if (gridFrames.has(f)) continue; // its columns are already labelled with their dates; its day strip changes nothing
+      if (/go\.mindbodyonline\.com\/book\/widgets\//.test(f.url())) continue; // read exactly by readMindbodyWidget: no need to click its days here
+      if (/widget\.hellowalla\.com\//.test(f.url())) continue; // read from Walla's feed instead
+      if (momence.size && f === page.mainFrame() && (await f.evaluate(() => !!document.querySelector(".momence-day_selection-item")).catch(() => false))) continue; // read from Momence's feed instead
       const dayTabs = () => f.evaluate(() => {
         const WD = "(sun|mon|tue|wed|thu|fri|sat)[a-z]*\\.?", MO = "(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?";
         const res = [new RegExp(`^${WD}\\s*\\d{1,2}$`, "i"), new RegExp(`^\\d{1,2}\\s*${WD}$`, "i"), new RegExp(`^${MO}\\s*\\d{1,2}\\s+${WD}$`, "i"), new RegExp(`^(today|tomorrow)\\s+${WD}$`, "i"), /^[SMTWF]\s\d{1,2}$/, new RegExp(`^(today|${WD})\\s+\\d{1,2}/\\d{1,2}$`, "i")];
@@ -293,7 +309,7 @@ async function render(browser, url, { settle = 7000 } = {}) {
     }
     const links = await page.evaluate(() => Array.from(document.querySelectorAll("a[href]")).map((a) => ({ href: a.getAttribute("href"), text: (a.innerText || a.getAttribute("aria-label") || "").trim().slice(0, 60) })));
     const iframes = await page.evaluate(() => Array.from(document.querySelectorAll("iframe[src]")).map((f) => f.src));
-    return { finalUrl: page.url(), text: parts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim(), links, frameUrls: [...new Set([...iframes, ...frameUrls])].filter((u) => /^https?:/.test(u)), mariana };
+    return { finalUrl: page.url(), text: parts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim(), links, frameUrls: [...new Set([...iframes, ...frameUrls])].filter((u) => /^https?:/.test(u)), mariana, mindbody: [...mindbody], momence: [...momence], walla: [...walla] };
   } finally { await ctx.close(); }
 }
 
@@ -372,6 +388,137 @@ async function readMariana(browser, pg) {
   return classes.length ? { classes, days: new Set(classes.map((c) => c.date)).size } : null;
 }
 
+/**
+ * Mindbody's current schedule widget, read from its own page: one day at a time under a strip of day chips ("Fri 9"), each
+ * class a row of [time + length] [name, instructor, "Show Details"] [location] [spots] [Book]. Every row is taken as it is
+ * shown, so the week is exact and the model is not needed. `location` keeps only rows whose location column names it
+ * (Flow Fitness lists Fremont and South Lake Union on one widget). Returns [] when the widget shows no rows.
+ */
+async function readMindbodyWidget(browser, widgetId, location) {
+  const ctx = await browser.newContext({ userAgent: UA, viewport: { width: 1280, height: 1000 }, locale: "en-US", timezoneId: "America/Los_Angeles" });
+  const page = await ctx.newPage();
+  const classes = [];
+  try {
+    await page.goto(`https://go.mindbodyonline.com/book/widgets/schedules/view/${widgetId}/schedule`, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForLoadState("networkidle", { timeout: 12000 }).catch(() => {});
+    await page.waitForTimeout(2500);
+    const shownDate = () => page.evaluate(() => Array.from(document.querySelectorAll("h1, h2")).map((e) => (e.innerText || "").trim()).find((t) => /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)[a-z]*,\s/.test(t)) ?? null);
+    const readRows = () => page.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll("div[class*=MuiGrid-container]")).filter((e) => e.children[0] && /^\d{1,2}:\d{2}\s?[AP]M/i.test((e.children[0].innerText || "").trim()));
+      return rows.map((row) => {
+        const cells = Array.from(row.children).map((c) => (c.innerText || "").split("\n").map((l) => l.trim()).filter(Boolean));
+        const staff = Array.from(row.children[1]?.querySelectorAll("button") ?? []).map((b) => (b.innerText || "").trim()).filter(Boolean);
+        return { when: cells[0] ?? [], who: cells[1] ?? [], staff, where: (cells[2] ?? []).join(" "), spots: (cells[3] ?? []).join(" ") };
+      });
+    });
+    // The day chips: "Fri 9", "Sat 10" … (today's may read "Today"); clicked in order, today onward.
+    const chips = await page.evaluate(() => {
+      const label = (e) => (e.innerText || "").replace(/\s+/g, " ").trim();
+      const els = Array.from(document.querySelectorAll("button, [role=button], [role=tab], div, span")).filter((e) => e.getBoundingClientRect().width > 0 && /^(?:(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)[a-z]*|Today)\s*\d{1,2}$/i.test(label(e)));
+      return els.filter((e) => !els.some((o) => o !== e && e.contains(o))).map(label);
+    });
+    const days = [...new Set(chips)].map((l) => ({ label: l, date: dateFromLabel(l) })).filter((d) => d.date && d.date >= TODAY_ISO).slice(0, 8);
+    for (const day of days.length ? days : [{ label: null, date: null }]) {
+      if (day.label) {
+        const clicked = await page.evaluate((want) => { const label = (e) => (e.innerText || "").replace(/\s+/g, " ").trim(); const els = Array.from(document.querySelectorAll("button, [role=button], [role=tab], div, span")).filter((e) => e.getBoundingClientRect().width > 0 && label(e) === want); const leaf = els.find((e) => !els.some((o) => o !== e && e.contains(o))); if (!leaf) return false; leaf.click(); return true; }, day.label);
+        if (!clicked) continue;
+        // The heading follows the chip ("Saturday, Oct 10"): wait for it before reading the rows.
+        for (let i = 0; i < 20; i++) { const h = await shownDate(); if (h && dateFromLabel(h) === day.date) break; await page.waitForTimeout(250); }
+        await page.waitForTimeout(600);
+      }
+      const date = day.date ?? dateFromLabel((await shownDate()) ?? "");
+      if (!date) continue;
+      for (const r of await readRows()) {
+        const t = /^(\d{1,2}):(\d{2})\s?([AP])M/i.exec(r.when.join(" "));
+        if (!t) continue;
+        const h = (+t[1] % 12) + (t[3].toUpperCase() === "P" ? 12 : 0), start = `${String(h).padStart(2, "0")}:${t[2]}`;
+        const mins = +(/(\d+)\s*min/i.exec(r.when.join(" "))?.[1] ?? 0);
+        const end = mins ? `${String(Math.floor((h * 60 + +t[2] + mins) / 60) % 24).padStart(2, "0")}:${String((+t[2] + mins) % 60).padStart(2, "0")}` : null;
+        // The name cell reads: name (one line or two), then "Instructor • Room", then "Show Details".
+        const lines = r.who.filter((l) => !/^show details$/i.test(l));
+        const staffAt = r.staff.length ? lines.findIndex((l) => r.staff.some((st) => l.startsWith(st))) : (lines.length > 1 ? 1 : -1);
+        const name = (staffAt > 0 ? lines.slice(0, staffAt) : lines.slice(0, 1)).join(" ").replace(/\s*\|\s*$/, "").replace(/\s+/g, " ").trim();
+        const instructor = r.staff[0] ?? (staffAt > 0 ? lines[staffAt].replace(/\s*•.*$/, "").trim() : null);
+        if (!name) continue;
+        if (location && !r.where.toLowerCase().includes(location.toLowerCase())) continue;
+        const spots = /(\d+)\s*(?:of\s*\d+\s*)?(?:spots?|left|open)/i.exec(r.spots)?.[0] ?? (/waitlist/i.test(r.spots) ? "Waitlist" : null);
+        classes.push({ date, start, end, name, instructor: instructor || null, spots, location: r.where || null });
+      }
+    }
+  } catch (e) { dbg("mindbody widget", widgetId, String(e.message).slice(0, 80)); }
+  finally { await ctx.close().catch(() => {}); }
+  // one row per (date, start, name)
+  const seen = new Set();
+  return classes.filter((c) => { const k = `${c.date}|${c.start}|${c.name}`; return seen.has(k) ? false : seen.add(k); });
+}
+/**
+ * Momence's public schedule feed for a host (readonly-api.momence.com/host-plugins/host/<id>/host-schedule/sessions): every
+ * session for the next 8 days, exact and without the model. Times come in UTC and are turned into Seattle time. `location`
+ * keeps only sessions at that location (HIIT Lab, Core Havn and others list every club in one feed); cancelled ones are dropped.
+ */
+async function readMomenceFeed(hostId, location) {
+  const plus = (n) => { const d = new Date(Date.UTC(+TODAY_ISO.slice(0, 4), +TODAY_ISO.slice(5, 7) - 1, +TODAY_ISO.slice(8, 10) + n)); return d.toISOString().slice(0, 10); };
+  // Seattle midnight today is 07:00Z (PDT) or 08:00Z (PST); asking from 00:00Z of today over-fetches a little and the dates below sort it out.
+  const base = `https://readonly-api.momence.com/host-plugins/host/${hostId}/host-schedule/sessions?sessionTypes[]=course-class&sessionTypes[]=fitness&fromDate=${TODAY_ISO}T00:00:00.000Z&toDate=${plus(9)}T00:00:00.000Z&pageSize=200&timeZone=America%2FLos_Angeles`;
+  const rows = [];
+  for (let page = 0; page < 10; page++) {
+    const res = await fetch(`${base}&page=${page}`, { headers: { "User-Agent": UA, Accept: "application/json" }, signal: AbortSignal.timeout(20000) });
+    if (!res.ok) throw new Error(`momence ${res.status}`);
+    const j = await res.json();
+    const got = j.payload ?? [];
+    rows.push(...got);
+    if (got.length < 200) break;
+  }
+  const fmtDate = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" });
+  const fmtTime = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Los_Angeles", hour: "2-digit", minute: "2-digit", hour12: false });
+  const classes = [];
+  for (const r of rows) {
+    if (r.isCancelled || !r.startsAt) continue;
+    if (location && !String(r.location ?? "").toLowerCase().includes(location.toLowerCase())) continue;
+    const st = new Date(r.startsAt), en = r.endsAt ? new Date(r.endsAt) : null;
+    const date = fmtDate.format(st);
+    if (date < TODAY_ISO || date > plus(8)) continue;
+    const spots = r.remainingSpots?.remaining != null ? `${r.remainingSpots.remaining} of ${r.capacity ?? "?"} open` : null;
+    classes.push({ date, start: fmtTime.format(st), end: en ? fmtTime.format(en) : null, name: String(r.sessionName ?? "").trim(), instructor: r.teacher ?? null, spots, location: r.location ?? null });
+  }
+  const seen = new Set();
+  return classes.filter((c) => c.name && (seen.has(`${c.date}|${c.start}|${c.name}`) ? false : seen.add(`${c.date}|${c.start}|${c.name}`)));
+}
+/**
+ * Walla's class feed for a business (api.hellowalla.com/api/dingo/v1/class_instances, with the widget's integration id):
+ * every public class for the next 8 days, exact and without the model. Each class names its location (course.location.name),
+ * so `location` keeps one club of a chain (Breathe Hot Yoga lists Capitol Hill, Belltown and West Seattle in one feed).
+ */
+async function readWallaFeed(integrationId, location) {
+  const plus = (n) => { const d = new Date(Date.UTC(+TODAY_ISO.slice(0, 4), +TODAY_ISO.slice(5, 7) - 1, +TODAY_ISO.slice(8, 10) + n)); return d.toISOString().slice(0, 10); };
+  const rows = [];
+  for (let page = 1; page <= 10; page++) {
+    const url = `https://api.hellowalla.com/api/dingo/v1/class_instances?page=${page}&per_page=100&sort=class_instances.start_time:asc&active=both&start_time=between%7C${TODAY_ISO}T00:00:00.000Z%7C${plus(9)}T00:00:00.000Z`;
+    const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json", "integration-id": integrationId, "http-jwt-aud": "widget" }, signal: AbortSignal.timeout(20000) });
+    if (!res.ok) throw new Error(`walla ${res.status}`);
+    const j = await res.json();
+    rows.push(...(j.records ?? []));
+    if (page >= (j.total_pages ?? 1)) break;
+  }
+  const fmtDate = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" });
+  const fmtTime = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Los_Angeles", hour: "2-digit", minute: "2-digit", hour12: false });
+  const classes = [];
+  for (const r of rows) {
+    if (r.active === false || r.is_public === false || !r.start_time) continue;
+    const where = r.course?.location?.name ?? null;
+    if (location && !String(where ?? "").toLowerCase().includes(location.toLowerCase())) continue;
+    const st = new Date(r.start_time), en = r.end_time ? new Date(r.end_time) : null;
+    const date = fmtDate.format(st);
+    if (date < TODAY_ISO || date > plus(8)) continue;
+    const name = String(r.display_name || r.name || r.course?.name || "").trim();
+    const instructor = r.staff ? [r.staff.first_name, r.staff.last_name].filter(Boolean).join(" ").trim() || r.staff.nickname || null : null;
+    const cap = r.in_studio_capacity, booked = r.in_person_booking_count;
+    const spots = cap != null && booked != null ? (cap - booked > 0 ? `${cap - booked} of ${cap} open` : "Waitlist") : null;
+    classes.push({ date, start: fmtTime.format(st), end: en ? fmtTime.format(en) : null, name, instructor, spots, location: where, online: r.available_in_person === false && r.available_as_livestream === true });
+  }
+  const seen = new Set();
+  return classes.filter((c) => c.name && (seen.has(`${c.date}|${c.start}|${c.name}`) ? false : seen.add(`${c.date}|${c.start}|${c.name}`)));
+}
 /**
  * studios.json `mariana: { tenant, location }`: a studio on Mariana Tek whose own page does not hand the widget's data to the
  * reader (barre3's widget sits in an iframe that only loads the schedule on a click). The tenant's public class feed answers
@@ -618,6 +765,28 @@ async function readStudio(browser, s) {
     // A Mariana Tek widget on the page: the week comes from its data, exact and without the model.
     const mt = await readMariana(browser, pg);
     if (mt) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "marianatek", classes: mt.classes, dropped: [] });
+    // A Walla widget on the page: the week comes from Walla's class feed, exact and without the model.
+    for (const id of pg.walla ?? []) {
+      try {
+        const classes = await readWallaFeed(id, s.location);
+        dbg("walla feed", id.slice(0, 8), classes.length, "classes");
+        if (classes.length) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "walla", classes, dropped: [] });
+      } catch (e) { dbg("walla feed failed", String(e.message).slice(0, 60)); }
+    }
+    // A Momence schedule plugin on the page: the week comes from Momence's public feed, exact and without the model.
+    for (const id of pg.momence ?? []) {
+      try {
+        const classes = await readMomenceFeed(id, s.location);
+        dbg("momence feed", id, classes.length, "classes");
+        if (classes.length) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "momence", classes, dropped: [] });
+      } catch (e) { dbg("momence feed failed", id, String(e.message).slice(0, 60)); }
+    }
+    // A Mindbody schedule widget on the page: the week comes from the widget's own rows, exact and without the model.
+    for (const id of pg.mindbody ?? []) {
+      const classes = await readMindbodyWidget(browser, id, s.location);
+      dbg("mindbody widget", id, classes.length, "classes");
+      if (classes.length) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "mindbodyonline", classes, dropped: [] });
+    }
     const all = [];
     let anySchedule = false;
     // studios.json `location`: the page lists several locations of one studio ("Capitol Hill, Studio" under each class).
