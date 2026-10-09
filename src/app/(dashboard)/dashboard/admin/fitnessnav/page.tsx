@@ -34,6 +34,7 @@ const BUILT: Array<{ when: string; items: string[] }> = [
   {
     when: "Oct 9",
     items: [
+      "The last ring searched: Kent, Tacoma, Everett, Sammamish and Newcastle (76 candidates, 63 test-read): 11 studios added (about 600 classes), each checked against its own page: Club Pilates Sammamish, Newcastle and Tacoma, La Maison Pilates, The Studio Modern Pilates, Elu Yoga, Grey Coast CrossFit, Collective Fitness CrossFit, YogaSix Sammamish and Pure Barre Sammamish and Newcastle. Plunge + Restore (contrast therapy, not a class) and 13 others with one to four days are held; 38 had no readable schedule or block bots.",
       "The two classic Mindbody studios (Experience Momentum, The SweatBox Yoga) are read exactly as well: their schedule pages are plain rows of time, class, teacher, location and length under date headings, and the reader takes them as they are. The same classes the model found, with the 90-minute classes ending at the right time.",
       "Calendars built on FullCalendar (the engine behind PushPress, Zen Planner and Fitli) are now read exactly too: the reader takes each event's time, title and instructor straight off the page, labelled with the date the calendar itself stamps on its column. Loft, Rainier Health, South Seattle CrossFit, RHF CrossFit, Delridge and West Seattle Pilates no longer need the model (they matched the earlier reads within one class a day). Childcare slots are no longer listed as classes.",
       "The reader's date rules (day labels, headings, two-line headers, day tabs that hold a whole fortnight) moved into their own file with 40 tests, since nearly every reader bug this week was a date bug.",
@@ -129,7 +130,7 @@ const AHEAD: Array<{ area: string; hoods: string }> = [
   { area: "Central & Downtown", hoods: "Downtown / Waterfront · Belltown · Pioneer Square · Chinatown-ID · First Hill · South Lake Union · Denny Triangle · Magnolia · Interbay · Eastlake & Westlake · Central District" },
   { area: "South Seattle", hoods: "Beacon Hill · Rainier Valley · SoDo · Georgetown · South Park · Seward Park · NewHolly" },
   { area: "West Seattle", hoods: "Alki · North Admiral · The Junction · Fauntleroy · Delridge · Gatewood & Genesee · Arbor Heights & Westwood" },
-  { area: "Beyond the city", hoods: "Shoreline · Bellevue · Kirkland · Burien · Redmond · Mercer Island · Edmonds · Renton · Lynnwood · Bothell · Woodinville · Issaquah · Federal Way (all done Oct 9)" },
+  { area: "Beyond the city", hoods: "Shoreline · Bellevue · Kirkland · Burien · Redmond · Mercer Island · Edmonds · Renton · Lynnwood · Bothell · Woodinville · Issaquah · Federal Way · Kent · Tacoma · Everett · Sammamish · Newcastle (all done Oct 9)" },
 ];
 
 const CHIP: Record<string, string> = {

@@ -2543,5 +2543,126 @@
     "id": "ChIJvSfjaCoMkFQRJRfPHBsElsE",
     "lat": 47.7534084,
     "lng": -122.1603727
+  },
+  {
+    "kind": "pilates",
+    "name": "Club Pilates (Sammamish)",
+    "site": "http://clubpilates.com/sammamish/?utm_source=google.com&utm_medium=referral&utm_campaign=yext",
+    "km": 24.08,
+    "address": "608 228th Ave NE Ste 608, Sammamish, WA 98074, USA",
+    "neighborhood": "Sammamish",
+    "id": "ChIJaahgRgBxkFQR9WNLFkx7bkc",
+    "lat": 47.614864399999995,
+    "lng": -122.0336534
+  },
+  {
+    "kind": "lifting",
+    "name": "Collective Fitness CrossFit",
+    "site": "http://collectivefitnessgym.com/",
+    "km": 37.88,
+    "address": "1302 Hewitt Ave, Everett, WA 98201, USA",
+    "neighborhood": "Everett",
+    "id": "ChIJqU8y25iqmlQRK_RfC1LgXfM",
+    "lat": 47.979028799999995,
+    "lng": -122.2126577
+  },
+  {
+    "kind": "pilates",
+    "name": "The Studio Modern Pilates",
+    "site": "http://www.thestudiomodernpilates.com/",
+    "km": 45.54,
+    "address": "1736 Pacific Ave, Tacoma, WA 98402, USA",
+    "neighborhood": "Tacoma Downtown",
+    "id": "ChIJSTpMerpVkFQRc0RVVJHaUMc",
+    "lat": 47.245916799999996,
+    "lng": -122.4373962
+  },
+  {
+    "kind": "pilates",
+    "name": "Club Pilates (Newcastle)",
+    "site": "https://www.clubpilates.com/newcastle/?utm_source=google.com&utm_medium=referral&utm_campaign=yext",
+    "km": 18.53,
+    "address": "13382 Newcastle Commons Dr, Newcastle, WA 98059, USA",
+    "neighborhood": "Newcastle-Renton Highlands",
+    "id": "ChIJBxfZuB9pkFQRYntHEJ8aWXI",
+    "lat": 47.5437047,
+    "lng": -122.16163969999998
+  },
+  {
+    "kind": "pilates",
+    "name": "La Maison Pilates",
+    "site": "https://lamaisonpilates.com/",
+    "km": 40.93,
+    "address": "5020 Main St Ste k, Tacoma, WA 98407, USA",
+    "neighborhood": "Tacoma North-West",
+    "id": "ChIJvf-nKZpTkFQRvxGGcsYPrv8",
+    "lat": 47.2979662,
+    "lng": -122.50352919999999
+  },
+  {
+    "kind": "pilates",
+    "name": "Club Pilates (Tacoma)",
+    "site": "http://clubpilates.com/westtacoma/?utm_source=google.com&utm_medium=referral&utm_campaign=yext",
+    "km": 44.11,
+    "address": "5738 N 26th St, Tacoma, WA 98407, USA",
+    "neighborhood": "Tacoma North-West",
+    "id": "ChIJvyKVKLhVkFQR_g--tB6_J2o",
+    "lat": 47.270418899999996,
+    "lng": -122.51485600000001
+  },
+  {
+    "kind": "lifting",
+    "name": "Grey Coast CrossFit",
+    "site": "http://www.greycoastcrossfit.com/",
+    "km": 17.04,
+    "address": "5620 119th Ave SE B, Bellevue, WA 98006, USA",
+    "neighborhood": "Newcastle-Renton Highlands",
+    "id": "ChIJi7ZlXhVpkFQRXfPdDshJoKQ",
+    "lat": 47.5518232,
+    "lng": -122.17753479999999
+  },
+  {
+    "kind": "pilates",
+    "name": "YogaSix Sammamish",
+    "site": "http://www.yogasix.com/sammamish",
+    "km": 23.92,
+    "address": "22526 SE 4th St Ste B1, Sammamish, WA 98074, USA",
+    "neighborhood": "Sammamish",
+    "id": "ChIJWS89S8RxkFQRmx5QmX_5ydk",
+    "lat": 47.6056326,
+    "lng": -122.0385601
+  },
+  {
+    "kind": "pilates",
+    "name": "Pure Barre Sammamish",
+    "site": "https://www.purebarre.com/location/sammamish-wa",
+    "km": 23.91,
+    "address": "22526 SE 4th St A, Sammamish, WA 98074, USA",
+    "neighborhood": "Sammamish",
+    "id": "ChIJTcKujqhxkFQRZuHw3a2JX04",
+    "lat": 47.605736799999995,
+    "lng": -122.0387113
+  },
+  {
+    "kind": "pilates",
+    "name": "Pure Barre Newcastle",
+    "site": "https://www.purebarre.com/location/newcastle-wa",
+    "km": 18.67,
+    "address": "6920 Coal Creek Pkwy SE #11, Newcastle, WA 98059, USA",
+    "neighborhood": "Newcastle-Renton Highlands",
+    "id": "ChIJfT9gbQJpkFQRhsbgWon66_Y",
+    "lat": 47.539425,
+    "lng": -122.164643
+  },
+  {
+    "kind": "yoga",
+    "name": "Elu Yoga",
+    "site": "https://eluyoga.com/",
+    "km": 44.35,
+    "address": "713 St Helens Ave Ste 104, Tacoma, WA 98402, USA",
+    "neighborhood": "Tacoma Downtown",
+    "id": "ChIJNX6r2dNVkFQRzDCo8zfSwDw",
+    "lat": 47.257171199999995,
+    "lng": -122.44198970000001
   }
 ]
