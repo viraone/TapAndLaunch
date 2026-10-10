@@ -213,3 +213,28 @@ describe("parseMindbodyClassic", () => {
     expect(h.parseMindbodyClassic("Welcome to our studio\nBook a class")).toEqual([]);
   });
 });
+
+describe("parseArketaCell", () => {
+  it("reads a calendar cell: start time with the length in brackets, name, host and place", () => {
+    expect(h.parseArketaCell({ time: "09:00 AM (60 min)", name: "Slow Flow (60)", host: "Kate H", location: "Flood Yoga Studio" }, "2026-10-09")).toEqual({
+      date: "2026-10-09",
+      start: "09:00",
+      end: "10:00",
+      name: "Slow Flow (60)",
+      instructor: "Kate H",
+      spots: null,
+      location: "Flood Yoga Studio",
+    });
+  });
+  it("reads a list-embed card whose time has a zone and a bullet before the length ('08:30 AM PDT • (50 min)')", () => {
+    expect(h.parseArketaCell({ time: "08:30 AM PDT • (50 min)", name: "Cardio Strength", host: "Angel", location: "NWFP Fremont • Seattle, WA" }, "2026-10-11")).toMatchObject({ start: "08:30", end: "09:20", instructor: "Angel", location: "NWFP Fremont • Seattle, WA" });
+  });
+  it("puts a 12 PM start at noon and a 12 AM start at midnight", () => {
+    expect(h.parseArketaCell({ time: "12:00 PM (60 min)", name: "Lunch Flow", host: "", location: "" }, "2026-10-09")).toMatchObject({ start: "12:00", end: "13:00", instructor: null });
+    expect(h.parseArketaCell({ time: "12:30 AM (30 min)", name: "Late", host: "", location: "" }, "2026-10-09")).toMatchObject({ start: "00:30", end: "01:00" });
+  });
+  it("gives null for a 'No Classes' placeholder or a cell with no time, so the page goes to the model", () => {
+    expect(h.parseArketaCell({ time: "", name: "No Classes", host: "", location: "" }, "2026-10-09")).toBeNull();
+    expect(h.parseArketaCell({ time: "", name: "Yoga", host: "", location: "" }, "2026-10-09")).toBeNull();
+  });
+});

@@ -177,5 +177,21 @@ export function makeHelpers(TODAY_ISO) {
     return out;
   }
 
-  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic };
+  /**
+   * One Arketa calendar cell (article.calendar-view__cell) as its pieces: { time: "09:00 AM (60 min)", name, host, location } →
+   * { date, start, end, name, instructor, location }. The length in brackets gives the end. Null without a start time or name
+   * (a "No Classes" placeholder has neither), so the page falls back to the model.
+   */
+  function parseArketaCell(cell, date) {
+    const t = /(\d{1,2}):(\d{2})\s*([ap])m?(?:[^()\d]*\((\d+)\s*min\))?/i.exec(cell.time ?? "");
+    const name = String(cell.name ?? "").replace(/\s+/g, " ").trim();
+    if (!t || !name || /^no classes$/i.test(name)) return null;
+    const h = (+t[1] % 12) + (t[3].toLowerCase() === "p" ? 12 : 0);
+    const start = `${String(h).padStart(2, "0")}:${t[2]}`;
+    const total = h * 60 + +t[2] + (t[4] ? +t[4] : 0);
+    const end = t[4] ? `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}` : null;
+    return { date, start, end, name, instructor: cell.host ? String(cell.host).replace(/\s+/g, " ").trim() : null, spots: null, location: cell.location ? String(cell.location).trim() : null };
+  }
+
+  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell };
 }

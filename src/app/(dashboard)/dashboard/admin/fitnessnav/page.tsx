@@ -32,6 +32,12 @@ const TODO_SECTIONS = ["Reader", "Studios", "Mine"];
 /** What shipped, newest first. Kept here on purpose: it changes when the work ships, with the same commit. */
 const BUILT: Array<{ when: string; items: string[] }> = [
   {
+    when: "Oct 10",
+    items: [
+      "The four Arketa studios (Flood Yoga, NW Fitness Project, Union Pilates, Woven Yoga) are read exactly: their calendar cells and list cards hold the time, name, instructor and place in separate pieces, and the reader takes them as they are. Same classes as the model found, in seconds instead of 94 minutes of model time on the 5 AM run.",
+    ],
+  },
+  {
     when: "Oct 9",
     items: [
       "The last ring searched: Kent, Tacoma, Everett, Sammamish and Newcastle (76 candidates, 63 test-read): 11 studios added (about 600 classes), each checked against its own page: Club Pilates Sammamish, Newcastle and Tacoma, La Maison Pilates, The Studio Modern Pilates, Elu Yoga, Grey Coast CrossFit, Collective Fitness CrossFit, YogaSix Sammamish and Pure Barre Sammamish and Newcastle. Plunge + Restore (contrast therapy, not a class) and 13 others with one to four days are held; 38 had no readable schedule or block bots.",

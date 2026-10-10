@@ -38,7 +38,7 @@ const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 // "Monday, October 5, 2026" in Seattle time: the model needs it to turn "Today" / "Tomorrow" into dates.
 const TODAY = new Date().toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", year: "numeric", month: "long", day: "numeric" });
 const TODAY_ISO = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()); // YYYY-MM-DD
-const { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic } = makeHelpers(TODAY_ISO);
+const { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell } = makeHelpers(TODAY_ISO);
 
 // ---- robots.txt ----
 const robotsCache = new Map();
@@ -94,6 +94,9 @@ async function render(browser, url, { settle = 7000 } = {}) {
   // FullCalendar events read exactly (parseFcEvent): `fcSeen` events were on the page, `fcClasses` of them parsed.
   let fcSeen = 0;
   const fcClasses = [];
+  // Arketa calendar cells read exactly (parseArketaCell), the same way.
+  let arkSeen = 0;
+  const arkClasses = [];
   // Momence's schedule plugin reads a public feed (readonly-api.momence.com/host-plugins/host/<id>/…): the host id is enough.
   const momence = new Set();
   // Walla's widget calls api.hellowalla.com with the business's integration id in a header: the id is enough for the feed.
@@ -179,18 +182,59 @@ async function render(browser, url, { settle = 7000 } = {}) {
           gridFrames.add(f);
           continue;
         }
-        // Arketa's calendar (Flood Yoga, NW Fitness Project): seven .calendar-view__column sections under a strip of
+        // Arketa's list embed (app.arketa.co/iframe/<studio>/schedule: NW Fitness Project, Union Pilates, Woven Yoga): every day is an
+        // h5 heading ("Sunday, Oct 11") with its class cards below; each card carries time, title, instructor and place.
+        const listDays = await f.evaluate(() => Array.from(document.querySelectorAll("h5")).map((h) => ({
+          label: (h.innerText || "").trim(),
+          // The day's block is the nearest ancestor of the heading that holds class cards (the heading's own wrapper has none).
+          cards: Array.from((() => { let a = h.parentElement; while (a && !a.querySelector('[data-testid="schedule-class-card"]')) a = a.parentElement; return a ?? h; })().querySelectorAll('[data-testid="schedule-class-card"]')).map((c) => ({
+            time: c.querySelector(".dateTimeText")?.innerText?.trim() ?? "",
+            name: c.querySelector(".card-title")?.innerText?.trim() ?? "",
+            host: c.querySelector("p.font-weight-bold")?.innerText?.trim() ?? "",
+            location: c.querySelector("span.my-1")?.innerText?.trim() ?? "",
+            text: (c.innerText || "").replace(/\s+/g, " ").trim(),
+          })),
+        })).filter((d) => d.cards.length)).catch(() => []);
+        dbg("arketa list days", f.url().slice(0, 60), listDays.length, listDays.map((d) => d.label + ":" + d.cards.length).join(" "));
+        if (listDays.length) {
+          for (const day of listDays) {
+            const d = dateFromLabel(day.label);
+            if (!d || d < TODAY_ISO) continue;
+            parts.push(`[Day column: ${d}]\n${day.cards.map((c) => c.text).join("\n")}`);
+            for (const cell of day.cards) { arkSeen += 1; const k = parseArketaCell(cell, d); if (k) arkClasses.push(k); }
+          }
+          gridFrames.add(f);
+          continue;
+        }
+        // Arketa's calendar (Flood Yoga): seven .calendar-view__column sections under a strip of
         // .week-range__day headers ("Wed" over "7"); the text of the columns runs together without them.
         const readArk = () => f.evaluate(() => {
           const cols = Array.from(document.querySelectorAll(".calendar-view .calendar-view__column"));
           const heads = Array.from(document.querySelectorAll(".week-range__day")).map((h) => (h.innerText || "").replace(/\s+/g, " ").trim());
           if (cols.length < 5 || heads.length !== cols.length) return null;
-          return cols.map((c, i) => ({ label: heads[i], text: (c.innerText || "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim() }));
+          return cols.map((c, i) => ({
+            label: heads[i],
+            text: (c.innerText || "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim(),
+            cells: Array.from(c.querySelectorAll("article.calendar-view__cell")).map((a) => ({
+              time: a.querySelector(".calendar-view__cell-start-time")?.innerText?.trim() ?? "",
+              name: a.querySelector(".calendar-view__cell-name")?.innerText?.trim() ?? "",
+              host: a.querySelector(".calendar-view__cell-host")?.innerText?.trim() ?? "",
+              location: a.querySelector(".calendar-view__cell-location")?.innerText?.trim() ?? "",
+            })),
+          }));
         }).catch(() => null);
         const ark = await readArk();
         if (!ark) continue;
         const arkDays = new Set();
-        const pushArk = (cols) => { for (const c of cols ?? []) { const d = dateFromLabel(c.label); if (d && d >= TODAY_ISO && c.text && !/^No Classes$/i.test(c.text) && !arkDays.has(d)) { arkDays.add(d); parts.push(`[Day column: ${d}]\n${c.text}`); } } };
+        const pushArk = (cols) => {
+          for (const c of cols ?? []) {
+            const d = dateFromLabel(c.label);
+            if (!(d && d >= TODAY_ISO && c.text && !/^No Classes$/i.test(c.text) && !arkDays.has(d))) continue;
+            arkDays.add(d);
+            parts.push(`[Day column: ${d}]\n${c.text}`);
+            for (const cell of c.cells ?? []) { if (/^no classes$/i.test(cell.name)) continue; arkSeen += 1; const k = parseArketaCell(cell, d); if (k) arkClasses.push(k); }
+          }
+        };
         pushArk(ark);
         // The week's next arrow answers only a real mouse click (a click() from the page does nothing), so it is pressed from here.
         const nextArrow = f.locator(".week-range__arrow").last();
@@ -278,7 +322,7 @@ async function render(browser, url, { settle = 7000 } = {}) {
     }
     const links = await page.evaluate(() => Array.from(document.querySelectorAll("a[href]")).map((a) => ({ href: a.getAttribute("href"), text: (a.innerText || a.getAttribute("aria-label") || "").trim().slice(0, 60) })));
     const iframes = await page.evaluate(() => Array.from(document.querySelectorAll("iframe[src]")).map((f) => f.src));
-    return { finalUrl: page.url(), text: parts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim(), links, frameUrls: [...new Set([...iframes, ...frameUrls])].filter((u) => /^https?:/.test(u)), mariana, mindbody: [...mindbody], momence: [...momence], walla: [...walla], fc: { seen: fcSeen, classes: fcClasses } };
+    return { finalUrl: page.url(), text: parts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim(), links, frameUrls: [...new Set([...iframes, ...frameUrls])].filter((u) => /^https?:/.test(u)), mariana, mindbody: [...mindbody], momence: [...momence], walla: [...walla], fc: { seen: fcSeen, classes: fcClasses }, ark: { seen: arkSeen, classes: arkClasses } };
   } finally { await ctx.close(); }
 }
 
@@ -675,6 +719,15 @@ async function readStudio(browser, s) {
       const classes = parseMindbodyClassic(pg.text, s.location);
       dbg("mindbody classic rows:", classes.length);
       if (classes.length >= 3) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "mindbodyonline", classes, dropped: [] });
+    }
+    // An Arketa calendar whose cells were all read straight off the page (parseArketaCell): exact and without the model.
+    if (pg.ark?.classes?.length >= 1 && pg.ark.classes.length === pg.ark.seen) {
+      const own = s.only ? new RegExp(s.only, "i") : null;
+      const keep = pg.ark.classes.filter((c) => (own ? own.test(c.name) : true) && (!s.location || String(c.location ?? "").toLowerCase().includes(s.location.toLowerCase())));
+      const seenKeys = new Set();
+      const uniq = keep.filter((c) => { const k = `${c.date}|${c.start}|${c.name}`; return seenKeys.has(k) ? false : seenKeys.add(k); });
+      dbg("arketa cells read exactly:", uniq.length);
+      if (uniq.length >= 1) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "arketa", classes: uniq, dropped: [] });
     }
     // A FullCalendar whose events were all read straight off the page (parseFcEvent): exact and without the model.
     if (pg.fc?.classes?.length >= 3 && pg.fc.classes.length === pg.fc.seen) {
