@@ -296,3 +296,34 @@ describe("parseClubPilates", () => {
     expect(h2.parseClubPilates("Welcome\nBook now")).toEqual({ classes: [], timeLines: 0 });
   });
 });
+
+describe("parseF45", () => {
+  const h3 = makeHelpers("2026-10-09");
+  const page = [
+    "THURSDAY 08 OCT",
+    "06:00", "AM", "Lonestar", "", "Old Class", "",
+    "FRIDAY 09 OCT",
+    "04:50", "AM", "Lonestar - 11 Spots", "", "Elly McIalwain", "",
+    "05:45", "PM", "Vegas - Full", "", "Zak Boylan", "", "BOOK",
+    "SATURDAY 10 OCT",
+    "09:00", "AM", "Romans", "", "Alex Gray", "",
+  ].join("\n");
+
+  it("reads time, name, spots and instructor under each dated heading, from today on", () => {
+    const { classes, timeLines } = h3.parseF45(page);
+    expect(timeLines).toBe(3);
+    expect(classes).toEqual([
+      { date: "2026-10-09", start: "04:50", end: null, name: "Lonestar", instructor: "Elly McIalwain", spots: "11 spots left" },
+      { date: "2026-10-09", start: "17:45", end: null, name: "Vegas", instructor: "Zak Boylan", spots: "Full" },
+      { date: "2026-10-10", start: "09:00", end: null, name: "Romans", instructor: "Alex Gray", spots: null },
+    ]);
+  });
+  it("takes a class once when the page repeats the same fortnight under every day tab", () => {
+    const { classes, timeLines } = h3.parseF45(`${page}\n${page}\n${page}`);
+    expect(classes).toHaveLength(3);
+    expect(timeLines).toBe(3);
+  });
+  it("gives nothing for a page that is not an F45 schedule", () => {
+    expect(h3.parseF45("Welcome to F45")).toEqual({ classes: [], timeLines: 0 });
+  });
+});

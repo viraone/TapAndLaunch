@@ -238,5 +238,41 @@ export function makeHelpers(TODAY_ISO) {
     return { classes, timeLines };
   }
 
-  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates };
+  /**
+   * An F45 studio page (f45training.com/studio/<studio>) as its text: dated headings ("FRIDAY 09 OCT"), then per class a start
+   * time line ("04:50"), an "AM"/"PM" line, "Name - 11 Spots" (or "Name - Full"), and the instructor, with "BOOK" lines between.
+   * A page whose day tabs repeat the same fortnight lists each class several times; each (day, time, name) is taken once.
+   * Returns { classes, timeLines }: the classes from today on and how many distinct time rows the page has from today on.
+   */
+  function parseF45(text) {
+    const lines = String(text ?? "").split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+    const HEAD = /^(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*\s+(\d{1,2})\s+([a-z]{3})$/i;
+    const seen = new Set();
+    const classes = [];
+    const timeKeys = new Set();
+    let date = null;
+    for (let i = 0; i < lines.length; i++) {
+      if (HEAD.test(lines[i])) { date = dateFromLabel(lines[i]); continue; }
+      const t = /^(\d{1,2}):(\d{2})$/.exec(lines[i]);
+      const ap = /^(am|pm)$/i.exec(lines[i + 1] ?? "");
+      if (!t || !ap || !date || date < TODAY_ISO) continue;
+      const key = `${date}|${lines[i]}${ap[1].toUpperCase()}|${lines[i + 2] ?? ""}`;
+      timeKeys.add(key);
+      // "Lonestar - 11 Spots", "Vegas - Full", or just "Lonestar" when the studio shows no spots.
+      const nameLine = lines[i + 2] ?? "";
+      if (!nameLine || /^book$/i.test(nameLine) || /^\d{1,2}:\d{2}$/.test(nameLine) || HEAD.test(nameLine)) continue;
+      const nm = /^(.+?)(?:\s+-\s+(.+))?$/.exec(nameLine);
+      if (!nm) continue;
+      let instructor = null;
+      for (let j = i + 3; j < lines.length && j <= i + 5; j++) { if (/^book$/i.test(lines[j])) continue; if (/^\d{1,2}:\d{2}$/.test(lines[j]) || HEAD.test(lines[j])) break; instructor = lines[j]; break; }
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const h24 = (+t[1] % 12) + (/^p/i.test(ap[1]) ? 12 : 0);
+      const sp = /^(\d+)\s+spots?$/i.exec(nm[2] ?? "");
+      classes.push({ date, start: `${String(h24).padStart(2, "0")}:${t[2]}`, end: null, name: nm[1].trim(), instructor, spots: sp ? `${sp[1]} ${+sp[1] === 1 ? "spot" : "spots"} left` : /^full$/i.test(nm[2] ?? "") ? "Full" : null });
+    }
+    return { classes, timeLines: timeKeys.size };
+  }
+
+  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates, parseF45 };
 }

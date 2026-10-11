@@ -38,7 +38,7 @@ const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 // "Monday, October 5, 2026" in Seattle time: the model needs it to turn "Today" / "Tomorrow" into dates.
 const TODAY = new Date().toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", year: "numeric", month: "long", day: "numeric" });
 const TODAY_ISO = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()); // YYYY-MM-DD
-const { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates } = makeHelpers(TODAY_ISO);
+const { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates, parseF45 } = makeHelpers(TODAY_ISO);
 
 // ---- robots.txt ----
 const robotsCache = new Map();
@@ -726,6 +726,13 @@ async function readStudio(browser, s) {
       const cp = parseClubPilates(pg.text);
       dbg("club pilates rows:", cp.classes.length, "of", cp.timeLines);
       if (cp.classes.length >= 3 && cp.classes.length === cp.timeLines) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "clubpilates", classes: cp.classes, dropped: [] });
+    }
+    // An F45 studio page: dated headings, then time / AM-PM / "Name - N Spots" / instructor per class. Taken as it is when every time
+    // row of the page became a class.
+    if (/f45training\.com/.test(pg.finalUrl)) {
+      const f45 = parseF45(pg.text);
+      dbg("f45 rows:", f45.classes.length, "of", f45.timeLines);
+      if (f45.classes.length >= 3 && f45.classes.length === f45.timeLines) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "f45", classes: f45.classes, dropped: [] });
     }
     // An Arketa calendar whose cells were all read straight off the page (parseArketaCell): exact and without the model.
     if (pg.ark?.classes?.length >= 1 && pg.ark.classes.length === pg.ark.seen) {
