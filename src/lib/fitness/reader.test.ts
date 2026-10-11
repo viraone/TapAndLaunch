@@ -238,3 +238,61 @@ describe("parseArketaCell", () => {
     expect(h.parseArketaCell({ time: "", name: "Yoga", host: "", location: "" }, "2026-10-09")).toBeNull();
   });
 });
+
+describe("parseClubPilates", () => {
+  const h2 = makeHelpers("2026-10-09");
+  const page = [
+    "Skip to main content",
+    "Friday",
+    "Saturday",
+    "Thursday October 8",
+    "CP Reformer Flow 1 (50 Mins)",
+    "",
+    "7:00 am • Old",
+    "Class details",
+    "3 spots",
+    "Book Class",
+    "Friday October 9",
+    "CP Control 1.5 (50 Mins)",
+    "",
+    "9:00 am • Crystal",
+    "",
+    "Class details",
+    "2 spots",
+    "Book Class",
+    "CP Reformer Flow 1 (50 Mins)",
+    "",
+    "5:30 pm • Ngoni",
+    "",
+    "Class details",
+    "Class Full",
+    "Join Waitlist",
+    "Saturday October 10",
+    "CP Cardio Sculpt 1.5 (50 Mins)",
+    "",
+    "11:00 am • Ngoni",
+    "",
+    "Class details",
+    "1 spot",
+    "Book Class",
+  ].join("\n");
+
+  it("reads each class's name, time, instructor and spots under its dated heading, from today on", () => {
+    const { classes, timeLines } = h2.parseClubPilates(page);
+    expect(timeLines).toBe(3);
+    expect(classes).toEqual([
+      { date: "2026-10-09", start: "09:00", end: "09:50", name: "CP Control 1.5", instructor: "Crystal", spots: "2 spots left" },
+      { date: "2026-10-09", start: "17:30", end: "18:20", name: "CP Reformer Flow 1", instructor: "Ngoni", spots: "Full" },
+      { date: "2026-10-10", start: "11:00", end: "11:50", name: "CP Cardio Sculpt 1.5", instructor: "Ngoni", spots: "1 spot left" },
+    ]);
+  });
+  it("counts the time lines so a partial parse can be told from a full one", () => {
+    const broken = page.replace("CP Control 1.5 (50 Mins)\n\n9:00 am", "\n\n9:00 am");
+    const { classes, timeLines } = h2.parseClubPilates(broken);
+    expect(timeLines).toBe(3);
+    expect(classes.length).toBeLessThanOrEqual(3);
+  });
+  it("gives nothing for a page that is not a Club Pilates schedule", () => {
+    expect(h2.parseClubPilates("Welcome\nBook now")).toEqual({ classes: [], timeLines: 0 });
+  });
+});

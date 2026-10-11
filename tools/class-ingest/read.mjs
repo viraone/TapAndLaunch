@@ -38,7 +38,7 @@ const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 // "Monday, October 5, 2026" in Seattle time: the model needs it to turn "Today" / "Tomorrow" into dates.
 const TODAY = new Date().toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", year: "numeric", month: "long", day: "numeric" });
 const TODAY_ISO = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()); // YYYY-MM-DD
-const { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell } = makeHelpers(TODAY_ISO);
+const { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates } = makeHelpers(TODAY_ISO);
 
 // ---- robots.txt ----
 const robotsCache = new Map();
@@ -719,6 +719,13 @@ async function readStudio(browser, s) {
       const classes = parseMindbodyClassic(pg.text, s.location);
       dbg("mindbody classic rows:", classes.length);
       if (classes.length >= 3) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "mindbodyonline", classes, dropped: [] });
+    }
+    // A Club Pilates studio page: dated headings, then name / "8:00 am • Instructor" / spots for every class. Taken as it is when
+    // every "time •" line of the page became a class; a page that parses only in part goes to the model.
+    if (/clubpilates\.com/.test(pg.finalUrl)) {
+      const cp = parseClubPilates(pg.text);
+      dbg("club pilates rows:", cp.classes.length, "of", cp.timeLines);
+      if (cp.classes.length >= 3 && cp.classes.length === cp.timeLines) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "clubpilates", classes: cp.classes, dropped: [] });
     }
     // An Arketa calendar whose cells were all read straight off the page (parseArketaCell): exact and without the model.
     if (pg.ark?.classes?.length >= 1 && pg.ark.classes.length === pg.ark.seen) {

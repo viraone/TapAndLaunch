@@ -193,5 +193,50 @@ export function makeHelpers(TODAY_ISO) {
     return { date, start, end, name, instructor: cell.host ? String(cell.host).replace(/\s+/g, " ").trim() : null, spots: null, location: cell.location ? String(cell.location).trim() : null };
   }
 
-  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell };
+  /**
+   * A Club Pilates studio page (clubpilates.com/location/<studio>) as its text: dated headings ("Saturday October 10"), then per
+   * class a name line ("CP Reformer Flow 1.5 (50 Mins)"), a line "8:00 am • Instructor", "Class details", and a status line
+   * ("5 spots", "1 spot", "Class Full"). Returns { classes, timeLines }: the classes from today on, and how many "time •" lines
+   * the page has from today on, so the caller can tell a complete parse from a partial one.
+   */
+  function parseClubPilates(text) {
+    const lines = String(text ?? "").split("\n").map((l) => l.replace(/\s+/g, " ").trim());
+    const HEAD = /^(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*\s+([a-z]+)\s+(\d{1,2})$/i;
+    const TIME = /^(\d{1,2}):(\d{2})\s*([ap])m\s*[•·]\s*(.*)$/i;
+    const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+    const skipName = /^(class details|book class|join waitlist|class full|\d+ spots?( left)?|waitlist.*|cancel.*)$/i;
+    const classes = [];
+    let timeLines = 0;
+    let date = null;
+    for (let i = 0; i < lines.length; i++) {
+      const h = HEAD.exec(lines[i]);
+      if (h) {
+        const mo = MONTHS.indexOf(h[1].slice(0, 3).toLowerCase()) + 1;
+        date = mo ? dateFromLabel(`${h[1]} ${h[2]}`) : null;
+        continue;
+      }
+      const t = TIME.exec(lines[i]);
+      if (!t || !date) continue;
+      if (date < TODAY_ISO) continue;
+      timeLines += 1;
+      let name = "";
+      for (let j = i - 1; j >= 0 && j >= i - 4; j--) { if (lines[j] && !skipName.test(lines[j]) && !TIME.test(lines[j]) && !HEAD.test(lines[j])) { name = lines[j]; break; } }
+      if (!name) continue;
+      let spots = null;
+      for (let j = i + 1; j < lines.length && j <= i + 7 && !TIME.test(lines[j]) && !HEAD.test(lines[j]); j++) {
+        const m = /^(\d+) spots?( left)?$/i.exec(lines[j]);
+        if (m) { spots = `${m[1]} ${+m[1] === 1 ? "spot" : "spots"} left`; break; }
+        if (/^class full$/i.test(lines[j])) { spots = "Full"; break; }
+      }
+      const h24 = (+t[1] % 12) + (t[3].toLowerCase() === "p" ? 12 : 0);
+      const start = `${String(h24).padStart(2, "0")}:${t[2]}`;
+      const len = /\((\d+)\s*mins?\)/i.exec(name)?.[1];
+      const total = h24 * 60 + +t[2] + (len ? +len : 0);
+      const end = len ? `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}` : null;
+      classes.push({ date, start, end, name: name.replace(/\s*\(\d+\s*mins?\)\s*$/i, "").trim(), instructor: t[4]?.trim() || null, spots });
+    }
+    return { classes, timeLines };
+  }
+
+  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates };
 }
