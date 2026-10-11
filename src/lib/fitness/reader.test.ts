@@ -386,3 +386,33 @@ describe("parsePureBarre", () => {
     expect(h5.parsePureBarre("Welcome to Pure Barre")).toEqual({ classes: [], timeLines: 0 });
   });
 });
+
+describe("parseCorePower", () => {
+  const h6 = makeHelpers("2026-10-10");
+  const page = [
+    "Sat, Oct 10", "1 class", "7:30 pm", "PDT", "YS - Yoga Sculpt", "Belltown", "Kaila L", "Cancelled",
+    "Sun, Oct 11", "4 classes",
+    "9:00 am", "PDT", "YS - Yoga Sculpt", "Belltown", "Anastasia L", "BOOK",
+    "11:00 am", "PDT", "C2 - CorePower Yoga 2: Sunday Flow: Canceled for Teacher Training", "Belltown", "Auz D", "Cancelled",
+    "1:15 pm", "PDT", "C1 - CorePower Yoga 1", "Belltown", "Priyal Z", "BOOK",
+    "Sun, Oct 11", "4 classes",
+    "9:00 am", "PDT", "YS - Yoga Sculpt", "Belltown", "Anastasia L", "BOOK",
+  ].join("\n");
+
+  it("reads each class under its day heading, leaves cancelled ones out, and takes a repeated list once", () => {
+    const { classes, timeLines } = h6.parseCorePower(page);
+    expect(timeLines).toBe(2);
+    expect(classes).toEqual([
+      { date: "2026-10-11", start: "09:00", end: null, name: "YS - Yoga Sculpt", instructor: "Anastasia L", spots: null },
+      { date: "2026-10-11", start: "13:15", end: null, name: "C1 - CorePower Yoga 1", instructor: "Priyal Z", spots: null },
+    ]);
+  });
+  it("counts a row of an unknown shape so the page is not taken as complete", () => {
+    const odd = `${page}\n3:00 pm\nYS - Yoga Sculpt\nBOOK`;
+    const { classes, timeLines } = h6.parseCorePower(odd);
+    expect(timeLines).toBe(classes.length + 1);
+  });
+  it("gives nothing for a page that is not a CorePower schedule", () => {
+    expect(h6.parseCorePower("Welcome")).toEqual({ classes: [], timeLines: 0 });
+  });
+});

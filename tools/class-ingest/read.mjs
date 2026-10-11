@@ -38,7 +38,7 @@ const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 // "Monday, October 5, 2026" in Seattle time: the model needs it to turn "Today" / "Tomorrow" into dates.
 const TODAY = new Date().toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", year: "numeric", month: "long", day: "numeric" });
 const TODAY_ISO = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()); // YYYY-MM-DD
-const { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates, parseF45, parseSolidcore, parsePureBarre } = makeHelpers(TODAY_ISO);
+const { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates, parseF45, parseSolidcore, parsePureBarre, parseCorePower } = makeHelpers(TODAY_ISO);
 
 // ---- robots.txt ----
 const robotsCache = new Map();
@@ -726,6 +726,12 @@ async function readStudio(browser, s) {
       const cp = parseClubPilates(pg.text);
       dbg("club pilates rows:", cp.classes.length, "of", cp.timeLines);
       if (cp.classes.length >= 3 && cp.classes.length === cp.timeLines) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "clubpilates", classes: cp.classes, dropped: [] });
+    }
+    // A CorePower Yoga studio schedule page: day heading, then time / zone / class / studio / teacher / BOOK-or-Cancelled per class.
+    if (/corepoweryoga\.com/.test(pg.finalUrl)) {
+      const cp = parseCorePower(pg.text);
+      dbg("corepower rows:", cp.classes.length, "of", cp.timeLines);
+      if (cp.classes.length >= 3 && cp.classes.length === cp.timeLines) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "corepower", classes: cp.classes, dropped: [] });
     }
     // A Pure Barre or YogaSix studio page (one page template), read day tab by day tab: name / range with the teacher glued on.
     if (/purebarre\.com|yogasix\.com/.test(pg.finalUrl)) {

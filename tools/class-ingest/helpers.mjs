@@ -351,5 +351,37 @@ export function makeHelpers(TODAY_ISO) {
     return { classes, timeLines: timeKeys.size };
   }
 
-  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates, parseF45, parseSolidcore, parsePureBarre };
+  /**
+   * A CorePower Yoga studio schedule page (corepoweryoga.com/yoga-schedules/studio?centerId=…) as its text: a day heading
+   * ("Sun, Oct 11") and "10 classes", then per class a time line ("9:00 am"), "PDT", the class ("C2 - CorePower Yoga 2"), the studio, the
+   * teacher, and "BOOK" or "Cancelled". Cancelled classes are left out (and not counted). Every day tab repeats the list, so a class is
+   * taken once per (day, start, name). Returns { classes, timeLines }.
+   */
+  function parseCorePower(text) {
+    const lines = String(text ?? "").split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+    const HEAD = /^(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*,? ([a-z]{3,9}) (\d{1,2})$/i;
+    const TIME = /^(\d{1,2}):(\d{2}) ([ap])m$/i;
+    const seen = new Set(), classes = [], timeKeys = new Set();
+    let date = null;
+    for (let i = 0; i < lines.length; i++) {
+      const h = HEAD.exec(lines[i]);
+      if (h) { date = dateFromLabel(`${h[1]} ${h[2]}`); continue; }
+      const t = TIME.exec(lines[i]);
+      if (!t || !date || date < TODAY_ISO) continue;
+      // A time line that is not followed by a zone ("PDT") is a row of a shape this parser does not know: it is counted, but is no class,
+      // so the page fails the count check and goes to the model instead of losing the class.
+      if (!/^[A-Z]{3,4}$/.test(lines[i + 1] ?? "")) { timeKeys.add(`odd|${date}|${lines[i]}|${i}`); continue; }
+      const name = lines[i + 2] ?? "", teacher = lines[i + 4] ?? "", status = lines[i + 5] ?? "";
+      if (/^cancel/i.test(status) || /cancel/i.test(name)) continue;
+      const key = `${date}|${lines[i]}|${name}`;
+      timeKeys.add(key);
+      if (!name || seen.has(key)) continue;
+      seen.add(key);
+      const h24 = (+t[1] % 12) + (t[3].toLowerCase() === "p" ? 12 : 0);
+      classes.push({ date, start: `${String(h24).padStart(2, "0")}:${t[2]}`, end: null, name, instructor: teacher && !/^(book|cancel|waitlist)/i.test(teacher) ? teacher : null, spots: /^waitlist/i.test(status) ? "Waitlist" : null });
+    }
+    return { classes, timeLines: timeKeys.size };
+  }
+
+  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates, parseF45, parseSolidcore, parsePureBarre, parseCorePower };
 }
