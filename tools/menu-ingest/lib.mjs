@@ -165,6 +165,34 @@ export function findMenuLink(html, baseUrl) {
 }
 
 /**
+ * Other pages of the site worth opening when the home page itself says almost nothing (a navigation bar and a few words): links whose
+ * text or address says menu, food, drinks, happy hour, specials, eat or dine, best first (happy hour, then menu, then the rest).
+ * Carts, gift cards, merch, jobs and the like are skipped, and so are PDFs and pictures (findPdfMenuLinks takes those). The caller
+ * checks that a link stays on the restaurant's own site and that robots.txt allows it.
+ */
+export function findMoreLinks(html, baseUrl) {
+  const found = [];
+  for (const m of html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)) {
+    const href = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(m[1]);
+    if (!href) continue;
+    const raw = (href[1] ?? href[2] ?? "").trim();
+    if (!raw || raw.startsWith("#") || /^(javascript|mailto|tel):/i.test(raw)) continue;
+    const url = webUrl(raw, baseUrl);
+    if (!url || /\.(pdf|jpe?g|png|webp|gif|svg)$/i.test(url.pathname)) continue;
+    const label = `${stripTags(m[2])} ${url.pathname}`;
+    if (/cart|gift|merch|shop|career|job|privacy|terms|login|account|reserv|catering|private|event|press|contact|about|location|blog|news/i.test(label)) continue;
+    let score = 0;
+    if (/happy[- ]?hours?|specials?/i.test(label)) score = 3;
+    else if (/\bmenus?\b/i.test(label)) score = 2;
+    else if (/\b(food|drinks?|eat|dine|dining|bar|cocktails?)\b/i.test(label)) score = 1;
+    if (!score) continue;
+    const key = url.toString().split("#")[0];
+    if (!found.some((f) => f.url === key)) found.push({ url: key, score });
+  }
+  return found.sort((a, b) => b.score - a.score).map((f) => f.url);
+}
+
+/**
  * Links to PDF files on a page that look like a menu, best first (a link or file name that says "menu" beats a plain PDF;
  * wine lists, catering sheets and the like are skipped). Absolute http(s) URLs only.
  */
@@ -559,6 +587,21 @@ export function queueTier(row) {
   if (barish) return { lowValue: false, tier: 0 };
   const lowValue = CHAIN_NAMES.test(row.name ?? "") || LOW_VALUE_TYPES.has(row.primary_type ?? "");
   return { lowValue, tier: lowValue ? 2 : 1 };
+}
+
+/**
+ * How long to leave a place alone after a read that got nothing. Without this a site that cannot be read (a Wix domain nobody
+ * connected, a site that says no to robots, a menu that is only a picture) had no date saved, so it counted as "never checked",
+ * sorted to the front of the queue and was tried again every morning: about 60 places a day were taking the day's whole budget.
+ * A read that worked ("ok", "none", "unclear") comes back after the normal refresh window.
+ */
+export const RETRY_DAYS = { error: 3, unreadable: 30, pdf: 30, not_menu: 30, unreliable: 30, wrong_source: 30, bad_url: 90, blocked_robots: 60 };
+
+/** Whether a place is due to be read again: never read, or its last read is older than its status's wait. */
+export function isDue(at, status, refreshDays, now = Date.now()) {
+  if (!at) return true;
+  const days = RETRY_DAYS[status ?? ""] ?? refreshDays;
+  return new Date(at).getTime() < now - days * 86400000;
 }
 
 /**

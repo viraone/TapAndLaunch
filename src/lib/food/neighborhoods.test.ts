@@ -7,6 +7,8 @@ import { readFileSync } from "node:fs";
 describe("neighborhood coverage map", () => {
   it("lists real Seattle points, one search per grid cell", () => {
     expect(NEIGHBORHOODS.length).toBeGreaterThan(40);
+    // The list grew past the first 51 Seattle neighborhoods: the rest of the city and the cities around it (2026-10-11).
+    expect(NEIGHBORHOODS.map((n: { name: string }) => n.name)).toEqual(expect.arrayContaining(["Greenwood", "Columbia City", "Magnolia", "Bellevue", "Kirkland", "Shoreline"]));
     const points = seedPoints();
     expect(new Set(points.map((p: { cell: string }) => p.cell)).size).toBe(points.length);
     for (const p of points as Array<{ lat: number; lng: number }>) {

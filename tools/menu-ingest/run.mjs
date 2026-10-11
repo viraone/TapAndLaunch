@@ -14,7 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import robotsParser from "robots-parser";
-import { buildHappyHourPrompt, buildPrompt, chunkText, findHappyHourLink, findMenuLink, findPdfMenuLinks, HAPPY_HOUR_SCHEMA, happyHourExcerpts, joinTranscripts, MENU_SCHEMA, mentionsHappyHour, orderQueue, mergePhotoReadings, mergeSections, pdfItemsToLines, sameSite, sanitizeHappyHour, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, tileGrid, webUrl } from "./lib.mjs";
+import { buildHappyHourPrompt, buildPrompt, chunkText, findHappyHourLink, findMenuLink, findMoreLinks, isDue, findPdfMenuLinks, HAPPY_HOUR_SCHEMA, happyHourExcerpts, joinTranscripts, MENU_SCHEMA, mentionsHappyHour, orderQueue, mergePhotoReadings, mergeSections, pdfItemsToLines, sameSite, sanitizeHappyHour, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, tileGrid, webUrl } from "./lib.mjs";
 import { findVeganOptions } from "./vegan.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -85,11 +85,18 @@ async function candidates() {
   let rows;
   if (HAVE_DB) {
     const cols = ["id", "name", "website", "address", "rating_count", "menu_items_status", "menu_items_at", "happy_hour_status", "happy_hour_at", "primary_type", "types", "app_id"];
-    let q = `food_places?select=${cols.join(",")}&website=not.is.null&order=rating_count.desc.nullslast&limit=${opts.ids || opts.names ? 1000 : 1500}`;
+    let q = `food_places?select=${cols.join(",")}&website=not.is.null&order=rating_count.desc.nullslast`;
     if (opts.ids) q += `&id=in.(${opts.ids.join(",")})`;
     // --near: only restaurants within about 2.5 miles of --lat/--lng (a box, not a circle).
     if (opts.near) q += `&latitude=gte.${opts.lat - 0.035}&latitude=lte.${opts.lat + 0.035}&longitude=gte.${opts.lng - 0.05}&longitude=lte.${opts.lng + 0.05}`;
-    rows = await rest(q);
+    // The database answers at most 1,000 rows a request whatever limit is asked for, so a single request quietly stopped at the 1,000
+    // most-reviewed places and the rest of the city was never reached. Page through all of them.
+    rows = [];
+    for (let from = 0; from < 20000; from += 1000) {
+      const page = await rest(`${q}&limit=1000&offset=${from}`);
+      rows.push(...page);
+      if (page.length < 1000) break;
+    }
   } else {
     // No database keys: use the live site's own public list of restaurants around a point (read-only, same as the app).
     const res = await fetch(`${opts.site}/food/nearby`, {
@@ -105,10 +112,11 @@ async function candidates() {
   }
   if (opts.names) rows = rows.filter((r) => opts.names.some((n) => r.name.toLowerCase().includes(n)));
   if (opts.write && !opts.force) {
-    const cutoff = Date.now() - opts.refreshDays * 86400000;
-    const stale = (at) => !at || new Date(at).getTime() < cutoff;
-    // Happy-hour-only runs care only about the happy hour check; full runs read a place when either is due.
-    rows = rows.filter((r) => (opts.happyOnly ? stale(r.happy_hour_at) : stale(r.menu_items_at) || stale(r.happy_hour_at)));
+    // A place whose last read got nothing waits longer than one that was read (RETRY_DAYS in lib.mjs): sites that can't be read
+    // used to come back every morning. Happy-hour-only runs care only about the happy hour check; full runs read a place when either is due.
+    const dueHappy = (r) => isDue(r.happy_hour_at, r.happy_hour_status, opts.refreshDays);
+    const dueMenu = (r) => isDue(r.menu_items_at, r.menu_items_status, opts.refreshDays);
+    rows = rows.filter((r) => (opts.happyOnly ? dueHappy(r) : dueMenu(r) || dueHappy(r)));
   }
   // One row per website (the same restaurant can be stored once per app).
   const seen = new Set();
@@ -144,10 +152,36 @@ async function allowed(url) {
   return r.parser.isAllowed(url, BOT_TOKEN) !== false;
 }
 
+let http1Browser = null;
+/** A second browser that speaks only HTTP/1.1, for the sites whose HTTP/2 setup resets the connection (ERR_HTTP2_PROTOCOL_ERROR). */
+async function getHttp1Browser() {
+  http1Browser ??= await chromium.launch({ headless: true, args: ["--disable-http2"] });
+  return http1Browser;
+}
+
+/** Opens a page. A connection that fails in one of the known ways is tried once more the other way: HTTP/1.1, or plain http for a broken TLS setup. */
 async function render(browser, url) {
+  try {
+    const first = await renderOnce(browser, url);
+    // Some sites (behind Cloudflare and the like) answer a browser that has pictures and fonts switched off with a "checking your
+    // browser" page instead of themselves. Loaded the ordinary way, with everything the page asks for, they just show the site: open
+    // it once more like that. Nothing is bypassed: the page is simply loaded as any visitor's browser would load it.
+    if (first.text.length < 600 && SECURITY_CHECK.test(first.text)) return await renderOnce(browser, url, { everything: true });
+    return first;
+  } catch (e) {
+    const msg = String(e.message ?? e);
+    if (/ERR_HTTP2_PROTOCOL_ERROR|ERR_EMPTY_RESPONSE|ERR_CONNECTION_CLOSED/.test(msg)) return renderOnce(await getHttp1Browser(), url);
+    if (/ERR_SSL_PROTOCOL_ERROR|ERR_SSL_VERSION_OR_CIPHER_MISMATCH/.test(msg) && url.startsWith("https://")) return renderOnce(browser, `http://${url.slice(8)}`);
+    throw e;
+  }
+}
+
+const SECURITY_CHECK = /performing security verification|just a moment|checking your browser|verify(ing)? (that )?you are (a )?human|enable javascript and cookies|attention required/i;
+
+async function renderOnce(browser, url, { everything = false } = {}) {
   const context = await browser.newContext({ userAgent: USER_AGENT, viewport: { width: 1280, height: 900 }, locale: "en-US" });
   // Pictures, fonts and video aren't needed to read a menu and only add load on the restaurant's site.
-  await context.route("**/*", (route) => (["image", "font", "media"].includes(route.request().resourceType()) ? route.abort() : route.continue()));
+  if (!everything) await context.route("**/*", (route) => (["image", "font", "media"].includes(route.request().resourceType()) ? route.abort() : route.continue()));
   const page = await context.newPage();
   try {
     const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25000 });
@@ -504,6 +538,27 @@ async function processHappyOnly(browser, place) {
         if (sameSite(place.website, page.finalUrl) && !/pdf/i.test(page.contentType)) seen.push({ url: page.finalUrl, html: page.html, text: page.text });
       }
     }
+    // A home page that says almost nothing (a navigation bar and a few words): the content is on other pages or in a PDF menu. Follow up to
+    // three of the site's own menu / food / drinks / happy hour / specials pages, then the best PDF menu, until something readable turns up.
+    if (!seen.some((p) => p.text.length >= 300)) {
+      const tried = new Set(seen.map((p) => p.url));
+      for (const link of findMoreLinks(home.html, home.finalUrl).filter((u) => !tried.has(u)).slice(0, 3)) {
+        if (!sameSite(place.website, link) || !(await allowed(link))) continue;
+        const page = await render(browser, link).catch(() => null);
+        if (!page || !sameSite(place.website, page.finalUrl)) continue;
+        if (/pdf/i.test(page.contentType)) {
+          const text = await pdfText(page.finalUrl).catch(() => null);
+          if (text && text.length >= 100) seen.push({ url: page.finalUrl, html: "", text });
+        } else if (page.text.length >= 100) seen.push({ url: page.finalUrl, html: page.html, text: page.text });
+        if (seen.some((p) => p.text.length >= 300)) break;
+      }
+      if (!seen.some((p) => p.text.length >= 300)) {
+        for (const pdfUrl of findPdfMenuLinks(home.html, home.finalUrl).filter((u) => sameSite(place.website, u)).slice(0, 1)) {
+          const text = await pdfText(pdfUrl).catch(() => null);
+          if (text && text.length >= 100) seen.push({ url: pdfUrl, html: "", text });
+        }
+      }
+    }
     const happy = await findHappyHour(browser, place, seen);
     return { ...result, ...(happy ? { happy } : { status: "unreadable" }), seconds: Math.round((Date.now() - started) / 1000) };
   } catch (e) {
@@ -520,7 +575,7 @@ async function processPlace(browser, place) {
 }
 
 async function save(place, r) {
-  if (opts.happyOnly) return saveHappyHour(place, r.happy);
+  if (opts.happyOnly) return saveHappyHour(place, r.happy, r.status);
   if (r.status === "ok") {
     await rest(`food_places?id=eq.${place.id}`, {
       method: "PATCH",
@@ -538,7 +593,7 @@ async function save(place, r) {
     // Remember the miss so we don't retry for a while; never replace a good saved menu with a failure.
     await rest(`food_places?id=eq.${place.id}`, { method: "PATCH", body: { menu_items_at: new Date().toISOString(), menu_items_status: r.status } });
   }
-  await saveHappyHour(place, r.happy);
+  await saveHappyHour(place, r.happy, r.status);
 }
 
 /** The vegan_options columns for a menu, found or none, stamped now. */
@@ -547,9 +602,16 @@ function veganColumns(sections) {
   return { vegan_options: { items: vegan.items }, vegan_options_at: new Date().toISOString(), vegan_options_status: vegan.status };
 }
 
-async function saveHappyHour(place, h) {
-  if (!h) return; // nothing could be read: leave whatever is saved
+async function saveHappyHour(place, h, missStatus) {
   const now = new Date().toISOString();
+  if (!h) {
+    // Nothing could be read (the site would not load, said no to robots, showed no text): remember that, with the reason, so the place
+    // is not tried again every morning (RETRY_DAYS). A good saved happy hour stays as it is.
+    if (["error", "unreadable", "pdf", "blocked_robots", "bad_url"].includes(missStatus) && place.happy_hour_status !== "ok") {
+      await rest(`food_places?id=eq.${place.id}`, { method: "PATCH", body: { happy_hour_at: now, happy_hour_status: missStatus } });
+    }
+    return;
+  }
   if (h.status === "ok") {
     await rest(`food_places?id=eq.${place.id}`, { method: "PATCH", body: { happy_hour: { windows: h.windows }, happy_hour_source_url: h.sourceUrl, happy_hour_at: now, happy_hour_status: "ok" } });
   } else if (h.status === "none") {
@@ -600,6 +662,7 @@ async function main() {
     }
   } finally {
     await browser.close();
+    await http1Browser?.close().catch(() => {});
   }
   console.log("\nSummary:", JSON.stringify(tally));
   writeFileSync(join(here, "out", opts.happyOnly ? "summary-happy.json" : "summary-full.json"), JSON.stringify({ step: opts.happyOnly ? "happy" : "full", write: opts.write, read: places.length, tally, foundHappyHours: found, appIds: [...new Set(places.map((p) => p.app_id).filter(Boolean))], at: new Date().toISOString() }, null, 2));

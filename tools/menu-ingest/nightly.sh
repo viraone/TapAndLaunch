@@ -27,7 +27,7 @@ NODE="$(command ls -d "$HOME"/.nvm/versions/node/*/bin/node 2>/dev/null | sort -
   # caffeinate -i keeps the Mac from sleeping while it works; the steps stop themselves (about 3.5 hours in all).
   caffeinate -i bash -c '
     "$0" seed.mjs --limit "${SEED_LIMIT:-8}"; echo "seed finished with code $?"
-    "$0" run.mjs --write --happy-only --limit "${HAPPY_LIMIT:-200}" --max-minutes 120; echo "happy hour pass finished with code $?"
+    "$0" run.mjs --write --happy-only --limit "${HAPPY_LIMIT:-300}" --max-minutes 120; echo "happy hour pass finished with code $?"
     "$0" run.mjs --write --limit "${MENU_LIMIT:-40}" --max-minutes 90; echo "menu pass finished with code $?"
     "$0" report.mjs; echo "report finished with code $?"
   ' "$NODE"
