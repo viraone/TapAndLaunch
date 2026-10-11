@@ -34,6 +34,7 @@ const BUILT: Array<{ when: string; items: string[] }> = [
   {
     when: "Oct 10",
     items: [
+      "Four chains' pages are read exactly now, without the model: Club Pilates (16 studios), F45 (7), [solidcore] (6) and Pure Barre (11). Each chain prints every class the same way on every studio's page (time, name, instructor, spots), so a parser per chain reads the rows as they are, with exact end times and spots. The reader uses a parse only when every time on the page became a class, and sends anything else to the model, so a redesign can't quietly lose classes. 40 studios and about 200 minutes of the 5 AM run's model time are gone.",
       "The four Arketa studios (Flood Yoga, NW Fitness Project, Union Pilates, Woven Yoga) are read exactly: their calendar cells and list cards hold the time, name, instructor and place in separate pieces, and the reader takes them as they are. Same classes as the model found, in seconds instead of 94 minutes of model time on the 5 AM run.",
     ],
   },

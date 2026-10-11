@@ -310,5 +310,39 @@ export function makeHelpers(TODAY_ISO) {
     return { classes, timeLines: timeKeys.size };
   }
 
-  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates, parseF45, parseSolidcore };
+  /**
+   * A Pure Barre studio page (purebarre.com/location/<studio>) as the reader gets it: one piece per day tab, each opening with
+   * the reader's "[Day tab shown: Saturday 10/10]" marker. In a piece, every class is a name line ("Pure Barre Classic™"), an
+   * optional note ("New Members & Local Residents Only!"), the range with the teacher glued on ("9:45am-10:35amKatie W.") and
+   * "reserve" or "5 spots openreserve". Returns { classes, timeLines } like the other page parsers.
+   */
+  function parsePureBarre(text) {
+    const pieces = String(text ?? "").split(/^(?=\[Day tab shown:)/m);
+    const RANGE = /^(\d{1,2}):(\d{2})(am|pm)-(\d{1,2}):(\d{2})(am|pm)(.*)$/i;
+    const to24 = (h, m, ap) => `${String(((+h % 12) + (/^p/i.test(ap) ? 12 : 0))).padStart(2, "0")}:${m}`;
+    const skip = /only!?$|^reserve$|spots? open|^\d|^new members|^teacher|^today$|^(sun|mon|tue|wed|thu|fri|sat)[a-z]*$/i;
+    const seen = new Set(), classes = [], timeKeys = new Set();
+    for (const piece of pieces) {
+      const mk = /^\[Day tab shown:\s*([^\]]*)\]/.exec(piece);
+      const date = mk ? dateFromLabel(mk[1]) : null;
+      if (!date || date < TODAY_ISO) continue;
+      const lines = piece.split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+      for (let i = 0; i < lines.length; i++) {
+        const r = RANGE.exec(lines[i]);
+        if (!r) continue;
+        const key = `${date}|${r[1]}:${r[2]}${r[3]}`;
+        let name = "";
+        for (let j = i - 1; j >= 0 && j >= i - 3; j--) { if (!skip.test(lines[j]) && !RANGE.test(lines[j]) && lines[j].length < 70) { name = lines[j]; break; } }
+        timeKeys.add(`${key}|${name}`);
+        if (!name || seen.has(`${key}|${name}`)) continue;
+        seen.add(`${key}|${name}`);
+        let spots = null;
+        for (let j = i + 1; j < lines.length && j <= i + 2; j++) { const m = /^(\d+) spots? open/i.exec(lines[j]); if (m) { spots = `${m[1]} ${+m[1] === 1 ? "spot" : "spots"} left`; break; } if (RANGE.test(lines[j])) break; }
+        classes.push({ date, start: to24(r[1], r[2], r[3]), end: to24(r[4], r[5], r[6]), name: name.replace(/[™®]/g, "").trim(), instructor: r[7]?.trim() || null, spots });
+      }
+    }
+    return { classes, timeLines: timeKeys.size };
+  }
+
+  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates, parseF45, parseSolidcore, parsePureBarre };
 }

@@ -351,3 +351,31 @@ describe("parseSolidcore", () => {
     expect(h4.parseSolidcore("Welcome")).toEqual({ classes: [], timeLines: 0 });
   });
 });
+
+describe("parsePureBarre", () => {
+  const h5 = makeHelpers("2026-10-09");
+  const page = [
+    "[Day tab shown: Today 10/09]",
+    "Pure Barre Classic™", "6:00am-6:50amHaley W.", "reserve",
+    "Pure Barre Engage™ - Intro", "New Members & Local Residents Only!", "9:45am-10:35am", "5 spots openreserve",
+    "Pure Barre Classic™", "9:45am-10:35amKatie W.", "reserve",
+    "[Day tab shown: Saturday 10/10]",
+    "Pure Barre Define™", "12:00pm-12:50pmKatie W.", "reserve",
+    "[Day tab shown: Thursday 10/08]",
+    "Pure Barre Classic™", "6:00am-6:50amOld T.", "reserve",
+  ].join("\n");
+
+  it("reads each day tab's rows, keeps classes that share a start time, and skips days before today", () => {
+    const { classes, timeLines } = h5.parsePureBarre(page);
+    expect(timeLines).toBe(4);
+    expect(classes).toEqual([
+      { date: "2026-10-09", start: "06:00", end: "06:50", name: "Pure Barre Classic", instructor: "Haley W.", spots: null },
+      { date: "2026-10-09", start: "09:45", end: "10:35", name: "Pure Barre Engage™ - Intro".replace("™", ""), instructor: null, spots: "5 spots left" },
+      { date: "2026-10-09", start: "09:45", end: "10:35", name: "Pure Barre Classic", instructor: "Katie W.", spots: null },
+      { date: "2026-10-10", start: "12:00", end: "12:50", name: "Pure Barre Define", instructor: "Katie W.", spots: null },
+    ]);
+  });
+  it("gives nothing for text with no day tabs", () => {
+    expect(h5.parsePureBarre("Welcome to Pure Barre")).toEqual({ classes: [], timeLines: 0 });
+  });
+});
