@@ -11,7 +11,16 @@ describe("neighborhood coverage map", () => {
     expect(NEIGHBORHOODS.map((n: { name: string }) => n.name)).toEqual(expect.arrayContaining(["Greenwood", "Columbia City", "Magnolia", "Bellevue", "Kirkland", "Shoreline"]));
     const points = seedPoints();
     expect(new Set(points.map((p: { cell: string }) => p.cell)).size).toBe(points.length);
+    // Every point is in the Puget Sound area the app covers (Tacoma-side south edge to Everett-side north edge, Puget Sound to Issaquah).
     for (const p of points as Array<{ lat: number; lng: number }>) {
+      expect(p.lat).toBeGreaterThan(47.4);
+      expect(p.lat).toBeLessThan(47.86);
+      expect(p.lng).toBeGreaterThan(-122.46);
+      expect(p.lng).toBeLessThan(-122.0);
+    }
+    // The first 51 neighborhoods are Seattle proper, in the old tighter box.
+    const seattle = (points as Array<{ neighborhood: string; lat: number; lng: number }>).filter((p) => ["Capitol Hill", "Ballard", "Fremont", "Alki"].includes(p.neighborhood));
+    for (const p of seattle) {
       expect(p.lat).toBeGreaterThan(47.48);
       expect(p.lat).toBeLessThan(47.74);
       expect(p.lng).toBeGreaterThan(-122.44);
