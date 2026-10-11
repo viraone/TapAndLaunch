@@ -274,5 +274,41 @@ export function makeHelpers(TODAY_ISO) {
     return { classes, timeLines: timeKeys.size };
   }
 
-  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates, parseF45 };
+  /**
+   * A [solidcore] studio page (solidcore.co/studios/<studio>) as its text: a day heading over two lines ("Sunday" then
+   * "October 11"), then per class a range "7:10 AM - 8:00 AM", the class name, the studio ("WA, Ballard"), "w/ Gabby R. / Head
+   * Coach", a "view coach details" line, and "7 of 15 open" or "join waitlist". Each day's tab repeats the strip of days, so a
+   * class is taken once per (day, start, name). Returns { classes, timeLines } like the other page parsers.
+   */
+  function parseSolidcore(text) {
+    const lines = String(text ?? "").split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+    const WD = /^(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/i;
+    const MD = /^([A-Za-z]+) (\d{1,2})$/;
+    const RANGE = /^(\d{1,2}):(\d{2}) ([AP])M - (\d{1,2}):(\d{2}) ([AP])M$/i;
+    const to24 = (h, m, ap) => `${String(((+h % 12) + (/^p/i.test(ap) ? 12 : 0))).padStart(2, "0")}:${m}`;
+    const seen = new Set(), classes = [], timeKeys = new Set();
+    let date = null;
+    for (let i = 0; i < lines.length; i++) {
+      if (WD.test(lines[i]) && MD.test(lines[i + 1] ?? "")) { const m = MD.exec(lines[i + 1]); date = dateFromLabel(`${m[1]} ${m[2]}`); i += 1; continue; }
+      const r = RANGE.exec(lines[i]);
+      if (!r || !date || date < TODAY_ISO) continue;
+      const name = lines[i + 1] ?? "";
+      const key = `${date}|${lines[i]}|${name}`;
+      timeKeys.add(key);
+      if (!name || seen.has(key)) continue;
+      seen.add(key);
+      let instructor = null, spots = null;
+      for (let j = i + 2; j < lines.length && j <= i + 8 && !RANGE.test(lines[j]) && !(WD.test(lines[j]) && MD.test(lines[j + 1] ?? "")); j++) {
+        const w = /^w\/ (.+)$/i.exec(lines[j]);
+        if (w && instructor == null) instructor = w[1].split(" / ")[0].trim();
+        const o = /^(\d+) of (\d+) open$/i.exec(lines[j]);
+        if (o) spots = `${o[1]} of ${o[2]} open`;
+        if (/^join waitlist$/i.test(lines[j])) spots = "Waitlist";
+      }
+      classes.push({ date, start: to24(r[1], r[2], r[3]), end: to24(r[4], r[5], r[6]), name, instructor, spots });
+    }
+    return { classes, timeLines: timeKeys.size };
+  }
+
+  return { dateFromLabel, DAY_HEADING, norm, timeOnPage, verify, dayPieces, parseFcEvent, trimToTimes, parseMindbodyClassic, parseArketaCell, parseClubPilates, parseF45, parseSolidcore };
 }

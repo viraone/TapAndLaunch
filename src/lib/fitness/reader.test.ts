@@ -327,3 +327,27 @@ describe("parseF45", () => {
     expect(h3.parseF45("Welcome to F45")).toEqual({ classes: [], timeLines: 0 });
   });
 });
+
+describe("parseSolidcore", () => {
+  const h4 = makeHelpers("2026-10-10");
+  const page = [
+    "Saturday", "October 10", "7:10 AM - 8:00 AM", "Signature50: Full Body", "WA, Ballard", "w/ Gabby R.", "view coach details w/ Gabby R.", "7 of 15 open", "book",
+    "Sunday", "October 11", "5:10 PM - 6:00 PM", "Advanced50: Full Body", "WA, Ballard", "w/ Janelle R. / Head Coach and Community Manager", "view coach details w/ Janelle R.", "join waitlist",
+    "Friday", "October 9", "6:00 AM - 6:50 AM", "Signature50: Full Body", "WA, Ballard", "w/ Old C.", "book",
+  ].join("\n");
+
+  it("reads range, name, coach and spots under each two-line day heading, from today on", () => {
+    const { classes, timeLines } = h4.parseSolidcore(page);
+    expect(timeLines).toBe(2);
+    expect(classes).toEqual([
+      { date: "2026-10-10", start: "07:10", end: "08:00", name: "Signature50: Full Body", instructor: "Gabby R.", spots: "7 of 15 open" },
+      { date: "2026-10-11", start: "17:10", end: "18:00", name: "Advanced50: Full Body", instructor: "Janelle R.", spots: "Waitlist" },
+    ]);
+  });
+  it("takes a class once when each day's tab repeats the page", () => {
+    expect(h4.parseSolidcore(`${page}\n${page}`).classes).toHaveLength(2);
+  });
+  it("gives nothing for a page that is not a [solidcore] schedule", () => {
+    expect(h4.parseSolidcore("Welcome")).toEqual({ classes: [], timeLines: 0 });
+  });
+});
