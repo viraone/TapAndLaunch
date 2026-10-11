@@ -311,7 +311,7 @@ export function makeHelpers(TODAY_ISO) {
   }
 
   /**
-   * A Pure Barre studio page (purebarre.com/location/<studio>) as the reader gets it: one piece per day tab, each opening with
+   * A Pure Barre or YogaSix studio page (purebarre.com / yogasix.com, one page template) as the reader gets it: one piece per day tab, each opening with
    * the reader's "[Day tab shown: Saturday 10/10]" marker. In a piece, every class is a name line ("Pure Barre Classic™"), an
    * optional note ("New Members & Local Residents Only!"), the range with the teacher glued on ("9:45am-10:35amKatie W.") and
    * "reserve" or "5 spots openreserve". Returns { classes, timeLines } like the other page parsers.
@@ -331,8 +331,15 @@ export function makeHelpers(TODAY_ISO) {
         const r = RANGE.exec(lines[i]);
         if (!r) continue;
         const key = `${date}|${r[1]}:${r[2]}${r[3]}`;
-        let name = "";
-        for (let j = i - 1; j >= 0 && j >= i - 3; j--) { if (!skip.test(lines[j]) && !RANGE.test(lines[j]) && lines[j].length < 70) { name = lines[j]; break; } }
+        // The class name is the nearest line above the range, unless a special title sits between them (YogaSix: "Y6 Slow Flow", then
+        // "1 Year Anniversary", then the range): then the brand's own class name wins.
+        let name = "", brand = "";
+        for (let j = i - 1; j >= 0 && j >= i - 3; j--) {
+          if (skip.test(lines[j]) || RANGE.test(lines[j]) || lines[j].length >= 70) continue;
+          if (!name) name = lines[j];
+          if (/^(y6\b|pure barre\b)/i.test(lines[j])) { brand = lines[j]; break; }
+        }
+        if (brand) name = brand;
         timeKeys.add(`${key}|${name}`);
         if (!name || seen.has(`${key}|${name}`)) continue;
         seen.add(`${key}|${name}`);

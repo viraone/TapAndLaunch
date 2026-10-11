@@ -727,11 +727,11 @@ async function readStudio(browser, s) {
       dbg("club pilates rows:", cp.classes.length, "of", cp.timeLines);
       if (cp.classes.length >= 3 && cp.classes.length === cp.timeLines) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "clubpilates", classes: cp.classes, dropped: [] });
     }
-    // A Pure Barre studio page, read day tab by day tab: name / range with the teacher glued on / reserve per class.
-    if (/purebarre\.com/.test(pg.finalUrl)) {
+    // A Pure Barre or YogaSix studio page (one page template), read day tab by day tab: name / range with the teacher glued on.
+    if (/purebarre\.com|yogasix\.com/.test(pg.finalUrl)) {
       const pb = parsePureBarre(pg.text);
-      dbg("pure barre rows:", pb.classes.length, "of", pb.timeLines);
-      if (pb.classes.length >= 3 && pb.classes.length === pb.timeLines) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "purebarre", classes: pb.classes, dropped: [] });
+      dbg("pure barre / yogasix rows:", pb.classes.length, "of", pb.timeLines);
+      if (pb.classes.length >= 3 && pb.classes.length === pb.timeLines) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: /yogasix/.test(pg.finalUrl) ? "yogasix" : "purebarre", classes: pb.classes, dropped: [] });
     }
     // A [solidcore] studio page: a two-line day heading, then range / class / studio / coach / spots per class.
     if (/solidcore\.co/.test(pg.finalUrl)) {

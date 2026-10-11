@@ -375,6 +375,13 @@ describe("parsePureBarre", () => {
       { date: "2026-10-10", start: "12:00", end: "12:50", name: "Pure Barre Define", instructor: "Katie W.", spots: null },
     ]);
   });
+  it("reads a YogaSix page on the same template, taking the Y6 class name over a title line between it and the time", () => {
+    const y6 = ["[Day tab shown: Saturday 10/10]", "Y6 Slow Flow", "1 Year Anniversary", "8:00am-9:00amLinh C.", "Book", "Y6 Power Flow", "9:30am-10:30amKelly H.", "Book"].join("\n");
+    expect(h5.parsePureBarre(y6).classes).toEqual([
+      { date: "2026-10-10", start: "08:00", end: "09:00", name: "Y6 Slow Flow", instructor: "Linh C.", spots: null },
+      { date: "2026-10-10", start: "09:30", end: "10:30", name: "Y6 Power Flow", instructor: "Kelly H.", spots: null },
+    ]);
+  });
   it("gives nothing for text with no day tabs", () => {
     expect(h5.parsePureBarre("Welcome to Pure Barre")).toEqual({ classes: [], timeLines: 0 });
   });
