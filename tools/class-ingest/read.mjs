@@ -716,8 +716,26 @@ async function readStudio(browser, s) {
     // A classic Mindbody schedule page (clients.mindbodyonline.com/classic/mainclass): its text is rows of time, class, teacher,
     // location and length under date headings, read as it is. An address with `sLoc=<n>` shows one location already.
     if (/clients\.mindbodyonline\.com\/classic\//.test(pg.finalUrl)) {
-      const classes = parseMindbodyClassic(pg.text, s.location);
+      let classes = parseMindbodyClassic(pg.text, s.location);
       dbg("mindbody classic rows:", classes.length);
+      // The page shows the calendar week it was opened on (Monday to Saturday): on a Sunday, or late in the week, little or nothing of it
+      // is left. Its address takes a date, so the week from today (and the one after) is asked for and added.
+      if (classes.length < 12) {
+        const us = (d) => encodeURIComponent(`${+d.slice(5, 7)}/${+d.slice(8, 10)}/${d.slice(0, 4)}`);
+        const plusDay = (n) => { const d = new Date(Date.UTC(+TODAY_ISO.slice(0, 4), +TODAY_ISO.slice(5, 7) - 1, +TODAY_ISO.slice(8, 10) + n)); return d.toISOString().slice(0, 10); };
+        for (const d of [plusDay(0), plusDay(7)]) {
+          try {
+            // The entry address (classic/ws?…) takes the date and starts its own session; the page it lands on (classic/mainclass?…) does not.
+            const from = /classic\/ws\?/.test(url) ? url : pg.finalUrl;
+            const next = from.includes("date=") ? from.replace(/([?&]date=)[^&]*/, `$1${us(d)}`) : `${from}${from.includes("?") ? "&" : "?"}date=${us(d)}`;
+            const more = await render(browser, next, { settle: 3000 });
+            classes = [...classes, ...parseMindbodyClassic(more.text, s.location)];
+          } catch (e) { dbg("mindbody classic next week failed", String(e.message).slice(0, 60)); }
+        }
+        const seenKeys = new Set();
+        classes = classes.filter((c) => { const k = `${c.date}|${c.start}|${c.name}`; return seenKeys.has(k) ? false : seenKeys.add(k); });
+        dbg("mindbody classic rows with the week from today:", classes.length);
+      }
       if (classes.length >= 3) return finish({ status: "ok", scheduleUrl: pg.finalUrl, pageUrl: url, platform: "mindbodyonline", classes, dropped: [] });
     }
     // A Club Pilates studio page: dated headings, then name / "8:00 am • Instructor" / spots for every class. Taken as it is when
