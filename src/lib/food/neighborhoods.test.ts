@@ -8,15 +8,15 @@ describe("neighborhood coverage map", () => {
   it("lists real Seattle points, one search per grid cell", () => {
     expect(NEIGHBORHOODS.length).toBeGreaterThan(40);
     // The list grew past the first 51 Seattle neighborhoods: the rest of the city and the cities around it (2026-10-11).
-    expect(NEIGHBORHOODS.map((n: { name: string }) => n.name)).toEqual(expect.arrayContaining(["Greenwood", "Columbia City", "Magnolia", "Bellevue", "Kirkland", "Shoreline"]));
+    expect(NEIGHBORHOODS.map((n: { name: string }) => n.name)).toEqual(expect.arrayContaining(["Greenwood", "Columbia City", "Magnolia", "Bellevue", "Kirkland", "Shoreline", "Downtown Tacoma", "Everett", "Sammamish"]));
     const points = seedPoints();
     expect(new Set(points.map((p: { cell: string }) => p.cell)).size).toBe(points.length);
-    // Every point is in the Puget Sound area the app covers (Tacoma-side south edge to Everett-side north edge, Puget Sound to Issaquah).
+    // Every point is in the Puget Sound area the app covers (Lakewood in the south to Everett in the north, Bainbridge Island to Maple Valley).
     for (const p of points as Array<{ lat: number; lng: number }>) {
-      expect(p.lat).toBeGreaterThan(47.4);
-      expect(p.lat).toBeLessThan(47.86);
-      expect(p.lng).toBeGreaterThan(-122.46);
-      expect(p.lng).toBeLessThan(-122.0);
+      expect(p.lat).toBeGreaterThan(47.1);
+      expect(p.lat).toBeLessThan(48.0);
+      expect(p.lng).toBeGreaterThan(-122.6);
+      expect(p.lng).toBeLessThan(-121.95);
     }
     // The first 51 neighborhoods are Seattle proper, in the old tighter box.
     const seattle = (points as Array<{ neighborhood: string; lat: number; lng: number }>).filter((p) => ["Capitol Hill", "Ballard", "Fremont", "Alki"].includes(p.neighborhood));
