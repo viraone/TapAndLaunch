@@ -202,11 +202,11 @@ async function renderOnce(browser, url, { everything = false } = {}) {
 }
 
 // ---------- PDF menus ----------
-const MAX_PDF_BYTES = 10 * 1024 * 1024;
+const MAX_PDF_BYTES = 25 * 1024 * 1024; // menus exported from design tools run 10 MB and more
 const MAX_PDF_PAGES = 12;
 
 /** Downloads a PDF (size-capped, robots.txt respected) and returns its text as lines, or null. Pictures-only PDFs give no text. */
-async function pdfText(url) {
+async function pdfBytes(url) {
   if (!(await allowed(url))) return null;
   const res = await fetch(url, { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(30000), redirect: "follow" });
   if (!res.ok) return null;
@@ -214,6 +214,12 @@ async function pdfText(url) {
   if (declared > MAX_PDF_BYTES) return null;
   const buf = new Uint8Array(await res.arrayBuffer());
   if (buf.length > MAX_PDF_BYTES || String.fromCharCode(...buf.slice(0, 4)) !== "%PDF") return null;
+  return buf;
+}
+
+async function pdfText(url) {
+  const buf = await pdfBytes(url);
+  if (!buf) return null;
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const doc = await pdfjs.getDocument({ data: buf, useSystemFonts: true, verbosity: 0 }).promise;
   const lines = [];
@@ -227,6 +233,52 @@ async function pdfText(url) {
 }
 
 // ---------- menus that are pictures ----------
+const MAX_PDF_PICTURE_PAGES = 3;
+
+/**
+ * A PDF whose pages are pictures (a scanned or exported menu) has no text to read. Draws its first pages to images in the browser
+ * (pdf.js, served to a blank page from node_modules so nothing is fetched from anywhere else) and returns them like menuPictures does.
+ */
+async function pdfPictures(browser, url) {
+  const buf = await pdfBytes(url);
+  if (!buf) return [];
+  const root = join(here, "node_modules", "pdfjs-dist", "legacy", "build");
+  const context = await browser.newContext({ userAgent: USER_AGENT, viewport: { width: 1280, height: 900 } });
+  try {
+    await context.route("https://pdf.local/**", (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === "/pdf.mjs" || path === "/pdf.worker.mjs") return route.fulfill({ status: 200, contentType: "text/javascript", body: readFileSync(join(root, path.slice(1))) });
+      return route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>pdf</title>" });
+    });
+    const page = await context.newPage();
+    await page.goto("https://pdf.local/", { timeout: 15000 });
+    const images = await page.evaluate(
+      async ({ b64, maxPages }) => {
+        const pdfjs = await import("/pdf.mjs");
+        pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.mjs";
+        const doc = await pdfjs.getDocument({ data: Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), verbosity: 0 }).promise;
+        const out = [];
+        for (let n = 1; n <= Math.min(doc.numPages, maxPages); n++) {
+          const pg = await doc.getPage(n);
+          const base = pg.getViewport({ scale: 1 });
+          // About 2000 px on the long side: enough to read small print, small enough for the model.
+          const vp = pg.getViewport({ scale: Math.min(4, 2000 / Math.max(base.width, base.height)) });
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(vp.width);
+          canvas.height = Math.round(vp.height);
+          await pg.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+          out.push(canvas.toDataURL("image/png").split(",")[1]);
+        }
+        return out;
+      },
+      { b64: Buffer.from(buf).toString("base64"), maxPages: MAX_PDF_PICTURE_PAGES }
+    );
+    return images.map((base64, i) => ({ src: `${url}#page=${i + 1}`, base64, type: "image/png" }));
+  } finally {
+    await context.close();
+  }
+}
+
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 /** Opens a page with its pictures loaded and downloads the big ones that could be a menu (PNG, JPEG or WebP). */
@@ -384,6 +436,7 @@ async function processMenu(browser, place, seen) {
     const pdfLinks = findPdfMenuLinks(home.html, home.finalUrl);
     const targets = [];
     const triedPages = [];
+    const pictureOnlyPdfs = [];
     const link = findMenuLink(home.html, home.finalUrl);
     if (link && link !== home.finalUrl) targets.push(link);
     targets.push(null); // null = the home page itself
@@ -419,6 +472,7 @@ async function processMenu(browser, place, seen) {
       const text = await pdfText(pdfUrl).catch(() => null);
       if (!text || text.length < 300) {
         result.status = result.status === "error" ? "pdf" : result.status;
+        if (!text || text.length < 30) pictureOnlyPdfs.push(pdfUrl); // no words at all: the pages are pictures
         continue;
       }
       const out = await extractMenu(place.name, text);
@@ -428,8 +482,8 @@ async function processMenu(browser, place, seen) {
     // Last resort: the menu is pictures. The model copies the words off each one, then the same reading and
     // checking as for page text runs on that copy (so a dish still has to appear in what was copied).
     if (opts.photos) {
-      for (const pageUrl of triedPages) {
-        const pictures = await menuPictures(browser, pageUrl).catch(() => []);
+      for (const pageUrl of [...triedPages, ...pictureOnlyPdfs]) {
+        const pictures = await (pictureOnlyPdfs.includes(pageUrl) ? pdfPictures(browser, pageUrl) : menuPictures(browser, pageUrl)).catch(() => []);
         if (pictures.length === 0) continue;
         // Two independent readings: the whole pictures, and zoomed-in tiles of the big ones. A price is kept only where the two
         // agree or only one saw it; where they disagree it is dropped (a missing price is better than a wrong one).
@@ -520,6 +574,39 @@ async function findHappyHour(browser, place, seen) {
   }
 }
 
+/** Words copied off the menu pictures of a place whose pages have no readable text, as a {url, html, text} page, or null. */
+async function pictureCopy(browser, place, seen, home) {
+  const MAX_PICTURES = 6; // in all: a real menu picture is a minute or so of the model, a logo or food photo only seconds
+  const copies = [];
+  let used = 0;
+  const finish = (url) => {
+    const text = joinTranscripts(copies);
+    return text.length >= 300 ? { url, html: "", text } : null;
+  };
+  // A PDF menu first (when its pages are pictures it has no text of its own), then the pages that look like menu / happy hour pages.
+  for (const pdfUrl of findPdfMenuLinks(home.html, home.finalUrl).filter((u) => sameSite(place.website, u)).slice(0, 1)) {
+    const pictures = await pdfPictures(browser, pdfUrl).catch(() => []);
+    for (const pic of pictures.slice(0, MAX_PICTURES)) {
+      copies.push(await transcribe(pic.base64).catch(() => ""));
+      used++;
+    }
+    const found = finish(pdfUrl);
+    if (found) return found;
+  }
+  const pages = [...seen].sort((x, y) => Number(/happy|menu|food|drink|special/i.test(y.url)) - Number(/happy|menu|food|drink|special/i.test(x.url)));
+  for (const page of pages.slice(0, 3)) {
+    if (used >= MAX_PICTURES) break;
+    const pictures = await menuPictures(browser, page.url).catch(() => []);
+    for (const pic of pictures.slice(0, Math.min(3, MAX_PICTURES - used))) {
+      copies.push(await transcribe(pic.base64).catch(() => ""));
+      used++;
+    }
+    const found = finish(page.url);
+    if (found) return found;
+  }
+  return null;
+}
+
 /** The fast pass: just the home page (and the menu page when the home page doesn't mention happy hour), no menu reading. */
 async function processHappyOnly(browser, place) {
   const started = Date.now();
@@ -559,7 +646,17 @@ async function processHappyOnly(browser, place) {
         }
       }
     }
-    const happy = await findHappyHour(browser, place, seen);
+    let happy = await findHappyHour(browser, place, seen);
+    if (!happy && opts.photos) {
+      // Nothing readable as text: the menu may be pictures (on a page or as a PDF). The model copies the words off up to three of
+      // them; if that gives a real menu, the happy hour search runs on the copy exactly as on page text.
+      const copy = await pictureCopy(browser, place, seen, home).catch(() => null);
+      if (copy) {
+        seen.push(copy);
+        happy = await findHappyHour(browser, place, seen);
+        if (happy?.status === "none") happy = { ...happy, status: "none", fromPhoto: true };
+      }
+    }
     return { ...result, ...(happy ? { happy } : { status: "unreadable" }), seconds: Math.round((Date.now() - started) / 1000) };
   } catch (e) {
     return { ...result, status: "error", error: String(e.message ?? e).slice(0, 160), seconds: Math.round((Date.now() - started) / 1000) };
