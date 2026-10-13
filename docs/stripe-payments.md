@@ -102,3 +102,10 @@ Automated tests: `src/lib/stripe/*.test.ts` (checkout parameters, event mapping,
    secret. Redeploy.
 5. Builders must connect again in live mode: sandbox connected accounts do not carry over. Delete test organizations first.
 6. Make one small real purchase and refund it.
+
+Gotcha (2026-10-13): with everything above done, `v2.core.accounts.create` in live mode can still fail with
+`account_create_activation_required` ("Your account must be activated in order to create accounts"). That is not about the
+account: it means Stripe's review of the platform's Connect application is still open. The dashboard shows it only as a hover
+tooltip, "Your application is in review", on the **Create a live connected account** button (Connected accounts page). Wait
+for Stripe's email. A bare account with no configuration can be created during the review; one with `dashboard` or a
+merchant configuration cannot.

@@ -7,11 +7,13 @@ _Last updated: 2026-10-06._ Tick items as they are done and note the date.
 - [x] Finish activating the live Stripe account (2026-10-05; unregistered business, no EIN: the IRS online form refused it, see
       `private/business.md`)
 - [x] Public details: support email, support/privacy/terms URLs, statement descriptor (2026-10-03)
-- [ ] Phone verification on the Stripe account (Settings > Business > Account details)
-- [ ] Connect in live mode: platform profile and branding
+- [x] Phone verification on the Stripe account (showed Verified 2026-10-13)
+- [x] Connect in live mode: integration choices confirmed and platform profile complete (2026-10-13)
+- [ ] Stripe's review of TapAndLaunch as a Connect platform ("Your application is in review" on Connected accounts, 2026-10-13). Until it
+      clears, creating a live connected account fails with `account_create_activation_required` even though the account is fully activated
 - [x] Live webhook endpoints created (subscriptions + store payments); live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and
       `STRIPE_BILLING_WEBHOOK_SECRET` in Vercel; redeployed (2026-10-05)
-- [ ] One small real store purchase and refund (needs a store connected in live mode first; none yet)
+- [ ] One small real store purchase and refund (needs the review above, then a store connected in live mode; none yet)
 - [ ] Delete test organizations and test apps from production (firstrun3 after its plan ends Nov 4; shop1 after the live store
       test; the two leftover test apps were unpublished 2026-10-05)
 
