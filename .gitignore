@@ -58,3 +58,6 @@ next-env.d.ts
 /tools/class-ingest/out.new
 /tools/class-ingest/fitnessnav.html
 /tools/class-ingest/.env
+
+# Local Claude Code launch config (per machine)
+.claude/launch.json
