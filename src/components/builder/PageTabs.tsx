@@ -110,21 +110,21 @@ export function PageTabs({
 
   return (
     <div className="flex items-center gap-2 border-b border-white/[0.06] bg-neutral-950 px-3 py-2">
-      <span className="text-xs font-medium text-neutral-500">Pages</span>
+      <span className="text-sm font-medium text-neutral-300">Pages</span>
       <div className="inline-flex items-center gap-0.5 rounded-full border border-white/10 bg-white/5 p-0.5">
         {pages.map((page, index) => {
           const current = page.id === currentPageId;
           const hidden = !actions.inMenu(page);
           return (
-            <div key={page.id} className={cn("inline-flex items-center rounded-full transition", current ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-400 hover:text-white")}>
-              <button type="button" onClick={() => onSelect(page.id)} className={cn("rounded-full py-1 pl-3 text-xs font-medium", current ? "pr-1" : "pr-3")} title={hidden ? "Not in the menu" : undefined}>
+            <div key={page.id} className={cn("inline-flex items-center rounded-full transition", current ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-200 hover:text-white")}>
+              <button type="button" onClick={() => onSelect(page.id)} className={cn("rounded-full py-1 pl-3 text-sm font-medium", current ? "pr-1" : "pr-3")} title={hidden ? "Not in the menu" : undefined}>
                 {hidden && <EyeOff className="mr-1 inline h-3 w-3 opacity-60" aria-label="Not in the menu" />}
                 {page.name}
               </button>
               {/* The current page's menu: rename, move, duplicate, show or hide in the menu, delete. */}
               {current && (
                 <DropdownMenu>
-                  <DropdownMenuTrigger aria-label={`Options for the ${page.name} page`} className="grid h-6 w-6 place-items-center rounded-full text-neutral-500 hover:bg-neutral-200 hover:text-neutral-950">
+                  <DropdownMenuTrigger aria-label={`Options for the ${page.name} page`} className="grid h-6 w-6 place-items-center rounded-full text-neutral-600 hover:bg-neutral-200 hover:text-neutral-950">
                     <ChevronDown className="h-3.5 w-3.5" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="dark">
@@ -175,7 +175,7 @@ export function PageTabs({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger
           render={
-            <Button type="button" variant="ghost" className="h-7 gap-1 rounded-full px-2.5 text-xs text-neutral-400 hover:bg-white/10 hover:text-white" aria-label="New page">
+            <Button type="button" variant="ghost" className="h-7 gap-1 rounded-full px-2.5 text-sm text-neutral-200 hover:bg-white/10 hover:text-white" aria-label="New page">
               <Plus className="h-4 w-4" /> Add page
             </Button>
           }

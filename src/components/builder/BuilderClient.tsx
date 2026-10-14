@@ -645,7 +645,7 @@ export function BuilderClient({
               href="/dashboard"
               aria-label="All apps"
               title="All apps"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-neutral-300 transition hover:bg-white/10 hover:text-white"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-neutral-100 transition hover:bg-white/10 hover:text-white"
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -657,10 +657,10 @@ export function BuilderClient({
                 </h1>
                 <span
                   title={live ? "Your app is live" : `Not live yet. Press Publish to go live at ${liveHost}`}
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
                     live
                       ? "bg-emerald-400/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/30"
-                      : "bg-white/5 text-neutral-400 ring-1 ring-inset ring-white/10"
+                      : "bg-white/5 text-neutral-200 ring-1 ring-inset ring-white/10"
                   }`}
                 >
                   <span className="relative flex h-1.5 w-1.5">
@@ -680,7 +680,7 @@ export function BuilderClient({
                   href={liveUrl ?? "#"}
                   target="_blank"
                   rel="noreferrer"
-                  className="hidden items-center gap-1 truncate text-xs text-neutral-500 transition hover:text-white sm:inline-flex"
+                  className="hidden items-center gap-1 truncate text-sm text-neutral-100 transition hover:text-white sm:inline-flex"
                 >
                   {liveHost}{" "}
                   <ArrowUpRight className="h-3 w-3" />
@@ -690,10 +690,10 @@ export function BuilderClient({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <div role="group" aria-label="Undo and redo" className="inline-flex items-center gap-0.5">
-              <button type="button" onClick={undo} disabled={history.past === 0} aria-label="Undo" title="Undo (⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-neutral-300 transition hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent">
+              <button type="button" onClick={undo} disabled={history.past === 0} aria-label="Undo" title="Undo (⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-neutral-100 transition hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent">
                 <Undo2 className="h-4 w-4" />
               </button>
-              <button type="button" onClick={redo} disabled={history.future === 0} aria-label="Redo" title="Redo (⇧⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-neutral-300 transition hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent">
+              <button type="button" onClick={redo} disabled={history.future === 0} aria-label="Redo" title="Redo (⇧⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-neutral-100 transition hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent">
                 <Redo2 className="h-4 w-4" />
               </button>
             </div>
@@ -701,7 +701,7 @@ export function BuilderClient({
                 words appear only when something is happening or has gone wrong. */}
             <p
               role="status"
-              className="hidden items-center gap-1.5 text-xs text-neutral-400 md:inline-flex"
+              className="hidden items-center gap-1.5 text-sm text-neutral-200 md:inline-flex"
             >
               {saveState === "saving" && (
                 <>
@@ -732,13 +732,13 @@ export function BuilderClient({
             <div
               role="group"
               aria-label="Edit or try the app"
-              className="inline-flex rounded-full border border-white/10 bg-white/5 p-0.5 text-xs font-semibold"
+              className="inline-flex rounded-full border border-white/10 bg-white/5 p-0.5 text-sm font-semibold"
             >
               <button
                 type="button"
                 aria-pressed={mode === "edit"}
                 onClick={() => setMode("edit")}
-                className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 transition ${mode === "edit" ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-400 hover:text-white"}`}
+                className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-sm transition ${mode === "edit" ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-200 hover:text-white"}`}
               >
                 <Pencil className="h-3.5 w-3.5" /> Edit
               </button>
@@ -747,7 +747,7 @@ export function BuilderClient({
                 aria-pressed={mode === "try"}
                 onClick={() => void tryIt()}
                 title="Your real app, as a visitor sees it"
-                className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 transition ${mode === "try" ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-400 hover:text-white"}`}
+                className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-sm transition ${mode === "try" ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-200 hover:text-white"}`}
               >
                 <Play className="h-3.5 w-3.5" /> Try it
               </button>
@@ -766,7 +766,7 @@ export function BuilderClient({
                 type="button"
                 onClick={togglePublish}
                 disabled={isPublishing}
-                className="inline-flex h-9 items-center rounded-full border border-white/10 bg-white/5 px-4 text-xs font-medium text-neutral-200 transition hover:bg-white/10 disabled:opacity-50"
+                className="inline-flex h-9 items-center rounded-full border border-white/10 bg-white/5 px-4 text-sm font-medium text-neutral-100 transition hover:bg-white/10 disabled:opacity-50"
               >
                 {isPublishing ? "Unpublishing…" : "Unpublish"}
               </button>

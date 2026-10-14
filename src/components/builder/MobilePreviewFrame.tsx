@@ -38,7 +38,7 @@ export function DeviceFrameSwitcher({
       <DropdownMenuTrigger
         aria-label={`Show the preview on: ${DEVICE_LABELS[value]}`}
         title="Choose what the preview looks like on"
-        className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-neutral-300 transition hover:bg-white/10 hover:text-white"
+        className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-neutral-100 transition hover:bg-white/10 hover:text-white"
       >
         <Icon className="h-4 w-4" /> {DEVICE_LABELS[value]}
         <ChevronDown className="h-3.5 w-3.5 opacity-60" />
