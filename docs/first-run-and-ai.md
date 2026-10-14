@@ -55,10 +55,22 @@ is now optional and inserts as null); Real estate gets a **map** on Contact with
 Design, Marketing, Technology, Construction, Music and Travel keep the core shape. A test pins exactly which trade
 gets which extra, and that galleries are empty, the map has no address and every sample says it is one.
 
-A website card's mockup is a tiny real site, not a wireframe (`WebsiteMockup` in `TemplatePreview.tsx`): the site's
-name in a menu, the banner's actual eyebrow, headline and button, the real highlight numbers, and a row of tiles
-for a trade with a gallery or shop — on a dark backdrop lit by the brand colour, the window running off the card.
-Sixteen identical wireframes in sixteen tints looked, in the user's words, ugly. The card itself is lean: a small
+Each topic website has one of **five flavours** (`WEBSITE_STYLES`, `WebsiteTopic.style`): **classic** (Inter, light,
+pill buttons — Education, Consulting, Health, Real estate, and Personal website), **editorial** (Playfair serif on
+warm paper, larger headings, the quote moves up onto Home — Weddings, Art, Beauty), **cinematic** (Space Grotesk on a
+dark site — Photography, Music, Technology), **bold** (Bebas Neue poster headlines, square corners — Construction,
+Marketing, Travel) and **split** (DM Serif, headline beside the work — Design, Apparel). A flavour is a real set of
+the site-wide looks App settings > Theme already offers (`font_pair`, `color_scheme`, `background_color`,
+`button_shape`, `heading_size`), written into the new site's theme, so the owner can change any of it. Sixteen
+sites in the same font on the same white looked like a factory, and dressing up only the previews would have
+promised what the sites didn't deliver. `websiteStyleOf(theme)` reads the flavour back from a theme (the pairs are
+distinct), which is how the preview stays honest; a test checks every flavour is used and round-trips.
+
+A website card's mockup is a tiny real site in its flavour, not a wireframe (`WebsiteMockup.tsx`): the site's name
+in a menu, the banner's actual eyebrow, headline and button, the real highlight numbers, the trade's tiles — in the
+site's real fonts (the picker loads the pairs the website starters use), on its real light, dark or cream page,
+with its real button shape, each flavour on its own backdrop. Sixteen identical wireframes in sixteen tints looked,
+in the user's words, ugly. The card itself is lean: a small
 icon, the name, a two-line tagline, and chips only for the extras (`includes` on a website template is derived from
 its extras — "Gallery", "Shop", "Online booking", "Map" — and a test checks it matches the blocks really there).
 Phone-first cards are unchanged. `TemplatePreview` draws it as a tiny browser window (traffic-light dots, a wide

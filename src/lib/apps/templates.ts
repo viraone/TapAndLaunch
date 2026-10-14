@@ -64,12 +64,48 @@ export interface StarterTemplate {
  * colour, icon and every line of copy. Deliberately photo-less: the banner falls back to the brand colour, so a
  * photographer never opens their new site to a stock photo of someone else's wedding.
  */
+/**
+ * Five flavours a topic website can have, each a real set of site-wide looks (App settings > Theme would show the
+ * same choices) and, for editorial, a different block order. Sixteen sites in the same font, on the same white, with
+ * the same round buttons looked like a factory; these are what make Weddings and Technology feel like different
+ * places before a word is changed. The picker's mockup draws whichever flavour the site really has.
+ */
+export type WebsiteStyleId = "classic" | "editorial" | "cinematic" | "bold" | "split";
+
+export const WEBSITE_STYLES: Record<
+  WebsiteStyleId,
+  {
+    name: string;
+    feel: string;
+    theme: Pick<ThemeConfig, "font_pair" | "color_scheme" | "background_color" | "button_shape" | "heading_size">;
+    /** The quote opens the Home page (after the banner) instead of closing About. */
+    quoteOnHome?: boolean;
+  }
+> = {
+  classic: { name: "Classic", feel: "Clean and direct", theme: { font_pair: "inter", background_color: "#fafafa", button_shape: "round", heading_size: "normal" } },
+  editorial: { name: "Editorial", feel: "Serif headlines on warm paper", theme: { font_pair: "playfair", background_color: "#faf6ef", button_shape: "rounded", heading_size: "large" }, quoteOnHome: true },
+  cinematic: { name: "Cinematic", feel: "Dark, with the colour as light", theme: { font_pair: "space", color_scheme: "dark", background_color: "#0a0a0a", button_shape: "rounded", heading_size: "large" } },
+  bold: { name: "Bold", feel: "Poster headlines, square corners", theme: { font_pair: "bebas", background_color: "#fffdf7", button_shape: "square", heading_size: "large" } },
+  split: { name: "Split", feel: "Headline beside the work", theme: { font_pair: "dm", background_color: "#f6f6fb", button_shape: "round", heading_size: "normal" } },
+};
+
+/** Which flavour a website theme is, read back from the theme itself (the pairs are distinct), so a preview drawn
+ * from a saved app stays honest. Anything unrecognised is classic. */
+export function websiteStyleOf(theme: ThemeConfig): WebsiteStyleId {
+  if (theme.color_scheme === "dark") return "cinematic";
+  if (theme.font_pair === "playfair") return "editorial";
+  if (theme.font_pair === "bebas") return "bold";
+  if (theme.font_pair === "dm") return "split";
+  return "classic";
+}
+
 export interface WebsiteTopic {
   id: string;
   name: string;
   tagline: string;
   icon: TemplateIcon;
   color: string;
+  style: WebsiteStyleId;
   nameHint: string;
   aboutHint: string;
   eyebrow: string;
@@ -103,6 +139,7 @@ const SAMPLE_PRODUCT = "(Sample product: edit it under Manage, Products.)";
 export const WEBSITE_TOPICS: WebsiteTopic[] = [
   {
     id: "photography",
+    style: "cinematic",
     name: "Photography",
     tagline: "A clean, full-width site for a photographer: your style, your highlights, and a way to book you.",
     icon: "camera",
@@ -134,6 +171,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "design",
+    style: "split",
     name: "Design",
     tagline: "A sharp, full-width site for a designer or studio: what you make, who you've made it for, and how to hire you.",
     icon: "palette",
@@ -164,6 +202,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "education",
+    style: "classic",
     name: "Education",
     tagline: "A friendly, full-width site for a tutor, teacher or course: what you teach, who it's for, and how to sign up.",
     icon: "graduation-cap",
@@ -200,6 +239,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "consulting",
+    style: "classic",
     name: "Consulting",
     tagline: "A credible, full-width site for a consultant or advisor: what you fix, proof it works, and a way to talk.",
     icon: "handshake",
@@ -236,6 +276,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "art",
+    style: "editorial",
     name: "Art",
     tagline: "A quiet, full-width site for an artist: your work, your story, and how to buy or commission a piece.",
     icon: "paintbrush",
@@ -267,6 +308,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "health",
+    style: "classic",
     name: "Health",
     tagline: "A calm, full-width site for a clinic or practitioner: what you treat, how to book, and what to expect.",
     icon: "stethoscope",
@@ -303,6 +345,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "marketing",
+    style: "bold",
     name: "Marketing",
     tagline: "A confident, full-width site for a marketer or agency: what you grow, how, and the numbers to prove it.",
     icon: "megaphone",
@@ -333,6 +376,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "technology",
+    style: "cinematic",
     name: "Technology",
     tagline: "A crisp, full-width site for a software, IT or tech business: what you build, who it's for, and how to get started.",
     icon: "cpu",
@@ -363,6 +407,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "construction",
+    style: "bold",
     name: "Construction & maintenance",
     tagline: "A solid, full-width site for a builder, contractor or trade: your work, your area, and how to get a quote.",
     icon: "wrench",
@@ -393,6 +438,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "apparel",
+    style: "split",
     name: "Apparel",
     tagline: "A stylish, full-width site for a clothing brand or boutique: your look, your story, and where to buy.",
     icon: "shirt",
@@ -430,6 +476,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "music",
+    style: "cinematic",
     name: "Music",
     tagline: "A moody, full-width site for a musician, band or teacher: your sound, your dates, and how to book you.",
     icon: "mic",
@@ -460,6 +507,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "realestate",
+    style: "classic",
     name: "Real estate & properties",
     tagline: "A trustworthy, full-width site for an agent or property business: your area, your results, and how to reach you.",
     icon: "home",
@@ -491,6 +539,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "beauty",
+    style: "editorial",
     name: "Beauty",
     tagline: "A soft, full-width site for a beautician, spa or makeup artist: your services, your work, and how to book.",
     icon: "sparkles",
@@ -527,6 +576,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "travel",
+    style: "bold",
     name: "Travel",
     tagline: "A bright, full-width site for a travel guide, planner or tour: where you take people and how to come along.",
     icon: "plane",
@@ -557,6 +607,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   },
   {
     id: "weddings",
+    style: "editorial",
     name: "Weddings",
     tagline: "An elegant, full-width site for a planner, venue or wedding vendor: your style, your work, and how to enquire.",
     icon: "heart",
@@ -866,12 +917,14 @@ function buildStarterBody(templateId: string, appName: string, about?: string): 
   // The topic websites share one shape (see `WebsiteTopic`); only the words and colour differ.
   const topic = WEBSITE_TOPIC_BY_ID.get(template.id);
   if (topic) {
+    const flavour = WEBSITE_STYLES[topic.style];
+    const quote = block("quote", { quote: topic.quote, name: "" });
     return {
-      manifest: { ...manifest, background_color: "#fafafa" },
+      manifest: { ...manifest, background_color: flavour.theme.background_color },
       theme: {
         ...theme,
+        ...flavour.theme,
         layout: "website",
-        background_color: "#fafafa",
         bottom_nav_style: "tabs",
         bottom_nav: [
           { label: "Home", icon: "home", page_path: "home" },
@@ -882,6 +935,7 @@ function buildStarterBody(templateId: string, appName: string, about?: string): 
       pages: [
         home([
           block("hero", { eyebrow: topic.eyebrow, headline: topic.headline, subtext: about || topic.subtext, button_label: "Get in touch", button_page: "contact" }),
+          ...(flavour.quoteOnHome ? [quote] : []),
           block("stats", { items: topic.stats }),
           // The visual trades show their work before they explain it; the empty gallery is a "No photos yet" box in
           // the builder and nothing on the live site until photos are added.
@@ -895,7 +949,7 @@ function buildStarterBody(templateId: string, appName: string, about?: string): 
           name: "About",
           path: "about",
           isHome: false,
-          blocks: [block("text", { heading: "My story", body: topic.storyBody }), block("quote", { quote: topic.quote, name: "" })],
+          blocks: [block("text", { heading: "My story", body: topic.storyBody }), ...(flavour.quoteOnHome ? [] : [quote])],
         },
         {
           name: "Contact",

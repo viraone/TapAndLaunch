@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
-import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, templateNeedsMaps, type StarterTemplate } from "@/lib/apps/templates";
+import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter, templateNeedsMaps, type StarterTemplate } from "@/lib/apps/templates";
+import { fontsHref } from "@/lib/pwa/theme-style";
 import { slugify } from "@/lib/apps/slug";
 import { TemplatePreview } from "@/components/dashboard/TemplatePreview";
 import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
@@ -15,6 +16,12 @@ const ICONS = TEMPLATE_ICONS;
 // category joins the Websites shelf automatically instead of landing among the phone-shaped ones.
 const WEBSITE_CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => c.id === "website");
 const APP_CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => c.id !== "website");
+
+// The website mockups are set in each site's real fonts, so the picker loads the pairs the website starters use
+// (a handful of Google Fonts stylesheets; React hoists the links into <head>).
+const PICKER_FONTS = Array.from(
+  new Set(STARTER_TEMPLATES.filter((t) => t.category === "website").map((t) => fontsHref(buildStarter(t.id, "x").theme)).filter((h): h is string => !!h))
+);
 
 // Name placeholders for the older templates; the website templates carry their own (`nameHint`/`aboutHint`).
 const NAME_HINTS: Record<string, string> = {
@@ -216,6 +223,9 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
   return (
     <div className="space-y-12">
       <div id="templates" className="scroll-mt-6" />
+      {PICKER_FONTS.map((href) => (
+        <link key={href} rel="stylesheet" href={href} />
+      ))}
 
       <TemplateShelf
         title="Websites"

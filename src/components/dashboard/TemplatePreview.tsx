@@ -1,5 +1,5 @@
-import { STARTER_TEMPLATES, buildStarter, type StarterBlock, type StarterPage } from "@/lib/apps/templates";
-import type { HeroBlockConfig, StatsBlockConfig } from "@/types/database";
+import { STARTER_TEMPLATES, buildStarter, type StarterBlock } from "@/lib/apps/templates";
+import { WebsiteMockup } from "@/components/dashboard/WebsiteMockup";
 
 /** A tiny phone (or, for a website-layout starter, a tiny browser window) showing what a starter looks like, drawn
  * from the starter's own blocks so it always matches what the customer gets. */
@@ -13,7 +13,7 @@ export function TemplatePreview({ templateId, color }: { templateId: string; col
   const soft = dark ? "#2a2a2a" : "#e5e5e5";
 
   if (starter.theme.layout === "website") {
-    return <WebsiteMockup home={home} name={STARTER_TEMPLATES.find((t) => t.id === templateId)?.name ?? "Your site"} color={color} />;
+    return <WebsiteMockup home={home} theme={starter.theme} name={STARTER_TEMPLATES.find((t) => t.id === templateId)?.name ?? "Your site"} color={color} />;
   }
 
   return (
@@ -37,76 +37,6 @@ export function TemplatePreview({ templateId, color }: { templateId: string; col
           <div className="absolute inset-x-0 bottom-0 flex h-5 items-center justify-around border-t px-2" style={{ background: bg, borderColor: soft }}>
             {nav.slice(0, 4).map((n, i) => (
               <span key={n.page_path} className="h-1.5 w-1.5 rounded-full" style={{ background: i === 0 ? color : soft }} />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/**
- * A website starter as a tiny real site, not a wireframe: the site's own name in the menu, the banner's actual
- * eyebrow and headline, the real highlight numbers, and the trade's extra row (gallery tiles, shop cards). The
- * window sits on a dark backdrop lit by the brand colour and runs off the card's edges, so sixteen of them in a row
- * read as sixteen different sites.
- */
-function WebsiteMockup({ home, name, color }: { home: StarterPage | undefined; name: string; color: string }) {
-  const blocks = home?.blocks ?? [];
-  const hero = blocks.find((b) => b.type === "hero")?.config as HeroBlockConfig | undefined;
-  const stats = ((blocks.find((b) => b.type === "stats")?.config as StatsBlockConfig | undefined)?.items ?? []).slice(0, 3);
-  const gallery = blocks.some((b) => b.type === "gallery");
-  const shop = blocks.some((b) => b.type === "product_list");
-  const tint = (pct: number) => `color-mix(in oklab, ${color} ${pct}%, white)`;
-
-  return (
-    <div
-      aria-hidden
-      className="relative h-48 overflow-hidden rounded-2xl bg-neutral-950"
-      style={{ background: `radial-gradient(140% 120% at 10% 20%, color-mix(in oklab, ${color} 55%, #0a0a0a) 0%, color-mix(in oklab, ${color} 18%, #0a0a0a) 100%)` }}
-    >
-      <div className="absolute -right-8 -top-12 h-44 w-44 rounded-full opacity-50 blur-3xl" style={{ background: color }} />
-      <div className="absolute left-4 right-[-10%] top-5 overflow-hidden rounded-t-xl bg-white shadow-[0_40px_80px_-24px_rgba(0,0,0,0.9)] ring-1 ring-white/15">
-        <div className="flex h-5 items-center gap-1 bg-neutral-100 px-2.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#ff5f57]" />
-          <span className="h-1.5 w-1.5 rounded-full bg-[#febc2e]" />
-          <span className="h-1.5 w-1.5 rounded-full bg-[#28c840]" />
-          <span className="ml-2 h-2 w-24 rounded-full bg-white ring-1 ring-neutral-200" />
-        </div>
-        <div className="flex items-center justify-between px-3 py-2">
-          <span className="truncate text-[8px] font-bold tracking-tight text-neutral-950">{name}</span>
-          <span className="flex items-center gap-2 text-[6px] font-medium text-neutral-500">
-            <span className="rounded-full px-1.5 py-0.5 font-semibold text-white" style={{ background: color }}>
-              Home
-            </span>
-            <span>About</span>
-            <span>Contact</span>
-          </span>
-        </div>
-        <div className="relative px-3 pb-2.5 pt-3" style={{ background: color }}>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/5" />
-          <div className="relative">
-            {hero?.eyebrow && <p className="mb-1 text-[5px] font-bold uppercase tracking-[0.2em] text-white/80">{hero.eyebrow}</p>}
-            <p className="line-clamp-2 text-[11px] font-extrabold leading-[1.05] tracking-tight text-white">{hero?.headline ?? "Your headline"}</p>
-            <span className="mt-2 inline-block rounded-full bg-white px-2 py-0.5 text-[5px] font-bold text-neutral-950">{hero?.button_label ?? "Get in touch"}</span>
-          </div>
-        </div>
-        {stats.length > 0 && (
-          <div className="grid grid-cols-3 gap-1.5 px-2.5 pt-2.5">
-            {stats.map((s, i) => (
-              <div key={i} className="rounded-md bg-neutral-100 px-1 py-1.5 text-center">
-                <p className="truncate text-[8px] font-extrabold tracking-tight" style={{ color }}>
-                  {s.value}
-                </p>
-                <p className="truncate text-[4.5px] font-medium uppercase tracking-wide text-neutral-500">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        )}
-        {(gallery || shop) && (
-          <div className="grid grid-cols-3 gap-1.5 px-2.5 pt-2">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-7 rounded-md" style={{ background: `linear-gradient(135deg, ${tint(45 - i * 8)}, ${tint(18)})` }} />
             ))}
           </div>
         )}

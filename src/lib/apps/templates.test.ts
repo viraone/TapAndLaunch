@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isReservedPagePath } from "@/lib/pwa/reserved-paths";
 import { BLOCK_TYPES } from "@/lib/builder/block-defaults";
-import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, WEBSITE_TOPICS, buildStarter, isTemplateId, templateNeedsMaps } from "./templates";
+import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, WEBSITE_STYLES, WEBSITE_TOPICS, buildStarter, isTemplateId, templateNeedsMaps, websiteStyleOf } from "./templates";
 
 const TOPIC_IDS = ["photography", "design", "education", "consulting", "art", "health", "marketing", "technology", "construction", "apparel", "music", "realestate", "beauty", "travel", "weddings"];
 
@@ -106,6 +106,23 @@ describe("starter templates", () => {
       expect(STARTER_TEMPLATES.filter((t) => t.color === topic.color).map((t) => t.id), topic.color).toEqual([topic.id]);
     }
     expect(headlines.size).toBe(WEBSITE_TOPICS.length);
+  });
+
+  it("gives the topic websites five real flavours, all used, each readable back from the site's own theme", () => {
+    expect([...new Set(WEBSITE_TOPICS.map((t) => t.style))].sort()).toEqual(["bold", "cinematic", "classic", "editorial", "split"]);
+    for (const topic of WEBSITE_TOPICS) {
+      const starter = buildStarter(topic.id, "X");
+      const flavour = WEBSITE_STYLES[topic.style];
+      expect(starter.theme, topic.id).toMatchObject(flavour.theme);
+      expect(starter.manifest.background_color, topic.id).toBe(flavour.theme.background_color);
+      expect(websiteStyleOf(starter.theme), topic.id).toBe(topic.style);
+      // The quote is on Home for editorial sites, on About for the rest — once, never twice.
+      const onHome = starter.pages[0].blocks.filter((b) => b.type === "quote").length;
+      const onAbout = starter.pages[1].blocks.filter((b) => b.type === "quote").length;
+      expect([onHome, onAbout], topic.id).toEqual(flavour.quoteOnHome ? [1, 0] : [0, 1]);
+    }
+    // The flavours really are different sites, not the same theme under five names.
+    expect(new Set(Object.values(WEBSITE_STYLES).map((s) => s.theme.font_pair)).size).toBe(5);
   });
 
   it("gives each trade the extra sections that fit it, and nothing invented", () => {
