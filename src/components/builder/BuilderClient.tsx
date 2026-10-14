@@ -30,6 +30,7 @@ import { tileGradient, tileInitial } from "@/lib/apps/tile";
 import { buildChecklist, type ChecklistStepId } from "@/lib/apps/checklist";
 import { BuilderPhoneNotice } from "@/components/builder/BuilderPhoneNotice";
 import { AddSectionBar } from "@/components/builder/AddSectionBar";
+import { FIELD_FOCUS_EVENT, flashField, type FieldFocusDetail } from "@/lib/builder/field-link";
 import { Inspector } from "@/components/builder/Inspector";
 import { PageTabs } from "@/components/builder/PageTabs";
 import { SortableBlockItem } from "@/components/builder/SortableBlockItem";
@@ -98,6 +99,7 @@ export function BuilderClient({
   );
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [device, setDevice] = useState<DeviceFrame>("ios");
+  const inspectorRef = useRef<HTMLElement>(null);
   // "Edit" shows the sections to arrange and change; "Try it" loads the real app at its own address inside the phone,
   // so a tap on a cuisine or a Book link does what it will do for a visitor. A draft needs a preview key for that
   // (api/apps/[id]/preview); every switch into Try it saves first and loads afresh, so it always shows the latest edits.
@@ -149,6 +151,23 @@ export function BuilderClient({
     setBlocks((prev) => (index === undefined ? [...prev, block] : [...prev.slice(0, index), block, ...prev.slice(index)]));
     setSelectedBlockId(block.id);
   }
+
+  // Clicking words on the page lights up their box in the inspector (which may still be opening: a few tries).
+  useEffect(() => {
+    const onFocus = (e: Event) => {
+      const { key, source } = (e as CustomEvent<FieldFocusDetail>).detail;
+      if (source !== "page") return;
+      let tries = 0;
+      const find = () => {
+        const el = inspectorRef.current?.querySelector<HTMLElement>(`[data-field="${CSS.escape(key)}"]`);
+        if (el) flashField(el);
+        else if (tries++ < 10) window.setTimeout(find, 60);
+      };
+      find();
+    };
+    window.addEventListener(FIELD_FOCUS_EVENT, onFocus);
+    return () => window.removeEventListener(FIELD_FOCUS_EVENT, onFocus);
+  }, []);
 
   function updateBlockConfig(id: string, config: BlockConfig) {
     setBlocks((prev) => prev.map((b) => (b.id === id ? ({ ...b, config } as BuilderBlock) : b)));
@@ -658,7 +677,7 @@ export function BuilderClient({
             )}
           </div>
 
-          <aside className="overflow-y-auto border-l border-white/[0.06] bg-neutral-950">
+          <aside ref={inspectorRef} className="overflow-y-auto border-l border-white/[0.06] bg-neutral-950">
             <Inspector
               block={selectedBlock}
               pageName={currentPage?.name ?? "This page"}

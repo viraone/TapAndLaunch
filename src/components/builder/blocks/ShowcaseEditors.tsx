@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUploadField } from "@/components/builder/ImageUploadField";
 import type { GalleryBlockConfig, HeroBlockConfig, HoursBlockConfig, PriceListBlockConfig, ReviewsBlockConfig, StatsBlockConfig } from "@/types/database";
+import { linked } from "@/lib/builder/field-link";
 
 /** Editors for the showcase blocks (banner, menu & prices, hours, reviews, highlights, gallery). */
 
@@ -51,16 +52,16 @@ export function HeroBlockEditor({ config, organizationId, onChange }: { config: 
     <div className="space-y-3">
       <ImageUploadField id="hero-image" label="Background photo" organizationId={organizationId} value={config.image_url ?? ""} onChange={(image_url) => onChange({ ...config, image_url })} />
       <Field id="hero-eyebrow" label="Small label above (optional)">
-        <Input id="hero-eyebrow" value={config.eyebrow ?? ""} maxLength={40} onChange={(e) => onChange({ ...config, eyebrow: e.target.value })} />
+        <Input id="hero-eyebrow" {...linked("eyebrow")} value={config.eyebrow ?? ""} maxLength={40} onChange={(e) => onChange({ ...config, eyebrow: e.target.value })} />
       </Field>
       <Field id="hero-headline" label="Headline">
-        <Input id="hero-headline" value={config.headline ?? ""} maxLength={80} onChange={(e) => onChange({ ...config, headline: e.target.value })} />
+        <Input id="hero-headline" {...linked("headline")} value={config.headline ?? ""} maxLength={80} onChange={(e) => onChange({ ...config, headline: e.target.value })} />
       </Field>
       <Field id="hero-subtext" label="Line under the headline">
-        <Textarea id="hero-subtext" rows={2} value={config.subtext ?? ""} maxLength={200} onChange={(e) => onChange({ ...config, subtext: e.target.value })} />
+        <Textarea id="hero-subtext" {...linked("subtext")} rows={2} value={config.subtext ?? ""} maxLength={200} onChange={(e) => onChange({ ...config, subtext: e.target.value })} />
       </Field>
       <Field id="hero-button" label="Button text (leave empty for no button)">
-        <Input id="hero-button" value={config.button_label ?? ""} maxLength={30} onChange={(e) => onChange({ ...config, button_label: e.target.value })} />
+        <Input id="hero-button" {...linked("button_label")} value={config.button_label ?? ""} maxLength={30} onChange={(e) => onChange({ ...config, button_label: e.target.value })} />
       </Field>
       <Field id="hero-page" label="Button opens page (its address, like classes)">
         <Input id="hero-page" value={config.button_page ?? ""} maxLength={60} onChange={(e) => onChange({ ...config, button_page: e.target.value.replace(/^\/+/, "") })} />
@@ -77,8 +78,8 @@ export function StatsBlockEditor({ config, onChange }: { config: StatsBlockConfi
         <Card key={i}>
           <div className="flex items-start gap-2">
             <div className="grid flex-1 grid-cols-2 gap-2">
-              <Input aria-label="Value" placeholder="4.9★" value={item.value} maxLength={12} onChange={(e) => onChange({ ...config, items: replaceAt(items, i, { ...item, value: e.target.value }) })} />
-              <Input aria-label="Label" placeholder="Rating" value={item.label} maxLength={24} onChange={(e) => onChange({ ...config, items: replaceAt(items, i, { ...item, label: e.target.value }) })} />
+              <Input aria-label="Value" placeholder="4.9★" {...linked(["items", i, "value"])} value={item.value} maxLength={12} onChange={(e) => onChange({ ...config, items: replaceAt(items, i, { ...item, value: e.target.value }) })} />
+              <Input aria-label="Label" placeholder="Rating" {...linked(["items", i, "label"])} value={item.label} maxLength={24} onChange={(e) => onChange({ ...config, items: replaceAt(items, i, { ...item, label: e.target.value }) })} />
             </div>
             <RemoveButton label="Remove this fact" onClick={() => onChange({ ...config, items: removeAt(items, i) })} />
           </div>
@@ -95,26 +96,26 @@ export function PriceListBlockEditor({ config, onChange }: { config: PriceListBl
   return (
     <div className="space-y-3">
       <Field id="pl-title" label="Title">
-        <Input id="pl-title" value={config.title ?? ""} maxLength={60} onChange={(e) => onChange({ ...config, title: e.target.value })} />
+        <Input id="pl-title" {...linked("title")} value={config.title ?? ""} maxLength={60} onChange={(e) => onChange({ ...config, title: e.target.value })} />
       </Field>
       <Field id="pl-subtitle" label="Line under the title (optional)">
-        <Input id="pl-subtitle" value={config.subtitle ?? ""} maxLength={120} onChange={(e) => onChange({ ...config, subtitle: e.target.value })} />
+        <Input id="pl-subtitle" {...linked("subtitle")} value={config.subtitle ?? ""} maxLength={120} onChange={(e) => onChange({ ...config, subtitle: e.target.value })} />
       </Field>
       {sections.map((section, si) => (
         <Card key={si}>
           <div className="flex items-center gap-2">
-            <Input aria-label="Section name" placeholder="Section, like Mains" value={section.name} maxLength={40} onChange={(e) => setSection(si, { ...section, name: e.target.value })} />
+            <Input aria-label="Section name" placeholder="Section, like Mains" {...linked(["sections", si, "name"])} value={section.name} maxLength={40} onChange={(e) => setSection(si, { ...section, name: e.target.value })} />
             <RemoveButton label="Remove this section" onClick={() => onChange({ ...config, sections: removeAt(sections, si) })} />
           </div>
           {section.items.map((item, ii) => (
             <div key={ii} className="space-y-1.5 border-t border-white/10 pt-2">
               <div className="flex items-center gap-2">
-                <Input aria-label="Item name" placeholder="Name" value={item.name} maxLength={60} onChange={(e) => setSection(si, { ...section, items: replaceAt(section.items, ii, { ...item, name: e.target.value }) })} />
-                <Input aria-label="Price" placeholder="$12" className="w-24" value={item.price ?? ""} maxLength={16} onChange={(e) => setSection(si, { ...section, items: replaceAt(section.items, ii, { ...item, price: e.target.value }) })} />
+                <Input aria-label="Item name" placeholder="Name" {...linked(["sections", si, "items", ii, "name"])} value={item.name} maxLength={60} onChange={(e) => setSection(si, { ...section, items: replaceAt(section.items, ii, { ...item, name: e.target.value }) })} />
+                <Input aria-label="Price" placeholder="$12" className="w-24" {...linked(["sections", si, "items", ii, "price"])} value={item.price ?? ""} maxLength={16} onChange={(e) => setSection(si, { ...section, items: replaceAt(section.items, ii, { ...item, price: e.target.value }) })} />
                 <RemoveButton label="Remove this item" onClick={() => setSection(si, { ...section, items: removeAt(section.items, ii) })} />
               </div>
-              <Input aria-label="Description" placeholder="Short description (optional)" value={item.description ?? ""} maxLength={140} onChange={(e) => setSection(si, { ...section, items: replaceAt(section.items, ii, { ...item, description: e.target.value }) })} />
-              <Input aria-label="Badge" placeholder="Badge, like Popular (optional)" value={item.badge ?? ""} maxLength={20} onChange={(e) => setSection(si, { ...section, items: replaceAt(section.items, ii, { ...item, badge: e.target.value }) })} />
+              <Input aria-label="Description" placeholder="Short description (optional)" {...linked(["sections", si, "items", ii, "description"])} value={item.description ?? ""} maxLength={140} onChange={(e) => setSection(si, { ...section, items: replaceAt(section.items, ii, { ...item, description: e.target.value }) })} />
+              <Input aria-label="Badge" placeholder="Badge, like Popular (optional)" {...linked(["sections", si, "items", ii, "badge"])} value={item.badge ?? ""} maxLength={20} onChange={(e) => setSection(si, { ...section, items: replaceAt(section.items, ii, { ...item, badge: e.target.value }) })} />
             </div>
           ))}
           <AddButton onClick={() => setSection(si, { ...section, items: [...section.items, { name: "", price: "" }] })}>Add an item</AddButton>
@@ -130,18 +131,18 @@ export function HoursBlockEditor({ config, onChange }: { config: HoursBlockConfi
   return (
     <div className="space-y-3">
       <Field id="hours-title" label="Title">
-        <Input id="hours-title" value={config.title ?? ""} maxLength={40} onChange={(e) => onChange({ ...config, title: e.target.value })} />
+        <Input id="hours-title" {...linked("title")} value={config.title ?? ""} maxLength={40} onChange={(e) => onChange({ ...config, title: e.target.value })} />
       </Field>
       {rows.map((row, i) => (
         <div key={i} className="flex items-center gap-2">
-          <Input aria-label="Days" placeholder="Mon to Fri" value={row.label} maxLength={30} onChange={(e) => onChange({ ...config, rows: replaceAt(rows, i, { ...row, label: e.target.value }) })} />
-          <Input aria-label="Hours" placeholder="9am to 6pm" value={row.value} maxLength={40} onChange={(e) => onChange({ ...config, rows: replaceAt(rows, i, { ...row, value: e.target.value }) })} />
+          <Input aria-label="Days" placeholder="Mon to Fri" {...linked(["rows", i, "label"])} value={row.label} maxLength={30} onChange={(e) => onChange({ ...config, rows: replaceAt(rows, i, { ...row, label: e.target.value }) })} />
+          <Input aria-label="Hours" placeholder="9am to 6pm" {...linked(["rows", i, "value"])} value={row.value} maxLength={40} onChange={(e) => onChange({ ...config, rows: replaceAt(rows, i, { ...row, value: e.target.value }) })} />
           <RemoveButton label="Remove this row" onClick={() => onChange({ ...config, rows: removeAt(rows, i) })} />
         </div>
       ))}
       <AddButton onClick={() => onChange({ ...config, rows: [...rows, { label: "", value: "" }] })}>Add a row</AddButton>
       <Field id="hours-address" label="Address (shows a Directions button)">
-        <Input id="hours-address" value={config.address ?? ""} maxLength={160} onChange={(e) => onChange({ ...config, address: e.target.value })} />
+        <Input id="hours-address" {...linked("address")} value={config.address ?? ""} maxLength={160} onChange={(e) => onChange({ ...config, address: e.target.value })} />
       </Field>
       <Field id="hours-phone" label="Phone (shows a Call button)">
         <Input id="hours-phone" type="tel" value={config.phone ?? ""} maxLength={30} onChange={(e) => onChange({ ...config, phone: e.target.value })} />
@@ -155,16 +156,16 @@ export function ReviewsBlockEditor({ config, onChange }: { config: ReviewsBlockC
   return (
     <div className="space-y-3">
       <Field id="rev-title" label="Title">
-        <Input id="rev-title" value={config.title ?? ""} maxLength={60} onChange={(e) => onChange({ ...config, title: e.target.value })} />
+        <Input id="rev-title" {...linked("title")} value={config.title ?? ""} maxLength={60} onChange={(e) => onChange({ ...config, title: e.target.value })} />
       </Field>
       {items.map((item, i) => (
         <Card key={i}>
           <div className="flex items-start gap-2">
-            <Textarea aria-label="Quote" rows={3} value={item.quote} maxLength={280} onChange={(e) => onChange({ ...config, items: replaceAt(items, i, { ...item, quote: e.target.value }) })} />
+            <Textarea aria-label="Quote" rows={3} {...linked(["items", i, "quote"])} value={item.quote} maxLength={280} onChange={(e) => onChange({ ...config, items: replaceAt(items, i, { ...item, quote: e.target.value }) })} />
             <RemoveButton label="Remove this review" onClick={() => onChange({ ...config, items: removeAt(items, i) })} />
           </div>
           <div className="flex items-center gap-2">
-            <Input aria-label="Name" placeholder="Name" value={item.name} maxLength={40} onChange={(e) => onChange({ ...config, items: replaceAt(items, i, { ...item, name: e.target.value }) })} />
+            <Input aria-label="Name" placeholder="Name" {...linked(["items", i, "name"])} value={item.name} maxLength={40} onChange={(e) => onChange({ ...config, items: replaceAt(items, i, { ...item, name: e.target.value }) })} />
             <select
               aria-label="Stars"
               value={item.rating ?? 5}
@@ -190,7 +191,7 @@ export function GalleryBlockEditor({ config, organizationId, onChange }: { confi
   return (
     <div className="space-y-3">
       <Field id="gal-title" label="Title (optional)">
-        <Input id="gal-title" value={config.title ?? ""} maxLength={60} onChange={(e) => onChange({ ...config, title: e.target.value })} />
+        <Input id="gal-title" {...linked("title")} value={config.title ?? ""} maxLength={60} onChange={(e) => onChange({ ...config, title: e.target.value })} />
       </Field>
       {images.map((img, i) => (
         <Card key={i}>

@@ -82,3 +82,8 @@ the page) and opens a visual menu (`AddSectionBar`); there is no list of section
 clicking them, on the page (`EditableImage`: the banner's background, an image section, each gallery photo) or on the
 inspector's thumbnail; the file goes to `app-assets` and its address into the block. The inspector on the right is for
 links and settings.
+
+The page and the inspector are linked: clicking a piece of text on the page lights up its box in the inspector and
+scrolls to it, and focusing a box lights up the words on the page (`src/lib/builder/field-link.ts`: both sides carry the
+field's path as `data-field`; `linked(path)` on an inspector input, `EditableText` on the page). **Build with AI** is
+switched off in the builder for now (`AI_CHAT_ENABLED` in the builder page); the BYOB app type still builds from its chat.

@@ -2,6 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { ZoomMeetingBlockConfig } from "@/types/database";
+import { linked } from "@/lib/builder/field-link";
 
 /** A meeting-link embed, not a Zoom API integration — creating/managing the
  * meeting itself still happens in Zoom; this just links to it. */
@@ -18,6 +19,7 @@ export function ZoomMeetingBlockEditor({
         <Label htmlFor="zoom-title">Title</Label>
         <Input
           id="zoom-title"
+          {...linked("title")}
           value={config.title ?? ""}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
         />
@@ -26,6 +28,7 @@ export function ZoomMeetingBlockEditor({
         <Label htmlFor="zoom-description">Description</Label>
         <Textarea
           id="zoom-description"
+          {...linked("description")}
           rows={2}
           value={config.description ?? ""}
           onChange={(e) => onChange({ ...config, description: e.target.value })}

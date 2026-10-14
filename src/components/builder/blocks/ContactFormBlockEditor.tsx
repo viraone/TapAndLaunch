@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Trash2, Plus } from "lucide-react";
 import type { ContactFormBlockConfig } from "@/types/database";
+import { linked } from "@/lib/builder/field-link";
 
 type Field = NonNullable<ContactFormBlockConfig["fields"]>[number];
 
@@ -45,6 +46,7 @@ export function ContactFormBlockEditor({
         <Label htmlFor="form-title">Title</Label>
         <Input
           id="form-title"
+          {...linked("title")}
           value={config.title ?? ""}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
         />

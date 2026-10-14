@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUploadField } from "@/components/builder/FileUploadField";
 import type { FilesBlockConfig } from "@/types/database";
+import { linked } from "@/lib/builder/field-link";
 
 type FileItem = NonNullable<FilesBlockConfig["items"]>[number];
 
@@ -17,11 +18,11 @@ export function FilesBlockEditor({ config, organizationId, onChange }: { config:
     <div className="space-y-3">
       <div className="space-y-1">
         <Label htmlFor="files-title">Title</Label>
-        <Input id="files-title" value={config.title ?? ""} maxLength={60} onChange={(e) => onChange({ ...config, title: e.target.value })} />
+        <Input id="files-title" {...linked("title")} value={config.title ?? ""} maxLength={60} onChange={(e) => onChange({ ...config, title: e.target.value })} />
       </div>
       <div className="space-y-1">
         <Label htmlFor="files-intro">A line under the title (optional)</Label>
-        <Textarea id="files-intro" rows={2} value={config.intro ?? ""} maxLength={200} onChange={(e) => onChange({ ...config, intro: e.target.value })} />
+        <Textarea id="files-intro" {...linked("intro")} rows={2} value={config.intro ?? ""} maxLength={200} onChange={(e) => onChange({ ...config, intro: e.target.value })} />
       </div>
       {items.map((item, i) => (
         <div key={i} className="space-y-2 rounded-xl bg-white/[0.04] p-3 ring-1 ring-white/10">
@@ -44,8 +45,8 @@ export function FilesBlockEditor({ config, organizationId, onChange }: { config:
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
-          <Input aria-label="Name shown for the file" placeholder="Name shown, like Week 1 handout" value={item.label} maxLength={80} onChange={(e) => setItem(i, { ...item, label: e.target.value })} />
-          <Input aria-label="A short note about the file" placeholder="A short note (optional)" value={item.note ?? ""} maxLength={120} onChange={(e) => setItem(i, { ...item, note: e.target.value })} />
+          <Input aria-label="Name shown for the file" placeholder="Name shown, like Week 1 handout" {...linked(["items", i, "label"])} value={item.label} maxLength={80} onChange={(e) => setItem(i, { ...item, label: e.target.value })} />
+          <Input aria-label="A short note about the file" placeholder="A short note (optional)" {...linked(["items", i, "note"])} value={item.note ?? ""} maxLength={120} onChange={(e) => setItem(i, { ...item, note: e.target.value })} />
         </div>
       ))}
       {items.length < MAX_FILES && (

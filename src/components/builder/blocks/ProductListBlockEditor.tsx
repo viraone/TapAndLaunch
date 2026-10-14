@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import type { ProductListBlockConfig } from "@/types/database";
+import { linked } from "@/lib/builder/field-link";
 
 /** Products themselves are managed on their own dashboard page, not here —
  * this block always shows every active product for the app (see the
@@ -21,6 +22,7 @@ export function ProductListBlockEditor({
         <Label htmlFor="product-list-title">Title</Label>
         <Input
           id="product-list-title"
+          {...linked("title")}
           value={config.title ?? ""}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
         />

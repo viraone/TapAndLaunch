@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import type { EventCalendarBlockConfig } from "@/types/database";
+import { linked } from "@/lib/builder/field-link";
 
 /** Events are managed on their own dashboard page — this block always shows
  * every upcoming event for the app. */
@@ -20,6 +21,7 @@ export function EventCalendarBlockEditor({
         <Label htmlFor="event-calendar-title">Title</Label>
         <Input
           id="event-calendar-title"
+          {...linked("title")}
           value={config.title ?? ""}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
         />

@@ -2,6 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { TextBlockConfig } from "@/types/database";
+import { linked } from "@/lib/builder/field-link";
 
 export function TextBlockEditor({
   config,
@@ -16,6 +17,7 @@ export function TextBlockEditor({
         <Label htmlFor="text-heading">Heading</Label>
         <Input
           id="text-heading"
+          {...linked("heading")}
           value={config.heading ?? ""}
           onChange={(e) => onChange({ ...config, heading: e.target.value })}
         />
@@ -24,6 +26,7 @@ export function TextBlockEditor({
         <Label htmlFor="text-body">Body</Label>
         <Textarea
           id="text-body"
+          {...linked("body")}
           rows={5}
           value={config.body ?? ""}
           onChange={(e) => onChange({ ...config, body: e.target.value })}

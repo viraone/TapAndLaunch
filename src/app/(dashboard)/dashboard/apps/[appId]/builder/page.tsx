@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BuilderClient } from "@/components/builder/BuilderClient";
 import { AiChatPanel } from "@/components/builder/AiChatPanel";
+
+const AI_CHAT_ENABLED = false;
 import { CodeBuilder } from "@/components/builder/CodeBuilder";
 import { latestVersion, listVersions } from "@/lib/code/store";
 import { getRootDomain, rootDomainFor } from "@/lib/tenant";
@@ -92,7 +94,8 @@ export default async function BuilderPage({ params, searchParams }: { params: Pa
       hasVisit={hasVisit}
       contentOnOtherPages={!!otherBlocks.data?.length}
     />
-    <AiChatPanel appId={appId} appName={app.name} initiallyOpen={ai === "1"} />
+    {/* Build with AI is switched off for now (2026-10-14): one less thing on the screen while the builder is being simplified. */}
+    {AI_CHAT_ENABLED && <AiChatPanel appId={appId} appName={app.name} initiallyOpen={ai === "1"} />}
     </>
   );
 }

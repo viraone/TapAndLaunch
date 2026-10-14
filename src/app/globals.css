@@ -135,3 +135,10 @@
     @apply font-sans;
   }
 }
+
+/* The builder: a piece of text on the page and its box in the inspector light up together when either is focused. */
+[data-field-hot="true"] {
+  box-shadow: 0 0 0 3px #6366f1, 0 0 18px 2px rgba(99, 102, 241, 0.55);
+  border-radius: 6px;
+  transition: box-shadow 150ms ease-out;
+}

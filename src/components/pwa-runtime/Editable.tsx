@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, createElement, useContext, useRef, useState } from "react";
+import { createContext, createElement, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImageUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { announceField, fieldKey, FIELD_FOCUS_EVENT, FIELD_HOT_ATTR, FIELD_HOT_MS, type FieldFocusDetail } from "@/lib/builder/field-link";
 
 /**
  * In-place editing of a block's words, Squarespace-style: in the builder, the text of a section is the thing you
@@ -43,29 +44,48 @@ export function EditableText({
 }) {
   const editing = useContext(BlockEditContext);
   const text = value ?? "";
+  const key = fieldKey(path);
+  const el = useRef<HTMLElement>(null);
+
+  // Lights up when its box in the inspector is focused.
+  useEffect(() => {
+    if (!editing) return;
+    const onFocus = (e: Event) => {
+      const { key: k, source } = (e as CustomEvent<FieldFocusDetail>).detail;
+      if (source !== "inspector" || k !== key || !el.current) return;
+      el.current.setAttribute(FIELD_HOT_ATTR, "true");
+      el.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      window.setTimeout(() => el.current?.removeAttribute(FIELD_HOT_ATTR), FIELD_HOT_MS);
+    };
+    window.addEventListener(FIELD_FOCUS_EVENT, onFocus);
+    return () => window.removeEventListener(FIELD_FOCUS_EVENT, onFocus);
+  }, [editing, key]);
 
   if (!editing) {
     if (!text) return fallback ? createElement(as, { className }, fallback) : null;
     return createElement(as, { className: cn(className, multiline && "whitespace-pre-wrap") }, text);
   }
 
-  return createElement(
-    as,
-    {
-      contentEditable: true,
-      suppressContentEditableWarning: true,
-      role: "textbox",
-      "aria-label": placeholder ?? "Text",
-      "aria-multiline": multiline,
-      "data-placeholder": placeholder ?? fallback ?? "",
-      spellCheck: true,
-      className: cn(
+  const Tag = as as React.ElementType;
+  return (
+    <Tag
+      ref={el}
+      data-field={key}
+      onFocus={() => announceField(key, "page")}
+      contentEditable
+      suppressContentEditableWarning
+      role="textbox"
+      aria-label={placeholder ?? "Text"}
+      aria-multiline={multiline}
+      data-placeholder={placeholder ?? fallback ?? ""}
+      spellCheck
+      className={cn(
         className,
         "pointer-events-auto cursor-text rounded-sm outline-none ring-offset-1 transition hover:ring-1 hover:ring-indigo-400/70 focus:ring-2 focus:ring-indigo-500",
         "empty:before:pointer-events-none empty:before:opacity-50 empty:before:content-[attr(data-placeholder)]",
         "whitespace-pre-wrap"
-      ),
-      onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+      )}
+      onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
         if (e.key === "Escape" || (e.key === "Enter" && !multiline)) {
           e.preventDefault();
           e.currentTarget.blur();
@@ -79,21 +99,22 @@ export function EditableText({
           selection?.removeAllRanges();
           selection?.addRange(range);
         }
-      },
+      }}
       // A click starts editing and must not count as "select the section" for the wrapper around it.
-      onMouseDown: (e: React.MouseEvent<HTMLElement>) => e.stopPropagation(),
+      onMouseDown={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
       // Pasted text comes in plain, never as formatting from another site.
-      onPaste: (e: React.ClipboardEvent<HTMLElement>) => {
+      onPaste={(e: React.ClipboardEvent<HTMLElement>) => {
         e.preventDefault();
         document.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
-      },
-      onBlur: (e: React.FocusEvent<HTMLElement>) => {
-        const el = e.currentTarget;
-        const next = (multiline ? el.innerText : el.textContent ?? "").replace(/\n+$/, "");
+      }}
+      onBlur={(e: React.FocusEvent<HTMLElement>) => {
+        const target = e.currentTarget;
+        const next = (multiline ? target.innerText : (target.textContent ?? "")).replace(/\n+$/, "");
         if (next !== text) editing.set(path, next);
-      },
-    },
-    text
+      }}
+    >
+      {text}
+    </Tag>
   );
 }
 
