@@ -53,7 +53,15 @@ calendar** on Contact with three sample appointments each (`sampleEvents`, every
 also gets a **product list** on Home with three sample products (`sampleProducts`, no photos — `StarterProduct.image`
 is now optional and inserts as null); Real estate gets a **map** on Contact with no address, so nothing is invented.
 Design, Marketing, Technology, Construction, Music and Travel keep the core shape. A test pins exactly which trade
-gets which extra, and that galleries are empty, the map has no address and every sample says it is one. `TemplatePreview` draws it as a tiny browser window (traffic-light dots, a wide
+gets which extra, and that galleries are empty, the map has no address and every sample says it is one.
+
+A website card's mockup is a tiny real site, not a wireframe (`WebsiteMockup` in `TemplatePreview.tsx`): the site's
+name in a menu, the banner's actual eyebrow, headline and button, the real highlight numbers, and a row of tiles
+for a trade with a gallery or shop — on a dark backdrop lit by the brand colour, the window running off the card.
+Sixteen identical wireframes in sixteen tints looked, in the user's words, ugly. The card itself is lean: a small
+icon, the name, a two-line tagline, and chips only for the extras (`includes` on a website template is derived from
+its extras — "Gallery", "Shop", "Online booking", "Map" — and a test checks it matches the blocks really there).
+Phone-first cards are unchanged. `TemplatePreview` draws it as a tiny browser window (traffic-light dots, a wide
 frame) instead of a phone when the starter's `theme.layout` is `"website"`, so the card itself signals "this one's a
 website" before anyone clicks it. Opening the builder on a `"website"` app also defaults the "Preview on" switch to
 **Desktop** instead of iPhone (`BuilderClient`'s initial `device` state), so a Desktop View starter opens already

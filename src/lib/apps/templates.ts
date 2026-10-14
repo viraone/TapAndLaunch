@@ -615,13 +615,15 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     tagline: "A full-width site for your own name: your story, highlights, testimonials and a way for people to reach you.",
     icon: "monitor",
     color: "#1d4ed8",
-    includes: ["Full-width website", "Banner", "Highlights", "Testimonials", "Newsletter", "Contact"],
+    // Website cards list only what sets a trade apart (a gallery, bookings, a shop, a map); every website has a
+    // banner, highlights, testimonials, a newsletter and a contact page, so saying so on each card said nothing.
+    includes: [],
     category: "website",
     asksAbout: true,
     nameHint: "Jordan Lee",
     aboutHint: "I'm a career coach helping people land their next role",
   },
-  // One card per topic, after the general Personal website. Same shape and chips; the copy is the difference.
+  // One card per topic, after the general Personal website. Same core shape; the copy, colour and extras differ.
   ...WEBSITE_TOPICS.map(
     (t): StarterTemplate => ({
       id: t.id,
@@ -629,7 +631,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
       tagline: t.tagline,
       icon: t.icon,
       color: t.color,
-      includes: ["Full-width website", "Banner", "Highlights", "Testimonials", "Newsletter", "Contact"],
+      includes: [t.galleryTitle && "Gallery", t.shopTitle && "Shop", t.bookingTitle && "Online booking", t.mapTitle && "Map"].filter((x): x is string => !!x),
       category: "website",
       asksAbout: true,
       nameHint: t.nameHint,

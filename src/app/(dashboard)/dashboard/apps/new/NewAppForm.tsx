@@ -278,13 +278,47 @@ function TemplateShelf({
   );
 }
 
+const CARD =
+  "group relative flex flex-col text-left ring-1 ring-black/5 transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 enabled:hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0";
+
 function TemplateCard({ template: t, categoryName, onSelect }: { template: StarterTemplate; categoryName?: string; onSelect: () => void }) {
   const Icon = ICONS[t.icon];
+
+  // A website card is leaner: the mockup is the point (it's a tiny real site), so a small icon, the name, a
+  // two-line tagline, and chips only for what sets this trade apart.
+  if (t.category === "website") {
+    return (
+      <button
+        type="button"
+        onClick={onSelect}
+        className={`${CARD} rounded-[1.4rem] bg-white p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_-14px_rgba(0,0,0,0.25)] enabled:hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_28px_56px_-18px_rgba(0,0,0,0.35)]`}
+      >
+        <TemplatePreview templateId={t.id} color={t.color} />
+        <div className="flex items-center gap-2.5 px-2 pt-3.5">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ background: t.color }}>
+            <Icon className="h-3.5 w-3.5" />
+          </span>
+          <h4 className="text-[15px] font-semibold tracking-tight">{t.name}</h4>
+          {t.includes.length > 0 && (
+            <span className="ml-auto flex shrink-0 gap-1">
+              {t.includes.map((chip) => (
+                <span key={chip} className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: `color-mix(in oklab, ${t.color} 12%, white)`, color: `color-mix(in oklab, ${t.color} 70%, black)` }}>
+                  {chip}
+                </span>
+              ))}
+            </span>
+          )}
+        </div>
+        <p className="mt-1.5 line-clamp-2 px-2 pb-1.5 text-[13px] leading-relaxed text-neutral-500">{t.tagline}</p>
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
       onClick={onSelect}
-      className="group relative flex flex-col rounded-3xl bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 enabled:hover:-translate-y-1 enabled:hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_24px_48px_-16px_rgba(0,0,0,0.28)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+      className={`${CARD} rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] enabled:hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_24px_48px_-16px_rgba(0,0,0,0.28)]`}
     >
       <TemplatePreview templateId={t.id} color={t.color} />
       {categoryName && <p className="px-2 pt-4 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{categoryName}</p>}

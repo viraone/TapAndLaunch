@@ -124,6 +124,13 @@ describe("starter templates", () => {
     expect(extras("realestate")).toEqual({ home: [], contact: ["map"], events: 0, products: 0 });
     for (const id of ["design", "marketing", "technology", "construction", "music", "travel"]) expect(extras(id), id).toEqual({ home: [], contact: [], events: 0, products: 0 });
 
+    // The chips on a website card say exactly which extras its pages really have.
+    const label: Record<string, string> = { gallery: "Gallery", product_list: "Shop", event_calendar: "Online booking", map: "Map" };
+    for (const t of STARTER_TEMPLATES.filter((x) => x.category === "website")) {
+      const have = new Set(buildStarter(t.id, "X").pages.flatMap((p) => p.blocks.map((b) => label[b.type])).filter(Boolean));
+      expect(new Set(t.includes), t.id).toEqual(have);
+    }
+
     // Nothing made up: no photos in the galleries, no address on the map, every sample says it is one.
     for (const topic of WEBSITE_TOPICS) {
       const s = buildStarter(topic.id, "X");
