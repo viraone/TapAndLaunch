@@ -202,6 +202,7 @@ export function EditableImage({
   className,
   imgClassName,
   label = "Replace this photo",
+  style,
 }: {
   path: Array<string | number>;
   src: string;
@@ -211,17 +212,19 @@ export function EditableImage({
   /** Classes for the <img> inside the builder's wrapper; defaults to filling it. */
   imgClassName?: string;
   label?: string;
+  /** Inline style for the picture itself (the image block's focal point). */
+  style?: React.CSSProperties;
 }) {
   const editing = useContext(BlockEditContext);
   if (!editing?.upload) {
     // eslint-disable-next-line @next/next/no-img-element -- tenant uploads and template photos, any host
-    return <img src={src} alt={alt} className={className} loading="lazy" />;
+    return <img src={src} alt={alt} className={className} loading="lazy" style={style} />;
   }
   const upload = editing.upload;
   return (
     <ReplaceablePicture className={className} label={label} onFile={async (file) => editing.set(path, await upload(file))}>
       {/* eslint-disable-next-line @next/next/no-img-element -- tenant uploads and template photos, any host */}
-      <img src={src} alt={alt} className={imgClassName ?? "h-full w-full object-cover"} />
+      <img src={src} alt={alt} className={imgClassName ?? "h-full w-full object-cover"} style={style} />
     </ReplaceablePicture>
   );
 }

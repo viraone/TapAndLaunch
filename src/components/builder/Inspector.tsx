@@ -13,6 +13,7 @@ import { OpenMicSignupBlockEditor } from "@/components/builder/blocks/OpenMicSig
 import { ClassFinderBlockEditor } from "@/components/builder/blocks/ClassFinderBlockEditor";
 import { GalleryBlockEditor, HeroBlockEditor, HoursBlockEditor, PriceListBlockEditor, ReviewsBlockEditor, StatsBlockEditor } from "@/components/builder/blocks/ShowcaseEditors";
 import { FilesBlockEditor } from "@/components/builder/blocks/FilesBlockEditor";
+import { ButtonBlockEditor, FaqBlockEditor, QuoteBlockEditor } from "@/components/builder/blocks/ExtraEditors";
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
 import { GetLiveChecklist } from "@/components/builder/GetLiveChecklist";
 import type { Checklist, ChecklistStepId } from "@/lib/apps/checklist";
@@ -187,6 +188,9 @@ export function Inspector({
       {block.type === "stats" && <StatsBlockEditor config={block.config} onChange={onChange} />}
       {block.type === "gallery" && <GalleryBlockEditor config={block.config} organizationId={organizationId} onChange={onChange} />}
       {block.type === "files" && <FilesBlockEditor config={block.config} organizationId={organizationId} onChange={onChange} />}
+      {block.type === "button" && <ButtonBlockEditor config={block.config} pages={pages} onChange={onChange} />}
+      {block.type === "quote" && <QuoteBlockEditor config={block.config} onChange={onChange} />}
+      {block.type === "faq" && <FaqBlockEditor config={block.config} onChange={onChange} />}
       <BlockAccessControl key={block.id} minTier={block.minTier} onChange={onMinTierChange} />
     </div>
   );

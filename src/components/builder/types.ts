@@ -19,6 +19,9 @@ import type {
   StatsBlockConfig,
   GalleryBlockConfig,
   FilesBlockConfig,
+  ButtonBlockConfig,
+  QuoteBlockConfig,
+  FaqBlockConfig,
 } from "@/types/database";
 
 /**
@@ -51,4 +54,7 @@ export type BuilderBlock =
   | { id: string; type: "reviews"; config: ReviewsBlockConfig; minTier: string | null }
   | { id: string; type: "stats"; config: StatsBlockConfig; minTier: string | null }
   | { id: string; type: "gallery"; config: GalleryBlockConfig; minTier: string | null }
-  | { id: string; type: "files"; config: FilesBlockConfig; minTier: string | null };
+  | { id: string; type: "files"; config: FilesBlockConfig; minTier: string | null }
+  | { id: string; type: "button"; config: ButtonBlockConfig; minTier: string | null }
+  | { id: string; type: "quote"; config: QuoteBlockConfig; minTier: string | null }
+  | { id: string; type: "faq"; config: FaqBlockConfig; minTier: string | null };

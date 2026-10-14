@@ -42,6 +42,7 @@ import {
   type DeviceFrame,
 } from "@/components/builder/MobilePreviewFrame";
 import { SiteHeader } from "@/components/pwa-runtime/SiteHeader";
+import { SiteFooter } from "@/components/pwa-runtime/SiteFooter";
 import { AppSettingsDialog } from "@/components/builder/AppSettingsDialog";
 import { BottomNav } from "@/components/pwa-runtime/BottomNav";
 import { AppHeader } from "@/components/pwa-runtime/AppHeader";
@@ -861,6 +862,7 @@ export function BuilderClient({
                           <AddSectionBar always mapsEnabled={mapsEnabled} onAdd={(type) => addBlock(type, blocks.length)} />
                         </>
                       )}
+                      <SiteFooter theme={currentApp.theme} />
                     </SortableContext>
                   </DndContext>
                 </div>

@@ -25,6 +25,7 @@ import {
 import { Settings, Trash2, Plus } from "lucide-react";
 import { ImageUploadField } from "@/components/builder/ImageUploadField";
 import { DomainSettings } from "@/components/builder/DomainSettings";
+import { SOCIAL_KINDS } from "@/components/pwa-runtime/SiteFooter";
 
 /** The pictures a tab can have, in plain words (the names are what `BottomNav` draws). */
 const NAV_ICONS: Record<string, string> = {
@@ -138,7 +139,7 @@ export function AppSettingsDialog({
           </Button>
         }
       />
-      <DialogContent className="dark max-w-lg">
+      <DialogContent className="dark max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>App settings</DialogTitle>
         </DialogHeader>
@@ -242,6 +243,50 @@ export function AppSettingsDialog({
                   onChange={(e) => setTheme({ ...theme, header_tagline: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+              <div>
+                <p className="text-sm font-semibold">Footer</p>
+                <p className="text-xs text-muted-foreground">The bottom of every page: a line of text and your social links.</p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="footer-text">Text</Label>
+                <Input id="footer-text" maxLength={200} placeholder="© 2026 David Babu Comedy · Seattle" value={theme.footer?.text ?? ""} onChange={(e) => setTheme({ ...theme, footer: { ...theme.footer, text: e.target.value } })} />
+              </div>
+              {(theme.footer?.social ?? []).map((link, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Select
+                    value={link.kind}
+                    items={Object.fromEntries(Object.entries(SOCIAL_KINDS).map(([k, v]) => [k, v.label]))}
+                    onValueChange={(kind) => setTheme({ ...theme, footer: { ...theme.footer, social: (theme.footer?.social ?? []).map((l, i) => (i === index ? { ...l, kind: kind ?? "website" } : l)) } })}
+                  >
+                    <SelectTrigger className="w-32" aria-label="Which site">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(SOCIAL_KINDS).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>
+                          {v.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    aria-label="Address"
+                    placeholder={link.kind === "email" ? "you@example.com" : "https://…"}
+                    value={link.url}
+                    onChange={(e) => setTheme({ ...theme, footer: { ...theme.footer, social: (theme.footer?.social ?? []).map((l, i) => (i === index ? { ...l, url: e.target.value } : l)) } })}
+                    className="flex-1"
+                  />
+                  <Button type="button" variant="ghost" size="icon" aria-label="Remove this link" onClick={() => setTheme({ ...theme, footer: { ...theme.footer, social: (theme.footer?.social ?? []).filter((_, i) => i !== index) } })}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setTheme({ ...theme, footer: { ...theme.footer, social: [...(theme.footer?.social ?? []), { kind: "instagram", url: "" }] } })}>
+                <Plus className="mr-1 h-4 w-4" /> Add a social link
+              </Button>
             </div>
 
             <div className="space-y-2">

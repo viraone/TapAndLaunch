@@ -35,7 +35,10 @@ export type BlockType =
   | "reviews"
   | "stats"
   | "gallery"
-  | "files";
+  | "files"
+  | "button"
+  | "quote"
+  | "faq";
 export type AnalyticsEventType =
   | "view"
   | "install"
@@ -92,6 +95,8 @@ export interface ThemeConfig {
   /** "tabs" is a tall tab bar fixed to the bottom of the screen, with large
    * icons (StageTime's look). Unset keeps the compact bar. */
   bottom_nav_style?: "compact" | "tabs";
+  /** The bottom of every page: a line of text and the social links. */
+  footer?: { text?: string; social?: Array<{ kind: string; url: string }> };
   /** "website" lays the published app out like a website: full width on a laptop with a top menu of the pages,
    * the phone look (and tab bar) on a phone. Unset or "app" keeps the phone-shaped column everywhere. */
   layout?: "app" | "website";
@@ -127,7 +132,10 @@ export type BlockConfig =
   | ReviewsBlockConfig
   | StatsBlockConfig
   | GalleryBlockConfig
-  | FilesBlockConfig;
+  | FilesBlockConfig
+  | ButtonBlockConfig
+  | QuoteBlockConfig
+  | FaqBlockConfig;
 
 /** A full-width photo with a headline and an optional button that opens another page of the app. */
 export interface HeroBlockConfig {
@@ -179,6 +187,27 @@ export interface FilesBlockConfig {
   items?: Array<{ label: string; url: string; note?: string }>;
 }
 
+/** A button on its own, to a page of the app (`page`) or a web address (`url`); `url` wins when both are set. */
+export interface ButtonBlockConfig {
+  label?: string;
+  page?: string;
+  url?: string;
+  style?: "primary" | "outline" | "soft";
+  align?: "center" | "left" | "right";
+}
+
+/** One big quote with who said it. */
+export interface QuoteBlockConfig {
+  quote?: string;
+  name?: string;
+}
+
+/** Questions that open to show their answers. */
+export interface FaqBlockConfig {
+  title?: string;
+  items?: Array<{ question: string; answer: string }>;
+}
+
 export interface TextBlockConfig {
   heading?: string;
   body?: string;
@@ -187,6 +216,10 @@ export interface TextBlockConfig {
 export interface ImageBlockConfig {
   src?: string;
   alt?: string;
+  /** A line under the picture. */
+  caption?: string;
+  /** Which part of the picture to keep when it is cropped to fit. */
+  focus?: "center" | "top" | "bottom" | "left" | "right";
 }
 
 export interface VideoBlockConfig {

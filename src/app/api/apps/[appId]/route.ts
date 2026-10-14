@@ -19,6 +19,14 @@ const ThemeSchema = z.object({
   show_member_bar: z.boolean().optional(),
   looks_confirmed: z.boolean().optional(),
   bottom_nav_style: z.enum(["compact", "tabs"]).optional(),
+  // Added later than the fields above; a key missing here was silently dropped on every Save settings.
+  layout: z.enum(["app", "website"]).optional(),
+  footer: z
+    .object({
+      text: z.string().max(200).optional(),
+      social: z.array(z.object({ kind: z.string().max(20), url: z.string().max(500) })).max(10).optional(),
+    })
+    .optional(),
 });
 
 const ManifestSchema = z.object({

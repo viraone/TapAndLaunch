@@ -9,6 +9,7 @@ import { PublishedBottomNav } from "@/components/pwa-runtime/PublishedBottomNav"
 import { MemberAccountBar } from "@/components/pwa-runtime/MemberAccountBar";
 import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { PublishedSiteHeader } from "@/components/pwa-runtime/PublishedSiteHeader";
+import { SiteFooter } from "@/components/pwa-runtime/SiteFooter";
 import { getCurrentMember } from "@/lib/pwa/get-current-member";
 import { orgInGoodStanding } from "@/lib/billing/standing";
 import { readableOn } from "@/lib/pwa/color";
@@ -140,7 +141,10 @@ export default async function PublishedAppLayout({
       <ServiceWorkerRegister deploy={deployId()} />
       {theme.show_member_bar !== false && <MemberAccountBar member={member} />}
       {website ? <PublishedSiteHeader theme={theme} homePagePath={homePagePath} /> : <AppHeader theme={theme} />}
-      <div className={`@container flex-1 overflow-y-auto ${website ? "mx-auto w-full max-w-6xl" : ""}`}>{children}</div>
+      <div className={`@container flex flex-1 flex-col overflow-y-auto ${website ? "mx-auto w-full max-w-6xl" : ""}`}>
+        {children}
+        <SiteFooter theme={theme} />
+      </div>
       <div className={website ? "lg:hidden" : undefined}>
         <PublishedBottomNav
           items={theme.bottom_nav ?? []}

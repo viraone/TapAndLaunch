@@ -19,6 +19,9 @@ import {
   PanelTop,
   Sparkles,
   FileText,
+  MousePointerClick,
+  Quote,
+  MessageCircleQuestion,
   type LucideIcon,
 } from "lucide-react";
 import type { BlockType } from "@/types/database";
@@ -45,6 +48,9 @@ export const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   stats: Sparkles,
   gallery: GalleryHorizontalEnd,
   files: FileText,
+  button: MousePointerClick,
+  quote: Quote,
+  faq: MessageCircleQuestion,
 };
 
 /** Each block gets its own accent so the library reads as a set of tools,
@@ -70,6 +76,9 @@ export const BLOCK_ACCENTS: Record<BlockType, string> = {
   stats: "from-purple-400 to-indigo-500 text-white",
   gallery: "from-pink-300 to-rose-500 text-white",
   files: "from-slate-300 to-slate-500 text-slate-950",
+  button: "from-indigo-300 to-violet-500 text-white",
+  quote: "from-amber-200 to-orange-400 text-amber-950",
+  faq: "from-teal-300 to-cyan-500 text-teal-950",
 };
 
 export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
@@ -93,11 +102,14 @@ export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
   stats: "Short facts that build trust",
   gallery: "A grid of photos",
   files: "PDFs, handouts and other files to open",
+  button: "A button to a page or a web address",
+  quote: "One big quote and who said it",
+  faq: "Questions that open to their answers",
 };
 
 export const BLOCK_GROUPS: Array<{ label: string; types: BlockType[] }> = [
   { label: "Make it look good", types: ["hero", "stats", "gallery", "reviews"] },
-  { label: "Words, pictures and prices", types: ["text", "image", "video", "files", "price_list", "hours"] },
+  { label: "Words, pictures and prices", types: ["text", "image", "video", "button", "quote", "faq", "files", "price_list", "hours"] },
   { label: "Hear from people", types: ["contact_form", "zoom_meeting", "canva_embed"] },
   { label: "Sell and book", types: ["product_list", "event_calendar"] },
   { label: "Live, updated for you", types: ["listing_directory", "gas_directory", "food_directory", "open_mic_signup", "class_finder"] },

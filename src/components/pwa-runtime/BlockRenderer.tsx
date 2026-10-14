@@ -21,9 +21,13 @@ import type {
   StatsBlockConfig,
   GalleryBlockConfig,
   FilesBlockConfig,
+  ButtonBlockConfig,
+  QuoteBlockConfig,
+  FaqBlockConfig,
 } from "@/types/database";
 import { GalleryBlockView, HeroBlockView, HoursBlockView, PriceListBlockView, ReviewsBlockView, StatsBlockView } from "@/components/pwa-runtime/ShowcaseBlocks";
 import { FilesBlockView } from "@/components/pwa-runtime/FilesBlock";
+import { ButtonBlockView, FaqBlockView, QuoteBlockView } from "@/components/pwa-runtime/ExtraBlocks";
 import { EditableImage, EditableText } from "@/components/pwa-runtime/Editable";
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
 import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
@@ -118,6 +122,12 @@ export function BlockRenderer({
       return <GalleryBlockView config={block.config as GalleryBlockConfig} live={live} />;
     case "files":
       return <FilesBlockView config={block.config as FilesBlockConfig} live={live} />;
+    case "button":
+      return <ButtonBlockView config={block.config as ButtonBlockConfig} live={live} />;
+    case "quote":
+      return <QuoteBlockView config={block.config as QuoteBlockConfig} live={live} />;
+    case "faq":
+      return <FaqBlockView config={block.config as FaqBlockConfig} live={live} />;
     default:
       return <UnknownBlockView type={block.type} />;
   }
@@ -144,7 +154,13 @@ function ImageBlockView({ config, live }: { config: ImageBlockConfig; live: bool
       </div>
     );
   }
-  return <EditableImage path={["src"]} src={config.src} alt={config.alt ?? ""} className="w-full object-cover @lg:mx-auto @lg:my-6 @lg:max-w-4xl @lg:rounded-3xl" imgClassName="w-full object-cover" />;
+  const focus = config.focus && config.focus !== "center" ? ({ objectPosition: config.focus } as React.CSSProperties) : undefined;
+  return (
+    <figure className="@lg:mx-auto @lg:my-6 @lg:max-w-4xl">
+      <EditableImage path={["src"]} src={config.src} alt={config.alt ?? ""} className="w-full object-cover @lg:rounded-3xl" imgClassName="w-full object-cover" style={focus} />
+      {(config.caption || !live) && <EditableText as="figcaption" path={["caption"]} value={config.caption} placeholder="A line under the picture (optional)" className="mt-2 px-4 text-center text-sm text-muted-foreground @lg:px-0" />}
+    </figure>
+  );
 }
 
 function VideoBlockView({ config }: { config: VideoBlockConfig }) {

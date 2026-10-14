@@ -113,3 +113,10 @@ being edited (the browser's own bold/italic/link/list commands); the result is s
 markers, `**bold**`, `_italic_`, `[words](https://…)`, lines starting with `- ` (`src/lib/rich-text.ts`: parse,
 and the DOM-to-text reader for the builder; `RichText` renders it, links only when http(s), never raw HTML). The
 inspector's text box shows the markers and accepts them too.
+
+More sections (migration 0041): **Button** (to a page of the app or a web address; filled, outlined or soft; left,
+centre or right), **Quote** (one big quote and who said it) and **Questions & answers** (an FAQ whose answers open on
+tap; all open in the builder so they can be edited). The **Image** section gained a caption and a "keep in view when
+cropped" choice (object-position). App settings > Theme has a **Footer**: a line of text and social links (Instagram,
+TikTok, YouTube, Facebook, X, email, website) drawn at the bottom of every page (`SiteFooter`). The app PATCH's theme
+schema now lists `layout` and `footer`; a theme key missing from it is silently dropped on every Save settings.
