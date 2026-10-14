@@ -16,6 +16,9 @@ const CreateAppSchema = z.object({
   /** The answer to "What's your site about?" (only asked for a template with `asksAbout: true`); ignored by every
    * other template. */
   about: z.string().max(ABOUT_MAX_LENGTH).optional(),
+  /** A photo for the banner, uploaded in the same step (an https address, e.g. the app-assets bucket); only a
+   * template with `asksAbout: true` uses it. */
+  hero_image: z.string().max(2000).regex(/^https?:\/\//, "The photo must be a web address").optional(),
 });
 
 /**
@@ -43,7 +46,7 @@ export async function POST(request: Request) {
     organizationId: parsed.data.organization_id,
     name: parsed.data.name,
     slug: parsed.data.slug,
-    starter: buildStarter(parsed.data.template, parsed.data.name, parsed.data.about),
+    starter: buildStarter(parsed.data.template, parsed.data.name, parsed.data.about, parsed.data.hero_image),
   });
   if ("error" in result) return Response.json({ error: result.error }, { status: result.status });
   return Response.json({ app: result.app }, { status: 201 });

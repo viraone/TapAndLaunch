@@ -8,6 +8,7 @@ import { fontsHref } from "@/lib/pwa/theme-style";
 import { slugify } from "@/lib/apps/slug";
 import { TemplatePreview } from "@/components/dashboard/TemplatePreview";
 import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
+import { ImageUploadField } from "@/components/builder/ImageUploadField";
 
 const ICONS = TEMPLATE_ICONS;
 
@@ -46,6 +47,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
   const [selected, setSelected] = useState<StarterTemplate | null>(null);
   const [step, setStep] = useState<Step>("pick");
   const [about, setAbout] = useState("");
+  const [photo, setPhoto] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -53,6 +55,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
   function pickTemplate(t: StarterTemplate) {
     setSelected(t);
     setAbout("");
+    setPhoto("");
     setStep(t.asksAbout ? "about" : "name");
   }
 
@@ -77,6 +80,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
         slug: slugify(name),
         template: selected.id,
         ...(selected.asksAbout && about.trim() ? { about: about.trim() } : {}),
+        ...(selected.asksAbout && photo.trim() ? { hero_image: photo.trim() } : {}),
       }),
     });
     const body = await res.json();
@@ -129,6 +133,12 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
             placeholder={selected.aboutHint ?? "A sentence about what you do"}
             className="mt-3 w-full resize-none rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base outline-none transition focus:border-neutral-950 focus:ring-4 focus:ring-neutral-950/5"
           />
+          {/* Their own face or shopfront at the top of the site before they ever see the builder: the moment the
+              site stops being a template. Optional; the banner is their colour until there is a photo. */}
+          <div className="mt-5">
+            <ImageUploadField id="app-photo" label="A photo for the top of your site (optional)" organizationId={organizationId} value={photo} onChange={setPhoto} />
+            <p className="mt-1 text-xs text-neutral-500">You, your work or your place. You can change it any time.</p>
+          </div>
           <div className="mt-6 flex items-center gap-3">
             <button
               type="button"
@@ -137,7 +147,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
             >
               Next <ArrowRight className="h-4 w-4" />
             </button>
-            {!about.trim() && (
+            {!about.trim() && !photo.trim() && (
               <button type="button" onClick={() => setStep("name")} className="text-sm font-medium text-neutral-500 transition hover:text-neutral-950">
                 Skip
               </button>

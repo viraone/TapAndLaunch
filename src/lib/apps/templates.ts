@@ -995,14 +995,15 @@ const CONTACT_FIELDS = [
 ];
 
 /** The rows for a new app of this template, named `appName`. Every starter begins with the app's name in the header
- * bar. `about` is the customer's own answer to "What's your site about?" (only asked, and only used, for a
- * template with `asksAbout: true`); trimmed to `ABOUT_MAX_LENGTH` and ignored for every other template. */
-export function buildStarter(templateId: string, appName: string, about?: string): Starter {
-  const starter = buildStarterBody(templateId, appName, about?.trim().slice(0, ABOUT_MAX_LENGTH));
+ * bar. `about` is the customer's own answer to "What's your site about?" and `heroImage` the photo they added in the
+ * same step (both only asked, and only used, for a template with `asksAbout: true`); `about` is trimmed to
+ * `ABOUT_MAX_LENGTH`, and both are ignored for every other template. */
+export function buildStarter(templateId: string, appName: string, about?: string, heroImage?: string): Starter {
+  const starter = buildStarterBody(templateId, appName, about?.trim().slice(0, ABOUT_MAX_LENGTH), heroImage?.trim() || undefined);
   return { ...starter, theme: { ...starter.theme, header_title: appName } };
 }
 
-function buildStarterBody(templateId: string, appName: string, about?: string): Starter {
+function buildStarterBody(templateId: string, appName: string, about?: string, heroImage?: string): Starter {
   const template = STARTER_TEMPLATES.find((t) => t.id === templateId) ?? (STARTER_TEMPLATES.find((t) => t.id === DEFAULT_TEMPLATE_ID) as StarterTemplate);
   const manifest: ManifestConfig = {
     name: appName,
@@ -1033,7 +1034,7 @@ function buildStarterBody(templateId: string, appName: string, about?: string): 
       },
       pages: [
         home([
-          block("hero", { eyebrow: topic.eyebrow, headline: topic.headline, subtext: about || topic.subtext, button_label: "Get in touch", button_page: "contact" }),
+          block("hero", { image_url: heroImage ?? "", eyebrow: topic.eyebrow, headline: topic.headline, subtext: about || topic.subtext, button_label: "Get in touch", button_page: "contact" }),
           ...(flavour.quoteOnHome ? [quote] : []),
           block("stats", { items: topic.stats }),
           // The visual trades show their work before they explain it; the empty gallery, video and audio are
@@ -1094,6 +1095,7 @@ function buildStarterBody(templateId: string, appName: string, about?: string): 
         pages: [
           home([
             block("hero", {
+              image_url: heroImage ?? "",
               eyebrow: "Welcome",
               headline: "Hi, I'm here to help.",
               subtext: about || "A short line about what you do and who you help — the kind of thing people read in the first five seconds.",

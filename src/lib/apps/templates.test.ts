@@ -71,6 +71,17 @@ describe("starter templates", () => {
     expect((starter.pages[0]?.blocks[0]?.config as { subtext?: string }).subtext).toHaveLength(ABOUT_MAX_LENGTH);
   });
 
+  it("puts the customer's own photo in the banner of a website starter, and nowhere else", () => {
+    const photo = "https://example.com/me.jpg";
+    for (const id of ["portfolio", "weddings", "technology"]) {
+      const hero = buildStarter(id, "X", undefined, photo).pages[0].blocks[0].config as { image_url?: string };
+      expect(hero.image_url, id).toBe(photo);
+    }
+    // Blank stays blank; a phone-first starter keeps its own photo.
+    expect((buildStarter("weddings", "X", undefined, "  ").pages[0].blocks[0].config as { image_url?: string }).image_url).toBe("");
+    expect((buildStarter("business", "X", undefined, photo).pages[0].blocks[0].config as { image_url?: string }).image_url).toMatch(/business-hero\.jpg$/);
+  });
+
   it("ignores the 'about' answer for a template that doesn't ask for one", () => {
     const starter = buildStarter("business", "Maple Street Bakery", "this should be ignored");
     expect(JSON.stringify(starter)).not.toContain("this should be ignored");

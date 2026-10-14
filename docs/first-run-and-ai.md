@@ -122,7 +122,11 @@ Squarespace's own onboarding quiz. It's a plain text question (no AI call; `Star
 `portfolio`), and the answer becomes the hero's subtext verbatim instead of the generic placeholder line
 (`buildStarter`'s optional `about` argument, trimmed to `ABOUT_MAX_LENGTH` — 240 — in both `buildStarter` and the
 `POST /api/apps` schema). Leaving it blank (or hitting Skip) keeps the original placeholder copy, so nothing breaks
-if the customer has nothing to say yet. TapAndLaunch does have a real AI "Describe your app" generator
+if the customer has nothing to say yet. The same step takes an optional **photo** (`ImageUploadField`, to the
+`app-assets` bucket; sent as `hero_image`, an https address, to `POST /api/apps`), which `buildStarter`'s fourth
+argument puts straight into the banner of any website starter — behind the words, under them, or as the split
+panel, whichever the look uses — so the first thing a client sees in the builder is their own face or shopfront,
+not a template. Ignored by every other template; a test checks both. TapAndLaunch does have a real AI "Describe your app" generator
 (`POST /api/apps/generate`, see below) that could write genuinely tailored copy instead of just echoing the
 sentence — not wired up here because its safety schema only allows text/contact_form/event_calendar/product_list/
 image blocks today, not hero/stats/reviews/newsletter; that's a bigger follow-on, not this slice.
