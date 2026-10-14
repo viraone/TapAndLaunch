@@ -29,7 +29,7 @@ import {
 import { tileGradient, tileInitial } from "@/lib/apps/tile";
 import { buildChecklist, type ChecklistStepId } from "@/lib/apps/checklist";
 import { BuilderPhoneNotice } from "@/components/builder/BuilderPhoneNotice";
-import { Palette } from "@/components/builder/Palette";
+import { AddSectionBar } from "@/components/builder/AddSectionBar";
 import { Inspector } from "@/components/builder/Inspector";
 import { PageTabs } from "@/components/builder/PageTabs";
 import { SortableBlockItem } from "@/components/builder/SortableBlockItem";
@@ -138,14 +138,15 @@ export function BuilderClient({
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) ?? null;
 
-  function addBlock(type: BlockType) {
+  /** Adds a section at `index` (between two sections, from the + bar) or at the end (from the side list). */
+  function addBlock(type: BlockType, index?: number) {
     const block = {
       id: crypto.randomUUID(),
       type,
       config: defaultConfigFor(type),
       minTier: null,
     } as BuilderBlock;
-    setBlocks((prev) => [...prev, block]);
+    setBlocks((prev) => (index === undefined ? [...prev, block] : [...prev.slice(0, index), block, ...prev.slice(index)]));
     setSelectedBlockId(block.id);
   }
 
@@ -509,12 +510,10 @@ export function BuilderClient({
           onCreate={createPage}
         />
 
-        <div className="grid flex-1 grid-cols-[260px_1fr_320px] overflow-hidden">
-          <aside className="overflow-y-auto border-r border-white/[0.06] bg-neutral-950">
-            <Palette onAdd={addBlock} mapsEnabled={mapsEnabled} />
-          </aside>
-
-          <div className="relative overflow-y-auto pb-14 pt-6">
+        {/* Two columns: the page, and the panel for photos and settings. Sections are added on the page itself (the
+            + bars between them), so there is no list of sections down the side any more. */}
+        <div className="grid flex-1 grid-cols-[1fr_320px] overflow-hidden">
+          <div className="relative overflow-y-auto px-6 pb-14 pt-6">
             {/* Workspace backdrop: the dashboard hero's two glows and dot texture. */}
             <div
               aria-hidden
@@ -617,24 +616,26 @@ export function BuilderClient({
                     >
                       {blocks.length === 0 ? (
                         <div className="m-4 rounded-2xl border border-dashed border-border p-6 text-center">
-                          <p className="text-sm font-medium">
-                            This page is empty
-                          </p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Pick a section on the left to start building.
-                          </p>
+                          <p className="text-sm font-medium">This page is empty</p>
+                          <p className="mb-2 mt-1 text-xs text-muted-foreground">Add your first section.</p>
+                          <AddSectionBar always label="Add a section" mapsEnabled={mapsEnabled} onAdd={(type) => addBlock(type, 0)} />
                         </div>
                       ) : (
-                        blocks.map((block) => (
-                          <SortableBlockItem
-                            key={block.id}
-                            block={block}
-                            selected={block.id === selectedBlockId}
-                            onSelect={() => setSelectedBlockId(block.id)}
-                            onRemove={() => removeBlock(block.id)}
-                            onChange={(config) => updateBlockConfig(block.id, config)}
-                          />
-                        ))
+                        <>
+                          {blocks.map((block, index) => (
+                            <div key={block.id}>
+                              <AddSectionBar mapsEnabled={mapsEnabled} onAdd={(type) => addBlock(type, index)} />
+                              <SortableBlockItem
+                                block={block}
+                                selected={block.id === selectedBlockId}
+                                onSelect={() => setSelectedBlockId(block.id)}
+                                onRemove={() => removeBlock(block.id)}
+                                onChange={(config) => updateBlockConfig(block.id, config)}
+                              />
+                            </div>
+                          ))}
+                          <AddSectionBar always mapsEnabled={mapsEnabled} onAdd={(type) => addBlock(type, blocks.length)} />
+                        </>
                       )}
                     </SortableContext>
                   </DndContext>

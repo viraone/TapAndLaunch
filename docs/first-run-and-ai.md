@@ -71,3 +71,12 @@ and the app overview link to it too.
 
 Events can carry a **ticket link** (migration 0040): with one, the event's card shows a Tickets button that opens it in a
 new tab instead of the booking form.
+
+## Editing on the page
+_Added 2026-10-14._ The builder works the way Squarespace does: the page is the editor. Every section's words
+(headlines, paragraphs, highlights, menu items and prices, hours, reviews, titles, button labels, file names) are
+edited in place: click, type, Enter or click away (`EditableText`, which renders plain text on the published site;
+`BlockEditContext` in `SortableBlockItem` routes the change through the same path as the inspector's fields, via
+`setAt`). Sections are added where they go: a **+ Add section** bar appears between sections (and sits at the end of
+the page) and opens a visual menu (`AddSectionBar`); there is no list of sections down the side any more. The inspector
+on the right is for photos, links and settings.

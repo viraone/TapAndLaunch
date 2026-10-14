@@ -97,7 +97,7 @@ export function Inspector({
           </div>
         )}
         <p className="rounded-2xl bg-white/[0.03] p-3 text-[11px] leading-relaxed text-neutral-500">
-          Tip: drag a section on the phone to move it up or down. Your changes save on their own.
+          Tip: drag a section on the page to move it up or down, or use the + between sections to add one. Your changes save on their own.
         </p>
       </div>
     );
