@@ -490,6 +490,29 @@ export function BuilderClient({
                 </>
               )}
             </p>
+            <div
+              role="group"
+              aria-label="Edit or try the app"
+              className="inline-flex rounded-full border border-white/10 bg-white/5 p-0.5 text-xs font-semibold"
+            >
+              <button
+                type="button"
+                aria-pressed={mode === "edit"}
+                onClick={() => setMode("edit")}
+                className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 transition ${mode === "edit" ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-400 hover:text-white"}`}
+              >
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode === "try"}
+                onClick={() => void tryIt()}
+                title="Your real app, as a visitor sees it"
+                className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 transition ${mode === "try" ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-400 hover:text-white"}`}
+              >
+                <Play className="h-3.5 w-3.5" /> Try it
+              </button>
+            </div>
             <DeviceFrameSwitcher value={device} onChange={setDevice} />
             <AppSettingsDialog
               app={currentApp}
@@ -541,49 +564,6 @@ export function BuilderClient({
               <div className="absolute -left-40 -top-40 h-[30rem] w-[30rem] rounded-full bg-indigo-600/20 blur-3xl" />
               <div className="absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-pink-500/15 blur-3xl" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.06)_1px,transparent_0)] [background-size:22px_22px] [mask-image:radial-gradient(ellipse_at_center,black_25%,transparent_75%)]" />
-            </div>
-            <div className="relative mb-5 flex flex-col items-center gap-2">
-              <div
-                role="group"
-                aria-label="Edit or try the app"
-                className="inline-flex rounded-full border border-white/10 bg-neutral-900/70 p-0.5 text-xs font-semibold backdrop-blur"
-              >
-                <button
-                  type="button"
-                  aria-pressed={mode === "edit"}
-                  onClick={() => setMode("edit")}
-                  className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 transition ${mode === "edit" ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-400 hover:text-white"}`}
-                >
-                  <Pencil className="h-3.5 w-3.5" /> Edit
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={mode === "try"}
-                  onClick={() => void tryIt()}
-                  className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 transition ${mode === "try" ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-400 hover:text-white"}`}
-                >
-                  <Play className="h-3.5 w-3.5" /> Try it
-                </button>
-              </div>
-              <span className="inline-flex items-center gap-2 text-xs text-neutral-400">
-                {mode === "try" ? (
-                  "Your real app, as a visitor sees it. Taps work like on a phone."
-                ) : (
-                  <>
-                    <span className="font-semibold text-neutral-100">
-                      {currentPage?.name ?? "Page"}
-                    </span>
-                    <span aria-hidden>·</span>
-                    {blocks.length} section{blocks.length === 1 ? "" : "s"}
-                    <span aria-hidden>·</span>{" "}
-                    {blocks.length > 1
-                      ? "click the words to change them, drag to reorder"
-                      : blocks.length === 1
-                        ? "click the words to change them"
-                        : "add one on the left"}
-                  </>
-                )}
-              </span>
             </div>
             {mode === "try" ? (
               <PreviewFrame device={device} theme={currentApp.theme}>
