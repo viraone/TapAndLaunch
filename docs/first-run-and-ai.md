@@ -50,3 +50,12 @@ Everything works locally with no key (the matched fallback). The Claude path is 
 ## Hidden for accounts without maps
 Food finder and Gas prices (templates) and the Live food and Gas prices blocks (builder block list) only appear for accounts
 with maps switched on. The server also refuses maps blocks for other accounts.
+
+## Website layout
+_Added 2026-10-14._ App settings > Theme > **Layout** offers **App** (the phone-shaped column on every screen, the default) and
+**Website** (`theme.layout = "website"`): full width on a laptop with a menu of the pages at the top (`SiteHeader`, fed by the
+same `bottom_nav` items as the tab bar), the phone look with the tab bar on a phone. The blocks are the same: they size
+themselves to their column with Tailwind container queries (`@lg:` and up, against the `@container` content column), so an
+app's 28rem column never triggers the wide styles. The builder's "Preview on" switch gains **Desktop**, a laptop-browser frame
+drawn at 1180px and scaled to fit; in a website it shows the top menu and no tab bar. First used for a client's site at
+davidbabucomedy.com.

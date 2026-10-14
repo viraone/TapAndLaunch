@@ -8,6 +8,7 @@ import { deployId } from "@/lib/pwa/service-worker";
 import { PublishedBottomNav } from "@/components/pwa-runtime/PublishedBottomNav";
 import { MemberAccountBar } from "@/components/pwa-runtime/MemberAccountBar";
 import { AppHeader } from "@/components/pwa-runtime/AppHeader";
+import { PublishedSiteHeader } from "@/components/pwa-runtime/PublishedSiteHeader";
 import { getCurrentMember } from "@/lib/pwa/get-current-member";
 import { orgInGoodStanding } from "@/lib/billing/standing";
 import { readableOn } from "@/lib/pwa/color";
@@ -108,6 +109,9 @@ export default async function PublishedAppLayout({
   const { theme } = published.app;
   const dark = theme.color_scheme === "dark";
   const tabs = theme.bottom_nav_style === "tabs";
+  // A website is full width with a top menu on a laptop; on a phone it keeps the tab bar. An app is a phone-shaped
+  // column everywhere. Blocks size themselves to the column (`@container`), so the same blocks serve both.
+  const website = theme.layout === "website";
   const pageBackground = dark ? theme.background_color ?? DARK_TOKENS["--background"] : undefined;
   const homePagePath = published.pages.find((page) => page.is_home)?.path;
   // Overriding `--primary` here re-themes every `bg-primary`/`text-primary`
@@ -125,7 +129,7 @@ export default async function PublishedAppLayout({
 
   return (
     <div
-      className={`mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background ${dark ? "dark text-foreground" : ""} ${tabs ? "pb-20" : ""}`}
+      className={`mx-auto flex min-h-dvh w-full flex-col bg-background ${website ? "" : "max-w-md"} ${dark ? "dark text-foreground" : ""} ${tabs ? (website ? "pb-20 lg:pb-0" : "pb-20") : ""}`}
       style={style}
     >
       {/* A dark app is dark edge to edge, including what shows past the
@@ -135,13 +139,15 @@ export default async function PublishedAppLayout({
       )}
       <ServiceWorkerRegister deploy={deployId()} />
       {theme.show_member_bar !== false && <MemberAccountBar member={member} />}
-      <AppHeader theme={theme} />
-      <div className="flex-1 overflow-y-auto">{children}</div>
-      <PublishedBottomNav
-        items={theme.bottom_nav ?? []}
-        variant={tabs ? "tabs" : "compact"}
-        homePagePath={homePagePath}
-      />
+      {website ? <PublishedSiteHeader theme={theme} homePagePath={homePagePath} /> : <AppHeader theme={theme} />}
+      <div className={`@container flex-1 overflow-y-auto ${website ? "mx-auto w-full max-w-6xl" : ""}`}>{children}</div>
+      <div className={website ? "lg:hidden" : undefined}>
+        <PublishedBottomNav
+          items={theme.bottom_nav ?? []}
+          variant={tabs ? "tabs" : "compact"}
+          homePagePath={homePagePath}
+        />
+      </div>
     </div>
   );
 }

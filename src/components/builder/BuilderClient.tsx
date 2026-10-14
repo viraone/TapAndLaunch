@@ -34,10 +34,11 @@ import { Inspector } from "@/components/builder/Inspector";
 import { PageTabs } from "@/components/builder/PageTabs";
 import { SortableBlockItem } from "@/components/builder/SortableBlockItem";
 import {
-  MobilePreviewFrame,
+  PreviewFrame,
   DeviceFrameSwitcher,
   type DeviceFrame,
 } from "@/components/builder/MobilePreviewFrame";
+import { SiteHeader } from "@/components/pwa-runtime/SiteHeader";
 import { AppSettingsDialog } from "@/components/builder/AppSettingsDialog";
 import { BottomNav } from "@/components/pwa-runtime/BottomNav";
 import { AppHeader } from "@/components/pwa-runtime/AppHeader";
@@ -567,7 +568,7 @@ export function BuilderClient({
               </span>
             </div>
             {mode === "try" ? (
-              <MobilePreviewFrame device={device} theme={currentApp.theme}>
+              <PreviewFrame device={device} theme={currentApp.theme}>
                 {tryUrl ? (
                   <iframe
                     src={tryUrl}
@@ -587,11 +588,23 @@ export function BuilderClient({
                     )}
                   </div>
                 )}
-              </MobilePreviewFrame>
+              </PreviewFrame>
             ) : (
-              <MobilePreviewFrame device={device} theme={currentApp.theme}>
-                <AppHeader theme={currentApp.theme} />
-                <div className="flex-1 overflow-y-auto">
+              <PreviewFrame device={device} theme={currentApp.theme}>
+                {/* A website's desktop preview gets the site header with its page menu; everything else the app header. */}
+                {device === "desktop" && currentApp.theme.layout === "website" ? (
+                  <SiteHeader
+                    theme={currentApp.theme}
+                    activePagePath={currentPagePath}
+                    onNavigate={(pagePath) => {
+                      const target = pages.find((p) => p.path === pagePath);
+                      if (target) switchPage(target.id);
+                    }}
+                  />
+                ) : (
+                  <AppHeader theme={currentApp.theme} />
+                )}
+                <div className="@container flex-1 overflow-y-auto">
                   <DndContext
                     id="builder-blocks"
                     sensors={sensors}
@@ -628,15 +641,17 @@ export function BuilderClient({
                 {/* Non-navigating preview: clicking a tab switches the builder's
                 current page (if one matches its path) the same way clicking
                 a page tab does, rather than performing a real navigation. */}
-                <BottomNav
-                  items={currentApp.theme.bottom_nav ?? []}
-                  activePagePath={currentPagePath}
-                  onNavigate={(pagePath) => {
-                    const target = pages.find((p) => p.path === pagePath);
-                    if (target) switchPage(target.id);
-                  }}
-                />
-              </MobilePreviewFrame>
+                {!(device === "desktop" && currentApp.theme.layout === "website") && (
+                  <BottomNav
+                    items={currentApp.theme.bottom_nav ?? []}
+                    activePagePath={currentPagePath}
+                    onNavigate={(pagePath) => {
+                      const target = pages.find((p) => p.path === pagePath);
+                      if (target) switchPage(target.id);
+                    }}
+                  />
+                )}
+              </PreviewFrame>
             )}
           </div>
 

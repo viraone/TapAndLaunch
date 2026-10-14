@@ -137,6 +137,29 @@ export function AppSettingsDialog({
           </TabsList>
 
           <TabsContent value="theme" className="space-y-4">
+            <div className="space-y-2">
+              <Label>Layout</Label>
+              <div role="group" aria-label="Layout" className="grid grid-cols-2 gap-2">
+                {([
+                  { value: "app", title: "App", hint: "A phone-shaped app on every screen. Best for things people open on their phone." },
+                  { value: "website", title: "Website", hint: "Full width on a laptop with a menu of your pages at the top. On a phone it looks like the app." },
+                ] as const).map((option) => {
+                  const selected = (theme.layout ?? "app") === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => setTheme({ ...theme, layout: option.value })}
+                      className={`rounded-2xl border p-3 text-left transition ${selected ? "border-white bg-white/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"}`}
+                    >
+                      <p className="text-sm font-semibold">{option.title}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{option.hint}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="theme-primary">Primary color</Label>

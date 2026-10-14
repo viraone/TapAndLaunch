@@ -1,7 +1,8 @@
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { ThemeConfig } from "@/types/database";
 
-export type DeviceFrame = "ios" | "android";
+export type DeviceFrame = "ios" | "android" | "desktop";
 
 export function DeviceFrameSwitcher({
   value,
@@ -17,7 +18,7 @@ export function DeviceFrameSwitcher({
         Preview on
       </span>
       <div className="inline-flex rounded-full border border-white/10 bg-white/5 p-0.5">
-        {(["ios", "android"] as const).map((frame) => (
+        {(["ios", "android", "desktop"] as const).map((frame) => (
           <button
             key={frame}
             type="button"
@@ -28,7 +29,7 @@ export function DeviceFrameSwitcher({
               value === frame ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-400 hover:text-white"
             )}
           >
-            {frame === "ios" ? "iPhone" : "Android"}
+            {frame === "ios" ? "iPhone" : frame === "android" ? "Android" : "Desktop"}
           </button>
         ))}
       </div>
@@ -102,5 +103,61 @@ export function MobilePreviewFrame({
         </div>
       </div>
     </div>
+  );
+}
+
+/** The width the desktop preview is drawn at, then shrunk to fit the builder's middle column. */
+const DESKTOP_PREVIEW_WIDTH = 1180;
+
+/**
+ * A laptop-browser chrome around the canvas, for an app laid out as a website. The page is drawn at a real laptop
+ * width and scaled down to fit, so the owner sees the true desktop layout: the top menu, wide photo grids, text at
+ * reading width. Like the phone frame it is only framing, not a device emulator.
+ */
+export function DesktopPreviewFrame({ theme, children }: { theme?: ThemeConfig; children: React.ReactNode }) {
+  const appDark = theme?.color_scheme === "dark";
+  const style = theme?.primary_color ? ({ "--primary": theme.primary_color } as React.CSSProperties) : undefined;
+  const holder = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.6);
+
+  useEffect(() => {
+    const el = holder.current;
+    if (!el) return;
+    const fit = () => setScale(Math.min(1, el.clientWidth / DESKTOP_PREVIEW_WIDTH));
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={holder} className="mx-auto w-full max-w-[1180px]">
+      <div
+        className="overflow-hidden rounded-xl bg-neutral-900 shadow-[0_40px_90px_-24px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.16)]"
+        style={{ width: DESKTOP_PREVIEW_WIDTH, zoom: scale }}
+      >
+        {/* Browser chrome: three dots and an address pill */}
+        <div className="flex items-center gap-3 border-b border-white/10 px-4 py-2.5">
+          <span className="flex gap-1.5">
+            <span className="h-3 w-3 rounded-full bg-neutral-600" />
+            <span className="h-3 w-3 rounded-full bg-neutral-600" />
+            <span className="h-3 w-3 rounded-full bg-neutral-600" />
+          </span>
+          <span className="mx-auto h-6 w-1/2 rounded-full bg-white/10" />
+        </div>
+        <div style={style} className={cn("@container flex h-[760px] flex-col overflow-y-auto bg-background text-foreground", appDark ? "dark" : "light")}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** The preview frame for the chosen device: a phone, or a laptop browser. */
+export function PreviewFrame({ device, theme, children }: { device: DeviceFrame; theme?: ThemeConfig; children: React.ReactNode }) {
+  return device === "desktop" ? (
+    <DesktopPreviewFrame theme={theme}>{children}</DesktopPreviewFrame>
+  ) : (
+    <MobilePreviewFrame device={device} theme={theme}>{children}</MobilePreviewFrame>
   );
 }

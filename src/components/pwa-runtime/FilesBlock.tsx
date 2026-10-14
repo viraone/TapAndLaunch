@@ -14,8 +14,8 @@ export function FilesBlockView({ config, live }: { config: FilesBlockConfig; liv
     return <div className="mx-4 my-3 flex h-24 items-center justify-center rounded-2xl border border-dashed text-sm text-muted-foreground">No files yet</div>;
   }
   return (
-    <section className="px-4 py-5">
-      {config.title && <h2 className="px-1 text-2xl font-extrabold tracking-tight">{config.title}</h2>}
+    <section className="px-4 py-5 @lg:mx-auto @lg:max-w-3xl @lg:px-8 @lg:py-10">
+      {config.title && <h2 className="px-1 text-2xl font-extrabold tracking-tight @lg:text-4xl">{config.title}</h2>}
       {config.intro && <p className="mt-1 px-1 text-sm text-muted-foreground">{config.intro}</p>}
       <ul className={`space-y-2 ${config.title || config.intro ? "mt-4" : ""}`}>
         {items.map((item, i) => {

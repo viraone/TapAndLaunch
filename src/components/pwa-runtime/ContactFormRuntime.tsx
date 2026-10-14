@@ -48,14 +48,14 @@ export function ContactFormRuntime({
 
   if (status === "submitted") {
     return (
-      <div className="mx-4 my-2 rounded-md border p-4 text-center text-sm text-muted-foreground">
+      <div className="mx-4 my-2 rounded-md border p-4 text-center text-sm text-muted-foreground @lg:mx-auto @lg:my-8 @lg:max-w-xl">
         Thanks — your message was sent.
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-4 my-2 space-y-3 rounded-md border p-4">
+    <form onSubmit={handleSubmit} className="mx-4 my-2 space-y-3 rounded-md border p-4 @lg:mx-auto @lg:my-8 @lg:max-w-xl @lg:rounded-2xl @lg:p-8">
       {config.title && <h3 className="font-medium">{config.title}</h3>}
       {(config.fields ?? []).map((field) => (
         <div key={field.name} className="space-y-1">

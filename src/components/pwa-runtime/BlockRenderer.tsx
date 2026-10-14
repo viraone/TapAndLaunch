@@ -124,9 +124,9 @@ export function BlockRenderer({
 
 function TextBlockView({ config }: { config: TextBlockConfig }) {
   return (
-    <div className="px-4 py-3">
-      {config.heading && <h2 className="text-lg font-semibold">{config.heading}</h2>}
-      {config.body && <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{config.body}</p>}
+    <div className="px-4 py-3 @lg:mx-auto @lg:max-w-3xl @lg:px-8 @lg:py-8">
+      {config.heading && <h2 className="text-lg font-semibold @lg:text-3xl @lg:tracking-tight">{config.heading}</h2>}
+      {config.body && <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap @lg:mt-3 @lg:text-[17px] @lg:leading-relaxed">{config.body}</p>}
       {!config.heading && !config.body && (
         <p className="text-sm text-muted-foreground italic">Empty text block</p>
       )}
@@ -146,7 +146,7 @@ function ImageBlockView({ config, live }: { config: ImageBlockConfig; live: bool
     );
   }
   // eslint-disable-next-line @next/next/no-img-element -- source is arbitrary tenant-provided storage URLs
-  return <img src={config.src} alt={config.alt ?? ""} className="w-full object-cover" />;
+  return <img src={config.src} alt={config.alt ?? ""} className="w-full object-cover @lg:mx-auto @lg:my-6 @lg:max-w-4xl @lg:rounded-3xl" />;
 }
 
 function VideoBlockView({ config }: { config: VideoBlockConfig }) {
@@ -161,7 +161,7 @@ function VideoBlockView({ config }: { config: VideoBlockConfig }) {
   const embedSrc = toEmbedUrl(config);
 
   return (
-    <div className="aspect-video w-full">
+    <div className="aspect-video w-full @lg:mx-auto @lg:my-6 @lg:max-w-4xl @lg:overflow-hidden @lg:rounded-3xl">
       <iframe
         src={embedSrc}
         className="h-full w-full"
@@ -198,8 +198,8 @@ function ProductListBlockView({
   products?: RuntimeProduct[];
 }) {
   return (
-    <div className="px-4 py-3">
-      {config.title && <h2 className="mb-2 text-lg font-semibold">{config.title}</h2>}
+    <div className="px-4 py-3 @lg:mx-auto @lg:max-w-5xl @lg:px-8 @lg:py-8">
+      {config.title && <h2 className="mb-2 text-lg font-semibold @lg:mb-5 @lg:text-3xl @lg:tracking-tight">{config.title}</h2>}
       {products === undefined ? (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           Shows every active product when published.
@@ -207,7 +207,7 @@ function ProductListBlockView({
       ) : products.length === 0 ? (
         <p className="text-sm text-muted-foreground">No products yet.</p>
       ) : (
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-3 @lg:grid-cols-3 @lg:gap-5 @5xl:grid-cols-4">
           {products.map((product) => (
             <ProductBuyRuntime key={product.id} product={product} />
           ))}
@@ -225,8 +225,8 @@ function EventCalendarBlockView({
   events?: RuntimeEvent[];
 }) {
   return (
-    <div className="px-4 py-3">
-      {config.title && <h2 className="mb-2 text-lg font-semibold">{config.title}</h2>}
+    <div className="px-4 py-3 @lg:mx-auto @lg:max-w-4xl @lg:px-8 @lg:py-8">
+      {config.title && <h2 className="mb-2 text-lg font-semibold @lg:mb-5 @lg:text-3xl @lg:tracking-tight">{config.title}</h2>}
       {events === undefined ? (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           Shows every upcoming event when published.
@@ -234,7 +234,7 @@ function EventCalendarBlockView({
       ) : events.length === 0 ? (
         <p className="text-sm text-muted-foreground">No upcoming events.</p>
       ) : (
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-3 @lg:grid-cols-2 @lg:gap-5">
           {events.map((event) => (
             <EventBookRuntime key={event.id} event={event} />
           ))}

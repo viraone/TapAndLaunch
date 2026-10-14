@@ -92,6 +92,9 @@ export interface ThemeConfig {
   /** "tabs" is a tall tab bar fixed to the bottom of the screen, with large
    * icons (StageTime's look). Unset keeps the compact bar. */
   bottom_nav_style?: "compact" | "tabs";
+  /** "website" lays the published app out like a website: full width on a laptop with a top menu of the pages,
+   * the phone look (and tab bar) on a phone. Unset or "app" keeps the phone-shaped column everywhere. */
+  layout?: "app" | "website";
 }
 
 export interface ManifestConfig {
