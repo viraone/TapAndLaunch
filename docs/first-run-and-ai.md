@@ -28,13 +28,23 @@ week (`StarterEvent`, `sampleEventRows`, placed in Pacific time), each marked as
 `src/components/pwa-runtime/ShowcaseBlocks.tsx` (editors in `builder/blocks/ShowcaseEditors.tsx`), photos in
 `template-photos.md`. Events & bookings creates four sample events and Open mic list five sample mics (`StarterListing`). Event and dashboard dates use `src/lib/format-date.ts`, which gives identical text on the server and in every browser (`toLocaleString` with `dateStyle` differs between Node and Safari and caused hydration errors).
 
-## Desktop View: a website-layout starter
-_Added 2026-10-14._ The template picker's first group is **Desktop View** (`TEMPLATE_CATEGORIES` in
+## Websites: the website-layout starters
+_Added 2026-10-14._ The template picker's first group is **Website** (`TEMPLATE_CATEGORIES` in
 `src/lib/apps/templates.ts`, listed first so it's the first thing offered), for starters that open full width on a
-laptop instead of the phone-shaped column (`theme.layout = "website"`, see "Website layout" above). Its one template
-so far, **Personal website** (id `portfolio`), is a colour-led site for a person or consultant: a photo-less hero
+laptop instead of the phone-shaped column (`theme.layout = "website"`, see "Website layout" above). The first,
+**Personal website** (id `portfolio`), is a colour-led site for a person or consultant: a photo-less hero
 (falls back to `bg-primary`, so there's no stock photo of a stranger), highlights, an about page, testimonials, a
-Newsletter sign-up and a contact page. `TemplatePreview` draws it as a tiny browser window (traffic-light dots, a wide
+Newsletter sign-up and a contact page.
+
+Then **fifteen topic websites** (`WEBSITE_TOPICS`, same file), the list Squarespace's "What's your site about?"
+offers: Photography, Design, Education, Consulting, Art, Health, Marketing, Technology, Construction & maintenance,
+Apparel, Music, Real estate & properties, Beauty, Travel, Weddings. They are data, not fifteen more `case` blocks:
+each is a `WebsiteTopic` (colour, icon, and every line of copy — eyebrow, headline, subtext, three highlights, an
+about, a story, a quote, two testimonials, newsletter and contact wording, plus the two placeholder hints), and
+`buildStarterBody` turns any of them into the same three-page shape as Personal website before falling through to
+the hand-written templates. Adding a topic is adding one object to that array. They are photo-less on purpose, like
+Personal website. Tests pin the shape, that every topic's colour and headline is its own, and that each asks the
+"What's your site about?" question with its own hints. `TemplatePreview` draws it as a tiny browser window (traffic-light dots, a wide
 frame) instead of a phone when the starter's `theme.layout` is `"website"`, so the card itself signals "this one's a
 website" before anyone clicks it. Opening the builder on a `"website"` app also defaults the "Preview on" switch to
 **Desktop** instead of iPhone (`BuilderClient`'s initial `device` state), so a Desktop View starter opens already

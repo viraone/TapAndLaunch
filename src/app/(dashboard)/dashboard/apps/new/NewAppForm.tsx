@@ -16,12 +16,8 @@ const ICONS = TEMPLATE_ICONS;
 const WEBSITE_CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => c.id === "website");
 const APP_CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => c.id !== "website");
 
-const ABOUT_HINTS: Record<string, string> = {
-  portfolio: "I'm a career coach helping people land their next role",
-};
-
+// Name placeholders for the older templates; the website templates carry their own (`nameHint`/`aboutHint`).
 const NAME_HINTS: Record<string, string> = {
-  portfolio: "Jordan Lee",
   business: "Maple Street Bakery",
   store: "Corner Shop",
   events: "Sunday Supper Club",
@@ -123,7 +119,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
             maxLength={ABOUT_MAX_LENGTH}
             value={about}
             onChange={(e) => setAbout(e.target.value)}
-            placeholder={ABOUT_HINTS[selected.id] ?? "A sentence about what you do"}
+            placeholder={selected.aboutHint ?? "A sentence about what you do"}
             className="mt-3 w-full resize-none rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base outline-none transition focus:border-neutral-950 focus:ring-4 focus:ring-neutral-950/5"
           />
           <div className="mt-6 flex items-center gap-3">
@@ -180,7 +176,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
             maxLength={120}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={NAME_HINTS[selected.id] ?? "My app"}
+            placeholder={selected.nameHint ?? NAME_HINTS[selected.id] ?? "My app"}
             className="mt-2 h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-base outline-none transition focus:border-neutral-950 focus:ring-4 focus:ring-neutral-950/5"
           />
           <p className="mt-2 min-h-5 text-sm text-neutral-500">

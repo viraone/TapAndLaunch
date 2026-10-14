@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { isReservedPagePath } from "@/lib/pwa/reserved-paths";
 import { BLOCK_TYPES } from "@/lib/builder/block-defaults";
-import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter, isTemplateId, templateNeedsMaps } from "./templates";
+import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, WEBSITE_TOPICS, buildStarter, isTemplateId, templateNeedsMaps } from "./templates";
+
+const TOPIC_IDS = ["photography", "design", "education", "consulting", "art", "health", "marketing", "technology", "construction", "apparel", "music", "realestate", "beauty", "travel", "weddings"];
 
 describe("starter templates", () => {
   it("offers a template for everything, ending with a blank one", () => {
-    expect(STARTER_TEMPLATES.map((t) => t.id)).toEqual(["portfolio", "business", "store", "events", "food", "gas", "openmic", "restaurant", "fitness", "salon", "community", "blank", "byob"]);
+    expect(STARTER_TEMPLATES.map((t) => t.id)).toEqual(["portfolio", ...TOPIC_IDS, "business", "store", "events", "food", "gas", "openmic", "restaurant", "fitness", "salon", "community", "blank", "byob"]);
     expect(STARTER_TEMPLATES.at(-1)?.id).toBe("byob");
+    expect(new Set(STARTER_TEMPLATES.map((t) => t.id)).size).toBe(STARTER_TEMPLATES.length);
     expect(isTemplateId("store")).toBe(true);
     expect(isTemplateId("nope")).toBe(false);
   });
@@ -32,9 +35,9 @@ describe("starter templates", () => {
   }
 
   it("opens every finished template with a photo banner that has a headline", () => {
-    // "portfolio" is deliberately photo-less: its hero falls back to a solid brand colour (HeroBlockView), a
-    // common look for a personal site that doesn't start with a stock photo of a stranger.
-    for (const t of STARTER_TEMPLATES.filter((x) => !["food", "gas", "blank", "byob", "portfolio"].includes(x.id))) {
+    // The website templates are deliberately photo-less: their hero falls back to a solid brand colour
+    // (HeroBlockView), so a personal site never starts with a stock photo of a stranger.
+    for (const t of STARTER_TEMPLATES.filter((x) => x.category !== "website" && !["food", "gas", "blank", "byob"].includes(x.id))) {
       const first = buildStarter(t.id, "Maple Street Bakery").pages[0]?.blocks[0];
       expect(first?.type, t.id).toBe("hero");
       expect((first?.config as { image_url?: string; headline?: string }).image_url, t.id).toMatch(/\/templates\/.+\.jpg$/);
@@ -73,8 +76,32 @@ describe("starter templates", () => {
     expect(JSON.stringify(starter)).not.toContain("this should be ignored");
   });
 
-  it("marks only the portfolio template as asking 'what's your site about'", () => {
-    expect(STARTER_TEMPLATES.filter((t) => t.asksAbout).map((t) => t.id)).toEqual(["portfolio"]);
+  it("marks exactly the website templates as asking 'what's your site about', each with its own hints", () => {
+    const asking = STARTER_TEMPLATES.filter((t) => t.asksAbout);
+    expect(asking.map((t) => t.id)).toEqual(["portfolio", ...TOPIC_IDS]);
+    expect(STARTER_TEMPLATES.filter((t) => t.category === "website").map((t) => t.id)).toEqual(asking.map((t) => t.id));
+    for (const t of asking) {
+      expect(t.nameHint, t.id).toBeTruthy();
+      expect(t.aboutHint, t.id).toBeTruthy();
+    }
+  });
+
+  it("gives every topic website the same shape, its own words, and the website layout", () => {
+    expect(WEBSITE_TOPICS.map((t) => t.id)).toEqual(TOPIC_IDS);
+    const headlines = new Set<string>();
+    for (const topic of WEBSITE_TOPICS) {
+      const starter = buildStarter(topic.id, "X", "my own words");
+      expect(starter.theme.layout, topic.id).toBe("website");
+      expect(starter.pages.map((p) => p.path), topic.id).toEqual(["home", "about", "contact"]);
+      expect(starter.pages[0].blocks.map((b) => b.type), topic.id).toEqual(["hero", "stats", "text", "reviews", "newsletter"]);
+      const hero = starter.pages[0].blocks[0].config as { headline?: string; subtext?: string; image_url?: string };
+      expect(hero.image_url, topic.id).toBeFalsy();
+      expect(hero.subtext, topic.id).toBe("my own words");
+      headlines.add(hero.headline ?? "");
+      // Every topic's colour is its own, so the picker's cards don't blur together.
+      expect(STARTER_TEMPLATES.filter((t) => t.color === topic.color).map((t) => t.id), topic.color).toEqual([topic.id]);
+    }
+    expect(headlines.size).toBe(WEBSITE_TOPICS.length);
   });
 
   it("gives every hero button a page that exists in the same app", () => {
