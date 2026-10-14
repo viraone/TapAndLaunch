@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, Check, Copy, PartyPopper } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import type { Checklist, ChecklistStepId } from "@/lib/apps/checklist";
 
 /**
@@ -10,56 +9,18 @@ import type { Checklist, ChecklistStepId } from "@/lib/apps/checklist";
  */
 export function GetLiveChecklist({
   checklist,
-  liveUrl,
   busy,
   onAction,
 }: {
   checklist: Checklist;
-  /** The published address, shown once the app is live. */
-  liveUrl: string | null;
   /** True while publishing, so the Publish button can't be tapped twice. */
   busy?: boolean;
   onAction: (step: ChecklistStepId) => void;
 }) {
-  const [copied, setCopied] = useState(false);
   const pct = Math.round((checklist.doneCount / checklist.total) * 100);
 
-  async function copy() {
-    if (!liveUrl) return;
-    try {
-      await navigator.clipboard.writeText(new URL(liveUrl, window.location.href).href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      // Clipboard can be blocked; the address is shown as text anyway.
-    }
-  }
-
-  if (checklist.complete) {
-    return (
-      <section className="rounded-3xl bg-gradient-to-br from-emerald-400/15 to-emerald-400/[0.03] p-4 ring-1 ring-emerald-400/30">
-        <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-emerald-400 text-emerald-950">
-            <PartyPopper className="h-5 w-5" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-neutral-50">You&apos;re live</p>
-            <p className="text-xs text-emerald-200/80">Share your link and watch the views come in.</p>
-          </div>
-        </div>
-        {liveUrl && (
-          <button
-            type="button"
-            onClick={copy}
-            className="mt-3 flex w-full items-center justify-between gap-2 rounded-xl bg-black/30 px-3 py-2.5 text-left text-xs text-neutral-200 transition hover:bg-black/50"
-          >
-            <span className="truncate font-medium">{liveUrl.replace(/^(https?:)?\/\//, "")}</span>
-            {copied ? <Check className="h-4 w-4 shrink-0 text-emerald-300" /> : <Copy className="h-4 w-4 shrink-0 text-neutral-400" />}
-          </button>
-        )}
-      </section>
-    );
-  }
+  // Once every step is done the checklist has nothing to say: the live address is in the top bar.
+  if (checklist.complete) return null;
 
   return (
     <section className="rounded-3xl bg-white/[0.04] p-4 ring-1 ring-white/10">

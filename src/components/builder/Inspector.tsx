@@ -33,7 +33,6 @@ export function Inspector({
   onSelect,
   onClose,
   checklist,
-  liveUrl,
   publishing,
   onChecklistAction,
 }: {
@@ -44,7 +43,6 @@ export function Inspector({
   onSelect: (blockId: string) => void;
   onClose: () => void;
   checklist: Checklist;
-  liveUrl: string | null;
   publishing: boolean;
   onChecklistAction: (step: ChecklistStepId) => void;
   appId: string;
@@ -66,7 +64,7 @@ export function Inspector({
     return (
       // Extra room at the bottom so the floating "Build with AI" button never covers the last item or the tip.
       <div className="flex flex-col gap-5 p-4 pb-24">
-        <GetLiveChecklist checklist={checklist} liveUrl={liveUrl} busy={publishing} onAction={onChecklistAction} />
+        <GetLiveChecklist checklist={checklist} busy={publishing} onAction={onChecklistAction} />
         <div>
           <p className="text-sm font-semibold text-neutral-100">{pageName}</p>
           <p className="mt-0.5 text-xs text-neutral-500">

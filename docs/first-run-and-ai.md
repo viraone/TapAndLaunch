@@ -14,7 +14,8 @@ _Last checked: 2026-10-05._ What a brand-new customer sees, and how the app-from
    accounts without maps switched on (Admin page), so a new customer sees 9 usable templates; an empty group is hidden.
 4. Creating an app lands in the builder, where the **Get live** checklist is: Create, Add your content, **Pick your colors and
    icon** (ticks when an icon is uploaded or colors are saved in App settings: `theme.looks_confirmed`), Publish, **Scan the QR
-   code** (opens the app's page, which has the QR code; ticks when someone opens the app).
+   code** (opens the app's page, which has the QR code; ticks when someone opens the app). Once every step is done the
+   checklist disappears from the builder (the live address is in the top bar).
 
 ## Showcase templates
 All eight business templates (Gym, Restaurant, Salon, Club or community, Online store, Local business, Events & bookings,

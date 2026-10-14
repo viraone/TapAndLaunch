@@ -665,7 +665,6 @@ export function BuilderClient({
               onSelect={setSelectedBlockId}
               onClose={() => setSelectedBlockId(null)}
               checklist={checklist}
-              liveUrl={liveUrl}
               publishing={isPublishing}
               onChecklistAction={runChecklistStep}
               appId={currentApp.id}
