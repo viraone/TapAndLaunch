@@ -40,6 +40,7 @@ export function SortableBlockItem({
     <div
       ref={setNodeRef}
       style={style}
+      data-block-id={block.id}
       onClick={onSelect}
       className={`group relative cursor-pointer border-b border-border/60 transition last:border-b-0 ${
         selected

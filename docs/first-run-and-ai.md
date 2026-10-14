@@ -87,3 +87,7 @@ The page and the inspector are linked: clicking a piece of text on the page ligh
 scrolls to it, and focusing a box lights up the words on the page (`src/lib/builder/field-link.ts`: both sides carry the
 field's path as `data-field`; `linked(path)` on an inspector input, `EditableText` on the page). **Build with AI** is
 switched off in the builder for now (`AI_CHAT_ENABLED` in the builder page); the BYOB app type still builds from its chat.
+
+The inspector's list of sections shows a few words from each ("Banner · Come laugh with me"), and hovering a row
+outlines that section on the page and scrolls to it (`data-block-id` on the section, `data-block-pointed` styled in
+globals.css).

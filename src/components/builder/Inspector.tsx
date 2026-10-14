@@ -53,6 +53,16 @@ export function Inspector({
   onMinTierChange: (minTier: string | null) => void;
 }) {
   if (!block) {
+    // Hovering a row outlines that section on the page and brings it into view, so "Banner" means the big photo at the
+    // top, not a mystery. The outline is a data attribute the page's sections style (globals.css).
+    const pointAt = (id: string | null) => {
+      document.querySelectorAll<HTMLElement>("[data-block-pointed]").forEach((el) => el.removeAttribute("data-block-pointed"));
+      if (!id) return;
+      const el = document.querySelector<HTMLElement>(`[data-block-id="${CSS.escape(id)}"]`);
+      if (!el) return;
+      el.setAttribute("data-block-pointed", "true");
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    };
     return (
       // Extra room at the bottom so the floating "Build with AI" button never covers the last item or the tip.
       <div className="flex flex-col gap-5 p-4 pb-24">
@@ -72,13 +82,20 @@ export function Inspector({
                   <button
                     type="button"
                     onClick={() => onSelect(b.id)}
+                    onMouseEnter={() => pointAt(b.id)}
+                    onMouseLeave={() => pointAt(null)}
+                    onFocus={() => pointAt(b.id)}
+                    onBlur={() => pointAt(null)}
                     className="group flex w-full items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-2.5 text-left transition hover:border-white/15 hover:bg-white/[0.06]"
                   >
                     <span className="w-4 text-center text-[11px] font-semibold tabular-nums text-neutral-500">{i + 1}</span>
                     <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${BLOCK_ACCENTS[b.type]}`}>
                       <Icon className="h-4 w-4" />
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-neutral-100">{BLOCK_TYPE_LABELS[b.type]}</span>
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-neutral-100">
+                      {BLOCK_TYPE_LABELS[b.type]}
+                      <span className="block truncate text-[11px] font-normal text-neutral-500">{blockSummary(b)}</span>
+                    </span>
                     {/* A word, not a grip icon: what a tap on this row does. */}
                     <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-neutral-200 transition group-hover:bg-white group-hover:text-neutral-950">
                       <Pencil className="h-3 w-3" /> Edit
@@ -172,4 +189,18 @@ export function Inspector({
       <BlockAccessControl key={block.id} minTier={block.minTier} onChange={onMinTierChange} />
     </div>
   );
+}
+
+/** A few words from the section, so its row in the list says which one it is ("Come laugh with me", "Upcoming shows"). */
+function blockSummary(block: BuilderBlock): string {
+  const c = block.config as Record<string, unknown>;
+  const first = (...keys: string[]) => keys.map((k) => c[k]).find((v): v is string => typeof v === "string" && v.trim().length > 0)?.trim();
+  const items = Array.isArray(c.items) ? (c.items as Array<Record<string, unknown>>) : [];
+  const words =
+    first("headline", "heading", "title") ??
+    (items.length ? items.map((i) => [i.value, i.label].filter((v) => typeof v === "string" && v).join(" ")).filter(Boolean).slice(0, 3).join(" · ") : undefined) ??
+    (Array.isArray(c.images) && (c.images as unknown[]).length ? `${(c.images as unknown[]).length} photos` : undefined) ??
+    first("body", "subtext", "alt", "meeting_url", "url") ??
+    "";
+  return words.length > 60 ? `${words.slice(0, 57)}…` : words;
 }
