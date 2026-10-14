@@ -910,15 +910,6 @@ export function BuilderClient({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => openAsk(selectedBlockId ? "section" : "site")}
-              title="Say what should change, in words (⌘K)"
-              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-fuchsia-400/40 bg-fuchsia-500/10 px-3 text-sm font-medium text-neutral-50 transition hover:bg-fuchsia-500/20"
-            >
-              <Sparkles className="h-4 w-4 text-fuchsia-300" /> Ask AI
-              <kbd className="ml-0.5 hidden rounded bg-white/10 px-1 text-[11px] font-normal text-neutral-300 lg:inline">⌘K</kbd>
-            </button>
             <div role="group" aria-label="Undo and redo" className="inline-flex items-center gap-0.5">
               <button type="button" onClick={undo} disabled={history.past === 0} aria-label="Undo" title="Undo (⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-neutral-100 transition hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent">
                 <Undo2 className="h-4 w-4" />
@@ -1189,7 +1180,6 @@ export function BuilderClient({
               suggestions={suggestions}
               busySuggestion={busySuggestion}
               onSuggestion={(s) => void runSuggestion(s)}
-              onAsk={() => openAsk("section")}
             />
           </aside>
         </div>
