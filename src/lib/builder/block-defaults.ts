@@ -80,6 +80,8 @@ export function defaultConfigFor(type: BlockType): BlockConfig {
       return { items: [{ value: "4.9★", label: "Rating" }, { value: "10+", label: "Years open" }, { value: "1,000+", label: "Happy customers" }] };
     case "gallery":
       return { title: "", images: [] };
+    case "files":
+      return { title: "Files", intro: "", items: [] };
     case "open_mic_signup":
       return {
         title: "Open Mic Sign-Up",
@@ -117,12 +119,14 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   reviews: "Reviews",
   stats: "Highlights",
   gallery: "Photo gallery",
+  files: "Files & downloads",
 };
 
 export const BLOCK_TYPES: BlockType[] = [
   "text",
   "image",
   "video",
+  "files",
   "contact_form",
   "product_list",
   "event_calendar",

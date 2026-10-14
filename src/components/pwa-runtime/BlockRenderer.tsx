@@ -20,8 +20,10 @@ import type {
   ReviewsBlockConfig,
   StatsBlockConfig,
   GalleryBlockConfig,
+  FilesBlockConfig,
 } from "@/types/database";
 import { GalleryBlockView, HeroBlockView, HoursBlockView, PriceListBlockView, ReviewsBlockView, StatsBlockView } from "@/components/pwa-runtime/ShowcaseBlocks";
+import { FilesBlockView } from "@/components/pwa-runtime/FilesBlock";
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
 import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
@@ -113,6 +115,8 @@ export function BlockRenderer({
       return <StatsBlockView config={block.config as StatsBlockConfig} />;
     case "gallery":
       return <GalleryBlockView config={block.config as GalleryBlockConfig} live={live} />;
+    case "files":
+      return <FilesBlockView config={block.config as FilesBlockConfig} live={live} />;
     default:
       return <UnknownBlockView type={block.type} />;
   }

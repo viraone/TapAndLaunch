@@ -18,6 +18,7 @@ import {
   ListOrdered,
   PanelTop,
   Sparkles,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 import type { BlockType } from "@/types/database";
@@ -43,6 +44,7 @@ export const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   reviews: Star,
   stats: Sparkles,
   gallery: GalleryHorizontalEnd,
+  files: FileText,
 };
 
 /** Each block gets its own accent so the library reads as a set of tools,
@@ -67,6 +69,7 @@ export const BLOCK_ACCENTS: Record<BlockType, string> = {
   reviews: "from-yellow-300 to-amber-500 text-amber-950",
   stats: "from-purple-400 to-indigo-500 text-white",
   gallery: "from-pink-300 to-rose-500 text-white",
+  files: "from-slate-300 to-slate-500 text-slate-950",
 };
 
 export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
@@ -89,11 +92,12 @@ export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
   reviews: "Quotes from happy customers",
   stats: "Short facts that build trust",
   gallery: "A grid of photos",
+  files: "PDFs, handouts and other files to open",
 };
 
 export const BLOCK_GROUPS: Array<{ label: string; types: BlockType[] }> = [
   { label: "Make it look good", types: ["hero", "stats", "gallery", "reviews"] },
-  { label: "Words, pictures and prices", types: ["text", "image", "video", "price_list", "hours"] },
+  { label: "Words, pictures and prices", types: ["text", "image", "video", "files", "price_list", "hours"] },
   { label: "Hear from people", types: ["contact_form", "zoom_meeting", "canva_embed"] },
   { label: "Sell and book", types: ["product_list", "event_calendar"] },
   { label: "Live, updated for you", types: ["listing_directory", "gas_directory", "food_directory", "open_mic_signup", "class_finder"] },

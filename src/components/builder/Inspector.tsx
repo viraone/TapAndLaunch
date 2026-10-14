@@ -12,6 +12,7 @@ import { FoodDirectoryBlockEditor } from "@/components/builder/blocks/FoodDirect
 import { OpenMicSignupBlockEditor } from "@/components/builder/blocks/OpenMicSignupBlockEditor";
 import { ClassFinderBlockEditor } from "@/components/builder/blocks/ClassFinderBlockEditor";
 import { GalleryBlockEditor, HeroBlockEditor, HoursBlockEditor, PriceListBlockEditor, ReviewsBlockEditor, StatsBlockEditor } from "@/components/builder/blocks/ShowcaseEditors";
+import { FilesBlockEditor } from "@/components/builder/blocks/FilesBlockEditor";
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
 import { GetLiveChecklist } from "@/components/builder/GetLiveChecklist";
 import type { Checklist, ChecklistStepId } from "@/lib/apps/checklist";
@@ -167,6 +168,7 @@ export function Inspector({
       {block.type === "reviews" && <ReviewsBlockEditor config={block.config} onChange={onChange} />}
       {block.type === "stats" && <StatsBlockEditor config={block.config} onChange={onChange} />}
       {block.type === "gallery" && <GalleryBlockEditor config={block.config} organizationId={organizationId} onChange={onChange} />}
+      {block.type === "files" && <FilesBlockEditor config={block.config} organizationId={organizationId} onChange={onChange} />}
       <BlockAccessControl key={block.id} minTier={block.minTier} onChange={onMinTierChange} />
     </div>
   );

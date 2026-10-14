@@ -34,7 +34,8 @@ export type BlockType =
   | "hours"
   | "reviews"
   | "stats"
-  | "gallery";
+  | "gallery"
+  | "files";
 export type AnalyticsEventType =
   | "view"
   | "install"
@@ -122,7 +123,8 @@ export type BlockConfig =
   | HoursBlockConfig
   | ReviewsBlockConfig
   | StatsBlockConfig
-  | GalleryBlockConfig;
+  | GalleryBlockConfig
+  | FilesBlockConfig;
 
 /** A full-width photo with a headline and an optional button that opens another page of the app. */
 export interface HeroBlockConfig {
@@ -165,6 +167,13 @@ export interface StatsBlockConfig {
 export interface GalleryBlockConfig {
   title?: string;
   images?: Array<{ src: string; alt?: string }>;
+}
+
+/** Files visitors can open or download (handouts, worksheets, menus as PDFs, forms, slides): a label, the file's address and an optional line about it. */
+export interface FilesBlockConfig {
+  title?: string;
+  intro?: string;
+  items?: Array<{ label: string; url: string; note?: string }>;
 }
 
 export interface TextBlockConfig {
