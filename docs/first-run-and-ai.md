@@ -41,10 +41,14 @@ website" before anyone clicks it. Opening the builder on a `"website"` app also 
 showing its real, full-width look.
 
 The picker itself (`NewAppForm.tsx`) splits into two labelled shelves separated by a visible rule: **Websites**
-(any category tagged `"website"`) above, **Apps** (every other category) below — so the one full-width starter
-doesn't just blend into the phone-shaped grid with a small pill saying "Desktop View". Adding a second website
-category later joins the Websites shelf automatically (`WEBSITE_CATEGORIES`/`APP_CATEGORIES` filter on
-`category.id === "website"`, nothing hand-listed).
+(any category tagged `"website"`) above, **Phone-first templates** (every other category) below — so the one
+full-width starter doesn't just blend into the phone-shaped grid. Wording was deliberately kept non-technical after
+a look at the shipped page: no "Desktop View" (what would a client do with that?), and the other shelf is never
+called "Apps" — these are all websites, some just phone-shaped — so it says what it does in plain words instead
+("A simple, phone-shaped page your visitors can save to their Home Screen, like an app"). The card's small group
+pill (e.g. "Restaurants & cafés") is skipped on the Websites shelf, where it would just repeat the shelf's own
+title. Adding a second website category later joins the Websites shelf automatically
+(`WEBSITE_CATEGORIES`/`APP_CATEGORIES` filter on `category.id === "website"`, nothing hand-listed).
 
 ## Describe your app
 `POST /api/apps/generate` takes a sentence (10 to 500 characters) and an optional name, designs a first version and creates it

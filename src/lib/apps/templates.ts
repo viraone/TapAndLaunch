@@ -29,7 +29,7 @@ export type TemplateCategoryId = "website" | "food" | "fitness" | "shops" | "ven
 
 /** The picker's groups, in the order they are shown. */
 export const TEMPLATE_CATEGORIES: Array<{ id: TemplateCategoryId; name: string; blurb: string }> = [
-  { id: "website", name: "Desktop View", blurb: "Full width on a laptop, with a menu at the top — not a phone-shaped column" },
+  { id: "website", name: "Website", blurb: "Full width on a laptop, with a menu at the top — not a phone-shaped column" },
   { id: "food", name: "Restaurants & cafés", blurb: "Menus, reservations and what's open now" },
   { id: "fitness", name: "Gyms & studios", blurb: "Class schedules and free-trial sign-ups" },
   { id: "shops", name: "Shops & services", blurb: "Sell products, take bookings, or just get found" },

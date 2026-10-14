@@ -10,9 +10,9 @@ import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
 
 const ICONS = TEMPLATE_ICONS;
 
-// Two clearly separate shelves: full-width websites (today, just Desktop View) and the phone-shaped, installable
-// PWA apps (everything else). Split off "website" rather than listing the app categories by hand, so a future
-// website category joins the Websites shelf automatically instead of landing among the apps.
+// Two clearly separate shelves: full-width websites (today, just Website) and the phone-shaped templates
+// (everything else). Split off "website" rather than listing the other categories by hand, so a future website
+// category joins the Websites shelf automatically instead of landing among the phone-shaped ones.
 const WEBSITE_CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => c.id === "website");
 const APP_CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => c.id !== "website");
 
@@ -142,18 +142,19 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
 
       <TemplateShelf
         title="Websites"
-        blurb="Full width on a laptop, with a menu at the top — not the phone-shaped column below."
+        blurb="Looks and works like a regular website: full size on a computer, with a menu across the top."
         categories={WEBSITE_CATEGORIES}
         mapsEnabled={mapsEnabled}
         onSelect={setSelected}
+        showCategoryLabel={false}
       />
 
-      {/* A visible break, not just spacing, so "Websites" and "Apps" read as two different shelves at a glance. */}
+      {/* A visible break, not just spacing, so the two shelves read as two different starting points at a glance. */}
       <div className="h-px bg-neutral-200" aria-hidden />
 
       <TemplateShelf
-        title="Apps"
-        blurb="A phone-shaped column customers add to their Home Screen like any other app."
+        title="Phone-first templates"
+        blurb="A simple, phone-shaped page your visitors can save to their Home Screen, like an app."
         categories={APP_CATEGORIES}
         mapsEnabled={mapsEnabled}
         onSelect={setSelected}
@@ -162,19 +163,22 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
   );
 }
 
-/** One labelled shelf of template cards. */
+/** One labelled shelf of template cards. `showCategoryLabel` hides each card's small group pill (e.g. "Restaurants
+ * & cafés") — worth skipping on a shelf whose one category would just repeat the shelf's own title. */
 function TemplateShelf({
   title,
   blurb,
   categories,
   mapsEnabled,
   onSelect,
+  showCategoryLabel = true,
 }: {
   title: string;
   blurb: string;
   categories: typeof TEMPLATE_CATEGORIES;
   mapsEnabled: boolean;
   onSelect: (t: StarterTemplate) => void;
+  showCategoryLabel?: boolean;
 }) {
   const cards = categories.flatMap((category) =>
     STARTER_TEMPLATES.filter((t) => t.category === category.id && (mapsEnabled || !templateNeedsMaps(t.id))).map((t) => ({ t, category }))
@@ -190,14 +194,14 @@ function TemplateShelf({
       {/* Three to a row, so a short shelf never leaves a gap; each card also says which smaller group it is in. */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(({ t, category }) => (
-          <TemplateCard key={t.id} template={t} categoryName={category.name} onSelect={() => onSelect(t)} />
+          <TemplateCard key={t.id} template={t} categoryName={showCategoryLabel ? category.name : undefined} onSelect={() => onSelect(t)} />
         ))}
       </div>
     </section>
   );
 }
 
-function TemplateCard({ template: t, categoryName, onSelect }: { template: StarterTemplate; categoryName: string; onSelect: () => void }) {
+function TemplateCard({ template: t, categoryName, onSelect }: { template: StarterTemplate; categoryName?: string; onSelect: () => void }) {
   const Icon = ICONS[t.icon];
   return (
     <button
@@ -206,8 +210,8 @@ function TemplateCard({ template: t, categoryName, onSelect }: { template: Start
       className="group relative flex flex-col rounded-3xl bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 enabled:hover:-translate-y-1 enabled:hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_24px_48px_-16px_rgba(0,0,0,0.28)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
     >
       <TemplatePreview templateId={t.id} color={t.color} />
-      <p className="px-2 pt-4 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{categoryName}</p>
-      <div className="flex items-center gap-3 px-2 pt-1.5">
+      {categoryName && <p className="px-2 pt-4 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{categoryName}</p>}
+      <div className={`flex items-center gap-3 px-2 ${categoryName ? "pt-1.5" : "pt-4"}`}>
         <span
           className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow transition group-hover:scale-105"
           style={{ background: `linear-gradient(135deg, ${t.color}, color-mix(in oklab, ${t.color} 55%, #0a0a0a))` }}
