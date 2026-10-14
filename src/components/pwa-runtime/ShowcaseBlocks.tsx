@@ -165,7 +165,7 @@ export function GalleryBlockView({ config, live }: { config: GalleryBlockConfig;
     <section className="px-4 py-5 @lg:mx-auto @lg:max-w-6xl @lg:px-8 @lg:py-10">
       {config.title && <h2 className="mb-3 px-1 text-2xl font-extrabold tracking-tight @lg:mb-6 @lg:text-4xl">{config.title}</h2>}
       <div className="grid grid-cols-2 gap-2 @lg:grid-cols-3 @lg:gap-4 @5xl:grid-cols-4">
-        {images.slice(0, 9).map((img, i) => (
+        {images.slice(0, 24).map((img, i) => (
           // eslint-disable-next-line @next/next/no-img-element -- template photos and tenant uploads, any host
           <img
             key={i}

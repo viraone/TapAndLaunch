@@ -203,7 +203,7 @@ export function GalleryBlockEditor({ config, organizationId, onChange }: { confi
           <Input aria-label="Describe the photo" placeholder="Describe the photo (for screen readers)" value={img.alt ?? ""} maxLength={120} onChange={(e) => onChange({ ...config, images: replaceAt(images, i, { ...img, alt: e.target.value }) })} />
         </Card>
       ))}
-      {images.length < 9 && <AddButton onClick={() => onChange({ ...config, images: [...images, { src: "", alt: "" }] })}>Add a photo</AddButton>}
+      {images.length < 24 && <AddButton onClick={() => onChange({ ...config, images: [...images, { src: "", alt: "" }] })}>Add a photo</AddButton>}
     </div>
   );
 }

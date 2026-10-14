@@ -59,3 +59,15 @@ themselves to their column with Tailwind container queries (`@lg:` and up, again
 app's 28rem column never triggers the wide styles. The builder's "Preview on" switch gains **Desktop**, a laptop-browser frame
 drawn at 1180px and scaled to fit; in a website it shows the top menu and no tab bar. First used for a client's site at
 davidbabucomedy.com.
+
+## Quick updates
+_Added 2026-10-14._ `/dashboard/apps/{id}/updates`: one page with the three things the owner of a live app does week to
+week, for clients who run an app someone else built. **Add a show** (an event with date, venue, optional ticket link; the
+existing events API), **Add photos** (uploads to `app-assets`, then `POST /api/apps/{id}/photos` appends them to the
+app's first Photo gallery block, the home page's first, creating one if the app has none; a gallery holds 24 photos),
+**Messages** (the last five form submissions). "Change the design" opens the builder. The app card's big button reads
+"Quick updates" once the Get live checklist is complete; before that it still names the next step. The card's More menu
+and the app overview link to it too.
+
+Events can carry a **ticket link** (migration 0040): with one, the event's card shows a Tickets button that opens it in a
+new tab instead of the booking form.

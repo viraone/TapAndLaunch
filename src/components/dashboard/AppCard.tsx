@@ -24,6 +24,8 @@ import {
 type AppRow = Database["public"]["Tables"]["apps"]["Row"];
 
 const MANAGE_LINKS = [
+  { path: "updates", label: "Quick updates" },
+  { path: "builder", label: "Edit the design" },
   { path: "analytics", label: "Analytics" },
   { path: "submissions", label: "Submissions" },
   { path: "members", label: "Members" },
@@ -195,7 +197,9 @@ export function AppCard({
             href={
               next?.id === "visit"
                 ? `/dashboard/apps/${app.id}`
-                : `/dashboard/apps/${app.id}/builder`
+                : next
+                  ? `/dashboard/apps/${app.id}/builder`
+                  : `/dashboard/apps/${app.id}/updates`
             }
             className="inline-flex h-10 min-w-0 items-center justify-center gap-2 rounded-full bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800"
           >
@@ -204,7 +208,7 @@ export function AppCard({
             ) : (
               <Pencil className="h-4 w-4 shrink-0" />
             )}
-            <span className="truncate">{next ? next.title : "Edit app"}</span>
+            <span className="truncate">{next ? next.title : "Quick updates"}</span>
           </Link>
           <div className="flex items-center gap-2">
             {published && (

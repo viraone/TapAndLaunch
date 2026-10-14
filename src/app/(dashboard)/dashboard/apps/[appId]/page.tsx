@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
-import { ArrowUpRight, BarChart3, Bell, CalendarDays, Download, Fuel, Inbox, Pencil, ShoppingBag, Smartphone, Ticket, Users } from "lucide-react";
+import { ArrowUpRight, BarChart3, Bell, CalendarDays, Download, Fuel, Inbox, Pencil, ShoppingBag, Smartphone, Ticket, Users, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRootDomain } from "@/lib/tenant";
 import { appLiveUrl } from "@/lib/apps/share";
@@ -76,12 +76,22 @@ export default async function AppHomePage({ params }: { params: Params }) {
               {published ? "Live" : "Draft, not published yet"}
             </p>
           </div>
-          <Link
-            href={`/dashboard/apps/${appId}/builder`}
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800"
-          >
-            <Pencil className="h-4 w-4" /> Open builder
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {app.kind !== "code" && (
+              <Link
+                href={`/dashboard/apps/${appId}/updates`}
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800"
+              >
+                <Zap className="h-4 w-4" /> Quick updates
+              </Link>
+            )}
+            <Link
+              href={`/dashboard/apps/${appId}/builder`}
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-neutral-900 ring-1 ring-black/10 transition hover:bg-neutral-50"
+            >
+              <Pencil className="h-4 w-4" /> Open builder
+            </Link>
+          </div>
         </header>
 
         <section className="grid gap-6 rounded-3xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 sm:grid-cols-[1fr_auto]">
