@@ -15,8 +15,9 @@ _Last updated: 2026-10-06._ Tick items as they are done and note the date.
       `STRIPE_BILLING_WEBHOOK_SECRET` in Vercel; redeployed (2026-10-05)
 - [x] One small real store purchase and refund: done 2026-10-14. StageTimePNW's workspace is connected in live mode (sole proprietor, Radar Lite);
       a $1.00 order went Paid by itself via the webhook, and a refund from Stripe's dashboard turned it Refunded. The test app was unpublished.
-- [ ] Delete test organizations and test apps from production (firstrun3 after its plan ends Nov 4; shop1 after the live store
-      test; the two leftover test apps were unpublished 2026-10-05)
+- [x] Delete test organizations and test apps from production: shop1 was gone by 2026-10-05; the firstrun3 login and its workspace and
+      apps were deleted 2026-10-14 (its Stripe trial subscription is set to cancel itself on Nov 4); the live-test app "corner store" was deleted
+      2026-10-14 (soft delete, erased after 30 days)
 
 ## Platform account
 - [x] Vercel Pro (2026-10-05; Hobby is non-commercial)
