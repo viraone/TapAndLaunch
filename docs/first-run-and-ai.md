@@ -40,6 +40,12 @@ website" before anyone clicks it. Opening the builder on a `"website"` app also 
 **Desktop** instead of iPhone (`BuilderClient`'s initial `device` state), so a Desktop View starter opens already
 showing its real, full-width look.
 
+The picker itself (`NewAppForm.tsx`) splits into two labelled shelves separated by a visible rule: **Websites**
+(any category tagged `"website"`) above, **Apps** (every other category) below — so the one full-width starter
+doesn't just blend into the phone-shaped grid with a small pill saying "Desktop View". Adding a second website
+category later joins the Websites shelf automatically (`WEBSITE_CATEGORIES`/`APP_CATEGORIES` filter on
+`category.id === "website"`, nothing hand-listed).
+
 ## Describe your app
 `POST /api/apps/generate` takes a sentence (10 to 500 characters) and an optional name, designs a first version and creates it
 exactly like the template picker does (`createAppFromStarter`, shared with `POST /api/apps`).

@@ -10,6 +10,12 @@ import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
 
 const ICONS = TEMPLATE_ICONS;
 
+// Two clearly separate shelves: full-width websites (today, just Desktop View) and the phone-shaped, installable
+// PWA apps (everything else). Split off "website" rather than listing the app categories by hand, so a future
+// website category joins the Websites shelf automatically instead of landing among the apps.
+const WEBSITE_CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => c.id === "website");
+const APP_CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => c.id !== "website");
+
 const NAME_HINTS: Record<string, string> = {
   portfolio: "Jordan Lee",
   business: "Maple Street Bakery",
@@ -131,51 +137,97 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
       <div id="templates" className="scroll-mt-6" />
 
-      {/* One grid for every template, three to a row, so a short group never leaves a gap; each card says which group it is in. */}
-      <div className="-mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {TEMPLATE_CATEGORIES.flatMap((category) =>
-          STARTER_TEMPLATES.filter((t) => t.category === category.id && (mapsEnabled || !templateNeedsMaps(t.id))).map((t) => ({ t, category }))
-        ).map(({ t, category }) => {
-                const Icon = ICONS[t.icon];
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setSelected(t)}
-                    className="group relative flex flex-col rounded-3xl bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 enabled:hover:-translate-y-1 enabled:hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_24px_48px_-16px_rgba(0,0,0,0.28)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-                  >
-                    <TemplatePreview templateId={t.id} color={t.color} />
-                    <p className="px-2 pt-4 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{category.name}</p>
-                    <div className="flex items-center gap-3 px-2 pt-1.5">
-                      <span
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow transition group-hover:scale-105"
-                        style={{ background: `linear-gradient(135deg, ${t.color}, color-mix(in oklab, ${t.color} 55%, #0a0a0a))` }}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <h4 className="text-base font-semibold tracking-tight">{t.name}</h4>
-                    </div>
-                    <p className="mt-1.5 flex-1 px-2 text-sm leading-relaxed text-neutral-500">
-                      {t.tagline}
-                    </p>
-                    <div className="mt-3 flex min-h-6 flex-wrap gap-1.5 px-2 pb-2">
-                      {t.includes.length ? (
-                        t.includes.map((chip) => (
-                          <span key={chip} className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-600">
-                            {chip}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-600">Empty page</span>
-                      )}
-                    </div>
-                  </button>
-                );
-        })}
-      </div>
+      <TemplateShelf
+        title="Websites"
+        blurb="Full width on a laptop, with a menu at the top — not the phone-shaped column below."
+        categories={WEBSITE_CATEGORIES}
+        mapsEnabled={mapsEnabled}
+        onSelect={setSelected}
+      />
+
+      {/* A visible break, not just spacing, so "Websites" and "Apps" read as two different shelves at a glance. */}
+      <div className="h-px bg-neutral-200" aria-hidden />
+
+      <TemplateShelf
+        title="Apps"
+        blurb="A phone-shaped column customers add to their Home Screen like any other app."
+        categories={APP_CATEGORIES}
+        mapsEnabled={mapsEnabled}
+        onSelect={setSelected}
+      />
     </div>
+  );
+}
+
+/** One labelled shelf of template cards. */
+function TemplateShelf({
+  title,
+  blurb,
+  categories,
+  mapsEnabled,
+  onSelect,
+}: {
+  title: string;
+  blurb: string;
+  categories: typeof TEMPLATE_CATEGORIES;
+  mapsEnabled: boolean;
+  onSelect: (t: StarterTemplate) => void;
+}) {
+  const cards = categories.flatMap((category) =>
+    STARTER_TEMPLATES.filter((t) => t.category === category.id && (mapsEnabled || !templateNeedsMaps(t.id))).map((t) => ({ t, category }))
+  );
+  if (!cards.length) return null;
+
+  return (
+    <section className="space-y-5">
+      <div>
+        <h3 className="text-base font-semibold tracking-tight">{title}</h3>
+        <p className="mt-0.5 text-sm text-neutral-500">{blurb}</p>
+      </div>
+      {/* Three to a row, so a short shelf never leaves a gap; each card also says which smaller group it is in. */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {cards.map(({ t, category }) => (
+          <TemplateCard key={t.id} template={t} categoryName={category.name} onSelect={() => onSelect(t)} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TemplateCard({ template: t, categoryName, onSelect }: { template: StarterTemplate; categoryName: string; onSelect: () => void }) {
+  const Icon = ICONS[t.icon];
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="group relative flex flex-col rounded-3xl bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 enabled:hover:-translate-y-1 enabled:hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_24px_48px_-16px_rgba(0,0,0,0.28)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+    >
+      <TemplatePreview templateId={t.id} color={t.color} />
+      <p className="px-2 pt-4 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{categoryName}</p>
+      <div className="flex items-center gap-3 px-2 pt-1.5">
+        <span
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow transition group-hover:scale-105"
+          style={{ background: `linear-gradient(135deg, ${t.color}, color-mix(in oklab, ${t.color} 55%, #0a0a0a))` }}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+        <h4 className="text-base font-semibold tracking-tight">{t.name}</h4>
+      </div>
+      <p className="mt-1.5 flex-1 px-2 text-sm leading-relaxed text-neutral-500">{t.tagline}</p>
+      <div className="mt-3 flex min-h-6 flex-wrap gap-1.5 px-2 pb-2">
+        {t.includes.length ? (
+          t.includes.map((chip) => (
+            <span key={chip} className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-600">
+              {chip}
+            </span>
+          ))
+        ) : (
+          <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-600">Empty page</span>
+        )}
+      </div>
+    </button>
   );
 }
