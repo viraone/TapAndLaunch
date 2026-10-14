@@ -2,7 +2,7 @@ import { defaultConfigFor } from "@/lib/builder/block-defaults";
 import { starterFiles } from "@/lib/code/prompt";
 import { isMapsBlock } from "@/lib/platform/maps-shared";
 import { LOOKS, lookOf, lookTheme, type LookId } from "@/lib/pwa/look";
-import type { BlockConfig, BlockType, ManifestConfig, ThemeConfig } from "@/types/database";
+import type { BlockConfig, BlockType, FaqBlockConfig, HoursBlockConfig, ManifestConfig, PriceListBlockConfig, ThemeConfig } from "@/types/database";
 
 /**
  * Starter apps: what "New app" offers instead of an empty page. Each one is
@@ -106,6 +106,37 @@ export interface WebsiteTopic {
   shopTitle?: string;
   sampleProducts?: StarterProduct[];
   mapTitle?: string;
+  /** The map goes on Home (an agent's patch) instead of Contact. */
+  mapOnHome?: boolean;
+  /** An empty video block on Home — a reel for a photographer or a planner; a "No video set" box in the builder,
+   * nothing on the live site until a link is pasted. */
+  video?: boolean;
+  /** An empty audio player on Home (a musician's set); same empty-state rules as the video. */
+  audio?: boolean;
+  /** A services-and-prices list on Home, with sample items to edit. */
+  priceList?: PriceListBlockConfig;
+  /** Hours and area on Contact (no address or phone invented). */
+  hours?: HoursBlockConfig;
+  /** The questions people ask, on Home before the newsletter. */
+  faq?: FaqBlockConfig;
+  /** Dates on Home (shows, tours) rather than appointments on Contact; uses `sampleEvents`. */
+  homeCalendarTitle?: string;
+}
+
+/** The chips on a topic's card: only what sets the trade apart, in the order the sections appear. A test checks
+ * each chip matches a section the pages really have. */
+export function topicExtras(t: WebsiteTopic): string[] {
+  return [
+    t.galleryTitle && "Gallery",
+    t.video && "Video",
+    t.audio && "Audio",
+    t.priceList && "Prices",
+    t.shopTitle && "Shop",
+    t.mapTitle && "Map",
+    (t.homeCalendarTitle || t.bookingTitle) && "Bookings",
+    t.faq && "FAQ",
+    t.hours && "Hours",
+  ].filter((x): x is string => !!x);
 }
 
 const SAMPLE_EVENT = "This is a sample. Edit it or delete it under Manage, Events.";
@@ -143,6 +174,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactBody: "Tell me what you have in mind and when, and I'll reply within a day or two.",
     contactTitle: "Ask about a date",
     galleryTitle: "Recent work",
+    video: true,
   },
   {
     id: "design",
@@ -243,6 +275,14 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactBody: "A few lines about your situation is enough. The first call is free.",
     contactTitle: "Book a free call",
     bookingTitle: "Book a call",
+    faq: {
+      title: "Common questions",
+      items: [
+        { question: "Who do you work with?", answer: "Owners and small teams who want an outside view and a plan that actually gets done." },
+        { question: "How does an engagement start?", answer: "A free call, then a short written proposal with the scope and the cost." },
+        { question: "What does it cost?", answer: "It depends on the scope. Most engagements are a fixed fee agreed up front, so there are no surprises." },
+      ],
+    },
     sampleEvents: [
       { title: "Free first call", description: `Thirty minutes to talk through where you are. ${SAMPLE_EVENT}`, dayOffset: 1, time: "10:00", minutes: 30, capacity: 1 },
       { title: "Strategy session", description: `A working session on one problem, with a plan at the end. ${SAMPLE_EVENT}`, dayOffset: 3, time: "14:00", minutes: 90, capacity: 1 },
@@ -311,6 +351,28 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Book an appointment",
     contactBody: "Tell us what's going on and when suits you. We'll get back to you the same day where we can.",
     contactTitle: "Request an appointment",
+    priceList: {
+      title: "Services & prices",
+      subtitle: "Most major insurers accepted. Ask when you book and we'll check.",
+      sections: [
+        {
+          name: "Appointments",
+          items: [
+            { name: "New patient assessment", description: "45 minutes: history, examination and a plan to start", price: "$120" },
+            { name: "Follow-up", description: "30 minutes", price: "$85" },
+            { name: "Sports massage", description: "45 minutes", price: "$95", badge: "Popular" },
+          ],
+        },
+      ],
+    },
+    faq: {
+      title: "Before your first visit",
+      items: [
+        { question: "Do I need a referral?", answer: "No. You can book directly." },
+        { question: "What should I bring?", answer: "Comfortable clothes, any scans or reports you have, and your insurance details." },
+        { question: "Do you take insurance?", answer: "Most major insurers. Ask when you book and we'll check." },
+      ],
+    },
     bookingTitle: "Book an appointment",
     sampleEvents: [
       { title: "New patient assessment", description: `A full look at what's going on and a plan to start. ${SAMPLE_EVENT}`, dayOffset: 1, time: "09:00", minutes: 45, capacity: 1 },
@@ -410,6 +472,24 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Get a quote",
     contactBody: "Tell us about the job and where you are. We'll come out, have a look and give you a straight price.",
     contactTitle: "Request a quote",
+    hours: {
+      title: "Hours & area",
+      rows: [
+        { label: "Mon to Fri", value: "7am to 5pm" },
+        { label: "Saturday", value: "8am to 1pm" },
+        { label: "Sunday", value: "Closed" },
+      ],
+      address: "",
+      phone: "",
+    },
+    faq: {
+      title: "Common questions",
+      items: [
+        { question: "Do you charge for a quote?", answer: "No. We come out, look at the job and give you a written price." },
+        { question: "Are you licensed and insured?", answer: "Yes, fully. Ask and we'll show you the paperwork." },
+        { question: "How far out are you booking?", answer: "Usually a few weeks for bigger jobs; repairs sooner. Ask and we'll tell you honestly." },
+      ],
+    },
   },
   {
     id: "apparel",
@@ -479,6 +559,13 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Book a show",
     contactBody: "Tell me the date, the place and the kind of night you're after.",
     contactTitle: "Ask about a date",
+    audio: true,
+    homeCalendarTitle: "Upcoming shows",
+    sampleEvents: [
+      { title: "Friday at The Corner Pub", description: `Full band, two sets from eight. ${SAMPLE_EVENT}`, dayOffset: 3, time: "20:00", minutes: 150, capacity: 80 },
+      { title: "Acoustic Sunday at Harbor Café", description: `Solo, songs and stories, all ages. ${SAMPLE_EVENT}`, dayOffset: 5, time: "16:00", minutes: 90, capacity: 40 },
+      { title: "Private event", description: `Weddings and parties: ask about a date. ${SAMPLE_EVENT}`, dayOffset: 12, time: "19:00", minutes: 180, capacity: 1 },
+    ],
   },
   {
     id: "realestate",
@@ -511,6 +598,15 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactBody: "Buying, selling or just curious what your place is worth? Send a note.",
     contactTitle: "Get in touch",
     mapTitle: "Where I work",
+    mapOnHome: true,
+    faq: {
+      title: "Questions people ask",
+      items: [
+        { question: "What's my home worth?", answer: "Send me the address and I'll come back with an honest range, no obligation." },
+        { question: "How long does selling take?", answer: "In this area, usually a few weeks from listing to offer, though every home is different." },
+        { question: "Do you work with first-time buyers?", answer: "All the time. I'll walk you through every step, from pre-approval to keys." },
+      ],
+    },
   },
   {
     id: "beauty",
@@ -542,6 +638,27 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Book an appointment",
     contactBody: "Tell me what you'd like and when, and I'll confirm a time.",
     contactTitle: "Request a booking",
+    priceList: {
+      title: "Services & prices",
+      subtitle: "Prices are a guide; a trial or a quick consultation confirms them.",
+      sections: [
+        {
+          name: "Makeup",
+          items: [
+            { name: "Bridal makeup", description: "A trial plus the day, lashes included", price: "from $250", badge: "Bridal" },
+            { name: "Event makeup", description: "Parties, shoots, nights out", price: "$95" },
+          ],
+        },
+        {
+          name: "Lashes & brows",
+          items: [
+            { name: "Lash full set", description: "Classic or hybrid", price: "$140" },
+            { name: "Lash infill", description: "Within three weeks", price: "$75" },
+            { name: "Brow shape & tint", description: "30 minutes", price: "$45" },
+          ],
+        },
+      ],
+    },
     bookingTitle: "Book an appointment",
     sampleEvents: [
       { title: "Bridal makeup trial", description: `Try the look before the day. ${SAMPLE_EVENT}`, dayOffset: 2, time: "10:00", minutes: 90, capacity: 1 },
@@ -579,6 +696,12 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Book a tour",
     contactBody: "Tell us your dates and group size, or ask about a private tour.",
     contactTitle: "Ask about dates",
+    homeCalendarTitle: "Upcoming tours",
+    sampleEvents: [
+      { title: "Hidden history walk", description: `Three hours, a small group, and it ends at a good café. ${SAMPLE_EVENT}`, dayOffset: 1, time: "10:00", minutes: 180, capacity: 12 },
+      { title: "Twilight waterfront walk", description: `Two hours as the lights come on. ${SAMPLE_EVENT}`, dayOffset: 2, time: "18:30", minutes: 120, capacity: 12 },
+      { title: "Markets and food tour", description: `Taste your way through the market. ${SAMPLE_EVENT}`, dayOffset: 4, time: "11:00", minutes: 150, capacity: 10 },
+    ],
   },
   {
     id: "weddings",
@@ -611,6 +734,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactBody: "Your date (or rough season), where, and what you're imagining. I'll reply within a couple of days.",
     contactTitle: "Enquire",
     galleryTitle: "Real weddings",
+    video: true,
   },
 ];
 
@@ -657,7 +781,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
       tagline: t.tagline,
       icon: t.icon,
       color: t.color,
-      includes: [t.galleryTitle && "Gallery", t.shopTitle && "Shop", t.bookingTitle && "Online booking", t.mapTitle && "Map"].filter((x): x is string => !!x),
+      includes: topicExtras(t),
       category: "website",
       asksAbout: true,
       nameHint: t.nameHint,
@@ -912,12 +1036,20 @@ function buildStarterBody(templateId: string, appName: string, about?: string): 
           block("hero", { eyebrow: topic.eyebrow, headline: topic.headline, subtext: about || topic.subtext, button_label: "Get in touch", button_page: "contact" }),
           ...(flavour.quoteOnHome ? [quote] : []),
           block("stats", { items: topic.stats }),
-          // The visual trades show their work before they explain it; the empty gallery is a "No photos yet" box in
-          // the builder and nothing on the live site until photos are added.
+          // The visual trades show their work before they explain it; the empty gallery, video and audio are
+          // "add something" boxes in the builder and nothing on the live site until there is something to show.
           ...(topic.galleryTitle ? [block("gallery", { title: topic.galleryTitle, images: [] })] : []),
-          block("text", { heading: topic.aboutHeading, body: topic.aboutBody }),
+          ...(topic.video ? [block("video", { provider: "youtube", url: "" })] : []),
+          ...(topic.audio ? [block("audio", { src: "", title: "", note: "" })] : []),
+          // A picture beside the words (empty: "Add a photo" in the builder, full-width words on the live site).
+          block("image_text", { heading: topic.aboutHeading, body: topic.aboutBody, image_url: "", alt: "", side: "right" }),
+          ...(topic.priceList ? [block("price_list", topic.priceList as unknown as Record<string, unknown>)] : []),
           ...(topic.shopTitle ? [block("product_list", { title: topic.shopTitle })] : []),
+          // No invented address: the map is a "Type the address on the right" box in the builder until it has one.
+          ...(topic.mapTitle && topic.mapOnHome ? [block("map", { title: topic.mapTitle, address: "" })] : []),
+          ...(topic.homeCalendarTitle ? [block("event_calendar", { title: topic.homeCalendarTitle })] : []),
           block("reviews", { title: "What people say", items: topic.reviews.map((r) => ({ ...r, rating: 5 })) }),
+          ...(topic.faq ? [block("faq", topic.faq as unknown as Record<string, unknown>)] : []),
           block("newsletter", { title: topic.newsletterTitle, intro: topic.newsletterIntro, button_label: "Sign up", success: "You're on the list." }),
         ]),
         {
@@ -933,8 +1065,8 @@ function buildStarterBody(templateId: string, appName: string, about?: string): 
           blocks: [
             block("text", { heading: topic.contactHeading, body: topic.contactBody }),
             ...(topic.bookingTitle ? [block("event_calendar", { title: topic.bookingTitle })] : []),
-            // No invented address: the map is a "Type the address on the right" box in the builder until it has one.
-            ...(topic.mapTitle ? [block("map", { title: topic.mapTitle, address: "" })] : []),
+            ...(topic.hours ? [block("hours", topic.hours as unknown as Record<string, unknown>)] : []),
+            ...(topic.mapTitle && !topic.mapOnHome ? [block("map", { title: topic.mapTitle, address: "" })] : []),
             block("contact_form", { title: topic.contactTitle, submit_label: "Send message", fields: CONTACT_FIELDS }),
           ],
         },

@@ -52,8 +52,18 @@ nothing on the live site until photos are added); Health, Beauty, Education and 
 calendar** on Contact with three sample appointments each (`sampleEvents`, every one labelled a sample); Apparel
 also gets a **product list** on Home with three sample products (`sampleProducts`, no photos — `StarterProduct.image`
 is now optional and inserts as null); Real estate gets a **map** on Contact with no address, so nothing is invented.
-Design, Marketing, Technology, Construction, Music and Travel keep the core shape. A test pins exactly which trade
-gets which extra, and that galleries are empty, the map has no address and every sample says it is one.
+Design, Marketing and Technology keep the core shape. A test pins exactly which trade gets which extra, in order,
+and that nothing is invented: no photos, videos or recordings, no address or phone anywhere, every sample says it is
+one.
+
+The second pass used the rest of the block library (the websites had used 7 of 28 types): every Home's about
+paragraph is now a **picture-beside-words** section (`image_text`; "Add a photo" in the builder, words full width on
+the live site until there is one); Photography and Weddings get an empty **video** reel; Music an empty **audio**
+player and **upcoming shows** on Home with three sample dates; Travel **upcoming tours** on Home; Health and Beauty a
+**services & prices** list with sample items; Construction **hours & area** on Contact and an **FAQ**; Consulting,
+Health and Real estate an **FAQ** (three real questions each); Real estate's **map** moves to Home. The card chips
+(`topicExtras`) list them: Gallery, Video, Audio, Prices, Shop, Map, Bookings, FAQ, Hours. An empty video block now
+hides itself on the live site like an empty gallery does.
 
 ## Looks: five ways a website is put together
 _Added 2026-10-14._ `theme.look` (`src/lib/pwa/look.ts`: `LOOKS`, `lookOf`, `lookTheme`) is how a website is laid

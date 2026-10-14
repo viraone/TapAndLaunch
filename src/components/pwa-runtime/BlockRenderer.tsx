@@ -118,7 +118,7 @@ function BlockBody({
     case "image":
       return <ImageBlockView config={block.config as ImageBlockConfig} live={live} />;
     case "video":
-      return <VideoBlockView config={block.config as VideoBlockConfig} />;
+      return <VideoBlockView config={block.config as VideoBlockConfig} live={live} />;
     case "contact_form":
       return <ContactFormRuntime config={block.config as ContactFormBlockConfig} pageId={pageId} />;
     case "product_list":
@@ -208,8 +208,10 @@ function ImageBlockView({ config, live }: { config: ImageBlockConfig; live: bool
   );
 }
 
-function VideoBlockView({ config }: { config: VideoBlockConfig }) {
+function VideoBlockView({ config, live }: { config: VideoBlockConfig; live: boolean }) {
   if (!config.url) {
+    // A starter can ship an empty video (a photographer's reel to come); visitors never see the hint.
+    if (live) return null;
     return (
       <div className="mx-4 flex h-40 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
         No video set

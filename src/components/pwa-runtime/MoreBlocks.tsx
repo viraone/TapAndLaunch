@@ -15,16 +15,21 @@ export function ImageTextBlockView({ config, live }: { config: ImageTextBlockCon
       <EditableText path={["button_label"]} value={config.button_label} placeholder="Button" /> <ArrowRight className="h-4 w-4" />
     </span>
   ) : null;
+  // On the live site a picture-and-words section with no picture yet is just the words, full width — not words
+  // beside an empty half.
+  const wordsOnly = live && !config.image_url;
   return (
-    <section className={`px-4 py-6 @lg:mx-auto @lg:flex @lg:max-w-5xl @lg:items-center @lg:gap-10 @lg:px-8 @lg:py-12 ${config.side === "right" ? "@lg:flex-row-reverse" : ""}`}>
-      <div className="@lg:w-1/2">
-        {config.image_url ? (
-          <EditableImage path={["image_url"]} src={config.image_url} alt={config.alt ?? ""} className="aspect-[4/3] w-full rounded-3xl object-cover" imgClassName="h-full w-full object-cover" />
-        ) : (
-          !live && <div className="flex aspect-[4/3] items-center justify-center rounded-3xl border border-dashed text-sm text-muted-foreground">Add a photo on the right</div>
-        )}
-      </div>
-      <div className="mt-5 @lg:mt-0 @lg:w-1/2">
+    <section className={`px-4 py-6 @lg:mx-auto @lg:px-8 @lg:py-12 ${wordsOnly ? "@lg:max-w-3xl" : `@lg:flex @lg:max-w-5xl @lg:items-center @lg:gap-10 ${config.side === "right" ? "@lg:flex-row-reverse" : ""}`}`}>
+      {!wordsOnly && (
+        <div className="@lg:w-1/2">
+          {config.image_url ? (
+            <EditableImage path={["image_url"]} src={config.image_url} alt={config.alt ?? ""} className="aspect-[4/3] w-full rounded-3xl object-cover" imgClassName="h-full w-full object-cover" />
+          ) : (
+            <div className="flex aspect-[4/3] items-center justify-center rounded-3xl border border-dashed text-sm text-muted-foreground">Add a photo on the right</div>
+          )}
+        </div>
+      )}
+      <div className={wordsOnly ? "" : "mt-5 @lg:mt-0 @lg:w-1/2"}>
         <EditableText as="h2" path={["heading"]} value={config.heading} placeholder="Heading" className="text-2xl font-extrabold tracking-tight @lg:text-4xl" />
         <EditableText as="div" path={["body"]} value={config.body} placeholder="A few lines about it" rich className="mt-2 text-[15px] leading-relaxed text-muted-foreground @lg:mt-4 @lg:text-[17px]" />
         {button && (live && href ? <a href={href} target={config.button_url ? "_blank" : undefined} rel={config.button_url ? "noreferrer" : undefined}>{button}</a> : button)}

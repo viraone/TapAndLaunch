@@ -94,7 +94,7 @@ describe("starter templates", () => {
       expect(starter.theme.layout, topic.id).toBe("website");
       expect(starter.pages.map((p) => p.path), topic.id).toEqual(["home", "about", "contact"]);
       // The core sections, in order, with the trade's extras (gallery, shop) allowed between them.
-      const core = ["hero", "stats", "text", "reviews", "newsletter"];
+      const core = ["hero", "stats", "image_text", "reviews", "newsletter"];
       expect(starter.pages[0].blocks.map((b) => b.type).filter((t) => core.includes(t)), topic.id).toEqual(core);
       expect(starter.pages[2].blocks[0].type, topic.id).toBe("text");
       expect(starter.pages[2].blocks.at(-1)?.type, topic.id).toBe("contact_form");
@@ -126,36 +126,53 @@ describe("starter templates", () => {
     expect(new Set(Object.values(WEBSITE_STYLES).map((s) => s.theme.font_pair)).size).toBe(5);
   });
 
-  it("gives each trade the extra sections that fit it, and nothing invented", () => {
+  it("gives each trade the sections that fit it, in order, and nothing invented", () => {
+    const EXTRA = ["gallery", "video", "audio", "price_list", "product_list", "map", "event_calendar", "faq", "hours"];
     const extras = (id: string) => {
       const s = buildStarter(id, "X");
-      return {
-        home: s.pages[0].blocks.map((b) => b.type).filter((t) => ["gallery", "product_list"].includes(t)),
-        contact: s.pages[2].blocks.map((b) => b.type).filter((t) => ["event_calendar", "map"].includes(t)),
-        events: s.events?.length ?? 0,
-        products: s.products?.length ?? 0,
-      };
+      const on = (page: number) => s.pages[page].blocks.map((b) => b.type).filter((t) => EXTRA.includes(t));
+      return { home: on(0), contact: on(2), events: s.events?.length ?? 0, products: s.products?.length ?? 0 };
     };
-    for (const id of ["photography", "art", "weddings"]) expect(extras(id), id).toEqual({ home: ["gallery"], contact: [], events: 0, products: 0 });
-    expect(extras("apparel")).toEqual({ home: ["gallery", "product_list"], contact: [], events: 0, products: 3 });
-    for (const id of ["health", "beauty", "education", "consulting"]) expect(extras(id), id).toEqual({ home: [], contact: ["event_calendar"], events: 3, products: 0 });
-    expect(extras("realestate")).toEqual({ home: [], contact: ["map"], events: 0, products: 0 });
-    for (const id of ["design", "marketing", "technology", "construction", "music", "travel"]) expect(extras(id), id).toEqual({ home: [], contact: [], events: 0, products: 0 });
+    const expected: Record<string, ReturnType<typeof extras>> = {
+      photography: { home: ["gallery", "video"], contact: [], events: 0, products: 0 },
+      weddings: { home: ["gallery", "video"], contact: [], events: 0, products: 0 },
+      art: { home: ["gallery"], contact: [], events: 0, products: 0 },
+      apparel: { home: ["gallery", "product_list"], contact: [], events: 0, products: 3 },
+      music: { home: ["audio", "event_calendar"], contact: [], events: 3, products: 0 },
+      travel: { home: ["event_calendar"], contact: [], events: 3, products: 0 },
+      health: { home: ["price_list", "faq"], contact: ["event_calendar"], events: 3, products: 0 },
+      beauty: { home: ["price_list"], contact: ["event_calendar"], events: 3, products: 0 },
+      education: { home: [], contact: ["event_calendar"], events: 3, products: 0 },
+      consulting: { home: ["faq"], contact: ["event_calendar"], events: 3, products: 0 },
+      construction: { home: ["faq"], contact: ["hours"], events: 0, products: 0 },
+      realestate: { home: ["map", "faq"], contact: [], events: 0, products: 0 },
+      design: { home: [], contact: [], events: 0, products: 0 },
+      marketing: { home: [], contact: [], events: 0, products: 0 },
+      technology: { home: [], contact: [], events: 0, products: 0 },
+    };
+    expect(Object.keys(expected).sort()).toEqual([...TOPIC_IDS].sort());
+    for (const [id, want] of Object.entries(expected)) expect(extras(id), id).toEqual(want);
 
     // The chips on a website card say exactly which extras its pages really have.
-    const label: Record<string, string> = { gallery: "Gallery", product_list: "Shop", event_calendar: "Online booking", map: "Map" };
+    const label: Record<string, string> = { gallery: "Gallery", video: "Video", audio: "Audio", price_list: "Prices", product_list: "Shop", map: "Map", event_calendar: "Bookings", faq: "FAQ", hours: "Hours" };
     for (const t of STARTER_TEMPLATES.filter((x) => x.category === "website")) {
       const have = new Set(buildStarter(t.id, "X").pages.flatMap((p) => p.blocks.map((b) => label[b.type])).filter(Boolean));
       expect(new Set(t.includes), t.id).toEqual(have);
     }
 
-    // Nothing made up: no photos in the galleries, no address on the map, every sample says it is one.
+    // Nothing made up: no photos, videos or recordings, no address or phone anywhere, every sample says it is one.
     for (const topic of WEBSITE_TOPICS) {
       const s = buildStarter(topic.id, "X");
       for (const page of s.pages)
         for (const b of page.blocks) {
-          if (b.type === "gallery") expect((b.config as { images?: unknown[] }).images, topic.id).toEqual([]);
-          if (b.type === "map") expect((b.config as { address?: string }).address, topic.id).toBe("");
+          const c = b.config as Record<string, unknown>;
+          if (b.type === "gallery") expect(c.images, topic.id).toEqual([]);
+          if (b.type === "video") expect(c.url, topic.id).toBe("");
+          if (b.type === "audio") expect(c.src, topic.id).toBe("");
+          if (b.type === "image_text") expect(c.image_url, topic.id).toBe("");
+          if (b.type === "map") expect(c.address, topic.id).toBe("");
+          if (b.type === "hours") expect([c.address, c.phone], topic.id).toEqual(["", ""]);
+          if (b.type === "faq") expect((c.items as unknown[]).length, topic.id).toBeGreaterThanOrEqual(3);
         }
       for (const e of s.events ?? []) expect(e.description, topic.id).toContain("This is a sample");
       for (const p of s.products ?? []) {
