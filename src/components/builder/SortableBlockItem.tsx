@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Lock, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, GripVertical, Lock, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BlockRenderer } from "@/components/pwa-runtime/BlockRenderer";
 import { BlockEditContext } from "@/components/pwa-runtime/Editable";
@@ -15,6 +15,9 @@ export function SortableBlockItem({
   selected,
   onSelect,
   onRemove,
+  onMoveUp,
+  onMoveDown,
+  onDuplicate,
   onChange,
   organizationId,
 }: {
@@ -22,6 +25,10 @@ export function SortableBlockItem({
   selected: boolean;
   onSelect: () => void;
   onRemove: () => void;
+  /** Up and down one place; absent at the top or bottom. Easier than dragging on a trackpad. */
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onDuplicate: () => void;
   /** The section's words, edited in place on the page, come back through here like the inspector's changes. */
   onChange: (config: BlockConfig) => void;
   /** Whose storage folder a replaced photo goes to. */
@@ -78,12 +85,33 @@ export function SortableBlockItem({
         </div>
       )}
       <div className={`absolute right-1.5 top-1.5 flex gap-1 transition ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+        {([
+          ["Move up", ChevronUp, onMoveUp],
+          ["Move down", ChevronDown, onMoveDown],
+          ["Duplicate section", Copy, onDuplicate],
+        ] as const).map(([label, Icon, handler]) => (
+          <button
+            key={label}
+            type="button"
+            aria-label={label}
+            title={label}
+            disabled={!handler}
+            onClick={(e) => {
+              e.stopPropagation();
+              handler?.();
+            }}
+            className="grid h-6 w-6 place-items-center rounded-md bg-neutral-950 text-neutral-200 shadow-md transition hover:bg-neutral-800 disabled:opacity-30"
+          >
+            <Icon className="h-3.5 w-3.5" />
+          </button>
+        ))}
         <button
           type="button"
           {...attributes}
           {...listeners}
           className="grid h-6 w-6 cursor-grab place-items-center rounded-md bg-neutral-950 text-neutral-200 shadow-md active:cursor-grabbing"
           aria-label="Drag to reorder"
+          title="Drag to reorder"
         >
           <GripVertical className="h-3.5 w-3.5" />
         </button>

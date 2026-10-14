@@ -101,3 +101,8 @@ plain-words labels in App settings ("Design & settings", "Icon & name", "Font (o
 home-screen mode in sentences, a picture picker for tabs) and on sections ("Who can see this section"). Pages: the open page's tab
 has a menu (Rename, Move left/right, Duplicate with its sections, Show/Hide in the menu, Delete with a confirmation; Home
 can't be deleted) backed by `PATCH`/`DELETE /api/apps/{id}/pages/{pageId}`.
+
+Undo and redo: every change to a page's sections (words, photos, add, remove, move, duplicate, who can see it) is a
+step; ⌘Z / Ctrl+Z undoes, ⇧⌘Z or Ctrl+Y redoes, and the top bar has the two buttons (`editBlocks` in BuilderClient
+keeps up to 60 steps per page; typing into one field in a row is one step; a page switch starts fresh). Every section
+has Move up, Move down and Duplicate buttons next to the drag handle.

@@ -25,6 +25,8 @@ import {
   Pencil,
   Play,
   Rocket,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 import { tileGradient, tileInitial } from "@/lib/apps/tile";
 import { buildChecklist, type ChecklistStepId } from "@/lib/apps/checklist";
@@ -121,10 +123,13 @@ export function BuilderClient({
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">(
     "saved",
   );
+  // The latest blocks and page, for handlers that run after a render (saving, switching pages, undo).
   const blocksRef = useRef(blocks);
-  blocksRef.current = blocks;
   const pageIdRef = useRef(currentPageId);
-  pageIdRef.current = currentPageId;
+  useEffect(() => {
+    blocksRef.current = blocks;
+    pageIdRef.current = currentPageId;
+  }, [blocks, currentPageId]);
   const inFlight = useRef<Promise<boolean> | null>(null);
 
   // The AI chat (outside this component) works on the saved app, so it needs to know when there are unsaved edits.
@@ -148,7 +153,7 @@ export function BuilderClient({
       config: defaultConfigFor(type),
       minTier: null,
     } as BuilderBlock;
-    setBlocks((prev) => (index === undefined ? [...prev, block] : [...prev.slice(0, index), block, ...prev.slice(index)]));
+    editBlocks((prev) => (index === undefined ? [...prev, block] : [...prev.slice(0, index), block, ...prev.slice(index)]));
     setSelectedBlockId(block.id);
   }
 
@@ -169,8 +174,99 @@ export function BuilderClient({
     return () => window.removeEventListener(FIELD_FOCUS_EVENT, onFocus);
   }, []);
 
+  // Undo and redo: every edit to the page's sections goes through `editBlocks`, which remembers the state before it.
+  // Loading a page (switching, creating) starts a fresh history. Typing into one field within a second counts as one edit.
+  const past = useRef<BuilderBlock[][]>([]);
+  const future = useRef<BuilderBlock[][]>([]);
+  const lastEditKey = useRef<string | null>(null);
+  // How much there is to undo and redo, as state so the buttons can show it (refs aren't read while rendering).
+  const [history, setHistory] = useState({ past: 0, future: 0 });
+  const syncHistory = () => setHistory({ past: past.current.length, future: future.current.length });
+
+  function editBlocks(updater: (prev: BuilderBlock[]) => BuilderBlock[], coalesceKey?: string) {
+    const prev = blocksRef.current;
+    const next = updater(prev);
+    if (next === prev) return;
+    // Edits to the same field in a row (typing) are one step; anything else starts a new one.
+    const merge = coalesceKey !== undefined && lastEditKey.current === coalesceKey;
+    if (!merge) {
+      past.current.push(prev);
+      if (past.current.length > 60) past.current.shift();
+    }
+    lastEditKey.current = coalesceKey ?? null;
+    future.current = [];
+    setBlocks(next);
+    syncHistory();
+  }
+
+  function resetHistory() {
+    past.current = [];
+    future.current = [];
+    lastEditKey.current = null;
+    syncHistory();
+  }
+
+  function undo() {
+    const prev = past.current.pop();
+    if (!prev) return;
+    future.current.push(blocksRef.current);
+    lastEditKey.current = null;
+    setBlocks(prev);
+    if (selectedBlockId && !prev.some((b) => b.id === selectedBlockId)) setSelectedBlockId(null);
+    syncHistory();
+  }
+
+  function redo() {
+    const next = future.current.pop();
+    if (!next) return;
+    past.current.push(blocksRef.current);
+    lastEditKey.current = null;
+    setBlocks(next);
+    syncHistory();
+  }
+
+  // Cmd/Ctrl+Z undoes, Shift adds redo (Ctrl+Y too), unless the keystroke is inside a field, where the browser undoes typing.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.closest("input, textarea, select") || target.isContentEditable)) return;
+      const key = e.key.toLowerCase();
+      if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((key === "z" && e.shiftKey) || key === "y") {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- undo/redo read refs; the handler needs no re-binding
+  }, []);
+
   function updateBlockConfig(id: string, config: BlockConfig) {
-    setBlocks((prev) => prev.map((b) => (b.id === id ? ({ ...b, config } as BuilderBlock) : b)));
+    editBlocks((prev) => prev.map((b) => (b.id === id ? ({ ...b, config } as BuilderBlock) : b)), `config:${id}`);
+  }
+
+  function moveBlock(id: string, direction: -1 | 1) {
+    editBlocks((prev) => {
+      const index = prev.findIndex((b) => b.id === id);
+      const to = index + direction;
+      if (index === -1 || to < 0 || to >= prev.length) return prev;
+      return arrayMove(prev, index, to);
+    });
+  }
+
+  function duplicateBlock(id: string) {
+    const copyId = crypto.randomUUID();
+    editBlocks((prev) => {
+      const index = prev.findIndex((b) => b.id === id);
+      if (index === -1) return prev;
+      const copy = { ...prev[index], id: copyId, config: structuredClone(prev[index].config) } as BuilderBlock;
+      return [...prev.slice(0, index + 1), copy, ...prev.slice(index + 1)];
+    });
+    setSelectedBlockId(copyId);
   }
 
   function updateSelectedBlockConfig(config: BlockConfig) {
@@ -180,20 +276,18 @@ export function BuilderClient({
 
   function updateSelectedBlockMinTier(minTier: string | null) {
     if (!selectedBlockId) return;
-    setBlocks((prev) =>
-      prev.map((b) => (b.id === selectedBlockId ? { ...b, minTier } : b)),
-    );
+    editBlocks((prev) => prev.map((b) => (b.id === selectedBlockId ? { ...b, minTier } : b)));
   }
 
   function removeBlock(id: string) {
     const index = blocks.findIndex((b) => b.id === id);
     const removed = blocks[index];
-    setBlocks((prev) => prev.filter((b) => b.id !== id));
+    editBlocks((prev) => prev.filter((b) => b.id !== id));
     if (selectedBlockId === id) setSelectedBlockId(null);
     if (!removed) return;
     // One click removes a whole section, and it saves on its own: so the toast offers to put it back.
     toast(`${BLOCK_TYPE_LABELS[removed.type]} section removed`, {
-      action: { label: "Undo", onClick: () => setBlocks((prev) => (prev.some((b) => b.id === id) ? prev : [...prev.slice(0, index), removed, ...prev.slice(index)])) },
+      action: { label: "Undo", onClick: () => editBlocks((prev) => (prev.some((b) => b.id === id) ? prev : [...prev.slice(0, index), removed, ...prev.slice(index)])) },
       duration: 8000,
     });
   }
@@ -202,7 +296,7 @@ export function BuilderClient({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    setBlocks((prev) => {
+    editBlocks((prev) => {
       const oldIndex = prev.findIndex((b) => b.id === active.id);
       const newIndex = prev.findIndex((b) => b.id === over.id);
       if (oldIndex === -1 || newIndex === -1) return prev;
@@ -229,6 +323,7 @@ export function BuilderClient({
     const loaded = (data ?? []).map(toBuilderBlock);
     setBlocks(loaded);
     setSavedSnapshot(snapshot(loaded));
+    resetHistory();
   }
 
   async function createPage(name: string, path: string) {
@@ -248,6 +343,7 @@ export function BuilderClient({
     setBlocks([]);
     setSavedSnapshot(snapshot([]));
     setSelectedBlockId(null);
+    resetHistory();
   }
 
   /** The app's theme, saved whole (the app's PATCH replaces `theme` as one value). */
@@ -576,6 +672,14 @@ export function BuilderClient({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {/* Where the work stands. Changes save on their own; this is the only place that needs to say so. */}
+            <div role="group" aria-label="Undo and redo" className="inline-flex items-center gap-0.5">
+              <button type="button" onClick={undo} disabled={history.past === 0} aria-label="Undo" title="Undo (⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-neutral-300 transition hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent">
+                <Undo2 className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={redo} disabled={history.future === 0} aria-label="Redo" title="Redo (⇧⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-neutral-300 transition hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent">
+                <Redo2 className="h-4 w-4" />
+              </button>
+            </div>
             <p
               role="status"
               className="hidden items-center gap-1.5 text-xs text-neutral-400 md:inline-flex"
@@ -746,6 +850,9 @@ export function BuilderClient({
                                 selected={block.id === selectedBlockId}
                                 onSelect={() => setSelectedBlockId(block.id)}
                                 onRemove={() => removeBlock(block.id)}
+                                onMoveUp={index > 0 ? () => moveBlock(block.id, -1) : undefined}
+                                onMoveDown={index < blocks.length - 1 ? () => moveBlock(block.id, 1) : undefined}
+                                onDuplicate={() => duplicateBlock(block.id)}
                                 onChange={(config) => updateBlockConfig(block.id, config)}
                                 organizationId={currentApp.organization_id}
                               />
