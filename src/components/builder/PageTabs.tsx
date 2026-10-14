@@ -110,7 +110,7 @@ export function PageTabs({
 
   return (
     <div className="flex items-center gap-2 border-b border-white/[0.06] bg-neutral-950 px-3 py-2">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Pages</span>
+      <span className="text-xs font-medium text-neutral-500">Pages</span>
       <div className="inline-flex items-center gap-0.5 rounded-full border border-white/10 bg-white/5 p-0.5">
         {pages.map((page, index) => {
           const current = page.id === currentPageId;
@@ -175,8 +175,8 @@ export function PageTabs({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger
           render={
-            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 rounded-full text-neutral-400 hover:bg-white/10 hover:text-white" aria-label="New page">
-              <Plus className="h-4 w-4" />
+            <Button type="button" variant="ghost" className="h-7 gap-1 rounded-full px-2.5 text-xs text-neutral-400 hover:bg-white/10 hover:text-white" aria-label="New page">
+              <Plus className="h-4 w-4" /> Add page
             </Button>
           }
         />

@@ -103,7 +103,7 @@ icon, the name, a two-line tagline, and chips only for the extras (`includes` on
 its extras — "Gallery", "Shop", "Online booking", "Map" — and a test checks it matches the blocks really there).
 Phone-first cards are unchanged. `TemplatePreview` draws it as a tiny browser window (traffic-light dots, a wide
 frame) instead of a phone when the starter's `theme.layout` is `"website"`, so the card itself signals "this one's a
-website" before anyone clicks it. Opening the builder on a `"website"` app also defaults the "Preview on" switch to
+website" before anyone clicks it. Opening the builder on a `"website"` app also defaults the device menu to
 **Desktop** instead of iPhone (`BuilderClient`'s initial `device` state), so a Desktop View starter opens already
 showing its real, full-width look.
 
@@ -166,7 +166,7 @@ _Added 2026-10-14._ App settings > Theme > **Layout** offers **App** (the phone-
 **Website** (`theme.layout = "website"`): full width on a laptop with a menu of the pages at the top (`SiteHeader`, fed by the
 same `bottom_nav` items as the tab bar), the phone look with the tab bar on a phone. The blocks are the same: they size
 themselves to their column with Tailwind container queries (`@lg:` and up, against the `@container` content column), so an
-app's 28rem column never triggers the wide styles. The builder's "Preview on" switch gains **Desktop**, a laptop-browser frame
+app's 28rem column never triggers the wide styles. The builder's device menu (iPhone, Android, Computer) gains **Desktop**, a laptop-browser frame
 drawn at 1180px and scaled to fit; in a website it shows the top menu and no tab bar. First used for a client's site at
 davidbabucomedy.com.
 
@@ -206,7 +206,7 @@ globals.css).
 Walked through as a non-technical owner, then fixed: removing a section offers **Undo** in a toast for eight seconds
 (it autosaves, so there was no way back); **Unpublish** asks first and says what visitors will see; the top bar shows
 the app's own domain once it is connected; the banner's button picks its page from a list instead of a typed address;
-plain-words labels in App settings ("Design & settings", "Icon & name", "Font (optional)", "Tabs at the bottom", the
+plain-words labels in App settings ("Settings", "Icon & name", "Font (optional)", "Tabs at the bottom", the
 home-screen mode in sentences, a picture picker for tabs) and on sections ("Who can see this section"). Pages: the open page's tab
 has a menu (Rename, Move left/right, Duplicate with its sections, Show/Hide in the menu, Delete with a confirmation; Home
 can't be deleted) backed by `PATCH`/`DELETE /api/apps/{id}/pages/{pageId}`.

@@ -138,7 +138,7 @@ export function AppSettingsDialog({
         render={
           // A gear on its own said nothing to a first-timer; the button names what is behind it.
           <Button type="button" variant="ghost" className="h-9 rounded-full px-3 text-xs font-medium text-neutral-300 hover:bg-white/10 hover:text-white" aria-label="Design, icon, domain and other settings" data-app-settings>
-            <Settings className="h-4 w-4" /> Design &amp; settings
+            <Settings className="h-4 w-4" /> Settings
           </Button>
         }
       />

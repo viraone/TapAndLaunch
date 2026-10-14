@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, Monitor, Smartphone } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { ThemeConfig } from "@/types/database";
 import { fontsHref, themeAttributes, themeStyle } from "@/lib/pwa/theme-style";
@@ -13,6 +15,16 @@ function frameStyle(theme?: ThemeConfig): React.CSSProperties | undefined {
 
 export type DeviceFrame = "ios" | "android" | "desktop";
 
+const DEVICE_LABELS: Record<DeviceFrame, string> = {
+  ios: "iPhone",
+  android: "Android",
+  desktop: "Computer",
+};
+
+/**
+ * One small menu instead of three side-by-side buttons: it only changes the device drawn around the preview, so it
+ * does not need to take up space all the time. It names what is picked ("iPhone", "Android", "Computer").
+ */
 export function DeviceFrameSwitcher({
   value,
   onChange,
@@ -20,29 +32,27 @@ export function DeviceFrameSwitcher({
   value: DeviceFrame;
   onChange: (value: DeviceFrame) => void;
 }) {
-  // Says what it is for: it only changes the phone drawn around the preview. Bare "iOS / Android" read as two apps to build.
+  const Icon = value === "desktop" ? Monitor : Smartphone;
   return (
-    <div role="group" aria-label="Preview on" className="inline-flex items-center gap-2">
-      <span className="hidden text-xs text-neutral-500 lg:inline" aria-hidden>
-        Preview on
-      </span>
-      <div className="inline-flex rounded-full border border-white/10 bg-white/5 p-0.5">
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={`Show the preview on: ${DEVICE_LABELS[value]}`}
+        title="Choose what the preview looks like on"
+        className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-neutral-300 transition hover:bg-white/10 hover:text-white"
+      >
+        <Icon className="h-4 w-4" /> {DEVICE_LABELS[value]}
+        <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="dark">
         {(["ios", "android", "desktop"] as const).map((frame) => (
-          <button
-            key={frame}
-            type="button"
-            aria-pressed={value === frame}
-            onClick={() => onChange(frame)}
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-medium transition",
-              value === frame ? "bg-white text-neutral-950 shadow-sm" : "text-neutral-400 hover:text-white"
-            )}
-          >
-            {frame === "ios" ? "iPhone" : frame === "android" ? "Android" : "Desktop"}
-          </button>
+          <DropdownMenuItem key={frame} onClick={() => onChange(frame)}>
+            {frame === "desktop" ? <Monitor className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
+            {DEVICE_LABELS[frame]}
+            {value === frame && <Check className="ml-auto h-4 w-4" />}
+          </DropdownMenuItem>
         ))}
-      </div>
-    </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

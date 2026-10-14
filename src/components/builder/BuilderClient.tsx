@@ -656,6 +656,7 @@ export function BuilderClient({
                   {currentApp.name}
                 </h1>
                 <span
+                  title={live ? "Your app is live" : `Not live yet. Press Publish to go live at ${liveHost}`}
                   className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${
                     live
                       ? "bg-emerald-400/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/30"
@@ -673,8 +674,8 @@ export function BuilderClient({
                   {live ? "Live" : "Draft"}
                 </span>
               </div>
-              {/* A draft's address goes nowhere yet, so it is named, not linked. */}
-              {live ? (
+              {/* A live app's address is a link. A draft's goes nowhere yet, so it is only in the Draft badge's hint. */}
+              {live && (
                 <a
                   href={liveUrl ?? "#"}
                   target="_blank"
@@ -684,15 +685,10 @@ export function BuilderClient({
                   {liveHost}{" "}
                   <ArrowUpRight className="h-3 w-3" />
                 </a>
-              ) : (
-                <p className="hidden truncate text-xs text-neutral-500 sm:block">
-                  When live: {liveHost}
-                </p>
               )}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {/* Where the work stands. Changes save on their own; this is the only place that needs to say so. */}
             <div role="group" aria-label="Undo and redo" className="inline-flex items-center gap-0.5">
               <button type="button" onClick={undo} disabled={history.past === 0} aria-label="Undo" title="Undo (⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-neutral-300 transition hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent">
                 <Undo2 className="h-4 w-4" />
@@ -701,6 +697,8 @@ export function BuilderClient({
                 <Redo2 className="h-4 w-4" />
               </button>
             </div>
+            {/* Where the work stands. Changes save on their own, so when all is well this is only a small tick;
+                words appear only when something is happening or has gone wrong. */}
             <p
               role="status"
               className="hidden items-center gap-1.5 text-xs text-neutral-400 md:inline-flex"
@@ -711,10 +709,10 @@ export function BuilderClient({
                 </>
               )}
               {saveState === "saved" && (
-                <>
-                  <Check className="h-3.5 w-3.5 text-emerald-400" />{" "}
-                  {live ? "Live · all changes saved" : "All changes saved"}
-                </>
+                <span title={live ? "Live · all changes saved" : "All changes saved"} className="inline-flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  <span className="sr-only">{live ? "Live · all changes saved" : "All changes saved"}</span>
+                </span>
               )}
               {saveState === "unsaved" && "Unsaved changes…"}
               {saveState === "error" && (
