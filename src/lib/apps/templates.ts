@@ -86,7 +86,19 @@ export interface WebsiteTopic {
   contactHeading: string;
   contactBody: string;
   contactTitle: string;
+  /** Sections that make the shape fit the trade, each off unless set. A gallery on Home (the visual trades); a
+   * bookable calendar on Contact with sample appointments (the ones that take bookings); a product list on Home
+   * with sample products (the ones that sell things); a map on Contact (the ones with a patch). */
+  galleryTitle?: string;
+  bookingTitle?: string;
+  sampleEvents?: StarterEvent[];
+  shopTitle?: string;
+  sampleProducts?: StarterProduct[];
+  mapTitle?: string;
 }
+
+const SAMPLE_EVENT = "This is a sample. Edit it or delete it under Manage, Events.";
+const SAMPLE_PRODUCT = "(Sample product: edit it under Manage, Products.)";
 
 export const WEBSITE_TOPICS: WebsiteTopic[] = [
   {
@@ -118,6 +130,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Book a session",
     contactBody: "Tell me what you have in mind and when, and I'll reply within a day or two.",
     contactTitle: "Ask about a date",
+    galleryTitle: "Recent work",
   },
   {
     id: "design",
@@ -178,6 +191,12 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Book a first session",
     contactBody: "Tell me about the student and what they're working toward. The first session is free.",
     contactTitle: "Get in touch",
+    bookingTitle: "Book a lesson",
+    sampleEvents: [
+      { title: "Free first session", description: `Meet, talk through goals, try a short lesson. ${SAMPLE_EVENT}`, dayOffset: 1, time: "16:00", minutes: 60, capacity: 1 },
+      { title: "Maths: exam prep", description: `Past papers and the topics that come up most. ${SAMPLE_EVENT}`, dayOffset: 2, time: "17:00", minutes: 60, capacity: 1 },
+      { title: "Physics: mechanics", description: `Forces, motion and the questions everyone finds hard. ${SAMPLE_EVENT}`, dayOffset: 3, time: "17:00", minutes: 60, capacity: 1 },
+    ],
   },
   {
     id: "consulting",
@@ -208,6 +227,12 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Let's talk",
     contactBody: "A few lines about your situation is enough. The first call is free.",
     contactTitle: "Book a free call",
+    bookingTitle: "Book a call",
+    sampleEvents: [
+      { title: "Free first call", description: `Thirty minutes to talk through where you are. ${SAMPLE_EVENT}`, dayOffset: 1, time: "10:00", minutes: 30, capacity: 1 },
+      { title: "Strategy session", description: `A working session on one problem, with a plan at the end. ${SAMPLE_EVENT}`, dayOffset: 3, time: "14:00", minutes: 90, capacity: 1 },
+      { title: "Finance review", description: `Numbers, cash flow and what to change first. ${SAMPLE_EVENT}`, dayOffset: 5, time: "11:00", minutes: 60, capacity: 1 },
+    ],
   },
   {
     id: "art",
@@ -238,6 +263,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Buy or commission",
     contactBody: "Ask about a piece, a print or a commission. I'll reply within a few days.",
     contactTitle: "Get in touch",
+    galleryTitle: "Selected work",
   },
   {
     id: "health",
@@ -268,6 +294,12 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Book an appointment",
     contactBody: "Tell us what's going on and when suits you. We'll get back to you the same day where we can.",
     contactTitle: "Request an appointment",
+    bookingTitle: "Book an appointment",
+    sampleEvents: [
+      { title: "New patient assessment", description: `A full look at what's going on and a plan to start. ${SAMPLE_EVENT}`, dayOffset: 1, time: "09:00", minutes: 45, capacity: 1 },
+      { title: "Follow-up appointment", description: `Check progress, adjust the plan. ${SAMPLE_EVENT}`, dayOffset: 1, time: "14:00", minutes: 30, capacity: 1 },
+      { title: "Sports injury check", description: `For a new niggle before it becomes a problem. ${SAMPLE_EVENT}`, dayOffset: 2, time: "11:00", minutes: 30, capacity: 1 },
+    ],
   },
   {
     id: "marketing",
@@ -388,6 +420,13 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Say hello",
     contactBody: "Questions about sizing, stockists or wholesale? Send a note.",
     contactTitle: "Get in touch",
+    galleryTitle: "The collection",
+    shopTitle: "Shop",
+    sampleProducts: [
+      { name: "Linen shirt", description: `Relaxed fit, washed linen, made to soften with every wear. ${SAMPLE_PRODUCT}`, priceCents: 9800 },
+      { name: "Everyday tee", description: `Heavyweight organic cotton, boxy cut. ${SAMPLE_PRODUCT}`, priceCents: 4200 },
+      { name: "Wide-leg trouser", description: `High waist, deep pockets, linen-cotton blend. ${SAMPLE_PRODUCT}`, priceCents: 12800 },
+    ],
   },
   {
     id: "music",
@@ -448,6 +487,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Let's talk about your move",
     contactBody: "Buying, selling or just curious what your place is worth? Send a note.",
     contactTitle: "Get in touch",
+    mapTitle: "Where I work",
   },
   {
     id: "beauty",
@@ -478,6 +518,12 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Book an appointment",
     contactBody: "Tell me what you'd like and when, and I'll confirm a time.",
     contactTitle: "Request a booking",
+    bookingTitle: "Book an appointment",
+    sampleEvents: [
+      { title: "Bridal makeup trial", description: `Try the look before the day. ${SAMPLE_EVENT}`, dayOffset: 2, time: "10:00", minutes: 90, capacity: 1 },
+      { title: "Lash appointment", description: `A full set or an infill. ${SAMPLE_EVENT}`, dayOffset: 1, time: "13:00", minutes: 60, capacity: 1 },
+      { title: "Brow shape & tint", description: `Thirty minutes, lasts weeks. ${SAMPLE_EVENT}`, dayOffset: 3, time: "16:00", minutes: 30, capacity: 1 },
+    ],
   },
   {
     id: "travel",
@@ -538,6 +584,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     contactHeading: "Tell me about your day",
     contactBody: "Your date (or rough season), where, and what you're imagining. I'll reply within a couple of days.",
     contactTitle: "Enquire",
+    galleryTitle: "Real weddings",
   },
 ];
 
@@ -737,7 +784,8 @@ export interface StarterProduct {
   name: string;
   description: string;
   priceCents: number;
-  image: string;
+  /** Left out for a starter that ships no photos; the product card simply has no picture until the owner adds one. */
+  image?: string;
 }
 
 /** A sample open mic (or other listing) created with the app, so the list isn't empty on first open. */
@@ -833,7 +881,11 @@ function buildStarterBody(templateId: string, appName: string, about?: string): 
         home([
           block("hero", { eyebrow: topic.eyebrow, headline: topic.headline, subtext: about || topic.subtext, button_label: "Get in touch", button_page: "contact" }),
           block("stats", { items: topic.stats }),
+          // The visual trades show their work before they explain it; the empty gallery is a "No photos yet" box in
+          // the builder and nothing on the live site until photos are added.
+          ...(topic.galleryTitle ? [block("gallery", { title: topic.galleryTitle, images: [] })] : []),
           block("text", { heading: topic.aboutHeading, body: topic.aboutBody }),
+          ...(topic.shopTitle ? [block("product_list", { title: topic.shopTitle })] : []),
           block("reviews", { title: "What people say", items: topic.reviews.map((r) => ({ ...r, rating: 5 })) }),
           block("newsletter", { title: topic.newsletterTitle, intro: topic.newsletterIntro, button_label: "Sign up", success: "You're on the list." }),
         ]),
@@ -847,9 +899,17 @@ function buildStarterBody(templateId: string, appName: string, about?: string): 
           name: "Contact",
           path: "contact",
           isHome: false,
-          blocks: [block("text", { heading: topic.contactHeading, body: topic.contactBody }), block("contact_form", { title: topic.contactTitle, submit_label: "Send message", fields: CONTACT_FIELDS })],
+          blocks: [
+            block("text", { heading: topic.contactHeading, body: topic.contactBody }),
+            ...(topic.bookingTitle ? [block("event_calendar", { title: topic.bookingTitle })] : []),
+            // No invented address: the map is a "Type the address on the right" box in the builder until it has one.
+            ...(topic.mapTitle ? [block("map", { title: topic.mapTitle, address: "" })] : []),
+            block("contact_form", { title: topic.contactTitle, submit_label: "Send message", fields: CONTACT_FIELDS }),
+          ],
         },
       ],
+      events: topic.sampleEvents,
+      products: topic.sampleProducts,
     };
   }
 

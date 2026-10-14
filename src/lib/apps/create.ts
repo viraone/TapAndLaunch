@@ -77,7 +77,7 @@ export async function createAppFromStarter(
   }
   if (starter.products?.length) {
     const { error: productError } = await supabase.from("products").insert(
-      starter.products.map((p, position) => ({ app_id: created.id, name: p.name, description: p.description, price_cents: p.priceCents, image_url: p.image, position }))
+      starter.products.map((p, position) => ({ app_id: created.id, name: p.name, description: p.description, price_cents: p.priceCents, image_url: p.image ?? null, position }))
     );
     if (productError) return fail(productError.message);
   }

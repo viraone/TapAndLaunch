@@ -86,14 +86,18 @@ describe("starter templates", () => {
     }
   });
 
-  it("gives every topic website the same shape, its own words, and the website layout", () => {
+  it("gives every topic website the same core shape, its own words, and the website layout", () => {
     expect(WEBSITE_TOPICS.map((t) => t.id)).toEqual(TOPIC_IDS);
     const headlines = new Set<string>();
     for (const topic of WEBSITE_TOPICS) {
       const starter = buildStarter(topic.id, "X", "my own words");
       expect(starter.theme.layout, topic.id).toBe("website");
       expect(starter.pages.map((p) => p.path), topic.id).toEqual(["home", "about", "contact"]);
-      expect(starter.pages[0].blocks.map((b) => b.type), topic.id).toEqual(["hero", "stats", "text", "reviews", "newsletter"]);
+      // The core sections, in order, with the trade's extras (gallery, shop) allowed between them.
+      const core = ["hero", "stats", "text", "reviews", "newsletter"];
+      expect(starter.pages[0].blocks.map((b) => b.type).filter((t) => core.includes(t)), topic.id).toEqual(core);
+      expect(starter.pages[2].blocks[0].type, topic.id).toBe("text");
+      expect(starter.pages[2].blocks.at(-1)?.type, topic.id).toBe("contact_form");
       const hero = starter.pages[0].blocks[0].config as { headline?: string; subtext?: string; image_url?: string };
       expect(hero.image_url, topic.id).toBeFalsy();
       expect(hero.subtext, topic.id).toBe("my own words");
@@ -102,6 +106,38 @@ describe("starter templates", () => {
       expect(STARTER_TEMPLATES.filter((t) => t.color === topic.color).map((t) => t.id), topic.color).toEqual([topic.id]);
     }
     expect(headlines.size).toBe(WEBSITE_TOPICS.length);
+  });
+
+  it("gives each trade the extra sections that fit it, and nothing invented", () => {
+    const extras = (id: string) => {
+      const s = buildStarter(id, "X");
+      return {
+        home: s.pages[0].blocks.map((b) => b.type).filter((t) => ["gallery", "product_list"].includes(t)),
+        contact: s.pages[2].blocks.map((b) => b.type).filter((t) => ["event_calendar", "map"].includes(t)),
+        events: s.events?.length ?? 0,
+        products: s.products?.length ?? 0,
+      };
+    };
+    for (const id of ["photography", "art", "weddings"]) expect(extras(id), id).toEqual({ home: ["gallery"], contact: [], events: 0, products: 0 });
+    expect(extras("apparel")).toEqual({ home: ["gallery", "product_list"], contact: [], events: 0, products: 3 });
+    for (const id of ["health", "beauty", "education", "consulting"]) expect(extras(id), id).toEqual({ home: [], contact: ["event_calendar"], events: 3, products: 0 });
+    expect(extras("realestate")).toEqual({ home: [], contact: ["map"], events: 0, products: 0 });
+    for (const id of ["design", "marketing", "technology", "construction", "music", "travel"]) expect(extras(id), id).toEqual({ home: [], contact: [], events: 0, products: 0 });
+
+    // Nothing made up: no photos in the galleries, no address on the map, every sample says it is one.
+    for (const topic of WEBSITE_TOPICS) {
+      const s = buildStarter(topic.id, "X");
+      for (const page of s.pages)
+        for (const b of page.blocks) {
+          if (b.type === "gallery") expect((b.config as { images?: unknown[] }).images, topic.id).toEqual([]);
+          if (b.type === "map") expect((b.config as { address?: string }).address, topic.id).toBe("");
+        }
+      for (const e of s.events ?? []) expect(e.description, topic.id).toContain("This is a sample");
+      for (const p of s.products ?? []) {
+        expect(p.description, topic.id).toContain("Sample product");
+        expect(p.image, topic.id).toBeUndefined();
+      }
+    }
   });
 
   it("gives every hero button a page that exists in the same app", () => {

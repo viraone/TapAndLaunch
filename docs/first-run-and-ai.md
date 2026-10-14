@@ -44,7 +44,16 @@ about, a story, a quote, two testimonials, newsletter and contact wording, plus 
 `buildStarterBody` turns any of them into the same three-page shape as Personal website before falling through to
 the hand-written templates. Adding a topic is adding one object to that array. They are photo-less on purpose, like
 Personal website. Tests pin the shape, that every topic's colour and headline is its own, and that each asks the
-"What's your site about?" question with its own hints. `TemplatePreview` draws it as a tiny browser window (traffic-light dots, a wide
+"What's your site about?" question with its own hints.
+
+The trades that need more than words get it, from blocks that already exist (optional fields on `WebsiteTopic`):
+Photography, Art, Weddings and Apparel open with a **gallery** on Home (empty: "No photos yet" in the builder,
+nothing on the live site until photos are added); Health, Beauty, Education and Consulting get a **bookable
+calendar** on Contact with three sample appointments each (`sampleEvents`, every one labelled a sample); Apparel
+also gets a **product list** on Home with three sample products (`sampleProducts`, no photos — `StarterProduct.image`
+is now optional and inserts as null); Real estate gets a **map** on Contact with no address, so nothing is invented.
+Design, Marketing, Technology, Construction, Music and Travel keep the core shape. A test pins exactly which trade
+gets which extra, and that galleries are empty, the map has no address and every sample says it is one. `TemplatePreview` draws it as a tiny browser window (traffic-light dots, a wide
 frame) instead of a phone when the starter's `theme.layout` is `"website"`, so the card itself signals "this one's a
 website" before anyone clicks it. Opening the builder on a `"website"` app also defaults the "Preview on" switch to
 **Desktop** instead of iPhone (`BuilderClient`'s initial `device` state), so a Desktop View starter opens already
