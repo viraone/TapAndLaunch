@@ -750,6 +750,8 @@ export interface Database {
           starts_at: string;
           ends_at: string | null;
           capacity: number | null;
+          /** Where tickets are sold (Eventbrite, the venue...). Set, the event shows a Tickets button instead of the booking form. */
+          ticket_url: string | null;
           created_at: string;
           updated_at: string;
         };

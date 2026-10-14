@@ -29,6 +29,7 @@ function NewEventForm({ appId, onCreated }: { appId: string; onCreated: (event: 
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [capacity, setCapacity] = useState("");
+  const [ticketUrl, setTicketUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -45,6 +46,7 @@ function NewEventForm({ appId, onCreated }: { appId: string; onCreated: (event: 
           starts_at: new Date(startsAt).toISOString(),
           ends_at: endsAt ? new Date(endsAt).toISOString() : undefined,
           capacity: capacity ? Number(capacity) : undefined,
+          ticket_url: ticketUrl.trim() || undefined,
         }),
       });
       const body = await res.json();
@@ -59,6 +61,7 @@ function NewEventForm({ appId, onCreated }: { appId: string; onCreated: (event: 
       setStartsAt("");
       setEndsAt("");
       setCapacity("");
+      setTicketUrl("");
       toast.success("Event added");
     } finally {
       setSaving(false);
@@ -96,6 +99,11 @@ function NewEventForm({ appId, onCreated }: { appId: string; onCreated: (event: 
         <Label htmlFor="new-event-description">Description</Label>
         <Textarea id="new-event-description" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
+      <div className="space-y-1">
+        <Label htmlFor="new-event-ticket">Ticket link (optional)</Label>
+        <Input id="new-event-ticket" type="url" placeholder="https://www.eventbrite.com/e/…" value={ticketUrl} onChange={(e) => setTicketUrl(e.target.value)} />
+        <p className="text-xs text-muted-foreground">With a link, the event shows a Tickets button that opens it. Without one, people book a spot in the app.</p>
+      </div>
       <Button type="submit" disabled={saving}>
         {saving ? "Adding…" : "Add event"}
       </Button>
@@ -116,6 +124,7 @@ function EventRowEditor({
 }) {
   const [title, setTitle] = useState(event.title);
   const [startsAt, setStartsAt] = useState(toDatetimeLocal(event.starts_at));
+  const [ticketUrl, setTicketUrl] = useState(event.ticket_url ?? "");
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -124,7 +133,7 @@ function EventRowEditor({
       const res = await fetch(`/api/apps/${appId}/events/${event.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, starts_at: new Date(startsAt).toISOString() }),
+        body: JSON.stringify({ title, starts_at: new Date(startsAt).toISOString(), ticket_url: ticketUrl.trim() || null }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -159,6 +168,7 @@ function EventRowEditor({
         <Input value={title} onChange={(e) => setTitle(e.target.value)} />
         <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
       </div>
+      <Input type="url" aria-label="Ticket link" placeholder="Ticket link (optional), https://…" value={ticketUrl} onChange={(e) => setTicketUrl(e.target.value)} />
       {event.location && <p className="text-xs text-muted-foreground">{event.location}</p>}
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">

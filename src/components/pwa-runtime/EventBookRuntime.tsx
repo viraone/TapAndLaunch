@@ -11,6 +11,8 @@ export interface RuntimeEvent {
   starts_at: string;
   ends_at: string | null;
   capacity: number | null;
+  /** Where tickets are sold. Set, the card links there instead of taking bookings. */
+  ticket_url?: string | null;
   bookedCount: number;
 }
 
@@ -77,7 +79,16 @@ export function EventBookRuntime({ event }: { event: RuntimeEvent }) {
       {event.location && <p className="text-sm text-muted-foreground">{event.location}</p>}
       {event.description && <p className="text-sm">{event.description}</p>}
 
-      {full || status === "full" ? (
+      {event.ticket_url ? (
+        <a
+          href={event.ticket_url}
+          target="_blank"
+          rel="noreferrer"
+          className="block w-full rounded-md bg-primary px-3 py-2 text-center text-sm font-medium text-primary-foreground"
+        >
+          Tickets
+        </a>
+      ) : full || status === "full" ? (
         <p className="text-sm font-medium text-muted-foreground">Fully booked</p>
       ) : !open ? (
         <button

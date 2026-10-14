@@ -32,7 +32,7 @@ export async function getUpcomingEvents(appId: string): Promise<RuntimeEvent[]> 
   const admin = createAdminClient();
   const { data: events, error } = await admin
     .from("events")
-    .select("id, title, description, location, starts_at, ends_at, capacity")
+    .select("id, title, description, location, starts_at, ends_at, capacity, ticket_url")
     .eq("app_id", appId)
     .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true });

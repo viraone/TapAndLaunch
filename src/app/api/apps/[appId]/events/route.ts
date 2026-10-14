@@ -12,6 +12,8 @@ const CreateEventSchema = z.object({
   starts_at: z.string().min(1),
   ends_at: z.string().optional(),
   capacity: z.number().int().min(1).optional(),
+  // Only a web address (http or https): it opens in a new tab on the visitor's phone.
+  ticket_url: z.string().trim().url().max(500).regex(/^https?:\/\//, "The ticket link must start with http:// or https://").optional(),
 });
 
 export async function POST(request: Request, context: { params: Promise<{ appId: string }> }) {
