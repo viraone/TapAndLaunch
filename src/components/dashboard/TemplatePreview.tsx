@@ -1,6 +1,7 @@
 import { buildStarter, type StarterBlock } from "@/lib/apps/templates";
 
-/** A tiny phone showing what a starter looks like, drawn from the starter's own blocks so it always matches what the customer gets. */
+/** A tiny phone (or, for a website-layout starter, a tiny browser window) showing what a starter looks like, drawn
+ * from the starter's own blocks so it always matches what the customer gets. */
 export function TemplatePreview({ templateId, color }: { templateId: string; color: string }) {
   const starter = buildStarter(templateId, "App");
   const home = starter.pages.find((p) => p.isHome) ?? starter.pages[0];
@@ -9,6 +10,31 @@ export function TemplatePreview({ templateId, color }: { templateId: string; col
   const bg = dark ? "#0a0a0a" : "#ffffff";
   const ink = dark ? "#e5e5e5" : "#262626";
   const soft = dark ? "#2a2a2a" : "#e5e5e5";
+
+  if (starter.theme.layout === "website") {
+    return (
+      <div
+        aria-hidden
+        className="relative flex h-44 items-center justify-center overflow-hidden rounded-2xl"
+        style={{ background: `linear-gradient(160deg, color-mix(in oklab, ${color} 22%, white), color-mix(in oklab, ${color} 8%, white))` }}
+      >
+        <div className="relative h-36 w-[90%] overflow-hidden rounded-lg border-[3px] border-neutral-900 shadow-xl" style={{ background: bg }}>
+          <div className="flex h-4 items-center gap-1 border-b px-2" style={{ background: dark ? "#18181b" : "#f1f1f1", borderColor: soft }}>
+            <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className="ml-2 h-1.5 w-16 rounded-full" style={{ background: soft }} />
+          </div>
+          {home?.blocks[0]?.type === "hero" && <HeroSkeleton block={home.blocks[0]} color={color} />}
+          <div className="grid grid-cols-3 gap-2 p-2.5">
+            {(home?.blocks ?? []).filter((b, i) => !(i === 0 && b.type === "hero")).slice(0, 3).map((b, i) => (
+              <Skeleton key={i} block={b} color={color} ink={ink} soft={soft} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

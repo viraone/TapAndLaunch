@@ -11,6 +11,7 @@ import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
 const ICONS = TEMPLATE_ICONS;
 
 const NAME_HINTS: Record<string, string> = {
+  portfolio: "Jordan Lee",
   business: "Maple Street Bakery",
   store: "Corner Shop",
   events: "Sunday Supper Club",

@@ -10,7 +10,7 @@ import type { BlockConfig, BlockType, ManifestConfig, ThemeConfig } from "@/type
  * app is created (`buildStarter`).
  */
 
-export type TemplateIcon = "briefcase" | "shopping-bag" | "calendar" | "utensils" | "fuel" | "mic" | "plus" | "dumbbell" | "sparkles" | "users" | "bot";
+export type TemplateIcon = "briefcase" | "shopping-bag" | "calendar" | "utensils" | "fuel" | "mic" | "plus" | "dumbbell" | "sparkles" | "users" | "bot" | "monitor";
 
 export interface StarterTemplate {
   id: string;
@@ -25,10 +25,11 @@ export interface StarterTemplate {
   category: TemplateCategoryId;
 }
 
-export type TemplateCategoryId = "food" | "fitness" | "shops" | "venues" | "local" | "scratch" | "ai";
+export type TemplateCategoryId = "website" | "food" | "fitness" | "shops" | "venues" | "local" | "scratch" | "ai";
 
 /** The picker's groups, in the order they are shown. */
 export const TEMPLATE_CATEGORIES: Array<{ id: TemplateCategoryId; name: string; blurb: string }> = [
+  { id: "website", name: "Desktop View", blurb: "Full width on a laptop, with a menu at the top — not a phone-shaped column" },
   { id: "food", name: "Restaurants & cafés", blurb: "Menus, reservations and what's open now" },
   { id: "fitness", name: "Gyms & studios", blurb: "Class schedules and free-trial sign-ups" },
   { id: "shops", name: "Shops & services", blurb: "Sell products, take bookings, or just get found" },
@@ -39,6 +40,15 @@ export const TEMPLATE_CATEGORIES: Array<{ id: TemplateCategoryId; name: string; 
 ];
 
 export const STARTER_TEMPLATES: StarterTemplate[] = [
+  {
+    id: "portfolio",
+    name: "Personal website",
+    tagline: "A full-width site for your own name: your story, highlights, testimonials and a way for people to reach you.",
+    icon: "monitor",
+    color: "#1d4ed8",
+    includes: ["Full-width website", "Banner", "Highlights", "Testimonials", "Newsletter", "Contact"],
+    category: "website",
+  },
   {
     id: "business",
     name: "Local business",
@@ -263,6 +273,74 @@ function buildStarterBody(templateId: string, appName: string): Starter {
   const home = (blocks: StarterBlock[]): StarterPage => ({ name: "Home", path: "home", isHome: true, blocks });
 
   switch (template.id) {
+    case "portfolio":
+      return {
+        manifest: { ...manifest, background_color: "#fafafa" },
+        theme: {
+          ...theme,
+          layout: "website",
+          background_color: "#fafafa",
+          bottom_nav_style: "tabs",
+          bottom_nav: [
+            { label: "Home", icon: "home", page_path: "home" },
+            { label: "About", icon: "info", page_path: "about" },
+            { label: "Contact", icon: "mail", page_path: "contact" },
+          ],
+        },
+        pages: [
+          home([
+            block("hero", {
+              eyebrow: "Welcome",
+              headline: "Hi, I'm here to help.",
+              subtext: "A short line about what you do and who you help — the kind of thing people read in the first five seconds.",
+              button_label: "Get in touch",
+              button_page: "contact",
+            }),
+            block("stats", {
+              items: [
+                { value: "10+", label: "Years experience" },
+                { value: "200+", label: "People helped" },
+                { value: "5★", label: "Average rating" },
+              ],
+            }),
+            block("text", {
+              heading: "A bit about me",
+              body: "Write your story here: what you do, how you got started, and why it matters to the people you work with.",
+            }),
+            block("reviews", {
+              title: "What people say",
+              items: [
+                { quote: "Thoughtful, reliable and genuinely great to work with.", name: "A happy client", rating: 5 },
+                { quote: "Made a real difference in a short amount of time.", name: "Another happy client", rating: 5 },
+              ],
+            }),
+            block("newsletter", {
+              title: "Stay in the loop",
+              intro: "New work and the occasional update — no spam.",
+              button_label: "Sign up",
+              success: "You're on the list.",
+            }),
+          ]),
+          {
+            name: "About",
+            path: "about",
+            isHome: false,
+            blocks: [
+              block("text", { heading: "My story", body: "A longer version of your story goes here: your background, your approach, and what people can expect when they work with you." }),
+              block("quote", { quote: "Do the work that matters, and the rest follows.", name: "Your name" }),
+            ],
+          },
+          {
+            name: "Contact",
+            path: "contact",
+            isHome: false,
+            blocks: [
+              block("text", { heading: "Let's talk", body: "Send a message and I'll get back to you within a day or two." }),
+              block("contact_form", { title: "Get in touch", submit_label: "Send message", fields: CONTACT_FIELDS }),
+            ],
+          },
+        ],
+      };
     case "business":
       return {
         manifest: { ...manifest, background_color: "#f8f6ff" },
