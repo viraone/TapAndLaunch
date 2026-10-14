@@ -1,7 +1,14 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { ABOUT_MAX_LENGTH, DEFAULT_TEMPLATE_ID, STARTER_TEMPLATES, buildStarter } from "@/lib/apps/templates";
 import { createAppFromStarter } from "@/lib/apps/create";
+import { isAiConfigured } from "@/lib/ai/generate";
+import { rewriteStarterCopy } from "@/lib/ai/rewrite";
+import { AI_DAILY_LIMIT } from "@/lib/ai/limits";
+
+/** Rewriting a website's words with Claude takes 10 to 20 seconds. */
+export const maxDuration = 60;
 
 const CreateAppSchema = z.object({
   organization_id: z.string().uuid(),
@@ -42,12 +49,28 @@ export async function POST(request: Request) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const result = await createAppFromStarter(supabase, user, {
-    organizationId: parsed.data.organization_id,
-    name: parsed.data.name,
-    slug: parsed.data.slug,
-    starter: buildStarter(parsed.data.template, parsed.data.name, parsed.data.about, parsed.data.hero_image),
-  });
+  const { organization_id: organizationId, name, slug, template, about, hero_image } = parsed.data;
+  const starter = buildStarter(template, name, about, hero_image);
+
+  // "What's your site about?" + a key: Claude rewrites the words (only the words; see lib/ai/rewrite.ts) for the
+  // person described. Checked and counted like "Describe your app" before anything is paid for; over the limit, or
+  // not an editor, the site is simply created with the trade's own words.
+  if (about && STARTER_TEMPLATES.find((t) => t.id === template)?.asksAbout && isAiConfigured()) {
+    const { data: membership } = await supabase.from("memberships").select("role").eq("organization_id", organizationId).eq("user_id", user.id).maybeSingle();
+    if (membership?.role === "admin" || membership?.role === "creator") {
+      const admin = createAdminClient();
+      const since = new Date();
+      since.setHours(since.getHours() - 24);
+      const { count } = await admin.from("ai_generations").select("id", { count: "exact", head: true }).eq("user_id", user.id).gte("created_at", since.toISOString());
+      if ((count ?? 0) < AI_DAILY_LIMIT) {
+        await admin.from("ai_generations").insert({ user_id: user.id, organization_id: organizationId });
+        const rewritten = await rewriteStarterCopy(starter, about);
+        if (rewritten.note) console.warn("website copy kept the template's words:", rewritten.note);
+      }
+    }
+  }
+
+  const result = await createAppFromStarter(supabase, user, { organizationId, name, slug, starter });
   if ("error" in result) return Response.json({ error: result.error }, { status: result.status });
   return Response.json({ app: result.app }, { status: 201 });
 }

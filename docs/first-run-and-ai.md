@@ -126,10 +126,16 @@ if the customer has nothing to say yet. The same step takes an optional **photo*
 `app-assets` bucket; sent as `hero_image`, an https address, to `POST /api/apps`), which `buildStarter`'s fourth
 argument puts straight into the banner of any website starter — behind the words, under them, or as the split
 panel, whichever the look uses — so the first thing a client sees in the builder is their own face or shopfront,
-not a template. Ignored by every other template; a test checks both. TapAndLaunch does have a real AI "Describe your app" generator
-(`POST /api/apps/generate`, see below) that could write genuinely tailored copy instead of just echoing the
-sentence — not wired up here because its safety schema only allows text/contact_form/event_calendar/product_list/
-image blocks today, not hero/stats/reviews/newsletter; that's a bigger follow-on, not this slice.
+not a template. Ignored by every other template; a test checks both. With `ANTHROPIC_API_KEY` set, the sentence does more than fill the subtext: `POST /api/apps` has Claude
+**rewrite the website's words** for the person described (`src/lib/ai/rewrite.ts`). It is the safe way round of
+"AI designs the site": the site is already built from its starter — look, sections, sample data — and the model is
+handed only the words, a flat map of `page/block/field` → text with each field's length limit, and asked for the
+same keys with new text. It never sees or returns a URL, a path, a page, a block type or a setting (`COPY_KEYS`
+lists exactly which fields go); every value is capped at the field's limit, tags and control characters are
+stripped, unknown keys and non-strings are ignored, and any failure keeps the starter's words — so a clever
+description can change what the site says, never what it does. Counted against the same `ai_generations` daily
+limit and editor check as "Describe your app" before anything is paid for; without a key (prod today) the site
+simply keeps the trade's copy. `rewrite.test.ts` covers the mapping, the caps, the sanitising and the fallbacks.
 
 ## Describe your app
 `POST /api/apps/generate` takes a sentence (10 to 500 characters) and an optional name, designs a first version and creates it
