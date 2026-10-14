@@ -67,9 +67,14 @@ export default async function BuilderPage({ params, searchParams }: { params: Pa
   const { data: org } = await supabase.from("organizations").select("maps_enabled").eq("id", app.organization_id).maybeSingle();
 
   const otherPageIds = pages.filter((p) => p.id !== homePage.id).map((p) => p.id);
-  const [hasVisit, otherBlocks] = await Promise.all([
+  // Upcoming events (from a few hours ago), for "Next up": a show just added that the banner doesn't mention yet,
+  // or sample events still on the calendar.
+  const since = new Date();
+  since.setHours(since.getHours() - 6);
+  const [hasVisit, otherBlocks, { data: events }] = await Promise.all([
     app.status === "published" ? appHasVisit(supabase, appId) : Promise.resolve(false),
     otherPageIds.length ? supabase.from("blocks").select("id").in("page_id", otherPageIds).limit(1) : Promise.resolve({ data: [] }),
+    supabase.from("events").select("id, title, starts_at, description, created_at").eq("app_id", appId).gte("starts_at", since.toISOString()).order("starts_at", { ascending: true }).limit(30),
   ]);
 
   // When the AI chat changes the saved app, this value changes and the builder reloads from the new version.
@@ -93,6 +98,7 @@ export default async function BuilderPage({ params, searchParams }: { params: Pa
       domainsEnabled={isVercelDomainsConfigured()}
       hasVisit={hasVisit}
       contentOnOtherPages={!!otherBlocks.data?.length}
+      recentEvents={events ?? []}
     />
     {/* Build with AI is switched off for now (2026-10-14): one less thing on the screen while the builder is being simplified. */}
     {AI_CHAT_ENABLED && <AiChatPanel appId={appId} appName={app.name} initiallyOpen={ai === "1"} />}

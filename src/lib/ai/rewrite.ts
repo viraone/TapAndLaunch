@@ -1,5 +1,6 @@
 import { askClaudeText } from "@/lib/ai/client";
 import { parseModelJson } from "@/lib/ai/app-spec";
+import { collectConfigCopy, readModelText, sanitize, type CopyField } from "@/lib/ai/copy-fields";
 import type { Starter } from "@/lib/apps/templates";
 
 /**
@@ -9,100 +10,20 @@ import type { Starter } from "@/lib/apps/templates";
  * or a setting, every value is capped at the original field's length, anything missing or malformed keeps the
  * starter's text, and any failure keeps all of it. So a clever description can change what the site says, never
  * what it does. Costs a cent or two and takes 10–20 seconds; counted against the same daily limit as
- * "Describe your app".
+ * "Describe your app". The list of which keys are words lives in `copy-fields.ts`, shared with the other AI edits.
  */
 
-/** The copy fields of each block type, by config key (`items.*.quote` means every item's quote). Nothing else is
- * ever sent: not `image_url`, `src`, `url`, `button_page`, `address`, `phone`, `fields`, `provider`. */
-const COPY_KEYS: Record<string, string[]> = {
-  hero: ["eyebrow", "headline", "subtext", "button_label"],
-  stats: ["items.*.value", "items.*.label"],
-  text: ["heading", "body"],
-  image_text: ["heading", "body", "button_label"],
-  reviews: ["title", "items.*.quote", "items.*.name"],
-  newsletter: ["title", "intro", "button_label", "success"],
-  quote: ["quote", "name"],
-  faq: ["title", "items.*.question", "items.*.answer"],
-  price_list: ["title", "subtitle", "sections.*.name", "sections.*.items.*.name", "sections.*.items.*.description", "sections.*.items.*.badge"],
-  hours: ["title", "rows.*.label", "rows.*.value"],
-  contact_form: ["title", "submit_label"],
-  event_calendar: ["title"],
-  product_list: ["title"],
-  gallery: ["title"],
-  map: ["title"],
-  audio: ["title", "note"],
-  share: ["title"],
-  button: ["label"],
-};
-
-/** How long each kind of field may be, by its last key. Matches the inspector's own limits. */
-const MAX_BY_FIELD: Record<string, number> = {
-  eyebrow: 40,
-  headline: 80,
-  subtext: 200,
-  button_label: 30,
-  submit_label: 30,
-  label: 30,
-  value: 14,
-  heading: 80,
-  title: 60,
-  subtitle: 160,
-  body: 2000,
-  intro: 160,
-  success: 120,
-  quote: 300,
-  name: 60,
-  question: 120,
-  answer: 500,
-  description: 160,
-  badge: 20,
-  note: 160,
-};
-
-export interface CopyField {
-  key: string;
-  text: string;
-  max: number;
-  set: (value: string) => void;
-}
+export type { CopyField };
 
 /** Every copy field of the starter, with a setter. Keys are `page/block/path`, e.g. `0/0/headline`, `0/3/items/1/quote`. */
 export function collectCopy(starter: Starter): CopyField[] {
   const fields: CopyField[] = [];
   starter.pages.forEach((page, pi) => {
     page.blocks.forEach((block, bi) => {
-      for (const pattern of COPY_KEYS[block.type] ?? []) {
-        walk(block.config as Record<string, unknown>, pattern.split("."), `${pi}/${bi}`, fields);
-      }
+      fields.push(...collectConfigCopy(block.type, block.config as Record<string, unknown>, `${pi}/${bi}`));
     });
   });
   return fields;
-}
-
-function walk(node: unknown, path: string[], key: string, out: CopyField[]) {
-  if (node === null || typeof node !== "object") return;
-  const [head, ...rest] = path;
-  if (head === "*") {
-    if (!Array.isArray(node)) return;
-    node.forEach((item, i) => walk(item, rest, `${key}/${i}`, out));
-    return;
-  }
-  const obj = node as Record<string, unknown>;
-  if (rest.length === 0) {
-    const text = obj[head];
-    if (typeof text === "string" && text.trim()) {
-      out.push({
-        key: `${key}/${head}`,
-        text,
-        max: MAX_BY_FIELD[head] ?? 120,
-        set: (value) => {
-          obj[head] = value;
-        },
-      });
-    }
-    return;
-  }
-  walk(obj[head], rest, `${key}/${head}`, out);
 }
 
 const SYSTEM = `You rewrite the words of a small website so they are about the person or business described, in their voice. You get a JSON object of key → text (the current words, written for a generic business of this kind). Reply with ONLY a JSON object with exactly the same keys and your new text as the values: no markdown, no explanation, no extra keys.
@@ -136,31 +57,24 @@ export async function rewriteStarterCopy(starter: Starter, about: string, apiKey
   try {
     const reply = parseModelJson(await askClaudeText({ system: SYSTEM, user, apiKey, maxTokens: 4000, timeoutMs: 50_000 }));
     if (!reply || typeof reply !== "object" || Array.isArray(reply)) return { starter, source: "template", changed: 0, note: "the reply was not an object" };
-    const values = reply as Record<string, unknown>;
-    let changed = 0;
-    for (const field of fields) {
-      const raw = values[field.key];
-      // A nested {"text": …} is tolerated, since that is the shape we sent.
-      const text = typeof raw === "string" ? raw : raw && typeof raw === "object" && typeof (raw as { text?: unknown }).text === "string" ? (raw as { text: string }).text : null;
-      if (text === null) continue;
-      const next = sanitize(text, field.max);
-      if (!next || next === field.text) continue;
-      field.set(next);
-      changed += 1;
-    }
+    const changed = applyCopyReply(fields, reply as Record<string, unknown>);
     return changed > 0 ? { starter, source: "ai", changed } : { starter, source: "template", changed: 0, note: "the model changed nothing" };
   } catch (error) {
     return { starter, source: "template", changed: 0, note: error instanceof Error ? error.message : "the model call failed" };
   }
 }
 
-/** Plain text only: no control characters, no tags, trimmed to the field's limit on a word boundary where possible. */
-function sanitize(text: string, max: number): string {
-  let out = text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").replace(/<[^>]*>/g, "").trim();
-  if (out.length > max) {
-    const cut = out.slice(0, max);
-    const space = cut.lastIndexOf(" ");
-    out = (space > max * 0.6 ? cut.slice(0, space) : cut).trim();
+/** Writes the model's values into the fields they belong to (sanitised, capped); returns how many changed. */
+export function applyCopyReply(fields: CopyField[], values: Record<string, unknown>): number {
+  let changed = 0;
+  for (const field of fields) {
+    const text = readModelText(values[field.key]);
+    if (text === null) continue;
+    const next = sanitize(text, field.max);
+    if (next === field.text) continue;
+    if (!next && field.text) continue; // never blank a field that had words
+    field.set(next);
+    changed += 1;
   }
-  return out;
+  return changed;
 }

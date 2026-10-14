@@ -260,3 +260,44 @@ this page** (Share/Copy link plus X, Facebook, WhatsApp and Email, all pointing 
 with a title, note and player). All five live in `MoreBlocks.tsx` (published/preview view) and `MoreEditors.tsx` (the
 inspector), wired into `BlockRenderer`, `Inspector`, `blockMeta.ts` and `block-defaults.ts` the same way as every other
 section type.
+
+## Ask AI: Cmd+K, Next up, the agent and the paste inbox (migration 0043)
+
+What Cursor did to VS Code, done to the builder: the AI acts on the thing in front of the owner, with every change
+reviewable where it shows, never in a transcript. Four pieces, one shared library.
+
+**Shared plumbing** (`src/lib/ai/`): `copy-fields.ts` is the one list of which config keys are *words* per block type
+(with length limits); every AI edit reads and writes only those. `site-context.ts` loads the whole site (pages,
+every section's words keyed by field path, upcoming events, products) as `describeSite()` JSON, so every edit knows
+the business. `ask.ts` picks who answers: our `ANTHROPIC_API_KEY`, else the organization's own BYOB key (pictures
+need Claude). `usage.ts` counts each kind against a daily limit (`edit` 80, `agent` 40, `inbox` 40) in `ai_generations`.
+Locally, `AI_TEST_BASE_URL=http://localhost:3999` plus any `ANTHROPIC_API_KEY` points all of it at a stand-in server.
+
+**Cmd+K on a section** (`edit-section.ts`, `POST /api/apps/[id]/ai/section`, `AskAiBar.tsx`): select a section, press
+⌘K (or the Ask AI button on the section, the inspector header or the top bar), say what should change. The section
+is sent as it is on screen; only its words come back changed; the builder applies them like any edit (autosave, undo
+history) and puts a "Banner rewritten · Keep · Undo" chip on the section. ⌘Z also drops the chips.
+
+**Next up** (`src/lib/apps/suggestions.ts`, `NextUpCard.tsx`, under Get live in the inspector): the next thing worth
+fixing on this page, one tap each. Template words still in a section (compared against every starter's text for this
+app's name; short labels don't count) → "Write it for me" (AI, from the rest of the site) for banner/text/FAQ-type
+sections, "Fill in mine" (opens the section) for reviews/hours/numbers. A template or missing photo → opens the
+section. A show added in the last two weeks that the banner doesn't mention → "Mention it in the banner". Sample
+events still on the calendar → link to Events. "Not now" hides one for the visit.
+
+**The agent** (`agent.ts`, `POST /api/apps/[id]/ai/agent`): the same bar with the scope chip on "Whole site". The model
+gets the builder chat's operations plus `set_words` (words of any section by field path, incl. a banner button's
+page) and the full site context; it answers with ops, nothing is saved by the route. The builder (`agent-plan.ts`)
+works out, for the open page, which sections changed / were added / removed (Keep / Undo chip on each), and applies
+other pages, new pages, removed pages and the menu through its own APIs with an Undo for each in a bar above the
+page ("Private events page added · Undo", "Keep these", "Undo all"). The old Build with AI chat panel stays off.
+
+**Paste anything** (`inbox.ts`, `inbox-apply.ts`, `POST /api/apps/[id]/ai/inbox`, `PasteCard.tsx` at the top of Quick
+updates): a flyer (picture, pasted or chosen), an Instagram caption, a text, an email. The model answers a strict
+shape: events (local times in the owner's zone, no date → a question, never invented), an announcement for the top
+of every page, `words` changes to existing sections. They are saved at once and listed with one "Undo all of this"
+(events deleted, theme and pages put back). `POST /api/inbound/email` does the same for a forwarded email: an
+inbound-email webhook (Resend's `email.received` shape or plain `{from, subject, text}`) with header
+`x-inbound-secret: $INBOUND_EMAIL_SECRET`; the sender must be an editor, their one live site (or only site) is the
+target, and they get a reply saying what landed. The webhook is built but no inbound address is set up in Resend yet;
+texting a photo would need an SMS number and is not built.

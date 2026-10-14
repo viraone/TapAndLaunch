@@ -12,6 +12,7 @@ import { LocalTime } from "@/components/dashboard/LocalTime";
 import { createClient } from "@/lib/supabase/client";
 import { uploadAppAsset } from "@/lib/storage/upload";
 import { formatDayTimeRange } from "@/lib/format-date";
+import { PasteCard } from "./PasteCard";
 import type { Database } from "@/types/database";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
@@ -37,7 +38,7 @@ function Card({ icon: Icon, title, hint, children }: { icon: typeof CalendarPlus
   );
 }
 
-/** The three cards: shows, photos, messages. Each talks to the app's existing APIs; nothing here is special-cased. */
+/** The cards: paste anything, shows, photos, messages. Each talks to the app's existing APIs; nothing here is special-cased. */
 export function QuickUpdates({
   appId,
   organizationId,
@@ -53,7 +54,9 @@ export function QuickUpdates({
 }) {
   return (
     <div className="space-y-5">
-      <ShowsCard appId={appId} initialEvents={initialEvents} />
+      <PasteCard appId={appId} organizationId={organizationId} />
+      {/* Keyed on the events, so a paste that adds shows (and a page refresh) shows them in the list below. */}
+      <ShowsCard key={initialEvents.map((e) => e.id).join(",")} appId={appId} initialEvents={initialEvents} />
       <PhotosCard appId={appId} organizationId={organizationId} initialPhotos={initialPhotos} />
       <MessagesCard appId={appId} submissions={submissions} />
     </div>

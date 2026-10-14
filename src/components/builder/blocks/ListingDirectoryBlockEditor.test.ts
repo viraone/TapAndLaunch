@@ -45,6 +45,10 @@ describe("ListingDirectoryBlockEditor", () => {
         publishing: false,
         pages: [],
         onChecklistAction: () => {},
+        suggestions: [],
+        busySuggestion: null,
+        onSuggestion: () => {},
+        onAsk: () => {},
       })
     );
     expect(html).toContain("Listing directory");

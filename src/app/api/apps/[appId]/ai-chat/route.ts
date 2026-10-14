@@ -6,6 +6,7 @@ import { decryptSecret } from "@/lib/ai/keys";
 import { isProviderError, chatJson, type AiProvider } from "@/lib/ai/providers";
 import { parseModelJson } from "@/lib/ai/app-spec";
 import { AiReply, BUILDER_SYSTEM_PROMPT, applyOperations, buildContext, type Draft } from "@/lib/ai/builder-ops";
+import { saveDraft } from "@/lib/ai/site-context";
 import type { BlockConfig, BlockType, ThemeConfig } from "@/types/database";
 
 /** Messages one person can send to the builder chat in an hour: a guard against a runaway loop on their own bill. */
@@ -85,34 +86,4 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
     if (saved) return Response.json({ error: `Couldn't save the changes: ${saved}` }, { status: 500 });
   }
   return Response.json({ reply: reply.reply, applied, skipped });
-}
-
-/** Writes only what changed: removed pages, new pages, pages whose blocks changed, and the theme. Returns an error message, or null. */
-async function saveDraft(supabase: Awaited<ReturnType<typeof createClient>>, appId: string, before: Draft, after: Draft): Promise<string | null> {
-  const removed = before.pages.filter((p) => p.id && !after.pages.some((q) => q.id === p.id));
-  if (removed.length) {
-    const { error } = await supabase.from("pages").delete().in("id", removed.map((p) => p.id as string));
-    if (error) return error.message;
-  }
-  for (const [position, page] of after.pages.entries()) {
-    let pageId = page.id;
-    if (!pageId) {
-      const { data, error } = await supabase.from("pages").insert({ app_id: appId, name: page.name, path: page.path, is_home: false, position }).select("id").single();
-      if (error || !data) return error?.message ?? "Couldn't add a page";
-      pageId = data.id;
-    }
-    const old = before.pages.find((p) => p.id === page.id);
-    if (old && JSON.stringify(old.blocks) === JSON.stringify(page.blocks)) continue;
-    const { error: deleteError } = await supabase.from("blocks").delete().eq("page_id", pageId);
-    if (deleteError) return deleteError.message;
-    if (page.blocks.length) {
-      const { error } = await supabase.from("blocks").insert(page.blocks.map((b, i) => ({ page_id: pageId as string, type: b.type, config: b.config, min_tier: b.min_tier, position: i })));
-      if (error) return error.message;
-    }
-  }
-  if (JSON.stringify(before.theme) !== JSON.stringify(after.theme)) {
-    const { error } = await supabase.from("apps").update({ theme: after.theme }).eq("id", appId);
-    if (error) return error.message;
-  }
-  return null;
 }

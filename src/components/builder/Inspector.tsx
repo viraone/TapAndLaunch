@@ -18,8 +18,10 @@ import { AudioBlockEditor, ImageTextBlockEditor, MapBlockEditor, NewsletterBlock
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
 import { SectionOptionsControl } from "@/components/builder/SectionOptionsControl";
 import { GetLiveChecklist } from "@/components/builder/GetLiveChecklist";
+import { NextUpCard } from "@/components/builder/NextUpCard";
+import type { Suggestion } from "@/lib/apps/suggestions";
 import type { Checklist, ChecklistStepId } from "@/lib/apps/checklist";
-import { MousePointerClick, Pencil, X } from "lucide-react";
+import { MousePointerClick, Pencil, Sparkles, X } from "lucide-react";
 import { BLOCK_ACCENTS, BLOCK_ICONS } from "@/components/builder/blockMeta";
 import { BLOCK_TYPE_LABELS } from "@/lib/builder/block-defaults";
 import type { BlockConfig } from "@/types/database";
@@ -39,6 +41,10 @@ export function Inspector({
   publishing,
   onChecklistAction,
   pages,
+  suggestions,
+  busySuggestion,
+  onSuggestion,
+  onAsk,
 }: {
   block: BuilderBlock | null;
   pageName: string;
@@ -55,6 +61,13 @@ export function Inspector({
   organizationId: string;
   onChange: (config: BlockConfig) => void;
   onMinTierChange: (minTier: string | null) => void;
+  /** "Next up": what is worth fixing on this page, one tap each. */
+  suggestions: Suggestion[];
+  /** The suggestion the AI is working on right now, or null. */
+  busySuggestion: string | null;
+  onSuggestion: (s: Suggestion) => void;
+  /** Opens Ask AI for the selected section. */
+  onAsk: () => void;
 }) {
   if (!block) {
     // Hovering a row outlines that section on the page and brings it into view, so "Banner" means the big photo at the
@@ -71,6 +84,7 @@ export function Inspector({
       // Extra room at the bottom so the floating "Build with AI" button never covers the last item or the tip.
       <div className="flex flex-col gap-5 p-4 pb-24">
         <GetLiveChecklist checklist={checklist} busy={publishing} onAction={onChecklistAction} />
+        <NextUpCard suggestions={suggestions} busy={busySuggestion} onAction={onSuggestion} />
         <div>
           <p className="text-base font-semibold text-neutral-100">{pageName}</p>
           <p className="mt-1 text-sm leading-relaxed text-neutral-300">
@@ -135,6 +149,14 @@ export function Inspector({
           <p className="text-sm text-neutral-300">Editing</p>
           <p className="truncate text-base font-semibold text-neutral-100">{BLOCK_TYPE_LABELS[block.type]}</p>
         </div>
+        <button
+          type="button"
+          onClick={onAsk}
+          title="Say what should change in this section (⌘K)"
+          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-white/10 px-2.5 text-sm font-medium text-neutral-100 transition hover:bg-white/15 hover:text-white"
+        >
+          <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" /> Ask AI
+        </button>
         <button
           type="button"
           onClick={onClose}

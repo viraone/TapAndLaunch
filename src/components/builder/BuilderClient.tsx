@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   DndContext,
   closestCenter,
@@ -25,6 +25,7 @@ import {
   Pencil,
   Play,
   Rocket,
+  Sparkles,
   Undo2,
   Redo2,
 } from "lucide-react";
@@ -34,6 +35,10 @@ import { BuilderPhoneNotice } from "@/components/builder/BuilderPhoneNotice";
 import { AddSectionBar } from "@/components/builder/AddSectionBar";
 import { FIELD_FOCUS_EVENT, flashField, type FieldFocusDetail } from "@/lib/builder/field-link";
 import { Inspector } from "@/components/builder/Inspector";
+import { AskAiBar, type AskScope } from "@/components/builder/AskAiBar";
+import { planCurrentPage, planSite, type PendingChange } from "@/lib/builder/agent-plan";
+import { suggestNext, type Suggestion, type SuggestionEvent } from "@/lib/apps/suggestions";
+import type { Draft, DraftBlock } from "@/lib/ai/builder-ops";
 import { PageTabs, slugify, type PageActions } from "@/components/builder/PageTabs";
 import { SortableBlockItem } from "@/components/builder/SortableBlockItem";
 import {
@@ -78,6 +83,7 @@ export function BuilderClient({
   contentOnOtherPages,
   mapsEnabled,
   domainsEnabled,
+  recentEvents,
 }: {
   app: AppRow;
   rootDomain: string;
@@ -92,6 +98,8 @@ export function BuilderClient({
   mapsEnabled: boolean;
   /** Custom domains are set up on this server (Vercel keys present). */
   domainsEnabled: boolean;
+  /** Upcoming events, for "Next up". */
+  recentEvents: SuggestionEvent[];
 }) {
   const supabase = createClient();
 
@@ -135,6 +143,17 @@ export function BuilderClient({
   }, [blocks, currentPageId]);
   const inFlight = useRef<Promise<boolean> | null>(null);
 
+  // Ask AI (⌘K): one bar, two scopes. "This section" rewrites the selected section's words; "Whole site" hands the
+  // request to the agent. What comes back lands on the page as pending changes, each with Keep / Undo, so the owner
+  // reviews the result where it shows rather than in a chat.
+  const [ask, setAsk] = useState<{ open: boolean; scope: AskScope }>({ open: false, scope: "site" });
+  const [aiBusy, setAiBusy] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingChange[]>([]);
+  const [busySuggestion, setBusySuggestion] = useState<string | null>(null);
+  const selectedRef = useRef<string | null>(null);
+  const changeSeq = useRef(0);
+  const nextChangeId = (prefix: string) => `${prefix}:${++changeSeq.current}`;
+
   // The AI chat (outside this component) works on the saved app, so it needs to know when there are unsaved edits.
   useEffect(() => {
     window.dispatchEvent(
@@ -147,6 +166,15 @@ export function BuilderClient({
   );
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) ?? null;
+  useEffect(() => {
+    selectedRef.current = selectedBlockId;
+  }, [selectedBlockId]);
+
+  // "Next up": what is still the template's, and news the banner isn't telling. Recomputed as the page changes.
+  const suggestions = useMemo(
+    () => suggestNext({ appId: currentApp.id, appName: currentApp.name, blocks: blocks.map((b) => ({ id: b.id, type: b.type, config: b.config as Record<string, unknown> })), events: recentEvents }),
+    [blocks, recentEvents, currentApp.id, currentApp.name]
+  );
 
   /** Adds a section at `index` (between two sections, from the + bar) or at the end (from the side list). */
   function addBlock(type: BlockType, index?: number) {
@@ -215,6 +243,8 @@ export function BuilderClient({
     future.current.push(blocksRef.current);
     lastEditKey.current = null;
     setBlocks(prev);
+    // Stepping through history by hand takes over from the AI's Keep / Undo pairs on this page.
+    setPending((list) => list.filter((p) => p.kind !== "changed" && p.kind !== "added" && p.kind !== "removed"));
     if (selectedBlockId && !prev.some((b) => b.id === selectedBlockId)) setSelectedBlockId(null);
     syncHistory();
   }
@@ -225,6 +255,7 @@ export function BuilderClient({
     past.current.push(blocksRef.current);
     lastEditKey.current = null;
     setBlocks(next);
+    setPending((list) => list.filter((p) => p.kind !== "changed" && p.kind !== "added" && p.kind !== "removed"));
     syncHistory();
   }
 
@@ -246,6 +277,17 @@ export function BuilderClient({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- undo/redo read refs; the handler needs no re-binding
+  }, []);
+
+  // ⌘K opens Ask AI, even from inside a text field: that is where the owner is when they want help with the words.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "k") return;
+      e.preventDefault();
+      setAsk((prev) => (prev.open ? { open: false, scope: prev.scope } : { open: true, scope: selectedRef.current ? "section" : "site" }));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   function updateBlockConfig(id: string, config: BlockConfig) {
@@ -599,6 +641,185 @@ export function BuilderClient({
     }
   }
 
+  function openAsk(scope: AskScope) {
+    setAsk({ open: true, scope });
+  }
+
+  /** Cmd+K on one section: its words come back changed; the change sits on the section with Keep / Undo. */
+  async function askSection(blockId: string, instruction: string): Promise<boolean> {
+    const block = blocksRef.current.find((b) => b.id === blockId);
+    if (!block) return false;
+    setAiBusy("Rewriting…");
+    try {
+      const res = await fetch(`/api/apps/${currentApp.id}/ai/section`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: block.type, config: block.config, instruction }),
+      });
+      const body = (await res.json()) as { config?: BlockConfig; error?: string };
+      if (!res.ok || !body.config) {
+        toast.error(body.error ?? "Couldn't change it");
+        return false;
+      }
+      const config = body.config;
+      editBlocks((prev) => prev.map((b) => (b.id === blockId ? ({ ...b, config } as BuilderBlock) : b)));
+      setPending((prev) => [...prev.filter((p) => !("blockId" in p && p.blockId === blockId)), { id: nextChangeId(`changed:${blockId}`), kind: "changed", blockId, before: block, label: `${BLOCK_TYPE_LABELS[block.type]} rewritten` }]);
+      return true;
+    } catch {
+      toast.error("Couldn't reach the AI. Check your connection.");
+      return false;
+    } finally {
+      setAiBusy(null);
+    }
+  }
+
+  async function putBlocks(pageId: string, list: DraftBlock[]): Promise<boolean> {
+    const res = await fetch(`/api/apps/${currentApp.id}/pages/${pageId}/blocks`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ blocks: list.map((b, position) => ({ type: b.type, position, config: b.config, min_tier: b.min_tier })) }),
+    });
+    return res.ok;
+  }
+
+  async function createPageQuietly(name: string, path: string): Promise<PageRow | null> {
+    const res = await fetch(`/api/apps/${currentApp.id}/pages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, path }) });
+    const body = await res.json();
+    if (!res.ok) {
+      toast.error(body.error ?? `Couldn't add the ${name} page`);
+      return null;
+    }
+    setPages((prev) => [...prev, body.page as PageRow]);
+    return body.page as PageRow;
+  }
+
+  /**
+   * The agent: one request about the whole site. The open page's changes land as pending sections (Keep / Undo on
+   * each); other pages, new pages and the menu go through the builder's own APIs and get an Undo in the bar above
+   * the page. Earlier pending changes count as kept.
+   */
+  async function askSite(instruction: string): Promise<boolean> {
+    setAiBusy("Working on it…");
+    try {
+      if (snapshot(blocksRef.current) !== savedSnapshot && !(await saveBlocks())) return false;
+      const res = await fetch(`/api/apps/${currentApp.id}/ai/agent`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ instruction }) });
+      const body = (await res.json()) as { reply?: string; before?: Draft; after?: Draft; applied?: number; skipped?: string[]; error?: string };
+      if (!res.ok || !body.before || !body.after) {
+        toast.error(body.error ?? "Couldn't make that change");
+        return false;
+      }
+      if (!body.applied) {
+        toast(body.reply || "Nothing to change.");
+        return true;
+      }
+      const next: PendingChange[] = [];
+      const afterPage = body.after.pages.find((p) => p.id === pageIdRef.current);
+      if (afterPage) {
+        const plan = planCurrentPage(blocksRef.current, afterPage.blocks, (t) => BLOCK_TYPE_LABELS[t as BlockType], () => crypto.randomUUID());
+        if (plan.pending.length) {
+          editBlocks(() => plan.blocks as BuilderBlock[]);
+          next.push(...plan.pending);
+        }
+      }
+      const site = planSite(body.before, body.after, pageIdRef.current);
+      for (const { page, before } of site.changedPages) {
+        if (page.id && (await putBlocks(page.id, page.blocks))) next.push({ id: `page:${page.id}`, kind: "page", pageId: page.id, name: page.name, beforeBlocks: before, label: `${page.name} page changed` });
+      }
+      for (const page of site.newPages) {
+        const created = await createPageQuietly(page.name, page.path);
+        if (created) {
+          await putBlocks(created.id, page.blocks);
+          next.push({ id: `new-page:${created.id}`, kind: "new-page", pageId: created.id, name: page.name, label: `${page.name} page added` });
+        }
+      }
+      for (const page of site.removedPages) {
+        const del = await fetch(`/api/apps/${currentApp.id}/pages/${page.id}`, { method: "DELETE" });
+        if (del.ok) {
+          setPages((prev) => prev.filter((p) => p.id !== page.id));
+          next.push({ id: `removed-page:${page.id}`, kind: "removed-page", page, label: `${page.name} page removed` });
+        }
+      }
+      if (site.theme && (await saveTheme(site.theme.after))) next.push({ id: nextChangeId("theme"), kind: "theme", before: site.theme.before, label: "Menu or colours changed" });
+      setPending(next);
+      if (body.reply) toast.success(body.reply);
+      if (body.skipped?.length) console.warn("agent skipped:", body.skipped);
+      return true;
+    } catch {
+      toast.error("Couldn't reach the AI. Check your connection.");
+      return false;
+    } finally {
+      setAiBusy(null);
+    }
+  }
+
+  function keepChange(id: string) {
+    setPending((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  async function undoChange(change: PendingChange) {
+    switch (change.kind) {
+      case "changed":
+        editBlocks((prev) => prev.map((b) => (b.id === change.blockId ? (change.before as BuilderBlock) : b)));
+        break;
+      case "added":
+        editBlocks((prev) => prev.filter((b) => b.id !== change.blockId));
+        setSelectedBlockId((current) => (current === change.blockId ? null : current));
+        break;
+      case "removed":
+        editBlocks((prev) => [...prev.slice(0, change.index), change.before as BuilderBlock, ...prev.slice(change.index)]);
+        break;
+      case "page":
+        if (!(await putBlocks(change.pageId, change.beforeBlocks))) toast.error(`Couldn't put the ${change.name} page back`);
+        break;
+      case "new-page": {
+        const res = await fetch(`/api/apps/${currentApp.id}/pages/${change.pageId}`, { method: "DELETE" });
+        if (res.ok) setPages((prev) => prev.filter((p) => p.id !== change.pageId));
+        else toast.error(`Couldn't remove the ${change.name} page`);
+        break;
+      }
+      case "removed-page": {
+        const created = await createPageQuietly(change.page.name, change.page.path);
+        if (created) await putBlocks(created.id, change.page.blocks);
+        break;
+      }
+      case "theme":
+        await saveTheme(change.before);
+        break;
+    }
+    setPending((prev) => prev.filter((p) => p.id !== change.id));
+  }
+
+  async function undoAll() {
+    for (const change of [...pending].reverse()) await undoChange(change);
+  }
+
+  async function runSuggestion(s: Suggestion) {
+    if (s.action.kind === "link") {
+      window.open(s.action.href, "_blank", "noopener");
+      return;
+    }
+    if (s.action.kind === "open" && s.blockId) {
+      setSelectedBlockId(s.blockId);
+      document.querySelector(`[data-block-id="${CSS.escape(s.blockId)}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+    if (s.action.kind === "ai" && s.blockId) {
+      setBusySuggestion(s.id);
+      try {
+        await askSection(s.blockId, s.action.instruction);
+      } finally {
+        setBusySuggestion(null);
+      }
+    }
+  }
+
+  /** The Keep / Undo pair for a section the AI just changed, if there is one. */
+  function pendingPropsFor(blockId: string) {
+    const p = pending.find((c) => (c.kind === "changed" || c.kind === "added") && c.blockId === blockId);
+    return p ? { label: p.label, onKeep: () => keepChange(p.id), onUndo: () => void undoChange(p) } : undefined;
+  }
+  const pendingElsewhere = pending.filter((p) => p.kind !== "changed" && p.kind !== "added");
+
   const currentPage = pages.find((p) => p.id === currentPageId);
   const currentPagePath = currentPage?.path;
   const live = currentApp.status === "published";
@@ -689,6 +910,15 @@ export function BuilderClient({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openAsk(selectedBlockId ? "section" : "site")}
+              title="Say what should change, in words (⌘K)"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-fuchsia-400/40 bg-fuchsia-500/10 px-3 text-sm font-medium text-neutral-50 transition hover:bg-fuchsia-500/20"
+            >
+              <Sparkles className="h-4 w-4 text-fuchsia-300" /> Ask AI
+              <kbd className="ml-0.5 hidden rounded bg-white/10 px-1 text-[11px] font-normal text-neutral-300 lg:inline">⌘K</kbd>
+            </button>
             <div role="group" aria-label="Undo and redo" className="inline-flex items-center gap-0.5">
               <button type="button" onClick={undo} disabled={history.past === 0} aria-label="Undo" title="Undo (⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-neutral-100 transition hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent">
                 <Undo2 className="h-4 w-4" />
@@ -796,7 +1026,30 @@ export function BuilderClient({
         {/* Two columns: the page, and the panel for photos and settings. Sections are added on the page itself (the
             + bars between them), so there is no list of sections down the side any more. */}
         <div className="grid flex-1 grid-cols-[1fr_320px] overflow-hidden">
-          <div className="relative overflow-y-auto px-6 pb-14 pt-6">
+          <div className="relative flex flex-col overflow-hidden">
+          {/* Changes the AI made beyond this page's sections: other pages, new pages, the menu. Each has its own Undo. */}
+          {pendingElsewhere.length > 0 && (
+            <div className="z-10 flex flex-wrap items-center gap-2 border-b border-fuchsia-400/20 bg-fuchsia-500/10 px-4 py-2 text-sm text-neutral-100">
+              <Sparkles className="h-4 w-4 text-fuchsia-300" />
+              {pendingElsewhere.map((p) => (
+                <span key={p.id} className="inline-flex items-center gap-1 rounded-full bg-neutral-950/60 py-0.5 pl-2.5 pr-1 ring-1 ring-white/10">
+                  {p.label}
+                  <button type="button" onClick={() => void undoChange(p)} className="rounded-full px-2 py-0.5 text-xs font-semibold text-neutral-200 transition hover:bg-white/10 hover:text-white">
+                    Undo
+                  </button>
+                </span>
+              ))}
+              <span className="ml-auto inline-flex gap-1">
+                <button type="button" onClick={() => setPending((prev) => prev.filter((p) => p.kind === "changed" || p.kind === "added"))} className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-950 transition hover:bg-emerald-50">
+                  Keep these
+                </button>
+                <button type="button" onClick={() => void undoAll()} className="rounded-full px-3 py-1 text-xs font-semibold text-neutral-200 transition hover:bg-white/10 hover:text-white">
+                  Undo all
+                </button>
+              </span>
+            </div>
+          )}
+          <div className="relative flex-1 overflow-y-auto px-6 pb-14 pt-6">
             {/* Workspace backdrop: the dashboard hero's two glows and dot texture. */}
             <div
               aria-hidden
@@ -876,6 +1129,11 @@ export function BuilderClient({
                                 onDuplicate={() => duplicateBlock(block.id)}
                                 onChange={(config) => updateBlockConfig(block.id, config)}
                                 organizationId={currentApp.organization_id}
+                                onAsk={() => {
+                                  setSelectedBlockId(block.id);
+                                  openAsk("section");
+                                }}
+                                pending={pendingPropsFor(block.id)}
                               />
                             </div>
                           ))}
@@ -902,6 +1160,16 @@ export function BuilderClient({
               </PreviewFrame>
             )}
           </div>
+          <AskAiBar
+            open={ask.open}
+            scope={ask.scope}
+            sectionLabel={selectedBlock ? BLOCK_TYPE_LABELS[selectedBlock.type] : null}
+            busy={aiBusy}
+            onScope={(scope) => setAsk({ open: true, scope })}
+            onClose={() => setAsk((prev) => ({ ...prev, open: false }))}
+            onSubmit={(instruction, scope) => (scope === "section" && selectedBlockId ? askSection(selectedBlockId, instruction) : askSite(instruction))}
+          />
+          </div>
 
           <aside ref={inspectorRef} className="overflow-y-auto border-l border-white/[0.06] bg-neutral-950">
             <Inspector
@@ -918,6 +1186,10 @@ export function BuilderClient({
               onChange={updateSelectedBlockConfig}
               onMinTierChange={updateSelectedBlockMinTier}
               pages={pages.map((p) => ({ path: p.path, name: p.name }))}
+              suggestions={suggestions}
+              busySuggestion={busySuggestion}
+              onSuggestion={(s) => void runSuggestion(s)}
+              onAsk={() => openAsk("section")}
             />
           </aside>
         </div>

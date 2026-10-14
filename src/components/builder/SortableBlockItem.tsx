@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronDown, ChevronUp, Copy, GripVertical, Lock, Pencil, Trash2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Copy, GripVertical, Lock, Pencil, Sparkles, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BlockRenderer } from "@/components/pwa-runtime/BlockRenderer";
 import { BlockEditContext } from "@/components/pwa-runtime/Editable";
@@ -20,6 +20,8 @@ export function SortableBlockItem({
   onDuplicate,
   onChange,
   organizationId,
+  onAsk,
+  pending,
 }: {
   block: BuilderBlock;
   selected: boolean;
@@ -33,6 +35,10 @@ export function SortableBlockItem({
   onChange: (config: BlockConfig) => void;
   /** Whose storage folder a replaced photo goes to. */
   organizationId: string;
+  /** Opens Ask AI for this section (Cmd+K). */
+  onAsk: () => void;
+  /** The AI just changed this section: a Keep / Undo pair sits on it until the owner decides. */
+  pending?: { label: string; onKeep: () => void; onUndo: () => void };
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
@@ -50,9 +56,11 @@ export function SortableBlockItem({
       data-block-id={block.id}
       onClick={onSelect}
       className={`group relative cursor-pointer border-b border-border/60 transition last:border-b-0 ${
-        selected
-          ? "ring-2 ring-inset ring-indigo-500 shadow-[inset_0_0_0_9999px_rgba(99,102,241,0.04)]"
-          : "hover:shadow-[inset_0_0_0_9999px_rgba(99,102,241,0.05)] hover:ring-1 hover:ring-inset hover:ring-indigo-400/50"
+        pending
+          ? "ring-2 ring-inset ring-fuchsia-400 shadow-[inset_0_0_0_9999px_rgba(232,121,249,0.06)]"
+          : selected
+            ? "ring-2 ring-inset ring-indigo-500 shadow-[inset_0_0_0_9999px_rgba(99,102,241,0.04)]"
+            : "hover:shadow-[inset_0_0_0_9999px_rgba(99,102,241,0.05)] hover:ring-1 hover:ring-inset hover:ring-indigo-400/50"
       } ${isDragging ? "opacity-50" : ""}`}
     >
       {/* Links and buttons inside a section stay inert in the builder; its words are the exception (`EditableText`). */}
@@ -66,8 +74,20 @@ export function SortableBlockItem({
           <BlockRenderer block={block} />
         </BlockEditContext.Provider>
       </div>
+      {/* The AI changed this section: keep it, or put the old words back. Stays until the owner decides. */}
+      {pending && (
+        <div className="absolute left-1/2 top-2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-neutral-950 py-1 pl-3 pr-1 text-xs font-semibold text-white shadow-lg ring-1 ring-fuchsia-400/60">
+          <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" /> {pending.label}
+          <button type="button" onClick={(e) => { e.stopPropagation(); pending.onKeep(); }} className="ml-1 inline-flex h-7 items-center gap-1 rounded-full bg-white px-2.5 text-neutral-950 transition hover:bg-emerald-50">
+            <Check className="h-3.5 w-3.5" /> Keep
+          </button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); pending.onUndo(); }} className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-neutral-200 transition hover:bg-white/10 hover:text-white">
+            <Undo2 className="h-3.5 w-3.5" /> Undo
+          </button>
+        </div>
+      )}
       {/* Says what a tap does, the moment the pointer is over a section. Nothing on the phone looked clickable before. */}
-      {!selected && (
+      {!selected && !pending && (
         <span
           aria-hidden
           className={`pointer-events-none absolute left-1.5 ${block.minTier ? "top-7" : "top-1.5"} inline-flex items-center gap-1 rounded-md bg-indigo-600 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-md opacity-0 transition group-hover:opacity-100`}
@@ -90,6 +110,19 @@ export function SortableBlockItem({
         </div>
       )}
       <div className={`absolute right-1.5 top-1.5 flex gap-1 transition ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+        {/* Cmd+K for this section: say what should change, in words. */}
+        <button
+          type="button"
+          aria-label="Ask AI to change this section"
+          title="Ask AI to change this section (⌘K)"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAsk();
+          }}
+          className="inline-flex h-6 items-center gap-1 rounded-md bg-neutral-950 px-1.5 text-[11px] font-semibold text-neutral-200 shadow-md transition hover:bg-neutral-800 hover:text-white"
+        >
+          <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" /> Ask AI
+        </button>
         {([
           ["Move up", ChevronUp, onMoveUp],
           ["Move down", ChevronDown, onMoveDown],

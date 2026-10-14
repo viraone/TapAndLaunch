@@ -50,7 +50,7 @@ export default async function QuickUpdatesPage({ params }: { params: Params }) {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">{app.name}</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-950">Quick updates</h1>
-            <p className="mt-1 text-sm text-neutral-500">Add a show, add photos, read your messages. Changes are live as soon as you save.</p>
+            <p className="mt-1 text-sm text-neutral-500">Paste a flyer, add a show, add photos, read your messages. Changes are live as soon as you save.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {published && (
