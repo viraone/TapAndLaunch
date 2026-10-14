@@ -1,5 +1,5 @@
 import { ArrowRight, Clock, MapPin, Phone, Star } from "lucide-react";
-import { EditableText } from "@/components/pwa-runtime/Editable";
+import { EditableImage, EditableText, ReplacePhotoButton } from "@/components/pwa-runtime/Editable";
 import type { GalleryBlockConfig, HeroBlockConfig, HoursBlockConfig, PriceListBlockConfig, ReviewsBlockConfig, StatsBlockConfig } from "@/types/database";
 
 /**
@@ -24,6 +24,8 @@ export function HeroBlockView({ config, live }: { config: HeroBlockConfig; live:
         <div className="absolute inset-0 -z-20 bg-primary" />
       )}
       <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/90 via-black/45 to-black/10" />
+      {/* Builder only: the photo is behind the words, so it gets its own button. */}
+      <ReplacePhotoButton path={["image_url"]} label={config.image_url ? "Replace the background photo" : "Add a background photo"} className="absolute bottom-4 right-4 z-10" />
       <div className="flex min-h-[24rem] flex-col justify-end px-5 pb-8 pt-28 text-white @lg:min-h-[34rem] @lg:px-14 @lg:pb-14">
         <EditableText as="span" path={["eyebrow"]} value={config.eyebrow} placeholder="Small label" className="mb-3 inline-flex w-fit rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] backdrop-blur" />
         <EditableText as="h2" path={["headline"]} value={config.headline} placeholder="Your headline" className="text-balance text-[2.1rem] font-extrabold leading-[1.02] tracking-tight @lg:max-w-3xl @lg:text-6xl" />
@@ -163,12 +165,11 @@ export function GalleryBlockView({ config, live }: { config: GalleryBlockConfig;
       <EditableText as="h2" path={["title"]} value={config.title} placeholder="Photos" className="mb-3 px-1 text-2xl font-extrabold tracking-tight @lg:mb-6 @lg:text-4xl" />
       <div className="grid grid-cols-2 gap-2 @lg:grid-cols-3 @lg:gap-4 @5xl:grid-cols-4">
         {images.slice(0, 24).map((img, i) => (
-          // eslint-disable-next-line @next/next/no-img-element -- template photos and tenant uploads, any host
-          <img
+          <EditableImage
             key={i}
+            path={["images", i, "src"]}
             src={img.src}
             alt={img.alt ?? ""}
-            loading="lazy"
             className={`w-full rounded-2xl object-cover @lg:col-span-1 @lg:aspect-square ${i === 0 && images.length % 2 === 1 ? "col-span-2 aspect-[16/10]" : "aspect-square"}`}
           />
         ))}

@@ -78,5 +78,7 @@ _Added 2026-10-14._ The builder works the way Squarespace does: the page is the 
 edited in place: click, type, Enter or click away (`EditableText`, which renders plain text on the published site;
 `BlockEditContext` in `SortableBlockItem` routes the change through the same path as the inspector's fields, via
 `setAt`). Sections are added where they go: a **+ Add section** bar appears between sections (and sits at the end of
-the page) and opens a visual menu (`AddSectionBar`); there is no list of sections down the side any more. The inspector
-on the right is for photos, links and settings.
+the page) and opens a visual menu (`AddSectionBar`); there is no list of sections down the side any more. Photos are replaced by
+clicking them, on the page (`EditableImage`: the banner's background, an image section, each gallery photo) or on the
+inspector's thumbnail; the file goes to `app-assets` and its address into the block. The inspector on the right is for
+links and settings.

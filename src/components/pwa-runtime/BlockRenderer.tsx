@@ -24,7 +24,7 @@ import type {
 } from "@/types/database";
 import { GalleryBlockView, HeroBlockView, HoursBlockView, PriceListBlockView, ReviewsBlockView, StatsBlockView } from "@/components/pwa-runtime/ShowcaseBlocks";
 import { FilesBlockView } from "@/components/pwa-runtime/FilesBlock";
-import { EditableText } from "@/components/pwa-runtime/Editable";
+import { EditableImage, EditableText } from "@/components/pwa-runtime/Editable";
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
 import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
@@ -144,8 +144,7 @@ function ImageBlockView({ config, live }: { config: ImageBlockConfig; live: bool
       </div>
     );
   }
-  // eslint-disable-next-line @next/next/no-img-element -- source is arbitrary tenant-provided storage URLs
-  return <img src={config.src} alt={config.alt ?? ""} className="w-full object-cover @lg:mx-auto @lg:my-6 @lg:max-w-4xl @lg:rounded-3xl" />;
+  return <EditableImage path={["src"]} src={config.src} alt={config.alt ?? ""} className="w-full object-cover @lg:mx-auto @lg:my-6 @lg:max-w-4xl @lg:rounded-3xl" imgClassName="w-full object-cover" />;
 }
 
 function VideoBlockView({ config }: { config: VideoBlockConfig }) {

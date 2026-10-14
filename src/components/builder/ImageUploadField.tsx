@@ -73,8 +73,21 @@ export function ImageUploadField({
         />
       </div>
       {value && (
-        // eslint-disable-next-line @next/next/no-img-element -- arbitrary tenant-provided/storage URLs
-        <img src={value} alt="" className="mt-1 h-20 w-20 rounded-md border object-cover" />
+        // Clicking the picture replaces it: the same as the upload button, where people expect it.
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={() => fileInputRef.current?.click()}
+          aria-label="Replace this photo"
+          title="Click to replace"
+          className="group relative mt-1 block h-20 w-20 overflow-hidden rounded-md border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary tenant-provided/storage URLs */}
+          <img src={value} alt="" className="h-full w-full object-cover" />
+          <span className="absolute inset-0 grid place-items-center bg-black/55 text-[11px] font-semibold text-white opacity-0 transition group-hover:opacity-100">
+            {uploading ? "Uploading…" : "Replace"}
+          </span>
+        </button>
       )}
     </div>
   );

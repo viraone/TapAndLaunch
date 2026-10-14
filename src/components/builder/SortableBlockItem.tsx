@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { BlockRenderer } from "@/components/pwa-runtime/BlockRenderer";
 import { BlockEditContext } from "@/components/pwa-runtime/Editable";
 import { setAt } from "@/lib/builder/set-at";
+import { createClient } from "@/lib/supabase/client";
+import { uploadAppAsset } from "@/lib/storage/upload";
 import type { BuilderBlock } from "@/components/builder/types";
 import type { BlockConfig } from "@/types/database";
 
@@ -14,6 +16,7 @@ export function SortableBlockItem({
   onSelect,
   onRemove,
   onChange,
+  organizationId,
 }: {
   block: BuilderBlock;
   selected: boolean;
@@ -21,6 +24,8 @@ export function SortableBlockItem({
   onRemove: () => void;
   /** The section's words, edited in place on the page, come back through here like the inspector's changes. */
   onChange: (config: BlockConfig) => void;
+  /** Whose storage folder a replaced photo goes to. */
+  organizationId: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
@@ -44,7 +49,12 @@ export function SortableBlockItem({
     >
       {/* Links and buttons inside a section stay inert in the builder; its words are the exception (`EditableText`). */}
       <div className="pointer-events-none">
-        <BlockEditContext.Provider value={{ set: (path, value) => onChange(setAt(block.config, path, value)) }}>
+        <BlockEditContext.Provider
+          value={{
+            set: (path, value) => onChange(setAt(block.config, path, value)),
+            upload: (file) => uploadAppAsset(createClient(), organizationId, file),
+          }}
+        >
           <BlockRenderer block={block} />
         </BlockEditContext.Provider>
       </div>

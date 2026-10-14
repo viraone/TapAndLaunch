@@ -631,6 +631,7 @@ export function BuilderClient({
                                 onSelect={() => setSelectedBlockId(block.id)}
                                 onRemove={() => removeBlock(block.id)}
                                 onChange={(config) => updateBlockConfig(block.id, config)}
+                                organizationId={currentApp.organization_id}
                               />
                             </div>
                           ))}
