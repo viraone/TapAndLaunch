@@ -25,8 +25,8 @@ export function GetLiveChecklist({
   return (
     <section className="rounded-3xl bg-white/[0.04] p-4 ring-1 ring-white/10">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-sm font-semibold text-neutral-50">Get live</p>
-        <p className="text-xs tabular-nums text-neutral-400">
+        <p className="text-base font-semibold text-neutral-50">Get live</p>
+        <p className="text-sm tabular-nums text-neutral-300">
           {checklist.doneCount} of {checklist.total}
         </p>
       </div>
@@ -55,19 +55,19 @@ export function GetLiveChecklist({
                 >
                   {step.done && <Check className="h-3 w-3" strokeWidth={3} />}
                 </span>
-                <span className={`text-[13px] ${step.done ? "text-neutral-500 line-through decoration-white/20" : "font-medium text-neutral-100"}`}>
+                <span className={`text-sm ${step.done ? "text-neutral-400 line-through decoration-white/20" : "font-medium text-neutral-100"}`}>
                   {step.title}
                 </span>
                 <span className="sr-only">{step.done ? "Done" : isNext ? "Next" : "To do"}</span>
               </div>
               {isNext && (
                 <div className="mt-2 pl-8">
-                  <p className="text-xs leading-relaxed text-neutral-400">{step.hint}</p>
+                  <p className="text-sm leading-relaxed text-neutral-300">{step.hint}</p>
                   <button
                     type="button"
                     disabled={busy && step.id === "publish"}
                     onClick={() => onAction(step.id)}
-                    className="mt-2.5 inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-4 text-xs font-semibold text-neutral-950 transition hover:bg-indigo-50 disabled:opacity-60"
+                    className="mt-2.5 inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-semibold text-neutral-950 transition hover:bg-indigo-50 disabled:opacity-60"
                   >
                     {busy && step.id === "publish" ? "Publishing…" : step.action} <ArrowRight className="h-3.5 w-3.5" />
                   </button>

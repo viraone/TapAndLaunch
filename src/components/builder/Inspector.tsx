@@ -72,8 +72,8 @@ export function Inspector({
       <div className="flex flex-col gap-5 p-4 pb-24">
         <GetLiveChecklist checklist={checklist} busy={publishing} onAction={onChecklistAction} />
         <div>
-          <p className="text-sm font-semibold text-neutral-100">{pageName}</p>
-          <p className="mt-0.5 text-xs text-neutral-500">
+          <p className="text-base font-semibold text-neutral-100">{pageName}</p>
+          <p className="mt-1 text-sm leading-relaxed text-neutral-300">
             {blocks.length ? `${blocks.length} section${blocks.length === 1 ? "" : "s"} on this page. Click its words on the page to change them, or pick one here for photos and settings.` : "No sections yet."}
           </p>
         </div>
@@ -92,16 +92,16 @@ export function Inspector({
                     onBlur={() => pointAt(null)}
                     className="group flex w-full items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-2.5 text-left transition hover:border-white/15 hover:bg-white/[0.06]"
                   >
-                    <span className="w-4 text-center text-[11px] font-semibold tabular-nums text-neutral-500">{i + 1}</span>
+                    <span className="w-4 text-center text-sm font-semibold tabular-nums text-neutral-400">{i + 1}</span>
                     <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${BLOCK_ACCENTS[b.type]}`}>
                       <Icon className="h-4 w-4" />
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-neutral-100">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-neutral-100">
                       {BLOCK_TYPE_LABELS[b.type]}
-                      <span className="block truncate text-[11px] font-normal text-neutral-500">{blockSummary(b)}</span>
+                      <span className="block truncate text-sm font-normal text-neutral-300">{blockSummary(b)}</span>
                     </span>
                     {/* A word, not a grip icon: what a tap on this row does. */}
-                    <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-neutral-200 transition group-hover:bg-white group-hover:text-neutral-950">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-neutral-100 transition group-hover:bg-white group-hover:text-neutral-950">
                       <Pencil className="h-3 w-3" /> Edit
                     </span>
                   </button>
@@ -114,10 +114,10 @@ export function Inspector({
             <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/5 text-neutral-400">
               <MousePointerClick className="h-5 w-5" />
             </span>
-            <p className="text-xs leading-relaxed text-neutral-500">Use the + Add section button on the page to start it.</p>
+            <p className="text-sm leading-relaxed text-neutral-300">Use the + Add section button on the page to start it.</p>
           </div>
         )}
-        <p className="rounded-2xl bg-white/[0.03] p-3 text-[11px] leading-relaxed text-neutral-500">
+        <p className="rounded-2xl bg-white/[0.03] p-3 text-sm leading-relaxed text-neutral-300">
           Tip: drag a section on the page to move it up or down, or use the + between sections to add one. Your changes save on their own.
         </p>
       </div>
@@ -132,14 +132,14 @@ export function Inspector({
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Editing</p>
-          <p className="truncate text-sm font-semibold text-neutral-100">{BLOCK_TYPE_LABELS[block.type]}</p>
+          <p className="text-sm text-neutral-300">Editing</p>
+          <p className="truncate text-base font-semibold text-neutral-100">{BLOCK_TYPE_LABELS[block.type]}</p>
         </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="grid h-8 w-8 place-items-center rounded-full text-neutral-400 transition hover:bg-white/10 hover:text-white"
+          className="grid h-8 w-8 place-items-center rounded-full text-neutral-200 transition hover:bg-white/10 hover:text-white"
         >
           <X className="h-4 w-4" />
         </button>
