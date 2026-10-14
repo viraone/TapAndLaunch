@@ -36,7 +36,9 @@ so far, **Personal website** (id `portfolio`), is a colour-led site for a person
 (falls back to `bg-primary`, so there's no stock photo of a stranger), highlights, an about page, testimonials, a
 Newsletter sign-up and a contact page. `TemplatePreview` draws it as a tiny browser window (traffic-light dots, a wide
 frame) instead of a phone when the starter's `theme.layout` is `"website"`, so the card itself signals "this one's a
-website" before anyone clicks it.
+website" before anyone clicks it. Opening the builder on a `"website"` app also defaults the "Preview on" switch to
+**Desktop** instead of iPhone (`BuilderClient`'s initial `device` state), so a Desktop View starter opens already
+showing its real, full-width look.
 
 ## Describe your app
 `POST /api/apps/generate` takes a sentence (10 to 500 characters) and an optional name, designs a first version and creates it
