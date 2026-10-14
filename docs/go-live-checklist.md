@@ -9,8 +9,8 @@ _Last updated: 2026-10-06._ Tick items as they are done and note the date.
 - [x] Public details: support email, support/privacy/terms URLs, statement descriptor (2026-10-03)
 - [x] Phone verification on the Stripe account (showed Verified 2026-10-13)
 - [x] Connect in live mode: integration choices confirmed and platform profile complete (2026-10-13)
-- [ ] Stripe's review of TapAndLaunch as a Connect platform ("Your application is in review" on Connected accounts, 2026-10-13). Until it
-      clears, creating a live connected account fails with `account_create_activation_required` even though the account is fully activated
+- [x] Stripe's review of TapAndLaunch as a Connect platform: approved ("TapAndLaunch is approved to create live accounts and charges", Stripe's
+      email, seen 2026-10-13). Before this, creating a live connected account failed with `account_create_activation_required`
 - [x] Live webhook endpoints created (subscriptions + store payments); live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and
       `STRIPE_BILLING_WEBHOOK_SECRET` in Vercel; redeployed (2026-10-05)
 - [ ] One small real store purchase and refund (needs the review above, then a store connected in live mode; none yet)

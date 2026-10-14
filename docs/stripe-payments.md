@@ -109,3 +109,6 @@ account: it means Stripe's review of the platform's Connect application is still
 tooltip, "Your application is in review", on the **Create a live connected account** button (Connected accounts page). Wait
 for Stripe's email. A bare account with no configuration can be created during the review; one with `dashboard` or a
 merchant configuration cannot.
+
+Resolved: Stripe approved the platform (email "TapAndLaunch is approved to create live accounts and charges", seen 2026-10-13). Next is the live
+store test: connect a store in live mode, make one real purchase, refund it (see the admin board).
