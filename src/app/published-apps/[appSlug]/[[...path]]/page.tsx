@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getCodeAppsDomain, hostRoot } from "@/lib/tenant";
@@ -15,6 +16,25 @@ import { getCurrentMember, memberSatisfiesTier } from "@/lib/pwa/get-current-mem
 // instead of via the generated `PageProps<'/published-apps/[appSlug]/[[...path]]'>`
 // helper.
 type Params = Promise<{ appSlug: string; path?: string[] }>;
+
+/** A page's own title/description/share picture for search engines and link previews, falling back to the app's. */
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  const { appSlug, path } = await params;
+  const published = await getPublishedApp(appSlug);
+  if (!published || published.app.kind === "code") return {};
+
+  const page = resolvePage(published, path);
+  if (!page) return {};
+
+  const title = page.seo_title?.trim() || (page.is_home ? undefined : `${page.name} · ${published.app.name}`);
+  const description = page.seo_description?.trim() || published.app.manifest.description;
+  if (!page.share_image_url) return { title, description };
+
+  const host = (await headers()).get("host") ?? "";
+  const origin = `${/localhost|127\.0\.0\.1/.test(host) ? "http" : "https"}://${host}`;
+  const image = /^https?:\/\//i.test(page.share_image_url) ? page.share_image_url : `${origin}${page.share_image_url}`;
+  return { title, description, openGraph: { title, description, images: [image] }, twitter: { card: "summary_large_image", title, description, images: [image] } };
+}
 
 export default async function PublishedAppPage({ params }: { params: Params }) {
   const { appSlug, path } = await params;

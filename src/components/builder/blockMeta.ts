@@ -22,6 +22,11 @@ import {
   MousePointerClick,
   Quote,
   MessageCircleQuestion,
+  Columns2,
+  Mail,
+  Share2,
+  MapPin,
+  Music2,
   type LucideIcon,
 } from "lucide-react";
 import type { BlockType } from "@/types/database";
@@ -51,6 +56,11 @@ export const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   button: MousePointerClick,
   quote: Quote,
   faq: MessageCircleQuestion,
+  image_text: Columns2,
+  newsletter: Mail,
+  share: Share2,
+  map: MapPin,
+  audio: Music2,
 };
 
 /** Each block gets its own accent so the library reads as a set of tools,
@@ -79,6 +89,11 @@ export const BLOCK_ACCENTS: Record<BlockType, string> = {
   button: "from-indigo-300 to-violet-500 text-white",
   quote: "from-amber-200 to-orange-400 text-amber-950",
   faq: "from-teal-300 to-cyan-500 text-teal-950",
+  image_text: "from-sky-300 to-indigo-500 text-white",
+  newsletter: "from-rose-300 to-pink-500 text-rose-950",
+  share: "from-blue-300 to-cyan-500 text-blue-950",
+  map: "from-green-300 to-emerald-500 text-emerald-950",
+  audio: "from-violet-300 to-fuchsia-500 text-white",
 };
 
 export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
@@ -105,12 +120,18 @@ export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
   button: "A button to a page or a web address",
   quote: "One big quote and who said it",
   faq: "Questions that open to their answers",
+  image_text: "A photo beside a headline and words",
+  newsletter: "Collect email sign-ups to write to later",
+  share: "Share and copy-link buttons for this page",
+  map: "A map of an address, with directions",
+  audio: "An uploaded recording with a player",
 };
 
 export const BLOCK_GROUPS: Array<{ label: string; types: BlockType[] }> = [
   { label: "Make it look good", types: ["hero", "stats", "gallery", "reviews"] },
-  { label: "Words, pictures and prices", types: ["text", "image", "video", "button", "quote", "faq", "files", "price_list", "hours"] },
-  { label: "Hear from people", types: ["contact_form", "zoom_meeting", "canva_embed"] },
+  { label: "Words, pictures and prices", types: ["text", "image", "image_text", "video", "audio", "button", "quote", "faq", "files", "price_list", "hours"] },
+  { label: "Hear from people", types: ["contact_form", "newsletter", "zoom_meeting", "canva_embed"] },
   { label: "Sell and book", types: ["product_list", "event_calendar"] },
   { label: "Live, updated for you", types: ["listing_directory", "gas_directory", "food_directory", "open_mic_signup", "class_finder"] },
+  { label: "Get found and shared", types: ["map", "share"] },
 ];

@@ -128,3 +128,26 @@ follows) and **Buttons** (`--button-radius`; apps that never chose keep today's 
 **Background** (plain, tinted, a wash of the colour) and **Show on** (phones only / computers only: hidden with
 viewport classes on the site, shown with a badge in the builder), stored on the section's config as `appearance` and
 `show_on` and wrapped by `BlockRenderer`.
+
+## Search, sharing and five more sections (migration 0042)
+_Added 2026-10-14._ Every page gained its own **Search & sharing** (a page tab's dropdown menu): a title, a
+description and a share picture (`pages.seo_title/seo_description/share_image_url`), read by
+`generateMetadata` in the catch-all page route and falling back to the page's name and the app's own description when
+left blank. Each published app now serves `/sitemap.xml` (every page's address) and `/robots.txt` (disallows its own
+endpoints, points at the sitemap) — both new static routes under `published-apps/[appSlug]/`, added to
+`RESERVED_PAGE_PATHS` so a page can't be named "sitemap.xml" by accident.
+
+App settings > Theme gained an **Announcement bar** (a line across the top of every page, with an optional link to a
+page or a web address; the visitor's "closed" choice is remembered per announcement text via `localStorage`, read
+through `useSyncExternalStore` rather than an effect so it never fights hydration) and a **Cookie notice** (a small
+dismissible notice, off by default) — both in `src/components/pwa-runtime/SiteNotices.tsx`, shown in the published
+layout and (the announcement bar) in the builder's own preview.
+
+Five more sections: **Picture & words** (a photo beside a heading, words and an optional button, photo on the left or
+right), **Newsletter sign-up** (an email box that adds the visitor as one of the app's members — no usable password,
+so they never see a sign-in prompt — reachable afterwards from Notifications > Email; `POST /newsletter`), **Share
+this page** (Share/Copy link plus X, Facebook, WhatsApp and Email, all pointing at the page the visitor is on), **Map**
+(an address, an embedded Google map with no key needed, and a Directions button) and **Audio** (an uploaded recording
+with a title, note and player). All five live in `MoreBlocks.tsx` (published/preview view) and `MoreEditors.tsx` (the
+inspector), wired into `BlockRenderer`, `Inspector`, `blockMeta.ts` and `block-defaults.ts` the same way as every other
+section type.

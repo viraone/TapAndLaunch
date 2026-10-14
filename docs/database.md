@@ -36,6 +36,7 @@ Applied in order from `supabase/migrations/`. Production has every one of these 
 | 0031 (code apps) | `apps.kind` ('blocks' or 'code'), `apps.code_published_version`, `app_code_versions` (every version of an AI-written React app) |
 | 0030 (ai keys) | `org_ai_keys` (a customer's encrypted AI key, server-only) and `ai_generations.kind` (describe vs chat) |
 | 0029 (showcase blocks) | Allows block types `hero`, `price_list`, `hours`, `reviews`, `stats`, `gallery` |
+| 0042 (SEO, announcements, more blocks) | `pages.seo_title/seo_description/share_image_url` (per-page search and share metadata); allows block types `image_text`, `newsletter`, `share`, `map`, `audio` |
 | 0041 (more blocks) | Allows block types `button`, `quote`, `faq` |
 | 0040 (event ticket url) | `events.ticket_url`: a ticket link; set, the event shows a Tickets button instead of the booking form |
 | 0039 (files block) | Allows block type `files`: handouts, worksheets and other files visitors open or download (the files themselves go in the `app-assets` bucket) |

@@ -88,6 +88,16 @@ export function defaultConfigFor(type: BlockType): BlockConfig {
       return { quote: "", name: "" };
     case "faq":
       return { title: "Questions", items: [{ question: "", answer: "" }] };
+    case "image_text":
+      return { image_url: "", alt: "", side: "left", heading: "A heading", body: "" };
+    case "newsletter":
+      return { title: "Join the mailing list", intro: "", button_label: "Sign up", success: "You're on the list." };
+    case "share":
+      return { title: "Share this" };
+    case "map":
+      return { title: "Find us", address: "" };
+    case "audio":
+      return { src: "", title: "", note: "" };
     case "open_mic_signup":
       return {
         title: "Open Mic Sign-Up",
@@ -129,17 +139,27 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   button: "Button",
   quote: "Quote",
   faq: "Questions & answers",
+  image_text: "Picture & words",
+  newsletter: "Newsletter sign-up",
+  share: "Share this page",
+  map: "Map",
+  audio: "Audio",
 };
 
 export const BLOCK_TYPES: BlockType[] = [
   "text",
   "image",
+  "image_text",
   "video",
+  "audio",
   "files",
   "button",
   "quote",
   "faq",
+  "map",
+  "share",
   "contact_form",
+  "newsletter",
   "product_list",
   "event_calendar",
   "zoom_meeting",

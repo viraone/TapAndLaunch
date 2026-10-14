@@ -14,6 +14,7 @@ import { ClassFinderBlockEditor } from "@/components/builder/blocks/ClassFinderB
 import { GalleryBlockEditor, HeroBlockEditor, HoursBlockEditor, PriceListBlockEditor, ReviewsBlockEditor, StatsBlockEditor } from "@/components/builder/blocks/ShowcaseEditors";
 import { FilesBlockEditor } from "@/components/builder/blocks/FilesBlockEditor";
 import { ButtonBlockEditor, FaqBlockEditor, QuoteBlockEditor } from "@/components/builder/blocks/ExtraEditors";
+import { AudioBlockEditor, ImageTextBlockEditor, MapBlockEditor, NewsletterBlockEditor, ShareBlockEditor } from "@/components/builder/blocks/MoreEditors";
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
 import { SectionOptionsControl } from "@/components/builder/SectionOptionsControl";
 import { GetLiveChecklist } from "@/components/builder/GetLiveChecklist";
@@ -192,6 +193,11 @@ export function Inspector({
       {block.type === "button" && <ButtonBlockEditor config={block.config} pages={pages} onChange={onChange} />}
       {block.type === "quote" && <QuoteBlockEditor config={block.config} onChange={onChange} />}
       {block.type === "faq" && <FaqBlockEditor config={block.config} onChange={onChange} />}
+      {block.type === "image_text" && <ImageTextBlockEditor config={block.config} organizationId={organizationId} pages={pages} onChange={onChange} />}
+      {block.type === "newsletter" && <NewsletterBlockEditor config={block.config} onChange={onChange} />}
+      {block.type === "share" && <ShareBlockEditor config={block.config} onChange={onChange} />}
+      {block.type === "map" && <MapBlockEditor config={block.config} onChange={onChange} />}
+      {block.type === "audio" && <AudioBlockEditor config={block.config} organizationId={organizationId} onChange={onChange} />}
       <div className="space-y-3 border-t pt-3">
         <SectionOptionsControl config={block.config as Record<string, unknown>} onChange={(next) => onChange(next as BlockConfig)} />
         <BlockAccessControl key={block.id} minTier={block.minTier} onChange={onMinTierChange} />

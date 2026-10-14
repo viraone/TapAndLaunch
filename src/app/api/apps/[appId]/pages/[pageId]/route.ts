@@ -13,6 +13,9 @@ const UpdatePageSchema = z.object({
     .optional(),
   /** The page's place among the app's pages, from 0. The others shift to make room. */
   position: z.number().int().min(0).optional(),
+  seo_title: z.string().max(70).nullable().optional(),
+  seo_description: z.string().max(200).nullable().optional(),
+  share_image_url: z.string().max(2000).nullable().optional(),
 });
 
 /** Renames a page, changes its address, or moves it. RLS (`is_org_editor`) decides whether the caller may. */

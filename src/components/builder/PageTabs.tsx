@@ -12,11 +12,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, ArrowRight, ChevronDown, Copy, Eye, EyeOff, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Copy, Eye, EyeOff, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImageUploadField } from "@/components/builder/ImageUploadField";
+import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/types/database";
 
 type PageRow = Database["public"]["Tables"]["pages"]["Row"];
+
+export interface PageSeo {
+  seo_title: string;
+  seo_description: string;
+  share_image_url: string;
+}
 
 export function slugify(value: string): string {
   return value
@@ -36,17 +44,21 @@ export interface PageActions {
   /** Whether the page has a tab in the menu, and the switch for it. */
   inMenu: (page: PageRow) => boolean;
   setInMenu: (page: PageRow, show: boolean) => Promise<void>;
+  /** Saves this page's search-engine title, description and share picture. */
+  updateSeo: (pageId: string, seo: PageSeo) => Promise<void>;
 }
 
 export function PageTabs({
   pages,
   currentPageId,
+  organizationId,
   onSelect,
   onCreate,
   actions,
 }: {
   pages: PageRow[];
   currentPageId: string;
+  organizationId: string;
   onSelect: (pageId: string) => void;
   onCreate: (name: string, path: string) => Promise<void>;
   actions: PageActions;
@@ -57,6 +69,9 @@ export function PageTabs({
   const [renaming, setRenaming] = useState<PageRow | null>(null);
   const [newName, setNewName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [seoEditing, setSeoEditing] = useState<PageRow | null>(null);
+  const [seo, setSeo] = useState<PageSeo>({ seo_title: "", seo_description: "", share_image_url: "" });
+  const [seoBusy, setSeoBusy] = useState(false);
 
   async function handleCreate() {
     const trimmed = name.trim();
@@ -79,6 +94,17 @@ export function PageTabs({
       setRenaming(null);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleSaveSeo() {
+    if (!seoEditing) return;
+    setSeoBusy(true);
+    try {
+      await actions.updateSeo(seoEditing.id, seo);
+      setSeoEditing(null);
+    } finally {
+      setSeoBusy(false);
     }
   }
 
@@ -121,6 +147,14 @@ export function PageTabs({
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => void actions.setInMenu(page, hidden)}>
                       {hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />} {hidden ? "Show in the menu" : "Hide from the menu"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSeo({ seo_title: page.seo_title ?? "", seo_description: page.seo_description ?? "", share_image_url: page.share_image_url ?? "" });
+                        setSeoEditing(page);
+                      }}
+                    >
+                      <Search className="h-4 w-4" /> Search & sharing
                     </DropdownMenuItem>
                     {!page.is_home && (
                       <>
@@ -182,6 +216,31 @@ export function PageTabs({
           <DialogFooter>
             <Button type="button" onClick={() => void handleRename()} disabled={!newName.trim() || busy}>
               {busy ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!seoEditing} onOpenChange={(o) => !o && setSeoEditing(null)}>
+        <DialogContent className="dark max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Search & sharing{seoEditing ? ` · ${seoEditing.name}` : ""}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">What shows up when this page is found on Google, or shared on iMessage, WhatsApp or social media. Leave blank to use the page name.</p>
+            <div className="space-y-1">
+              <Label htmlFor="seo-title">Title</Label>
+              <Input id="seo-title" maxLength={70} value={seo.seo_title} onChange={(e) => setSeo({ ...seo, seo_title: e.target.value })} placeholder={seoEditing?.name} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="seo-description">Description</Label>
+              <Textarea id="seo-description" maxLength={200} rows={3} value={seo.seo_description} onChange={(e) => setSeo({ ...seo, seo_description: e.target.value })} placeholder="A sentence or two describing this page" />
+            </div>
+            <ImageUploadField id="seo-share-image" label="Share picture" organizationId={organizationId} value={seo.share_image_url} onChange={(share_image_url) => setSeo({ ...seo, share_image_url })} />
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={() => void handleSaveSeo()} disabled={seoBusy}>
+              {seoBusy ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

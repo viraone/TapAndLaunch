@@ -30,6 +30,14 @@ const ThemeSchema = z.object({
       social: z.array(z.object({ kind: z.string().max(20), url: z.string().max(500) })).max(10).optional(),
     })
     .optional(),
+  announcement: z
+    .object({
+      enabled: z.boolean().optional(),
+      text: z.string().max(140).optional(),
+      url: z.string().max(500).optional(),
+    })
+    .optional(),
+  cookie_notice: z.boolean().optional(),
 });
 
 const ManifestSchema = z.object({

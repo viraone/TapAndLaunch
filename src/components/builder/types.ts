@@ -22,6 +22,11 @@ import type {
   ButtonBlockConfig,
   QuoteBlockConfig,
   FaqBlockConfig,
+  ImageTextBlockConfig,
+  NewsletterBlockConfig,
+  ShareBlockConfig,
+  MapBlockConfig,
+  AudioBlockConfig,
 } from "@/types/database";
 
 /**
@@ -57,4 +62,9 @@ export type BuilderBlock =
   | { id: string; type: "files"; config: FilesBlockConfig; minTier: string | null }
   | { id: string; type: "button"; config: ButtonBlockConfig; minTier: string | null }
   | { id: string; type: "quote"; config: QuoteBlockConfig; minTier: string | null }
-  | { id: string; type: "faq"; config: FaqBlockConfig; minTier: string | null };
+  | { id: string; type: "faq"; config: FaqBlockConfig; minTier: string | null }
+  | { id: string; type: "image_text"; config: ImageTextBlockConfig; minTier: string | null }
+  | { id: string; type: "newsletter"; config: NewsletterBlockConfig; minTier: string | null }
+  | { id: string; type: "share"; config: ShareBlockConfig; minTier: string | null }
+  | { id: string; type: "map"; config: MapBlockConfig; minTier: string | null }
+  | { id: string; type: "audio"; config: AudioBlockConfig; minTier: string | null };

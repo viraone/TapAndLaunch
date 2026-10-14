@@ -25,6 +25,7 @@ import {
 import { Settings, Trash2, Plus } from "lucide-react";
 import { ImageUploadField } from "@/components/builder/ImageUploadField";
 import { DomainSettings } from "@/components/builder/DomainSettings";
+import { Switch } from "@/components/ui/switch";
 import { SOCIAL_KINDS } from "@/components/pwa-runtime/SiteFooter";
 import { BUTTON_SHAPES, FONT_PAIRS, HEADING_SIZES } from "@/lib/pwa/theme-style";
 
@@ -331,6 +332,50 @@ export function AppSettingsDialog({
               <Button type="button" variant="outline" size="sm" onClick={() => setTheme({ ...theme, footer: { ...theme.footer, social: [...(theme.footer?.social ?? []), { kind: "instagram", url: "" }] } })}>
                 <Plus className="mr-1 h-4 w-4" /> Add a social link
               </Button>
+            </div>
+
+            <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold">Announcement bar</p>
+                  <p className="text-xs text-muted-foreground">A line across the top of every page, like &ldquo;Tickets for Friday are on sale.&rdquo;</p>
+                </div>
+                <Switch
+                  checked={!!theme.announcement?.enabled}
+                  onCheckedChange={(enabled) => setTheme({ ...theme, announcement: { ...theme.announcement, enabled } })}
+                />
+              </div>
+              {theme.announcement?.enabled && (
+                <>
+                  <div className="space-y-1">
+                    <Label htmlFor="announcement-text">Text</Label>
+                    <Input
+                      id="announcement-text"
+                      maxLength={140}
+                      placeholder="Tickets for Friday are on sale"
+                      value={theme.announcement?.text ?? ""}
+                      onChange={(e) => setTheme({ ...theme, announcement: { ...theme.announcement, text: e.target.value } })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="announcement-url">Opens (optional: a page path like &ldquo;shows&rdquo;, or a web address)</Label>
+                    <Input
+                      id="announcement-url"
+                      placeholder="shows"
+                      value={theme.announcement?.url ?? ""}
+                      onChange={(e) => setTheme({ ...theme, announcement: { ...theme.announcement, url: e.target.value } })}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+              <div>
+                <p className="text-sm font-semibold">Cookie notice</p>
+                <p className="text-xs text-muted-foreground">A small notice telling visitors the site uses cookies, shown once until dismissed.</p>
+              </div>
+              <Switch checked={!!theme.cookie_notice} onCheckedChange={(cookie_notice) => setTheme({ ...theme, cookie_notice })} />
             </div>
 
             <div className="space-y-2">

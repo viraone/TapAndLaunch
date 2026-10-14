@@ -38,7 +38,12 @@ export type BlockType =
   | "files"
   | "button"
   | "quote"
-  | "faq";
+  | "faq"
+  | "image_text"
+  | "newsletter"
+  | "share"
+  | "map"
+  | "audio";
 export type AnalyticsEventType =
   | "view"
   | "install"
@@ -104,6 +109,10 @@ export interface ThemeConfig {
   /** "website" lays the published app out like a website: full width on a laptop with a top menu of the pages,
    * the phone look (and tab bar) on a phone. Unset or "app" keeps the phone-shaped column everywhere. */
   layout?: "app" | "website";
+  /** A line across the top of every page, with an optional link; the visitor can close it. */
+  announcement?: { enabled?: boolean; text?: string; url?: string };
+  /** Shows a small "this site uses cookies" notice once, until the visitor dismisses it. */
+  cookie_notice?: boolean;
 }
 
 export interface ManifestConfig {
@@ -139,7 +148,12 @@ export type BlockConfig =
   | FilesBlockConfig
   | ButtonBlockConfig
   | QuoteBlockConfig
-  | FaqBlockConfig;
+  | FaqBlockConfig
+  | ImageTextBlockConfig
+  | NewsletterBlockConfig
+  | ShareBlockConfig
+  | MapBlockConfig
+  | AudioBlockConfig;
 
 /** A full-width photo with a headline and an optional button that opens another page of the app. */
 export interface HeroBlockConfig {
@@ -210,6 +224,44 @@ export interface QuoteBlockConfig {
 export interface FaqBlockConfig {
   title?: string;
   items?: Array<{ question: string; answer: string }>;
+}
+
+/** A photo beside a headline, some words and an optional button; the photo on the left or the right on a wide screen. */
+export interface ImageTextBlockConfig {
+  image_url?: string;
+  alt?: string;
+  side?: "left" | "right";
+  heading?: string;
+  body?: string;
+  button_label?: string;
+  button_page?: string;
+  button_url?: string;
+}
+
+/** An email box that signs the visitor up as a member, so the owner can email them later. */
+export interface NewsletterBlockConfig {
+  title?: string;
+  intro?: string;
+  button_label?: string;
+  success?: string;
+}
+
+/** Share, Copy link, and the usual places, all pointing at the page the visitor is on. */
+export interface ShareBlockConfig {
+  title?: string;
+}
+
+/** A map of an address, with a Directions button. */
+export interface MapBlockConfig {
+  title?: string;
+  address?: string;
+}
+
+/** An uploaded audio file with a title and an optional note. */
+export interface AudioBlockConfig {
+  src?: string;
+  title?: string;
+  note?: string;
 }
 
 export interface TextBlockConfig {
@@ -609,6 +661,12 @@ export interface Database {
           path: string;
           is_home: boolean;
           position: number;
+          /** Search-engine and link-preview title; falls back to the app's name when empty. */
+          seo_title: string | null;
+          /** Search-engine and link-preview description. */
+          seo_description: string | null;
+          /** Picture shown when the page is shared on social media or messaging apps. */
+          share_image_url: string | null;
           created_at: string;
           updated_at: string;
         };

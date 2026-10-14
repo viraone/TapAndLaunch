@@ -24,10 +24,16 @@ import type {
   ButtonBlockConfig,
   QuoteBlockConfig,
   FaqBlockConfig,
+  ImageTextBlockConfig,
+  NewsletterBlockConfig,
+  ShareBlockConfig,
+  MapBlockConfig,
+  AudioBlockConfig,
 } from "@/types/database";
 import { GalleryBlockView, HeroBlockView, HoursBlockView, PriceListBlockView, ReviewsBlockView, StatsBlockView } from "@/components/pwa-runtime/ShowcaseBlocks";
 import { FilesBlockView } from "@/components/pwa-runtime/FilesBlock";
 import { ButtonBlockView, FaqBlockView, QuoteBlockView } from "@/components/pwa-runtime/ExtraBlocks";
+import { AudioBlockView, ImageTextBlockView, MapBlockView, NewsletterBlockView, ShareBlockView } from "@/components/pwa-runtime/MoreBlocks";
 import { EditableImage, EditableText } from "@/components/pwa-runtime/Editable";
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
 import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
@@ -153,6 +159,16 @@ function BlockBody({
       return <QuoteBlockView config={block.config as QuoteBlockConfig} live={live} />;
     case "faq":
       return <FaqBlockView config={block.config as FaqBlockConfig} live={live} />;
+    case "image_text":
+      return <ImageTextBlockView config={block.config as ImageTextBlockConfig} live={live} />;
+    case "newsletter":
+      return <NewsletterBlockView config={block.config as NewsletterBlockConfig} live={live} />;
+    case "share":
+      return <ShareBlockView config={block.config as ShareBlockConfig} live={live} />;
+    case "map":
+      return <MapBlockView config={block.config as MapBlockConfig} live={live} />;
+    case "audio":
+      return <AudioBlockView config={block.config as AudioBlockConfig} live={live} />;
     default:
       return <UnknownBlockView type={block.type} />;
   }

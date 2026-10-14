@@ -43,6 +43,7 @@ import {
 } from "@/components/builder/MobilePreviewFrame";
 import { SiteHeader } from "@/components/pwa-runtime/SiteHeader";
 import { SiteFooter } from "@/components/pwa-runtime/SiteFooter";
+import { AnnouncementBar } from "@/components/pwa-runtime/SiteNotices";
 import { AppSettingsDialog } from "@/components/builder/AppSettingsDialog";
 import { BottomNav } from "@/components/pwa-runtime/BottomNav";
 import { AppHeader } from "@/components/pwa-runtime/AppHeader";
@@ -366,6 +367,24 @@ export function BuilderClient({
       const nav = currentApp.theme.bottom_nav ?? [];
       const next = show ? [...nav, { label: page.name.slice(0, 14), icon: page.is_home ? "home" : "info", page_path: page.path }] : nav.filter((item) => item.page_path !== page.path);
       if (await saveTheme({ ...currentApp.theme, bottom_nav: next })) toast.success(show ? `${page.name} is in the menu` : `${page.name} is out of the menu (still reachable by its address)`);
+    },
+    updateSeo: async (pageId, seo) => {
+      const res = await fetch(`/api/apps/${currentApp.id}/pages/${pageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seo_title: seo.seo_title.trim() || null,
+          seo_description: seo.seo_description.trim() || null,
+          share_image_url: seo.share_image_url.trim() || null,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        toast.error(body.error ?? "Couldn't save those settings");
+        return;
+      }
+      setPages((prev) => prev.map((p) => (p.id === pageId ? body.page : p)));
+      toast.success("Saved");
     },
     rename: async (pageId, name) => {
       const res = await fetch(`/api/apps/${currentApp.id}/pages/${pageId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
@@ -769,6 +788,7 @@ export function BuilderClient({
         <PageTabs
           pages={pages}
           currentPageId={currentPageId}
+          organizationId={currentApp.organization_id}
           onSelect={switchPage}
           onCreate={createPage}
           actions={pageActions}
@@ -811,6 +831,7 @@ export function BuilderClient({
               </PreviewFrame>
             ) : (
               <PreviewFrame device={device} theme={currentApp.theme}>
+                <AnnouncementBar theme={currentApp.theme} preview />
                 {/* A website's desktop preview gets the site header with its page menu; everything else the app header. */}
                 {device === "desktop" && currentApp.theme.layout === "website" ? (
                   <SiteHeader
