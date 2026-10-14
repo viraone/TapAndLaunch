@@ -98,5 +98,6 @@ Walked through as a non-technical owner, then fixed: removing a section offers *
 (it autosaves, so there was no way back); **Unpublish** asks first and says what visitors will see; the top bar shows
 the app's own domain once it is connected; the banner's button picks its page from a list instead of a typed address;
 plain-words labels in App settings ("Design & settings", "Icon & name", "Font (optional)", "Tabs at the bottom", the
-home-screen mode in sentences, a picture picker for tabs) and on sections ("Who can see this section"). Still open:
-pages can be added but not renamed or deleted (no API for it yet).
+home-screen mode in sentences, a picture picker for tabs) and on sections ("Who can see this section"). Pages: the open page's tab
+has a menu (Rename, Move left/right, Duplicate with its sections, Show/Hide in the menu, Delete with a confirmation; Home
+can't be deleted) backed by `PATCH`/`DELETE /api/apps/{id}/pages/{pageId}`.

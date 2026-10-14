@@ -32,7 +32,7 @@ import { BuilderPhoneNotice } from "@/components/builder/BuilderPhoneNotice";
 import { AddSectionBar } from "@/components/builder/AddSectionBar";
 import { FIELD_FOCUS_EVENT, flashField, type FieldFocusDetail } from "@/lib/builder/field-link";
 import { Inspector } from "@/components/builder/Inspector";
-import { PageTabs } from "@/components/builder/PageTabs";
+import { PageTabs, slugify, type PageActions } from "@/components/builder/PageTabs";
 import { SortableBlockItem } from "@/components/builder/SortableBlockItem";
 import {
   PreviewFrame,
@@ -46,7 +46,7 @@ import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { createClient } from "@/lib/supabase/client";
 import { BLOCK_TYPE_LABELS, defaultConfigFor } from "@/lib/builder/block-defaults";
 import type { BuilderBlock } from "@/components/builder/types";
-import type { BlockConfig, BlockType, Database } from "@/types/database";
+import type { ThemeConfig, BlockConfig, BlockType, Database } from "@/types/database";
 
 type AppRow = Database["public"]["Tables"]["apps"]["Row"];
 type PageRow = Database["public"]["Tables"]["pages"]["Row"];
@@ -249,6 +249,111 @@ export function BuilderClient({
     setSavedSnapshot(snapshot([]));
     setSelectedBlockId(null);
   }
+
+  /** The app's theme, saved whole (the app's PATCH replaces `theme` as one value). */
+  async function saveTheme(theme: ThemeConfig): Promise<boolean> {
+    const res = await fetch(`/api/apps/${currentApp.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ theme }) });
+    const body = await res.json();
+    if (!res.ok) {
+      toast.error(body.error ?? "Couldn't save");
+      return false;
+    }
+    setCurrentApp(body.app);
+    return true;
+  }
+
+  /** What the tabs above the page can do to a page. */
+  const pageActions: PageActions = {
+    inMenu: (page) => (currentApp.theme.bottom_nav ?? []).some((item) => item.page_path === page.path),
+    setInMenu: async (page, show) => {
+      const nav = currentApp.theme.bottom_nav ?? [];
+      const next = show ? [...nav, { label: page.name.slice(0, 14), icon: page.is_home ? "home" : "info", page_path: page.path }] : nav.filter((item) => item.page_path !== page.path);
+      if (await saveTheme({ ...currentApp.theme, bottom_nav: next })) toast.success(show ? `${page.name} is in the menu` : `${page.name} is out of the menu (still reachable by its address)`);
+    },
+    rename: async (pageId, name) => {
+      const res = await fetch(`/api/apps/${currentApp.id}/pages/${pageId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
+      const body = await res.json();
+      if (!res.ok) {
+        toast.error(body.error ?? "Couldn't rename the page");
+        return;
+      }
+      setPages((prev) => prev.map((p) => (p.id === pageId ? body.page : p)));
+      // The menu's tab keeps up with the page's name.
+      const page = pages.find((p) => p.id === pageId);
+      const nav = currentApp.theme.bottom_nav ?? [];
+      if (page && nav.some((item) => item.page_path === page.path && item.label === page.name)) {
+        await saveTheme({ ...currentApp.theme, bottom_nav: nav.map((item) => (item.page_path === page.path ? { ...item, label: name.slice(0, 14) } : item)) });
+      }
+    },
+    move: async (pageId, direction) => {
+      const index = pages.findIndex((p) => p.id === pageId);
+      const to = index + direction;
+      if (index === -1 || to < 0 || to >= pages.length) return;
+      const res = await fetch(`/api/apps/${currentApp.id}/pages/${pageId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ position: to }) });
+      if (!res.ok) {
+        toast.error("Couldn't move the page");
+        return;
+      }
+      setPages((prev) => arrayMove(prev, index, to));
+    },
+    duplicate: async (pageId) => {
+      const source = pages.find((p) => p.id === pageId);
+      if (!source) return;
+      // The source's sections: the ones on screen if it is the open page, otherwise loaded.
+      let sourceBlocks = pageId === currentPageId ? blocksRef.current : [];
+      if (pageId !== currentPageId) {
+        const { data } = await supabase.from("blocks").select("*").eq("page_id", pageId).order("position", { ascending: true });
+        sourceBlocks = (data ?? []).map(toBuilderBlock);
+      }
+      const name = `${source.name} copy`;
+      let created: PageRow | null = null;
+      for (const suffix of ["-copy", "-copy-2", "-copy-3"]) {
+        const res = await fetch(`/api/apps/${currentApp.id}/pages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, path: `${slugify(source.path)}${suffix}` }) });
+        const body = await res.json();
+        if (res.ok) {
+          created = body.page;
+          break;
+        }
+        if (!/already exists/.test(body.error ?? "")) {
+          toast.error(body.error ?? "Couldn't duplicate the page");
+          return;
+        }
+      }
+      if (!created) {
+        toast.error("Couldn't find a free address for the copy");
+        return;
+      }
+      const put = await fetch(`/api/apps/${currentApp.id}/pages/${created.id}/blocks`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocks: sourceBlocks.map((b, position) => ({ type: b.type, position, config: b.config, min_tier: b.minTier })) }),
+      });
+      if (!put.ok) toast.error("The page was made but its sections didn't copy");
+      setPages((prev) => [...prev, created]);
+      toast.success(`${name} added. It is not in the menu yet.`);
+      await switchPage(created.id);
+    },
+    remove: async (pageId) => {
+      const page = pages.find((p) => p.id === pageId);
+      if (!page) return;
+      if (!window.confirm(`Delete the ${page.name} page and everything on it? This can't be undone.`)) return;
+      const res = await fetch(`/api/apps/${currentApp.id}/pages/${pageId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json();
+        toast.error(body.error ?? "Couldn't delete the page");
+        return;
+      }
+      const remaining = pages.filter((p) => p.id !== pageId);
+      setPages(remaining);
+      const nav = currentApp.theme.bottom_nav ?? [];
+      if (nav.some((item) => item.page_path === page.path)) await saveTheme({ ...currentApp.theme, bottom_nav: nav.filter((item) => item.page_path !== page.path) });
+      if (pageId === currentPageId) {
+        const home = remaining.find((p) => p.is_home) ?? remaining[0];
+        if (home) await switchPage(home.id);
+      }
+      toast.success(`${page.name} deleted`);
+    },
+  };
 
   /** Persists the current page's blocks as they are right now. Returns whether it succeeded so `togglePublish` can
    * bail out instead of publishing a stale page. One request at a time: a call made while one is running waits for
@@ -561,6 +666,7 @@ export function BuilderClient({
           currentPageId={currentPageId}
           onSelect={switchPage}
           onCreate={createPage}
+          actions={pageActions}
         />
 
         {/* Two columns: the page, and the panel for photos and settings. Sections are added on the page itself (the
