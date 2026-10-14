@@ -23,7 +23,14 @@ export interface StarterTemplate {
   includes: string[];
   /** Which group the picker lists it under. */
   category: TemplateCategoryId;
+  /** Picking this template asks "What's your site about?" before the name step, and uses the answer to write the
+   * first draft of the hero's subtext instead of generic placeholder copy (`buildStarter`'s `about` argument). */
+  asksAbout?: boolean;
 }
+
+/** How long an answer to "What's your site about?" may be — long enough for a real sentence, short enough that it
+ * still reads well as a hero subtext rather than a paragraph. */
+export const ABOUT_MAX_LENGTH = 240;
 
 export type TemplateCategoryId = "website" | "food" | "fitness" | "shops" | "venues" | "local" | "scratch" | "ai";
 
@@ -48,6 +55,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     color: "#1d4ed8",
     includes: ["Full-width website", "Banner", "Highlights", "Testimonials", "Newsletter", "Contact"],
     category: "website",
+    asksAbout: true,
   },
   {
     id: "business",
@@ -254,14 +262,15 @@ const CONTACT_FIELDS = [
   { name: "message", label: "Message", type: "textarea" },
 ];
 
-/** The rows for a new app of this template, named `appName`. Every starter
- * begins with the app's name in the header bar. */
-export function buildStarter(templateId: string, appName: string): Starter {
-  const starter = buildStarterBody(templateId, appName);
+/** The rows for a new app of this template, named `appName`. Every starter begins with the app's name in the header
+ * bar. `about` is the customer's own answer to "What's your site about?" (only asked, and only used, for a
+ * template with `asksAbout: true`); trimmed to `ABOUT_MAX_LENGTH` and ignored for every other template. */
+export function buildStarter(templateId: string, appName: string, about?: string): Starter {
+  const starter = buildStarterBody(templateId, appName, about?.trim().slice(0, ABOUT_MAX_LENGTH));
   return { ...starter, theme: { ...starter.theme, header_title: appName } };
 }
 
-function buildStarterBody(templateId: string, appName: string): Starter {
+function buildStarterBody(templateId: string, appName: string, about?: string): Starter {
   const template = STARTER_TEMPLATES.find((t) => t.id === templateId) ?? (STARTER_TEMPLATES.find((t) => t.id === DEFAULT_TEMPLATE_ID) as StarterTemplate);
   const manifest: ManifestConfig = {
     name: appName,
@@ -292,7 +301,7 @@ function buildStarterBody(templateId: string, appName: string): Starter {
             block("hero", {
               eyebrow: "Welcome",
               headline: "Hi, I'm here to help.",
-              subtext: "A short line about what you do and who you help — the kind of thing people read in the first five seconds.",
+              subtext: about || "A short line about what you do and who you help — the kind of thing people read in the first five seconds.",
               button_label: "Get in touch",
               button_page: "contact",
             }),

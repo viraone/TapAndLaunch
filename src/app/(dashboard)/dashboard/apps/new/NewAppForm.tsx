@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
-import { STARTER_TEMPLATES, TEMPLATE_CATEGORIES, templateNeedsMaps, type StarterTemplate } from "@/lib/apps/templates";
+import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, templateNeedsMaps, type StarterTemplate } from "@/lib/apps/templates";
 import { slugify } from "@/lib/apps/slug";
 import { TemplatePreview } from "@/components/dashboard/TemplatePreview";
 import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
@@ -15,6 +15,10 @@ const ICONS = TEMPLATE_ICONS;
 // category joins the Websites shelf automatically instead of landing among the phone-shaped ones.
 const WEBSITE_CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => c.id === "website");
 const APP_CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => c.id !== "website");
+
+const ABOUT_HINTS: Record<string, string> = {
+  portfolio: "I'm a career coach helping people land their next role",
+};
 
 const NAME_HINTS: Record<string, string> = {
   portfolio: "Jordan Lee",
@@ -32,12 +36,28 @@ const NAME_HINTS: Record<string, string> = {
   community: "Ballard Neighbors",
 };
 
+type Step = "pick" | "about" | "name";
+
 export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organizationId: string; rootDomain: string; mapsEnabled: boolean }) {
   const router = useRouter();
   const [selected, setSelected] = useState<StarterTemplate | null>(null);
+  const [step, setStep] = useState<Step>("pick");
+  const [about, setAbout] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  function pickTemplate(t: StarterTemplate) {
+    setSelected(t);
+    setAbout("");
+    setStep(t.asksAbout ? "about" : "name");
+  }
+
+  function backToGrid() {
+    setSelected(null);
+    setError(null);
+    setStep("pick");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,7 +68,13 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
     const res = await fetch("/api/apps", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ organization_id: organizationId, name, slug: slugify(name), template: selected.id }),
+      body: JSON.stringify({
+        organization_id: organizationId,
+        name,
+        slug: slugify(name),
+        template: selected.id,
+        ...(selected.asksAbout && about.trim() ? { about: about.trim() } : {}),
+      }),
     });
     const body = await res.json();
 
@@ -61,19 +87,74 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
     router.push(`/dashboard/apps/${body.app.id}/builder`);
   }
 
-  if (selected) {
+  if (selected && step === "about") {
+    const Icon = ICONS[selected.icon];
+    return (
+      <div className="mx-auto w-full max-w-xl">
+        <button
+          type="button"
+          onClick={backToGrid}
+          className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-neutral-500 transition hover:text-neutral-950"
+        >
+          <ArrowLeft className="h-4 w-4" /> Pick a different starter
+        </button>
+        <div className="rounded-3xl bg-white p-7 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 sm:p-9">
+          <div className="flex items-center gap-4">
+            <span
+              className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-white shadow-lg"
+              style={{ background: `linear-gradient(135deg, ${selected.color}, color-mix(in oklab, ${selected.color} 55%, #0a0a0a))` }}
+            >
+              <Icon className="h-6 w-6" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">Starting from</p>
+              <h2 className="truncate text-xl font-semibold tracking-tight">{selected.name}</h2>
+            </div>
+          </div>
+
+          <label htmlFor="app-about" className="mt-7 block text-sm font-semibold">
+            What&apos;s your site about?
+          </label>
+          <p className="mt-0.5 text-sm text-neutral-500">A sentence is plenty. We&apos;ll use it to write your first draft — you can change every word after.</p>
+          <textarea
+            id="app-about"
+            autoFocus
+            rows={3}
+            maxLength={ABOUT_MAX_LENGTH}
+            value={about}
+            onChange={(e) => setAbout(e.target.value)}
+            placeholder={ABOUT_HINTS[selected.id] ?? "A sentence about what you do"}
+            className="mt-3 w-full resize-none rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base outline-none transition focus:border-neutral-950 focus:ring-4 focus:ring-neutral-950/5"
+          />
+          <div className="mt-6 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setStep("name")}
+              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-neutral-950 text-sm font-semibold text-white transition hover:bg-neutral-800"
+            >
+              Next <ArrowRight className="h-4 w-4" />
+            </button>
+            {!about.trim() && (
+              <button type="button" onClick={() => setStep("name")} className="text-sm font-medium text-neutral-500 transition hover:text-neutral-950">
+                Skip
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (selected && step === "name") {
     const Icon = ICONS[selected.icon];
     return (
       <form onSubmit={handleSubmit} className="mx-auto w-full max-w-xl">
         <button
           type="button"
-          onClick={() => {
-            setSelected(null);
-            setError(null);
-          }}
+          onClick={() => (selected.asksAbout ? setStep("about") : backToGrid())}
           className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-neutral-500 transition hover:text-neutral-950"
         >
-          <ArrowLeft className="h-4 w-4" /> Pick a different starter
+          <ArrowLeft className="h-4 w-4" /> {selected.asksAbout ? "Back" : "Pick a different starter"}
         </button>
         <div className="rounded-3xl bg-white p-7 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 sm:p-9">
           <div className="flex items-center gap-4">
@@ -145,7 +226,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
         blurb="Looks and works like a regular website: full size on a computer, with a menu across the top."
         categories={WEBSITE_CATEGORIES}
         mapsEnabled={mapsEnabled}
-        onSelect={setSelected}
+        onSelect={pickTemplate}
         showCategoryLabel={false}
       />
 
@@ -157,7 +238,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
         blurb="A simple, phone-shaped page your visitors can save to their Home Screen, like an app."
         categories={APP_CATEGORIES}
         mapsEnabled={mapsEnabled}
-        onSelect={setSelected}
+        onSelect={pickTemplate}
       />
     </div>
   );

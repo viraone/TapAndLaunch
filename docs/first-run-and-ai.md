@@ -50,6 +50,16 @@ pill (e.g. "Restaurants & cafés") is skipped on the Websites shelf, where it wo
 title. Adding a second website category later joins the Websites shelf automatically
 (`WEBSITE_CATEGORIES`/`APP_CATEGORIES` filter on `category.id === "website"`, nothing hand-listed).
 
+Picking Personal website also asks **"What's your site about?"** before the name step — a light version of
+Squarespace's own onboarding quiz. It's a plain text question (no AI call; `StarterTemplate.asksAbout`, only set on
+`portfolio`), and the answer becomes the hero's subtext verbatim instead of the generic placeholder line
+(`buildStarter`'s optional `about` argument, trimmed to `ABOUT_MAX_LENGTH` — 240 — in both `buildStarter` and the
+`POST /api/apps` schema). Leaving it blank (or hitting Skip) keeps the original placeholder copy, so nothing breaks
+if the customer has nothing to say yet. TapAndLaunch does have a real AI "Describe your app" generator
+(`POST /api/apps/generate`, see below) that could write genuinely tailored copy instead of just echoing the
+sentence — not wired up here because its safety schema only allows text/contact_form/event_calendar/product_list/
+image blocks today, not hero/stats/reviews/newsletter; that's a bigger follow-on, not this slice.
+
 ## Describe your app
 `POST /api/apps/generate` takes a sentence (10 to 500 characters) and an optional name, designs a first version and creates it
 exactly like the template picker does (`createAppFromStarter`, shared with `POST /api/apps`).

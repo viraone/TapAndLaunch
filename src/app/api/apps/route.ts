@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { DEFAULT_TEMPLATE_ID, STARTER_TEMPLATES, buildStarter } from "@/lib/apps/templates";
+import { ABOUT_MAX_LENGTH, DEFAULT_TEMPLATE_ID, STARTER_TEMPLATES, buildStarter } from "@/lib/apps/templates";
 import { createAppFromStarter } from "@/lib/apps/create";
 
 const CreateAppSchema = z.object({
@@ -13,6 +13,9 @@ const CreateAppSchema = z.object({
     .regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/, "Use lowercase letters, numbers, and hyphens only"),
   /** A starter from `lib/apps/templates`; omitted means an empty app. */
   template: z.enum(STARTER_TEMPLATES.map((t) => t.id) as [string, ...string[]]).default(DEFAULT_TEMPLATE_ID),
+  /** The answer to "What's your site about?" (only asked for a template with `asksAbout: true`); ignored by every
+   * other template. */
+  about: z.string().max(ABOUT_MAX_LENGTH).optional(),
 });
 
 /**
@@ -40,7 +43,7 @@ export async function POST(request: Request) {
     organizationId: parsed.data.organization_id,
     name: parsed.data.name,
     slug: parsed.data.slug,
-    starter: buildStarter(parsed.data.template, parsed.data.name),
+    starter: buildStarter(parsed.data.template, parsed.data.name, parsed.data.about),
   });
   if ("error" in result) return Response.json({ error: result.error }, { status: result.status });
   return Response.json({ app: result.app }, { status: 201 });

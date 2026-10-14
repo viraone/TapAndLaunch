@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isReservedPagePath } from "@/lib/pwa/reserved-paths";
 import { BLOCK_TYPES } from "@/lib/builder/block-defaults";
-import { STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter, isTemplateId, templateNeedsMaps } from "./templates";
+import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter, isTemplateId, templateNeedsMaps } from "./templates";
 
 describe("starter templates", () => {
   it("offers a template for everything, ending with a blank one", () => {
@@ -49,6 +49,32 @@ describe("starter templates", () => {
     expect((first?.config as { image_url?: string }).image_url).toBeFalsy();
     expect((first?.config as { headline?: string }).headline).toBeTruthy();
     expect(starter.theme.layout).toBe("website");
+  });
+
+  it("writes the portfolio hero's subtext from the customer's 'what's your site about' answer", () => {
+    const withAnswer = buildStarter("portfolio", "Jordan Lee", "I help people land their next role");
+    expect((withAnswer.pages[0]?.blocks[0]?.config as { subtext?: string }).subtext).toBe("I help people land their next role");
+
+    const withoutAnswer = buildStarter("portfolio", "Jordan Lee");
+    expect((withoutAnswer.pages[0]?.blocks[0]?.config as { subtext?: string }).subtext).toMatch(/kind of thing people read/);
+
+    const blank = buildStarter("portfolio", "Jordan Lee", "   ");
+    expect((blank.pages[0]?.blocks[0]?.config as { subtext?: string }).subtext).toMatch(/kind of thing people read/);
+  });
+
+  it("trims a too-long 'what's your site about' answer instead of overflowing the hero", () => {
+    const long = "x".repeat(ABOUT_MAX_LENGTH + 50);
+    const starter = buildStarter("portfolio", "Jordan Lee", long);
+    expect((starter.pages[0]?.blocks[0]?.config as { subtext?: string }).subtext).toHaveLength(ABOUT_MAX_LENGTH);
+  });
+
+  it("ignores the 'about' answer for a template that doesn't ask for one", () => {
+    const starter = buildStarter("business", "Maple Street Bakery", "this should be ignored");
+    expect(JSON.stringify(starter)).not.toContain("this should be ignored");
+  });
+
+  it("marks only the portfolio template as asking 'what's your site about'", () => {
+    expect(STARTER_TEMPLATES.filter((t) => t.asksAbout).map((t) => t.id)).toEqual(["portfolio"]);
   });
 
   it("gives every hero button a page that exists in the same app", () => {
