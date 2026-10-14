@@ -106,3 +106,10 @@ Undo and redo: every change to a page's sections (words, photos, add, remove, mo
 step; ⌘Z / Ctrl+Z undoes, ⇧⌘Z or Ctrl+Y redoes, and the top bar has the two buttons (`editBlocks` in BuilderClient
 keeps up to 60 steps per page; typing into one field in a row is one step; a page switch starts fresh). Every section
 has Move up, Move down and Duplicate buttons next to the drag handle.
+
+Formatting: paragraphs (a Text section's body, the banner's line, a menu item's description, a Zoom section's
+description) carry bold, italic, links and bulleted lists. On the page a formatting bar appears while the paragraph is
+being edited (the browser's own bold/italic/link/list commands); the result is stored as plain text with light
+markers, `**bold**`, `_italic_`, `[words](https://…)`, lines starting with `- ` (`src/lib/rich-text.ts`: parse,
+and the DOM-to-text reader for the builder; `RichText` renders it, links only when http(s), never raw HTML). The
+inspector's text box shows the markers and accepts them too.

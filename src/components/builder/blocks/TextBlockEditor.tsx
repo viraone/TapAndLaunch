@@ -31,6 +31,7 @@ export function TextBlockEditor({
           value={config.body ?? ""}
           onChange={(e) => onChange({ ...config, body: e.target.value })}
         />
+        <p className="text-xs text-muted-foreground">Easier on the page: click the words there and use the bar for bold, italic, links and bullets. Here, **bold**, _italic_, [words](https://…) and lines starting with - work too.</p>
       </div>
     </div>
   );

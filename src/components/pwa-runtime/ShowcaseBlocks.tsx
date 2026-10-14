@@ -29,7 +29,7 @@ export function HeroBlockView({ config, live }: { config: HeroBlockConfig; live:
       <div className="flex min-h-[24rem] flex-col justify-end px-5 pb-8 pt-28 text-white @lg:min-h-[34rem] @lg:px-14 @lg:pb-14">
         <EditableText as="span" path={["eyebrow"]} value={config.eyebrow} placeholder="Small label" className="mb-3 inline-flex w-fit rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] backdrop-blur" />
         <EditableText as="h2" path={["headline"]} value={config.headline} placeholder="Your headline" className="text-balance text-[2.1rem] font-extrabold leading-[1.02] tracking-tight @lg:max-w-3xl @lg:text-6xl" />
-        <EditableText as="p" path={["subtext"]} value={config.subtext} placeholder="A line under the headline" multiline className="mt-3 max-w-sm text-[15px] leading-relaxed text-white/85 @lg:mt-5 @lg:max-w-xl @lg:text-lg" />
+        <EditableText as="div" path={["subtext"]} value={config.subtext} placeholder="A line under the headline" rich className="mt-3 max-w-sm text-[15px] leading-relaxed text-white/85 @lg:mt-5 @lg:max-w-xl @lg:text-lg" />
         {button && (live && config.button_page ? <a href={`/${config.button_page}`} className="w-fit">{button}</a> : <span className="w-fit">{button}</span>)}
       </div>
     </section>
@@ -72,7 +72,7 @@ export function PriceListBlockView({ config, live }: { config: PriceListBlockCon
                       <EditableText path={["sections", section.index, "items", ii, "name"]} value={item.name} placeholder="Item" />
                       {(item.badge || !live) && <EditableText path={["sections", section.index, "items", ii, "badge"]} value={item.badge} placeholder="badge" className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary" />}
                     </p>
-                    <EditableText as="p" path={["sections", section.index, "items", ii, "description"]} value={item.description} placeholder="Description" multiline className="mt-0.5 text-sm leading-snug text-muted-foreground" />
+                    <EditableText as="p" path={["sections", section.index, "items", ii, "description"]} value={item.description} placeholder="Description" rich className="mt-0.5 text-sm leading-snug text-muted-foreground" />
                   </div>
                   <EditableText path={["sections", section.index, "items", ii, "price"]} value={item.price} placeholder="$0" className="shrink-0 text-[15px] font-bold tabular-nums" />
                 </li>

@@ -2,7 +2,9 @@
 
 import { createContext, createElement, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ImageUp } from "lucide-react";
+import { Bold, ImageUp, Italic, Link2, List } from "lucide-react";
+import { RichText } from "@/components/pwa-runtime/RichText";
+import { richTextFromDom } from "@/lib/rich-text";
 import { cn } from "@/lib/utils";
 import { announceField, fieldKey, FIELD_FOCUS_EVENT, FIELD_HOT_ATTR, FIELD_HOT_MS, type FieldFocusDetail } from "@/lib/builder/field-link";
 
@@ -28,6 +30,7 @@ export function EditableText({
   placeholder,
   multiline = false,
   fallback,
+  rich = false,
 }: {
   /** The HTML tag to render: "h2", "p", "span", "dd"... */
   as?: string;
@@ -41,11 +44,18 @@ export function EditableText({
   multiline?: boolean;
   /** What the published site shows when the field is empty (nothing, by default). */
   fallback?: string;
+  /** Bold, italic, links and bullets (stored as plain text, see `lib/rich-text`); implies multiline. */
+  rich?: boolean;
 }) {
   const editing = useContext(BlockEditContext);
   const text = value ?? "";
   const key = fieldKey(path);
   const el = useRef<HTMLElement>(null);
+  // After an edit the element is rebuilt from the saved text (a fresh `key`), so React never has to reconcile the
+  // DOM the browser changed while the owner typed.
+  const [generation, setGeneration] = useState(0);
+  const [focused, setFocused] = useState(false);
+  const isMultiline = multiline || rich;
 
   // Lights up when its box in the inspector is focused.
   useEffect(() => {
@@ -63,20 +73,25 @@ export function EditableText({
 
   if (!editing) {
     if (!text) return fallback ? createElement(as, { className }, fallback) : null;
+    if (rich) return createElement(as, { className }, createElement(RichText, { text }));
     return createElement(as, { className: cn(className, multiline && "whitespace-pre-wrap") }, text);
   }
 
   const Tag = as as React.ElementType;
-  return (
+  const field = (
     <Tag
+      key={generation}
       ref={el}
       data-field={key}
-      onFocus={() => announceField(key, "page")}
+      onFocus={() => {
+        setFocused(true);
+        announceField(key, "page");
+      }}
       contentEditable
       suppressContentEditableWarning
       role="textbox"
       aria-label={placeholder ?? "Text"}
-      aria-multiline={multiline}
+      aria-multiline={isMultiline}
       data-placeholder={placeholder ?? fallback ?? ""}
       spellCheck
       className={cn(
@@ -86,7 +101,7 @@ export function EditableText({
         "whitespace-pre-wrap"
       )}
       onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
-        if (e.key === "Escape" || (e.key === "Enter" && !multiline)) {
+        if (e.key === "Escape" || (e.key === "Enter" && !isMultiline)) {
           e.preventDefault();
           e.currentTarget.blur();
         }
@@ -108,13 +123,70 @@ export function EditableText({
         document.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
       }}
       onBlur={(e: React.FocusEvent<HTMLElement>) => {
+        // A click on the formatting bar keeps the field "open": the bar is for this field.
+        const to = e.relatedTarget as HTMLElement | null;
+        if (to?.closest("[data-rich-toolbar]")) return;
         const target = e.currentTarget;
-        const next = (multiline ? target.innerText : (target.textContent ?? "")).replace(/\n+$/, "");
+        const next = (rich ? richTextFromDom(target) : multiline ? target.innerText : (target.textContent ?? "")).replace(/\n+$/, "");
+        setFocused(false);
+        setGeneration((g) => g + 1);
         if (next !== text) editing.set(path, next);
       }}
     >
-      {text}
+      {rich ? <RichText text={text} /> : text}
     </Tag>
+  );
+  if (!rich) return field;
+  return (
+    <span className="relative block">
+      {focused && <RichToolbar onDone={() => el.current?.blur()} />}
+      {field}
+    </span>
+  );
+}
+
+/** Bold, italic, link and list, for a paragraph being edited on the page. Uses the browser's own editing commands. */
+function RichToolbar({ onDone }: { onDone: () => void }) {
+  const run = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
+  };
+  const buttons: Array<[string, typeof Bold, () => void]> = [
+    ["Bold", Bold, () => run("bold")],
+    ["Italic", Italic, () => run("italic")],
+    [
+      "Link",
+      Link2,
+      () => {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) {
+          toast("Select the words that should be the link first");
+          return;
+        }
+        const url = window.prompt("Where should the link go? (a web address starting with https://)");
+        if (!url) return;
+        const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+        run("createLink", href);
+      },
+    ],
+    ["Bulleted list", List, () => run("insertUnorderedList")],
+  ];
+  return (
+    <span
+      data-rich-toolbar
+      role="toolbar"
+      aria-label="Formatting"
+      className="pointer-events-auto absolute -top-10 left-0 z-30 inline-flex items-center gap-0.5 rounded-full bg-neutral-950 p-1 text-white shadow-xl ring-1 ring-white/15"
+      onMouseDown={(e) => e.preventDefault()}
+    >
+      {buttons.map(([label, Icon, handler]) => (
+        <button key={label} type="button" aria-label={label} title={label} tabIndex={-1} onClick={handler} className="grid h-7 w-7 place-items-center rounded-full hover:bg-white/15">
+          <Icon className="h-3.5 w-3.5" />
+        </button>
+      ))}
+      <button type="button" tabIndex={-1} onClick={onDone} className="ml-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-950">
+        Done
+      </button>
+    </span>
   );
 }
 

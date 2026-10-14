@@ -128,7 +128,7 @@ function TextBlockView({ config, live }: { config: TextBlockConfig; live: boolea
   return (
     <div className="px-4 py-3 @lg:mx-auto @lg:max-w-3xl @lg:px-8 @lg:py-8">
       <EditableText as="h2" path={["heading"]} value={config.heading} placeholder="Heading" className="text-lg font-semibold @lg:text-3xl @lg:tracking-tight" />
-      <EditableText as="p" path={["body"]} value={config.body} placeholder="Write something here" multiline className="mt-1 text-sm text-muted-foreground @lg:mt-3 @lg:text-[17px] @lg:leading-relaxed" />
+      <EditableText as="div" path={["body"]} value={config.body} placeholder="Write something here" rich className="mt-1 text-sm text-muted-foreground @lg:mt-3 @lg:text-[17px] @lg:leading-relaxed" />
     </div>
   );
 }
@@ -246,7 +246,7 @@ function ZoomMeetingBlockView({ config }: { config: ZoomMeetingBlockConfig }) {
   return (
     <div className="mx-4 my-2 space-y-2 rounded-md border p-4">
       <EditableText as="h3" path={["title"]} value={config.title} placeholder="Join our meeting" className="font-medium" />
-      <EditableText as="p" path={["description"]} value={config.description} placeholder="A line about it" multiline className="text-sm text-muted-foreground" />
+      <EditableText as="div" path={["description"]} value={config.description} placeholder="A line about it" rich className="text-sm text-muted-foreground" />
       {config.meeting_url ? (
         <a
           href={config.meeting_url}
