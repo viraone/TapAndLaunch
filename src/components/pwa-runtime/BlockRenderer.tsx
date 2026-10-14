@@ -56,7 +56,32 @@ export interface RenderableBlock {
  * (client-rendered, read-only view *inside* a draggable wrapper) so the two
  * never visually drift apart.
  */
-export function BlockRenderer({
+/** Looks every section can have: a background, and which screens show it. Stored on the section's config. */
+export interface SectionOptions {
+  appearance?: "plain" | "tinted" | "accent";
+  show_on?: "all" | "phone" | "desktop";
+}
+
+const APPEARANCE: Record<string, string> = { tinted: "bg-muted/60", accent: "bg-primary/10" };
+const SHOW_ON: Record<string, string> = { phone: "lg:hidden", desktop: "hidden lg:block" };
+
+export function BlockRenderer(props: {
+  block: RenderableBlock;
+  pageId?: string;
+  products?: RuntimeProduct[];
+  events?: RuntimeEvent[];
+  listings?: RuntimeListing[];
+}) {
+  const options = props.block.config as SectionOptions;
+  const live = props.pageId !== undefined;
+  // On the published site a phone-only section is hidden on wide screens (and the reverse); in the builder it stays
+  // visible with a badge, so it can still be edited.
+  const classes = [APPEARANCE[options.appearance ?? ""], live ? SHOW_ON[options.show_on ?? ""] : ""].filter(Boolean).join(" ");
+  const inner = <BlockBody {...props} />;
+  return classes ? <div className={classes}>{inner}</div> : inner;
+}
+
+function BlockBody({
   block,
   pageId,
   products,

@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { ThemeConfig } from "@/types/database";
+import { fontsHref, themeAttributes, themeStyle } from "@/lib/pwa/theme-style";
+
+/** The preview root style: the primary colour plus the site-wide looks (fonts, button shape). */
+function frameStyle(theme?: ThemeConfig): React.CSSProperties | undefined {
+  if (!theme) return undefined;
+  return { ...(theme.primary_color ? { "--primary": theme.primary_color } : {}), ...themeStyle(theme) } as React.CSSProperties;
+}
 
 export type DeviceFrame = "ios" | "android" | "desktop";
 
@@ -57,10 +64,12 @@ export function MobilePreviewFrame({
   children: React.ReactNode;
 }) {
   const appDark = theme?.color_scheme === "dark";
-  const style = theme?.primary_color ? ({ "--primary": theme.primary_color } as React.CSSProperties) : undefined;
+  const style = frameStyle(theme);
+  const fonts = theme ? fontsHref(theme) : null;
 
   return (
     <div className="relative mx-auto w-fit">
+      {fonts && <link rel="stylesheet" href={fonts} />}
       {/* Glow behind the device */}
       {/* Floor shadow */}
       <div aria-hidden className="pointer-events-none absolute -bottom-8 left-1/2 h-10 w-72 -translate-x-1/2 rounded-[50%] bg-black/70 blur-xl" />
@@ -81,6 +90,7 @@ export function MobilePreviewFrame({
 
         <div
           style={style}
+          {...(theme ? themeAttributes(theme) : {})}
           className={cn(
             "relative flex flex-1 flex-col overflow-hidden bg-background text-foreground ring-1 ring-black/60",
             appDark ? "dark" : "light",
@@ -116,7 +126,8 @@ const DESKTOP_PREVIEW_WIDTH = 1180;
  */
 export function DesktopPreviewFrame({ theme, children }: { theme?: ThemeConfig; children: React.ReactNode }) {
   const appDark = theme?.color_scheme === "dark";
-  const style = theme?.primary_color ? ({ "--primary": theme.primary_color } as React.CSSProperties) : undefined;
+  const style = frameStyle(theme);
+  const fonts = theme ? fontsHref(theme) : null;
   const holder = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.6);
 
@@ -145,7 +156,8 @@ export function DesktopPreviewFrame({ theme, children }: { theme?: ThemeConfig; 
           </span>
           <span className="mx-auto h-6 w-1/2 rounded-full bg-white/10" />
         </div>
-        <div style={style} className={cn("@container flex h-[760px] flex-col overflow-y-auto bg-background text-foreground", appDark ? "dark" : "light")}>
+        <div style={style} {...(theme ? themeAttributes(theme) : {})} className={cn("@container flex h-[760px] flex-col overflow-y-auto bg-background text-foreground", appDark ? "dark" : "light")}>
+          {fonts && <link rel="stylesheet" href={fonts} />}
           {children}
         </div>
       </div>

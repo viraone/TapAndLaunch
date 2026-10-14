@@ -97,6 +97,10 @@ export interface ThemeConfig {
   bottom_nav_style?: "compact" | "tabs";
   /** The bottom of every page: a line of text and the social links. */
   footer?: { text?: string; social?: Array<{ kind: string; url: string }> };
+  /** A pair of fonts from `FONT_PAIRS` (headings and body); `font_family` typed by hand still wins for the body. */
+  font_pair?: string;
+  heading_size?: "normal" | "large" | "compact";
+  button_shape?: "round" | "rounded" | "square";
   /** "website" lays the published app out like a website: full width on a laptop with a top menu of the pages,
    * the phone look (and tab bar) on a phone. Unset or "app" keeps the phone-shaped column everywhere. */
   layout?: "app" | "website";

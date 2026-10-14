@@ -84,7 +84,7 @@ export function ContactFormRuntime({
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+        className="w-full rounded-[var(--button-radius,0.375rem)] bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
       >
         {status === "submitting" ? "Sending…" : (config.submit_label ?? "Submit")}
       </button>

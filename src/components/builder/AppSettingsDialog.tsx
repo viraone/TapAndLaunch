@@ -26,6 +26,7 @@ import { Settings, Trash2, Plus } from "lucide-react";
 import { ImageUploadField } from "@/components/builder/ImageUploadField";
 import { DomainSettings } from "@/components/builder/DomainSettings";
 import { SOCIAL_KINDS } from "@/components/pwa-runtime/SiteFooter";
+import { BUTTON_SHAPES, FONT_PAIRS, HEADING_SIZES } from "@/lib/pwa/theme-style";
 
 /** The pictures a tab can have, in plain words (the names are what `BottomNav` draws). */
 const NAV_ICONS: Record<string, string> = {
@@ -203,14 +204,57 @@ export function AppSettingsDialog({
                 />
               </div>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="theme-font">Font (optional)</Label>
-              <Input
-                id="theme-font"
-                placeholder="Leave empty for the standard font"
-                value={theme.font_family ?? ""}
-                onChange={(e) => setTheme({ ...theme, font_family: e.target.value })}
-              />
+            <div className="space-y-2">
+              <Label>Fonts</Label>
+              <div role="group" aria-label="Fonts" className="grid grid-cols-3 gap-2">
+                {Object.entries(FONT_PAIRS).map(([id, pair]) => {
+                  const selected = (theme.font_pair ?? "system") === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => setTheme({ ...theme, font_pair: id })}
+                      className={`rounded-2xl border p-2.5 text-left transition ${selected ? "border-white bg-white/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"}`}
+                    >
+                      <p className="text-sm font-semibold">{pair.name}</p>
+                      <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{pair.feel}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Heading size</Label>
+                <Select value={theme.heading_size ?? "normal"} items={HEADING_SIZES} onValueChange={(v) => setTheme({ ...theme, heading_size: (v ?? "normal") as ThemeConfig["heading_size"] })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(HEADING_SIZES).map(([v, l]) => (
+                      <SelectItem key={v} value={v}>
+                        {l}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Buttons</Label>
+                <Select value={theme.button_shape ?? "round"} items={BUTTON_SHAPES} onValueChange={(v) => setTheme({ ...theme, button_shape: (v ?? "round") as ThemeConfig["button_shape"] })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(BUTTON_SHAPES).map(([v, l]) => (
+                      <SelectItem key={v} value={v}>
+                        {l}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
               <div>

@@ -19,7 +19,7 @@ export function ButtonBlockView({ config, live }: { config: ButtonBlockConfig; l
         : "bg-primary text-primary-foreground shadow-lg shadow-black/15";
   const align = config.align === "left" ? "justify-start" : config.align === "right" ? "justify-end" : "justify-center";
   const button = (
-    <span className={`inline-flex min-h-12 items-center gap-2 rounded-full px-6 text-[15px] font-bold ${look}`}>
+    <span className={`inline-flex min-h-12 items-center gap-2 rounded-[var(--button-radius,9999px)] px-6 text-[15px] font-bold ${look}`}>
       <EditableText path={["label"]} value={config.label} placeholder="Button text" />
       <ArrowRight className="h-4 w-4" />
     </span>

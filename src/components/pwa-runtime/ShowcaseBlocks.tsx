@@ -11,7 +11,7 @@ import type { GalleryBlockConfig, HeroBlockConfig, HoursBlockConfig, PriceListBl
 export function HeroBlockView({ config, live }: { config: HeroBlockConfig; live: boolean }) {
   const label = config.button_label?.trim();
   const button = label ? (
-    <span className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-6 text-[15px] font-bold text-white shadow-lg shadow-black/30">
+    <span className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-[var(--button-radius,9999px)] bg-primary px-6 text-[15px] font-bold text-white shadow-lg shadow-black/30">
       <EditableText path={["button_label"]} value={label} placeholder="Button" /> <ArrowRight className="h-4 w-4" />
     </span>
   ) : null;
@@ -114,12 +114,12 @@ export function HoursBlockView({ config, live }: { config: HoursBlockConfig; liv
             )}
             <div className="flex flex-wrap gap-2 pt-1">
               {maps && (
-                <a href={live ? maps : undefined} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-bold text-white">
+                <a href={live ? maps : undefined} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--button-radius,9999px)] bg-primary px-4 text-sm font-bold text-white">
                   <MapPin className="h-4 w-4" /> Directions
                 </a>
               )}
               {tel && (
-                <a href={live ? tel : undefined} className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-background px-4 text-sm font-bold ring-1 ring-border">
+                <a href={live ? tel : undefined} className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--button-radius,9999px)] bg-background px-4 text-sm font-bold ring-1 ring-border">
                   <Phone className="h-4 w-4" /> Call
                 </a>
               )}

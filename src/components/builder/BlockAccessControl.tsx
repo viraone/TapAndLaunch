@@ -41,7 +41,7 @@ export function BlockAccessControl({
   }
 
   return (
-    <div className="space-y-1 border-t pt-3">
+    <div className="space-y-1 pt-1">
       <Label>Who can see this section</Label>
       <Select
         value={mode}

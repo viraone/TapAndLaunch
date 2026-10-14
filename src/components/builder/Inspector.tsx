@@ -15,6 +15,7 @@ import { GalleryBlockEditor, HeroBlockEditor, HoursBlockEditor, PriceListBlockEd
 import { FilesBlockEditor } from "@/components/builder/blocks/FilesBlockEditor";
 import { ButtonBlockEditor, FaqBlockEditor, QuoteBlockEditor } from "@/components/builder/blocks/ExtraEditors";
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
+import { SectionOptionsControl } from "@/components/builder/SectionOptionsControl";
 import { GetLiveChecklist } from "@/components/builder/GetLiveChecklist";
 import type { Checklist, ChecklistStepId } from "@/lib/apps/checklist";
 import { MousePointerClick, Pencil, X } from "lucide-react";
@@ -191,7 +192,10 @@ export function Inspector({
       {block.type === "button" && <ButtonBlockEditor config={block.config} pages={pages} onChange={onChange} />}
       {block.type === "quote" && <QuoteBlockEditor config={block.config} onChange={onChange} />}
       {block.type === "faq" && <FaqBlockEditor config={block.config} onChange={onChange} />}
-      <BlockAccessControl key={block.id} minTier={block.minTier} onChange={onMinTierChange} />
+      <div className="space-y-3 border-t pt-3">
+        <SectionOptionsControl config={block.config as Record<string, unknown>} onChange={(next) => onChange(next as BlockConfig)} />
+        <BlockAccessControl key={block.id} minTier={block.minTier} onChange={onMinTierChange} />
+      </div>
     </div>
   );
 }

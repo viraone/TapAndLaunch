@@ -21,6 +21,9 @@ const ThemeSchema = z.object({
   bottom_nav_style: z.enum(["compact", "tabs"]).optional(),
   // Added later than the fields above; a key missing here was silently dropped on every Save settings.
   layout: z.enum(["app", "website"]).optional(),
+  font_pair: z.string().max(30).optional(),
+  heading_size: z.enum(["normal", "large", "compact"]).optional(),
+  button_shape: z.enum(["round", "rounded", "square"]).optional(),
   footer: z
     .object({
       text: z.string().max(200).optional(),

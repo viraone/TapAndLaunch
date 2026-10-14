@@ -147,3 +147,25 @@
 [data-block-pointed="true"] {
   box-shadow: inset 0 0 0 3px #6366f1, inset 0 0 0 9999px rgba(99, 102, 241, 0.08);
 }
+
+/* Site-wide looks (see lib/pwa/theme-style.ts): the heading font, and heading sizes scaled through Tailwind's
+   size variables so every text-* utility follows. */
+[data-app-styles] :is(h1, h2, h3) {
+  font-family: var(--font-heading, inherit);
+}
+[data-heading-size="large"] {
+  --text-lg: 1.25rem;
+  --text-xl: 1.45rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.2rem;
+  --text-4xl: 2.6rem;
+  --text-6xl: 4.4rem;
+}
+[data-heading-size="compact"] {
+  --text-lg: 1.05rem;
+  --text-xl: 1.15rem;
+  --text-2xl: 1.35rem;
+  --text-3xl: 1.65rem;
+  --text-4xl: 1.95rem;
+  --text-6xl: 3.2rem;
+}

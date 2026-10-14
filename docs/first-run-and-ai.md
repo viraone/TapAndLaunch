@@ -120,3 +120,11 @@ tap; all open in the builder so they can be edited). The **Image** section gaine
 cropped" choice (object-position). App settings > Theme has a **Footer**: a line of text and social links (Instagram,
 TikTok, YouTube, Facebook, X, email, website) drawn at the bottom of every page (`SiteFooter`). The app PATCH's theme
 schema now lists `layout` and `footer`; a theme key missing from it is silently dropped on every Save settings.
+
+Site-wide looks (`src/lib/pwa/theme-style.ts`): App settings > Theme offers **Fonts** (nine pairs of Google Fonts, loaded
+by a stylesheet link the published layout and the builder frames both add; `font_family` typed by hand still wins for
+the body), **Heading size** (Tailwind's `--text-*` variables are rescaled under `[data-heading-size]`, so every heading
+follows) and **Buttons** (`--button-radius`; apps that never chose keep today's shapes). Every section has
+**Background** (plain, tinted, a wash of the colour) and **Show on** (phones only / computers only: hidden with
+viewport classes on the site, shown with a badge in the builder), stored on the section's config as `appearance` and
+`show_on` and wrapped by `BlockRenderer`.

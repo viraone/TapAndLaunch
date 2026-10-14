@@ -75,6 +75,11 @@ export function SortableBlockItem({
           <Pencil className="h-3 w-3" /> Click the words to change them
         </span>
       )}
+      {(block.config as { show_on?: string }).show_on && (block.config as { show_on?: string }).show_on !== "all" && (
+        <div className="absolute bottom-1 left-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] text-muted-foreground shadow-sm">
+          {(block.config as { show_on?: string }).show_on === "phone" ? "Phones only" : "Computers only"}
+        </div>
+      )}
       {block.minTier && (
         <div
           className="absolute left-1 top-1 flex items-center gap-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] text-muted-foreground shadow-sm"

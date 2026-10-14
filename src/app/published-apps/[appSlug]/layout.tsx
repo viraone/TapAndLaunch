@@ -13,6 +13,7 @@ import { SiteFooter } from "@/components/pwa-runtime/SiteFooter";
 import { getCurrentMember } from "@/lib/pwa/get-current-member";
 import { orgInGoodStanding } from "@/lib/billing/standing";
 import { readableOn } from "@/lib/pwa/color";
+import { fontsHref, themeAttributes, themeStyle } from "@/lib/pwa/theme-style";
 
 // `params` is typed manually (Promise<{...}>) rather than via the generated
 // `LayoutProps<'/published-apps/[appSlug]'>` helper: that helper only exists after
@@ -125,14 +126,17 @@ export default async function PublishedAppLayout({
     ...(dark ? { ...DARK_TOKENS, ...(theme.background_color ? { "--background": theme.background_color } : {}) } : {}),
     ...(theme.primary_color ? { "--primary": theme.primary_color, "--primary-foreground": readableOn(theme.primary_color) } : {}),
     ...(theme.background_color ? { backgroundColor: theme.background_color } : {}),
-    ...(theme.font_family ? { fontFamily: theme.font_family } : {}),
+    ...themeStyle(theme),
   };
+  const fonts = fontsHref(theme);
 
   return (
     <div
       className={`mx-auto flex min-h-dvh w-full flex-col bg-background ${website ? "" : "max-w-md"} ${dark ? "dark text-foreground" : ""} ${tabs ? (website ? "pb-20 lg:pb-0" : "pb-20") : ""}`}
       style={style}
+      {...themeAttributes(theme)}
     >
+      {fonts && <link rel="stylesheet" href={fonts} />}
       {/* A dark app is dark edge to edge, including what shows past the
           column and when the page is pulled past its end on a phone. */}
       {pageBackground && HEX_COLOR.test(pageBackground) && (
