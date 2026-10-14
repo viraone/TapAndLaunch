@@ -60,7 +60,7 @@ export function Inspector({
         <div>
           <p className="text-sm font-semibold text-neutral-100">{pageName}</p>
           <p className="mt-0.5 text-xs text-neutral-500">
-            {blocks.length ? `${blocks.length} section${blocks.length === 1 ? "" : "s"} on this page. Tap one on the phone, or here, to change it.` : "No sections yet."}
+            {blocks.length ? `${blocks.length} section${blocks.length === 1 ? "" : "s"} on this page. Click its words on the page to change them, or pick one here for photos and settings.` : "No sections yet."}
           </p>
         </div>
         {blocks.length ? (

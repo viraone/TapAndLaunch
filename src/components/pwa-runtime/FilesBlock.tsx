@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 import type { FilesBlockConfig } from "@/types/database";
+import { EditableText } from "@/components/pwa-runtime/Editable";
 
 /**
  * Files visitors can open or download: a class's handouts, a menu as a PDF, a registration form, slides. Each file is
@@ -15,8 +16,8 @@ export function FilesBlockView({ config, live }: { config: FilesBlockConfig; liv
   }
   return (
     <section className="px-4 py-5 @lg:mx-auto @lg:max-w-3xl @lg:px-8 @lg:py-10">
-      {config.title && <h2 className="px-1 text-2xl font-extrabold tracking-tight @lg:text-4xl">{config.title}</h2>}
-      {config.intro && <p className="mt-1 px-1 text-sm text-muted-foreground">{config.intro}</p>}
+      <EditableText as="h2" path={["title"]} value={config.title} placeholder="Files" className="px-1 text-2xl font-extrabold tracking-tight @lg:text-4xl" />
+      <EditableText as="p" path={["intro"]} value={config.intro} placeholder="A line under the title" className="mt-1 px-1 text-sm text-muted-foreground" />
       <ul className={`space-y-2 ${config.title || config.intro ? "mt-4" : ""}`}>
         {items.map((item, i) => {
           const kind = fileKind(item.url);
@@ -32,8 +33,8 @@ export function FilesBlockView({ config, live }: { config: FilesBlockConfig; liv
                   {kind}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-semibold">{item.label?.trim() || fileName(item.url)}</span>
-                  {item.note && <span className="mt-0.5 block text-sm leading-snug text-muted-foreground">{item.note}</span>}
+                  <EditableText as="span" path={["items", i, "label"]} value={item.label} fallback={fileName(item.url)} placeholder={fileName(item.url)} className="block truncate text-[15px] font-semibold" />
+                  <EditableText as="span" path={["items", i, "note"]} value={item.note} placeholder="A short note" className="mt-0.5 block text-sm leading-snug text-muted-foreground" />
                 </span>
                 <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
               </a>

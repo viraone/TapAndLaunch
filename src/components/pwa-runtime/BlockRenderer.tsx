@@ -24,6 +24,7 @@ import type {
 } from "@/types/database";
 import { GalleryBlockView, HeroBlockView, HoursBlockView, PriceListBlockView, ReviewsBlockView, StatsBlockView } from "@/components/pwa-runtime/ShowcaseBlocks";
 import { FilesBlockView } from "@/components/pwa-runtime/FilesBlock";
+import { EditableText } from "@/components/pwa-runtime/Editable";
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
 import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
@@ -74,7 +75,7 @@ export function BlockRenderer({
   const live = pageId !== undefined;
   switch (block.type) {
     case "text":
-      return <TextBlockView config={block.config as TextBlockConfig} />;
+      return <TextBlockView config={block.config as TextBlockConfig} live={live} />;
     case "image":
       return <ImageBlockView config={block.config as ImageBlockConfig} live={live} />;
     case "video":
@@ -106,13 +107,13 @@ export function BlockRenderer({
     case "hero":
       return <HeroBlockView config={block.config as HeroBlockConfig} live={live} />;
     case "price_list":
-      return <PriceListBlockView config={block.config as PriceListBlockConfig} />;
+      return <PriceListBlockView config={block.config as PriceListBlockConfig} live={live} />;
     case "hours":
       return <HoursBlockView config={block.config as HoursBlockConfig} live={live} />;
     case "reviews":
-      return <ReviewsBlockView config={block.config as ReviewsBlockConfig} />;
+      return <ReviewsBlockView config={block.config as ReviewsBlockConfig} live={live} />;
     case "stats":
-      return <StatsBlockView config={block.config as StatsBlockConfig} />;
+      return <StatsBlockView config={block.config as StatsBlockConfig} live={live} />;
     case "gallery":
       return <GalleryBlockView config={block.config as GalleryBlockConfig} live={live} />;
     case "files":
@@ -122,14 +123,12 @@ export function BlockRenderer({
   }
 }
 
-function TextBlockView({ config }: { config: TextBlockConfig }) {
+function TextBlockView({ config, live }: { config: TextBlockConfig; live: boolean }) {
+  if (live && !config.heading && !config.body) return null;
   return (
     <div className="px-4 py-3 @lg:mx-auto @lg:max-w-3xl @lg:px-8 @lg:py-8">
-      {config.heading && <h2 className="text-lg font-semibold @lg:text-3xl @lg:tracking-tight">{config.heading}</h2>}
-      {config.body && <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap @lg:mt-3 @lg:text-[17px] @lg:leading-relaxed">{config.body}</p>}
-      {!config.heading && !config.body && (
-        <p className="text-sm text-muted-foreground italic">Empty text block</p>
-      )}
+      <EditableText as="h2" path={["heading"]} value={config.heading} placeholder="Heading" className="text-lg font-semibold @lg:text-3xl @lg:tracking-tight" />
+      <EditableText as="p" path={["body"]} value={config.body} placeholder="Write something here" multiline className="mt-1 text-sm text-muted-foreground @lg:mt-3 @lg:text-[17px] @lg:leading-relaxed" />
     </div>
   );
 }
@@ -199,7 +198,7 @@ function ProductListBlockView({
 }) {
   return (
     <div className="px-4 py-3 @lg:mx-auto @lg:max-w-5xl @lg:px-8 @lg:py-8">
-      {config.title && <h2 className="mb-2 text-lg font-semibold @lg:mb-5 @lg:text-3xl @lg:tracking-tight">{config.title}</h2>}
+      <EditableText as="h2" path={["title"]} value={config.title} placeholder="Shop" className="mb-2 text-lg font-semibold @lg:mb-5 @lg:text-3xl @lg:tracking-tight" />
       {products === undefined ? (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           Shows every active product when published.
@@ -226,7 +225,7 @@ function EventCalendarBlockView({
 }) {
   return (
     <div className="px-4 py-3 @lg:mx-auto @lg:max-w-4xl @lg:px-8 @lg:py-8">
-      {config.title && <h2 className="mb-2 text-lg font-semibold @lg:mb-5 @lg:text-3xl @lg:tracking-tight">{config.title}</h2>}
+      <EditableText as="h2" path={["title"]} value={config.title} placeholder="Upcoming events" className="mb-2 text-lg font-semibold @lg:mb-5 @lg:text-3xl @lg:tracking-tight" />
       {events === undefined ? (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           Shows every upcoming event when published.
@@ -247,8 +246,8 @@ function EventCalendarBlockView({
 function ZoomMeetingBlockView({ config }: { config: ZoomMeetingBlockConfig }) {
   return (
     <div className="mx-4 my-2 space-y-2 rounded-md border p-4">
-      {config.title && <h3 className="font-medium">{config.title}</h3>}
-      {config.description && <p className="text-sm text-muted-foreground">{config.description}</p>}
+      <EditableText as="h3" path={["title"]} value={config.title} placeholder="Join our meeting" className="font-medium" />
+      <EditableText as="p" path={["description"]} value={config.description} placeholder="A line about it" multiline className="text-sm text-muted-foreground" />
       {config.meeting_url ? (
         <a
           href={config.meeting_url}

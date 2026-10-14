@@ -149,13 +149,13 @@ export function BuilderClient({
     setSelectedBlockId(block.id);
   }
 
+  function updateBlockConfig(id: string, config: BlockConfig) {
+    setBlocks((prev) => prev.map((b) => (b.id === id ? ({ ...b, config } as BuilderBlock) : b)));
+  }
+
   function updateSelectedBlockConfig(config: BlockConfig) {
     if (!selectedBlockId) return;
-    setBlocks((prev) =>
-      prev.map((b) =>
-        b.id === selectedBlockId ? ({ ...b, config } as BuilderBlock) : b,
-      ),
-    );
+    updateBlockConfig(selectedBlockId, config);
   }
 
   function updateSelectedBlockMinTier(minTier: string | null) {
@@ -559,9 +559,9 @@ export function BuilderClient({
                     {blocks.length} section{blocks.length === 1 ? "" : "s"}
                     <span aria-hidden>·</span>{" "}
                     {blocks.length > 1
-                      ? "tap one to change it, drag to reorder"
+                      ? "click the words to change them, drag to reorder"
                       : blocks.length === 1
-                        ? "tap it to change it"
+                        ? "click the words to change them"
                         : "add one on the left"}
                   </>
                 )}
@@ -632,6 +632,7 @@ export function BuilderClient({
                             selected={block.id === selectedBlockId}
                             onSelect={() => setSelectedBlockId(block.id)}
                             onRemove={() => removeBlock(block.id)}
+                            onChange={(config) => updateBlockConfig(block.id, config)}
                           />
                         ))
                       )}

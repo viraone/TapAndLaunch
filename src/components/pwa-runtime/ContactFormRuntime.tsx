@@ -1,5 +1,6 @@
 "use client";
 
+import { EditableText } from "@/components/pwa-runtime/Editable";
 import { useState } from "react";
 import type { ContactFormBlockConfig } from "@/types/database";
 
@@ -56,7 +57,7 @@ export function ContactFormRuntime({
 
   return (
     <form onSubmit={handleSubmit} className="mx-4 my-2 space-y-3 rounded-md border p-4 @lg:mx-auto @lg:my-8 @lg:max-w-xl @lg:rounded-2xl @lg:p-8">
-      {config.title && <h3 className="font-medium">{config.title}</h3>}
+      <EditableText as="h3" path={["title"]} value={config.title} placeholder="Contact us" className="font-medium" />
       {(config.fields ?? []).map((field) => (
         <div key={field.name} className="space-y-1">
           <label className="text-sm font-medium">{field.label}</label>
