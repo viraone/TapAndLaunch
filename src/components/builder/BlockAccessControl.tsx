@@ -42,10 +42,10 @@ export function BlockAccessControl({
 
   return (
     <div className="space-y-1 border-t pt-3">
-      <Label>Visible to</Label>
+      <Label>Who can see this section</Label>
       <Select
         value={mode}
-        items={{ public: "Everyone", members: "Members only", custom: "Specific tier" }}
+        items={{ public: "Everyone", members: "Signed-in members only", custom: "Members with a certain tag" }}
         onValueChange={(value) => handleModeChange(value as Mode)}
       >
         <SelectTrigger className="w-full">
@@ -53,14 +53,14 @@ export function BlockAccessControl({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="public">Everyone</SelectItem>
-          <SelectItem value="members">Members only</SelectItem>
-          <SelectItem value="custom">Specific tier</SelectItem>
+          <SelectItem value="members">Signed-in members only</SelectItem>
+          <SelectItem value="custom">Members with a certain tag</SelectItem>
         </SelectContent>
       </Select>
       {mode === "custom" && (
         <Input
           className="mt-1"
-          placeholder="e.g. premium"
+          placeholder="The tag, like premium (set on each member under Members)"
           value={customTier}
           onChange={(e) => {
             setCustomTier(e.target.value);

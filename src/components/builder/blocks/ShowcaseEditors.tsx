@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUploadField } from "@/components/builder/ImageUploadField";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { GalleryBlockConfig, HeroBlockConfig, HoursBlockConfig, PriceListBlockConfig, ReviewsBlockConfig, StatsBlockConfig } from "@/types/database";
 import { linked } from "@/lib/builder/field-link";
 
@@ -47,7 +48,7 @@ const Card = ({ children }: { children: React.ReactNode }) => <div className="sp
 const replaceAt = <T,>(list: T[], i: number, value: T) => list.map((x, j) => (j === i ? value : x));
 const removeAt = <T,>(list: T[], i: number) => list.filter((_, j) => j !== i);
 
-export function HeroBlockEditor({ config, organizationId, onChange }: { config: HeroBlockConfig; organizationId: string; onChange: (c: HeroBlockConfig) => void }) {
+export function HeroBlockEditor({ config, organizationId, pages = [], onChange }: { config: HeroBlockConfig; organizationId: string; pages?: Array<{ path: string; name: string }>; onChange: (c: HeroBlockConfig) => void }) {
   return (
     <div className="space-y-3">
       <ImageUploadField id="hero-image" label="Background photo" organizationId={organizationId} value={config.image_url ?? ""} onChange={(image_url) => onChange({ ...config, image_url })} />
@@ -63,8 +64,24 @@ export function HeroBlockEditor({ config, organizationId, onChange }: { config: 
       <Field id="hero-button" label="Button text (leave empty for no button)">
         <Input id="hero-button" {...linked("button_label")} value={config.button_label ?? ""} maxLength={30} onChange={(e) => onChange({ ...config, button_label: e.target.value })} />
       </Field>
-      <Field id="hero-page" label="Button opens page (its address, like classes)">
-        <Input id="hero-page" value={config.button_page ?? ""} maxLength={60} onChange={(e) => onChange({ ...config, button_page: e.target.value.replace(/^\/+/, "") })} />
+      <Field id="hero-page" label="The button opens">
+        <Select
+          value={config.button_page ?? ""}
+          items={{ "": "Nothing yet", ...Object.fromEntries(pages.map((p) => [p.path, p.name])) }}
+          onValueChange={(value) => onChange({ ...config, button_page: value ?? "" })}
+        >
+          <SelectTrigger id="hero-page" className="w-full">
+            <SelectValue placeholder="Pick a page" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Nothing yet</SelectItem>
+            {pages.map((p) => (
+              <SelectItem key={p.path} value={p.path}>
+                {p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Field>
     </div>
   );

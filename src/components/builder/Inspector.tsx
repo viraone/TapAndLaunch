@@ -35,6 +35,7 @@ export function Inspector({
   checklist,
   publishing,
   onChecklistAction,
+  pages,
 }: {
   block: BuilderBlock | null;
   pageName: string;
@@ -44,6 +45,8 @@ export function Inspector({
   onClose: () => void;
   checklist: Checklist;
   publishing: boolean;
+  /** The app's pages, for pickers like "the banner's button opens page…". */
+  pages: Array<{ path: string; name: string }>;
   onChecklistAction: (step: ChecklistStepId) => void;
   appId: string;
   organizationId: string;
@@ -108,7 +111,7 @@ export function Inspector({
             <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/5 text-neutral-400">
               <MousePointerClick className="h-5 w-5" />
             </span>
-            <p className="text-xs leading-relaxed text-neutral-500">Add a section from the list on the left to start this page.</p>
+            <p className="text-xs leading-relaxed text-neutral-500">Use the + Add section button on the page to start it.</p>
           </div>
         )}
         <p className="rounded-2xl bg-white/[0.03] p-3 text-[11px] leading-relaxed text-neutral-500">
@@ -177,7 +180,7 @@ export function Inspector({
       {block.type === "class_finder" && (
         <ClassFinderBlockEditor config={block.config} onChange={onChange} />
       )}
-      {block.type === "hero" && <HeroBlockEditor config={block.config} organizationId={organizationId} onChange={onChange} />}
+      {block.type === "hero" && <HeroBlockEditor config={block.config} organizationId={organizationId} pages={pages} onChange={onChange} />}
       {block.type === "price_list" && <PriceListBlockEditor config={block.config} onChange={onChange} />}
       {block.type === "hours" && <HoursBlockEditor config={block.config} onChange={onChange} />}
       {block.type === "reviews" && <ReviewsBlockEditor config={block.config} onChange={onChange} />}

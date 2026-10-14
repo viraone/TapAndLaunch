@@ -25,6 +25,28 @@ import {
 import { Settings, Trash2, Plus } from "lucide-react";
 import { ImageUploadField } from "@/components/builder/ImageUploadField";
 import { DomainSettings } from "@/components/builder/DomainSettings";
+
+/** The pictures a tab can have, in plain words (the names are what `BottomNav` draws). */
+const NAV_ICONS: Record<string, string> = {
+  home: "Home",
+  calendar: "Calendar",
+  info: "Info",
+  mail: "Mail",
+  user: "Person",
+  shop: "Shopping",
+  search: "Search",
+  settings: "Settings",
+  plus: "Plus",
+  pencil: "Pencil",
+};
+
+/** How the app opens once someone adds it to their phone's home screen. */
+const DISPLAY_MODES: Record<string, string> = {
+  standalone: "Like an app, with no browser bar (recommended)",
+  fullscreen: "Full screen, no bars at all",
+  "minimal-ui": "Like an app, with a small browser bar",
+  browser: "In the browser, like any website",
+};
 import type { Database, ManifestConfig, ThemeConfig } from "@/types/database";
 
 type AppRow = Database["public"]["Tables"]["apps"]["Row"];
@@ -111,8 +133,8 @@ export function AppSettingsDialog({
       <DialogTrigger
         render={
           // A gear on its own said nothing to a first-timer; the button names what is behind it.
-          <Button type="button" variant="ghost" className="h-9 rounded-full px-3 text-xs font-medium text-neutral-300 hover:bg-white/10 hover:text-white" aria-label="Colors, icon and app settings" data-app-settings>
-            <Settings className="h-4 w-4" /> Colors &amp; settings
+          <Button type="button" variant="ghost" className="h-9 rounded-full px-3 text-xs font-medium text-neutral-300 hover:bg-white/10 hover:text-white" aria-label="Design, icon, domain and other settings" data-app-settings>
+            <Settings className="h-4 w-4" /> Design &amp; settings
           </Button>
         }
       />
@@ -129,7 +151,7 @@ export function AppSettingsDialog({
               </TabsTrigger>
             )}
             <TabsTrigger value="manifest" className="flex-1">
-              App icon &amp; manifest
+              Icon &amp; name
             </TabsTrigger>
             <TabsTrigger value="domain" className="flex-1">
               Domain
@@ -181,10 +203,10 @@ export function AppSettingsDialog({
               </div>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="theme-font">Font family</Label>
+              <Label htmlFor="theme-font">Font (optional)</Label>
               <Input
                 id="theme-font"
-                placeholder="e.g. Inter, system-ui"
+                placeholder="Leave empty for the standard font"
                 value={theme.font_family ?? ""}
                 onChange={(e) => setTheme({ ...theme, font_family: e.target.value })}
               />
@@ -223,7 +245,8 @@ export function AppSettingsDialog({
             </div>
 
             <div className="space-y-2">
-              <Label>Bottom navigation</Label>
+              <Label>Tabs at the bottom (and the menu at the top of a website)</Label>
+              <p className="text-xs text-muted-foreground">Each tab needs a name, a picture and the page it opens.</p>
               {bottomNav.map((item, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <Input
@@ -232,12 +255,18 @@ export function AppSettingsDialog({
                     onChange={(e) => updateNavItem(index, { label: e.target.value })}
                     className="flex-1"
                   />
-                  <Input
-                    placeholder="Icon"
-                    value={item.icon}
-                    onChange={(e) => updateNavItem(index, { icon: e.target.value })}
-                    className="w-20"
-                  />
+                  <Select value={NAV_ICONS[item.icon] ? item.icon : "info"} items={NAV_ICONS} onValueChange={(value) => updateNavItem(index, { icon: value ?? "info" })}>
+                    <SelectTrigger className="w-28" aria-label="Picture">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(NAV_ICONS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Select
                     value={item.page_path}
                     items={Object.fromEntries(pages.map((page) => [page.path, page.name]))}
@@ -282,7 +311,7 @@ export function AppSettingsDialog({
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="manifest-short-name">Short name</Label>
+              <Label htmlFor="manifest-short-name">Short name (under the icon on a phone, 12 letters at most)</Label>
               <Input
                 id="manifest-short-name"
                 maxLength={12}
@@ -300,20 +329,21 @@ export function AppSettingsDialog({
               />
             </div>
             <div className="space-y-1">
-              <Label>Display mode</Label>
+              <Label>When opened from a phone&apos;s home screen</Label>
               <Select
                 value={manifest.display ?? "standalone"}
-                items={{ standalone: "Standalone", fullscreen: "Fullscreen", "minimal-ui": "Minimal UI", browser: "Browser" }}
+                items={DISPLAY_MODES}
                 onValueChange={(value) => setManifest({ ...manifest, display: value as ManifestConfig["display"] })}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="standalone">Standalone</SelectItem>
-                  <SelectItem value="fullscreen">Fullscreen</SelectItem>
-                  <SelectItem value="minimal-ui">Minimal UI</SelectItem>
-                  <SelectItem value="browser">Browser</SelectItem>
+                  {Object.entries(DISPLAY_MODES).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

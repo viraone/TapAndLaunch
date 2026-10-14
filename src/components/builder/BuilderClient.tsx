@@ -44,7 +44,7 @@ import { AppSettingsDialog } from "@/components/builder/AppSettingsDialog";
 import { BottomNav } from "@/components/pwa-runtime/BottomNav";
 import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { createClient } from "@/lib/supabase/client";
-import { defaultConfigFor } from "@/lib/builder/block-defaults";
+import { BLOCK_TYPE_LABELS, defaultConfigFor } from "@/lib/builder/block-defaults";
 import type { BuilderBlock } from "@/components/builder/types";
 import type { BlockConfig, BlockType, Database } from "@/types/database";
 
@@ -186,8 +186,16 @@ export function BuilderClient({
   }
 
   function removeBlock(id: string) {
+    const index = blocks.findIndex((b) => b.id === id);
+    const removed = blocks[index];
     setBlocks((prev) => prev.filter((b) => b.id !== id));
     if (selectedBlockId === id) setSelectedBlockId(null);
+    if (!removed) return;
+    // One click removes a whole section, and it saves on its own: so the toast offers to put it back.
+    toast(`${BLOCK_TYPE_LABELS[removed.type]} section removed`, {
+      action: { label: "Undo", onClick: () => setBlocks((prev) => (prev.some((b) => b.id === id) ? prev : [...prev.slice(0, index), removed, ...prev.slice(index)])) },
+      duration: 8000,
+    });
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -315,6 +323,7 @@ export function BuilderClient({
   }, [saveState]);
 
   function togglePublish() {
+    if (currentApp.status === "published" && !window.confirm(`Take ${liveHost} offline? Visitors will get a "not found" page until you publish again. Your work is kept.`)) return;
     const nextStatus =
       currentApp.status === "published" ? "draft" : "published";
     startPublishing(async () => {
@@ -372,7 +381,9 @@ export function BuilderClient({
   const currentPagePath = currentPage?.path;
   const live = currentApp.status === "published";
   // Protocol-relative, like the other links to the published app, so it also works on localhost.
-  const liveUrl = live ? `//${currentApp.slug}.${rootDomain}` : null;
+  // The app's own domain once it is connected; otherwise its address under TapAndLaunch.
+  const liveUrl = !live ? null : currentApp.custom_domain && currentApp.custom_domain_status === "verified" ? `https://${currentApp.custom_domain}` : `//${currentApp.slug}.${rootDomain}`;
+  const liveHost = currentApp.custom_domain && currentApp.custom_domain_status === "verified" ? currentApp.custom_domain : `${currentApp.slug}.${rootDomain}`;
   const checklist = buildChecklist({
     hasContent: blocks.length > 0 || contentOnOtherPages,
     hasIcon: !!currentApp.manifest.icon_url,
@@ -448,12 +459,12 @@ export function BuilderClient({
                   rel="noreferrer"
                   className="hidden items-center gap-1 truncate text-xs text-neutral-500 transition hover:text-white sm:inline-flex"
                 >
-                  {currentApp.slug}.{rootDomain}{" "}
+                  {liveHost}{" "}
                   <ArrowUpRight className="h-3 w-3" />
                 </a>
               ) : (
                 <p className="hidden truncate text-xs text-neutral-500 sm:block">
-                  When live: {currentApp.slug}.{rootDomain}
+                  When live: {liveHost}
                 </p>
               )}
             </div>
@@ -671,6 +682,7 @@ export function BuilderClient({
               organizationId={currentApp.organization_id}
               onChange={updateSelectedBlockConfig}
               onMinTierChange={updateSelectedBlockMinTier}
+              pages={pages.map((p) => ({ path: p.path, name: p.name }))}
             />
           </aside>
         </div>

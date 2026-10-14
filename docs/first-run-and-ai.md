@@ -92,3 +92,11 @@ switched off in the builder for now (`AI_CHAT_ENABLED` in the builder page); the
 The inspector's list of sections shows a few words from each ("Banner · Come laugh with me"), and hovering a row
 outlines that section on the page and scrolls to it (`data-block-id` on the section, `data-block-pointed` styled in
 globals.css).
+
+## Builder regression pass (2026-10-14)
+Walked through as a non-technical owner, then fixed: removing a section offers **Undo** in a toast for eight seconds
+(it autosaves, so there was no way back); **Unpublish** asks first and says what visitors will see; the top bar shows
+the app's own domain once it is connected; the banner's button picks its page from a list instead of a typed address;
+plain-words labels in App settings ("Design & settings", "Icon & name", "Font (optional)", "Tabs at the bottom", the
+home-screen mode in sentences, a picture picker for tabs) and on sections ("Who can see this section"). Still open:
+pages can be added but not renamed or deleted (no API for it yet).
