@@ -112,3 +112,6 @@ merchant configuration cannot.
 
 Resolved: Stripe approved the platform (email "TapAndLaunch is approved to create live accounts and charges", seen 2026-10-13). Next is the live
 store test: connect a store in live mode, make one real purchase, refund it (see the admin board).
+
+Done 2026-10-14: the StageTimePNW workspace connected in live mode, a real $1.00 purchase showed Paid through the webhook, and a refund started in the
+connected account's Stripe dashboard showed Refunded within a minute. Stripe keeps its processing fee (about 30 cents) on a refund.

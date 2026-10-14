@@ -13,7 +13,8 @@ _Last updated: 2026-10-06._ Tick items as they are done and note the date.
       email, seen 2026-10-13). Before this, creating a live connected account failed with `account_create_activation_required`
 - [x] Live webhook endpoints created (subscriptions + store payments); live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and
       `STRIPE_BILLING_WEBHOOK_SECRET` in Vercel; redeployed (2026-10-05)
-- [ ] One small real store purchase and refund (needs the review above, then a store connected in live mode; none yet)
+- [x] One small real store purchase and refund: done 2026-10-14. StageTimePNW's workspace is connected in live mode (sole proprietor, Radar Lite);
+      a $1.00 order went Paid by itself via the webhook, and a refund from Stripe's dashboard turned it Refunded. The test app was unpublished.
 - [ ] Delete test organizations and test apps from production (firstrun3 after its plan ends Nov 4; shop1 after the live store
       test; the two leftover test apps were unpublished 2026-10-05)
 
