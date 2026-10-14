@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowRight, Check, Copy, Link2, MapPin, Share2 } from "lucide-react";
 import { EditableImage, EditableText } from "@/components/pwa-runtime/Editable";
+import { useLook } from "@/components/pwa-runtime/Look";
 import type { AudioBlockConfig, ImageTextBlockConfig, MapBlockConfig, NewsletterBlockConfig, ShareBlockConfig } from "@/types/database";
 
 /** A picture beside words: the picture on the left or the right on a wide screen, stacked on a phone. */
@@ -32,11 +33,37 @@ export function ImageTextBlockView({ config, live }: { config: ImageTextBlockCon
   );
 }
 
-/** Join the list: an email box that adds the person to the app's members, who the owner can email from Notifications. */
+/** Join the list: an email box that adds the person to the app's members, who the owner can email from Notifications.
+ * Drawn per look: a tinted box (classic, split), a hairlined box on the paper (editorial), an edge-to-edge band in the
+ * colour (bold), a dark band lit by the colour (cinematic). */
 export function NewsletterBlockView({ config, live }: { config: NewsletterBlockConfig; live: boolean }) {
+  const look = useLook();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
-  async function submit(e: React.FormEvent) {
+  const band = look === "bold" || look === "cinematic";
+  const shell = {
+    classic: "rounded-3xl bg-primary/10 p-6 @lg:p-10",
+    split: "rounded-3xl bg-[var(--surface)] p-6 @lg:p-10",
+    editorial: "border border-border p-8 @lg:p-12",
+    bold: "bg-primary px-5 py-10 text-primary-foreground @lg:py-16",
+    cinematic: "relative isolate overflow-hidden bg-[#0b0b0d] px-5 py-12 text-white @lg:py-16",
+  }[look];
+  const input = {
+    classic: "border border-border bg-background focus:ring-primary",
+    split: "border border-border bg-background focus:ring-primary",
+    editorial: "border-0 border-b border-foreground/40 bg-transparent rounded-none px-1 focus:ring-0 focus:border-foreground",
+    bold: "border-0 bg-white text-neutral-950 focus:ring-white",
+    cinematic: "border border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:ring-[var(--accent)]",
+  }[look];
+  const submit = {
+    classic: "bg-primary text-primary-foreground",
+    split: "bg-primary text-primary-foreground",
+    editorial: "bg-foreground text-background",
+    bold: "bg-foreground text-background",
+    cinematic: "bg-[var(--accent)] text-neutral-950",
+  }[look];
+  const muted = band ? (look === "bold" ? "text-primary-foreground/80" : "text-white/70") : "text-muted-foreground";
+  async function submitForm(e: React.FormEvent) {
     e.preventDefault();
     if (!live) return;
     setStatus("sending");
@@ -48,30 +75,33 @@ export function NewsletterBlockView({ config, live }: { config: NewsletterBlockC
     }
   }
   return (
-    <section className="px-4 py-6 @lg:mx-auto @lg:max-w-2xl @lg:px-8 @lg:py-10">
-      <div className="rounded-3xl bg-primary/10 p-6 text-center @lg:p-10">
-        <EditableText as="h2" path={["title"]} value={config.title} placeholder="Join the mailing list" className="text-2xl font-extrabold tracking-tight @lg:text-3xl" />
-        <EditableText as="p" path={["intro"]} value={config.intro} placeholder="A line about what they'll get" className="mt-1 text-sm text-muted-foreground" />
-        {status === "done" ? (
-          <p className="mt-5 inline-flex items-center gap-2 text-[15px] font-semibold">
-            <Check className="h-5 w-5 text-primary" /> <EditableText path={["success"]} value={config.success} fallback="You're on the list." placeholder="You're on the list." />
-          </p>
-        ) : (
-          <form onSubmit={submit} className="mt-5 flex flex-col gap-2 @md:flex-row">
-            <input
-              type="email"
-              required
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="pointer-events-auto h-12 flex-1 rounded-[var(--button-radius,9999px)] border border-border bg-background px-5 text-[15px] outline-none focus:ring-2 focus:ring-primary"
-            />
-            <button type="submit" disabled={status === "sending"} className="inline-flex h-12 items-center justify-center rounded-[var(--button-radius,9999px)] bg-primary px-6 text-[15px] font-bold text-primary-foreground disabled:opacity-60">
-              <EditableText path={["button_label"]} value={config.button_label} fallback="Sign up" placeholder="Sign up" />
-            </button>
-          </form>
-        )}
-        {status === "error" && <p className="mt-2 text-sm text-destructive">That didn&rsquo;t go through. Try again.</p>}
+    <section className={band ? "" : "px-4 py-6 @lg:mx-auto @lg:max-w-2xl @lg:px-8 @lg:py-10"}>
+      <div className={`text-center ${shell}`}>
+        {look === "cinematic" && <div aria-hidden className="absolute -top-24 left-1/2 -z-10 h-64 w-[36rem] -translate-x-1/2 rounded-full bg-[var(--accent)] opacity-25 blur-3xl" />}
+        <div className={band ? "mx-auto max-w-2xl" : ""}>
+          <EditableText as="h2" path={["title"]} value={config.title} placeholder="Join the mailing list" className={`text-2xl font-extrabold tracking-tight @lg:text-3xl ${look === "bold" ? "uppercase @lg:text-5xl" : ""}`} />
+          <EditableText as="p" path={["intro"]} value={config.intro} placeholder="A line about what they'll get" className={`mt-1 text-sm ${muted}`} />
+          {status === "done" ? (
+            <p className="mt-5 inline-flex items-center gap-2 text-[15px] font-semibold">
+              <Check className={`h-5 w-5 ${band ? "" : "text-primary"}`} /> <EditableText path={["success"]} value={config.success} fallback="You're on the list." placeholder="You're on the list." />
+            </p>
+          ) : (
+            <form onSubmit={submitForm} className="mt-5 flex flex-col gap-2 @md:flex-row">
+              <input
+                type="email"
+                required
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`pointer-events-auto h-12 flex-1 rounded-[var(--button-radius,9999px)] px-5 text-[15px] outline-none focus:ring-2 ${input}`}
+              />
+              <button type="submit" disabled={status === "sending"} className={`inline-flex h-12 items-center justify-center rounded-[var(--button-radius,9999px)] px-6 text-[15px] font-bold disabled:opacity-60 ${submit}`}>
+                <EditableText path={["button_label"]} value={config.button_label} fallback="Sign up" placeholder="Sign up" />
+              </button>
+            </form>
+          )}
+          {status === "error" && <p className="mt-2 text-sm text-destructive">That didn&rsquo;t go through. Try again.</p>}
+        </div>
       </div>
     </section>
   );

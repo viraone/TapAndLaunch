@@ -81,10 +81,14 @@ export function BlockRenderer(props: {
   const options = props.block.config as SectionOptions;
   const live = props.pageId !== undefined;
   // On the published site a phone-only section is hidden on wide screens (and the reverse); in the builder it stays
-  // visible with a badge, so it can still be edited.
+  // visible with a badge, so it can still be edited. Every section is wrapped and named (`data-block-type`) so a
+  // look can style it from globals.css; on the published site it also reveals as it scrolls in (RevealObserver).
   const classes = [APPEARANCE[options.appearance ?? ""], live ? SHOW_ON[options.show_on ?? ""] : ""].filter(Boolean).join(" ");
-  const inner = <BlockBody {...props} />;
-  return classes ? <div className={classes}>{inner}</div> : inner;
+  return (
+    <div className={classes || undefined} data-block-type={props.block.type} {...(live ? { "data-reveal": "" } : {})}>
+      <BlockBody {...props} />
+    </div>
+  );
 }
 
 function BlockBody({

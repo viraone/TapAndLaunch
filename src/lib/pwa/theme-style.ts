@@ -48,12 +48,16 @@ export function themeStyle(theme: ThemeConfig): Record<string, string> {
   if (body) vars.fontFamily = body;
   if (pair?.heading) vars["--font-heading"] = `"${pair.heading}", ${body || "system-ui, sans-serif"}`;
   if (theme.button_shape && BUTTON_RADIUS[theme.button_shape]) vars["--button-radius"] = BUTTON_RADIUS[theme.button_shape];
+  // Inline, so it beats the accent each look derives in globals.css.
+  if (theme.accent_color?.trim()) vars["--accent"] = theme.accent_color.trim();
   return vars;
 }
 
-/** Data attributes for the root of the app (headings scale through Tailwind's size variables; see globals.css). */
+/** Data attributes for the root of the app (headings scale through Tailwind's size variables, and each look sets
+ * its accent and surface; see globals.css). */
 export function themeAttributes(theme: ThemeConfig): Record<string, string> {
   const attrs: Record<string, string> = { "data-app-styles": "" };
   if (theme.heading_size && theme.heading_size !== "normal") attrs["data-heading-size"] = theme.heading_size;
+  if (theme.look && theme.look !== "classic") attrs["data-look"] = theme.look;
   return attrs;
 }

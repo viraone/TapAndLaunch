@@ -114,6 +114,7 @@ describe("starter templates", () => {
       const starter = buildStarter(topic.id, "X");
       const flavour = WEBSITE_STYLES[topic.style];
       expect(starter.theme, topic.id).toMatchObject(flavour.theme);
+      expect(starter.theme.look, topic.id).toBe(topic.style);
       expect(starter.manifest.background_color, topic.id).toBe(flavour.theme.background_color);
       expect(websiteStyleOf(starter.theme), topic.id).toBe(topic.style);
       // The quote is on Home for editorial sites, on About for the rest — once, never twice.

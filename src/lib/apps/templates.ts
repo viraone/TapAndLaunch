@@ -1,6 +1,7 @@
 import { defaultConfigFor } from "@/lib/builder/block-defaults";
 import { starterFiles } from "@/lib/code/prompt";
 import { isMapsBlock } from "@/lib/platform/maps-shared";
+import { LOOKS, lookOf, lookTheme, type LookId } from "@/lib/pwa/look";
 import type { BlockConfig, BlockType, ManifestConfig, ThemeConfig } from "@/types/database";
 
 /**
@@ -65,39 +66,13 @@ export interface StarterTemplate {
  * photographer never opens their new site to a stock photo of someone else's wedding.
  */
 /**
- * Five flavours a topic website can have, each a real set of site-wide looks (App settings > Theme would show the
- * same choices) and, for editorial, a different block order. Sixteen sites in the same font, on the same white, with
- * the same round buttons looked like a factory; these are what make Weddings and Technology feel like different
- * places before a word is changed. The picker's mockup draws whichever flavour the site really has.
+ * A topic website's flavour is one of the five looks in lib/pwa/look.ts (a real preset of the site-wide controls,
+ * plus how the banner, highlights, reviews, newsletter and header are laid out). Kept under these names so the
+ * picker and its tests read naturally; the look is written into the new site's theme as `theme.look`.
  */
-export type WebsiteStyleId = "classic" | "editorial" | "cinematic" | "bold" | "split";
-
-export const WEBSITE_STYLES: Record<
-  WebsiteStyleId,
-  {
-    name: string;
-    feel: string;
-    theme: Pick<ThemeConfig, "font_pair" | "color_scheme" | "background_color" | "button_shape" | "heading_size">;
-    /** The quote opens the Home page (after the banner) instead of closing About. */
-    quoteOnHome?: boolean;
-  }
-> = {
-  classic: { name: "Classic", feel: "Clean and direct", theme: { font_pair: "inter", background_color: "#fafafa", button_shape: "round", heading_size: "normal" } },
-  editorial: { name: "Editorial", feel: "Serif headlines on warm paper", theme: { font_pair: "playfair", background_color: "#faf6ef", button_shape: "rounded", heading_size: "large" }, quoteOnHome: true },
-  cinematic: { name: "Cinematic", feel: "Dark, with the colour as light", theme: { font_pair: "space", color_scheme: "dark", background_color: "#0a0a0a", button_shape: "rounded", heading_size: "large" } },
-  bold: { name: "Bold", feel: "Poster headlines, square corners", theme: { font_pair: "bebas", background_color: "#fffdf7", button_shape: "square", heading_size: "large" } },
-  split: { name: "Split", feel: "Headline beside the work", theme: { font_pair: "dm", background_color: "#f6f6fb", button_shape: "round", heading_size: "normal" } },
-};
-
-/** Which flavour a website theme is, read back from the theme itself (the pairs are distinct), so a preview drawn
- * from a saved app stays honest. Anything unrecognised is classic. */
-export function websiteStyleOf(theme: ThemeConfig): WebsiteStyleId {
-  if (theme.color_scheme === "dark") return "cinematic";
-  if (theme.font_pair === "playfair") return "editorial";
-  if (theme.font_pair === "bebas") return "bold";
-  if (theme.font_pair === "dm") return "split";
-  return "classic";
-}
+export type WebsiteStyleId = LookId;
+export const WEBSITE_STYLES = LOOKS;
+export const websiteStyleOf = lookOf;
 
 export interface WebsiteTopic {
   id: string;
@@ -923,7 +898,7 @@ function buildStarterBody(templateId: string, appName: string, about?: string): 
       manifest: { ...manifest, background_color: flavour.theme.background_color },
       theme: {
         ...theme,
-        ...flavour.theme,
+        ...lookTheme(topic.style),
         layout: "website",
         bottom_nav_style: "tabs",
         bottom_nav: [

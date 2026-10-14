@@ -11,6 +11,8 @@ import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { PublishedSiteHeader } from "@/components/pwa-runtime/PublishedSiteHeader";
 import { SiteFooter } from "@/components/pwa-runtime/SiteFooter";
 import { AnnouncementBar, CookieNotice } from "@/components/pwa-runtime/SiteNotices";
+import { LookProvider, RevealObserver } from "@/components/pwa-runtime/Look";
+import { lookOf } from "@/lib/pwa/look";
 import { getCurrentMember } from "@/lib/pwa/get-current-member";
 import { orgInGoodStanding } from "@/lib/billing/standing";
 import { readableOn } from "@/lib/pwa/color";
@@ -144,12 +146,15 @@ export default async function PublishedAppLayout({
         <style>{`html,body{background:${pageBackground};color-scheme:dark}`}</style>
       )}
       <ServiceWorkerRegister deploy={deployId()} />
+      <RevealObserver />
       <AnnouncementBar theme={theme} />
       {theme.show_member_bar !== false && <MemberAccountBar member={member} />}
       {website ? <PublishedSiteHeader theme={theme} homePagePath={homePagePath} /> : <AppHeader theme={theme} />}
       <div className={`@container flex flex-1 flex-col overflow-y-auto ${website ? "mx-auto w-full max-w-6xl" : ""}`}>
-        {children}
-        <SiteFooter theme={theme} />
+        <LookProvider look={lookOf(theme)}>
+          {children}
+          <SiteFooter theme={theme} />
+        </LookProvider>
       </div>
       <div className={website ? "lg:hidden" : undefined}>
         <PublishedBottomNav

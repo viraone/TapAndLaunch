@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { ThemeConfig } from "@/types/database";
 import { fontsHref, themeAttributes, themeStyle } from "@/lib/pwa/theme-style";
+import { lookOf } from "@/lib/pwa/look";
+import { LookProvider } from "@/components/pwa-runtime/Look";
 
 /** The preview root style: the primary colour plus the site-wide looks (fonts, button shape). */
 function frameStyle(theme?: ThemeConfig): React.CSSProperties | undefined {
@@ -165,11 +167,13 @@ export function DesktopPreviewFrame({ theme, children }: { theme?: ThemeConfig; 
   );
 }
 
-/** The preview frame for the chosen device: a phone, or a laptop browser. */
+/** The preview frame for the chosen device: a phone, or a laptop browser. The sections inside draw themselves for
+ * the app's look (lib/pwa/look.ts), the same way the published layout provides it. */
 export function PreviewFrame({ device, theme, children }: { device: DeviceFrame; theme?: ThemeConfig; children: React.ReactNode }) {
+  const inner = <LookProvider look={lookOf(theme)}>{children}</LookProvider>;
   return device === "desktop" ? (
-    <DesktopPreviewFrame theme={theme}>{children}</DesktopPreviewFrame>
+    <DesktopPreviewFrame theme={theme}>{inner}</DesktopPreviewFrame>
   ) : (
-    <MobilePreviewFrame device={device} theme={theme}>{children}</MobilePreviewFrame>
+    <MobilePreviewFrame device={device} theme={theme}>{inner}</MobilePreviewFrame>
   );
 }

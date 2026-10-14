@@ -161,6 +161,86 @@
   --text-4xl: 2.6rem;
   --text-6xl: 4.4rem;
 }
+/* Looks (lib/pwa/look.ts). Each look derives an accent (eyebrows, rules, stars, glows) and a surface (cards) from the
+   primary colour; an `accent_color` in the theme is set inline on the root and so wins. */
+[data-app-styles] {
+  --accent: var(--primary);
+  --surface: color-mix(in oklab, var(--muted) 60%, transparent);
+}
+[data-look="editorial"] {
+  --accent: color-mix(in oklab, var(--primary) 72%, #1c1917);
+  --surface: color-mix(in oklab, var(--primary) 6%, var(--background));
+}
+[data-look="cinematic"] {
+  --accent: color-mix(in oklab, var(--primary) 62%, white);
+  --surface: rgba(255, 255, 255, 0.06);
+}
+[data-look="bold"] {
+  --surface: color-mix(in oklab, var(--primary) 10%, var(--background));
+}
+[data-look="split"] {
+  --surface: color-mix(in oklab, var(--primary) 7%, var(--background));
+}
+/* Editorial reads like a magazine: a narrower measure and looser lines for paragraphs. */
+[data-look="editorial"] [data-block-type="text"] :is(p, [contenteditable]) {
+  font-size: 1.0625rem;
+  line-height: 1.8;
+}
+
+/* Banner backgrounds (HeroBlockView): shaded, a slow-moving dark mesh, and a film grain. */
+.hero-gradient {
+  background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 55%, #0a0a0a));
+}
+.hero-mesh {
+  background:
+    radial-gradient(90% 80% at 15% 20%, color-mix(in oklab, var(--primary) 70%, #000) 0%, transparent 60%),
+    radial-gradient(70% 70% at 85% 80%, color-mix(in oklab, var(--accent, var(--primary)) 55%, #000) 0%, transparent 55%),
+    #050505;
+  background-size: 160% 160%;
+  animation: hero-drift 16s ease-in-out infinite alternate;
+}
+@keyframes hero-drift {
+  from {
+    background-position: 0% 0%;
+  }
+  to {
+    background-position: 100% 100%;
+  }
+}
+.hero-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* Reveal on scroll (RevealObserver): hidden only once the script has taken charge, so nothing is ever hidden for a
+   crawler or without JavaScript. */
+[data-reveal] {
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
+}
+html[data-reveal-ready] [data-reveal]:not([data-in]) {
+  opacity: 0;
+  transform: translateY(14px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-mesh {
+    animation: none;
+  }
+  [data-reveal] {
+    transition: none;
+  }
+  html[data-reveal-ready] [data-reveal]:not([data-in]) {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 [data-heading-size="compact"] {
   --text-lg: 1.05rem;
   --text-xl: 1.15rem;

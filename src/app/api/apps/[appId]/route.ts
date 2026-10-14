@@ -24,6 +24,8 @@ const ThemeSchema = z.object({
   font_pair: z.string().max(30).optional(),
   heading_size: z.enum(["normal", "large", "compact"]).optional(),
   button_shape: z.enum(["round", "rounded", "square"]).optional(),
+  look: z.enum(["classic", "editorial", "cinematic", "bold", "split"]).optional(),
+  accent_color: z.string().max(30).optional(),
   footer: z
     .object({
       text: z.string().max(200).optional(),

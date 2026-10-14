@@ -31,6 +31,7 @@ export function EditableText({
   multiline = false,
   fallback,
   rich = false,
+  style,
 }: {
   /** The HTML tag to render: "h2", "p", "span", "dd"... */
   as?: string;
@@ -38,6 +39,8 @@ export function EditableText({
   path: Array<string | number>;
   value: string | null | undefined;
   className?: string;
+  /** Inline styles, e.g. the heading font on an element that isn't a heading. */
+  style?: React.CSSProperties;
   /** Shown faintly in the builder while the field is empty. */
   placeholder?: string;
   /** Enter adds a line (otherwise Enter finishes editing). */
@@ -72,9 +75,9 @@ export function EditableText({
   }, [editing, key]);
 
   if (!editing) {
-    if (!text) return fallback ? createElement(as, { className }, fallback) : null;
-    if (rich) return createElement(as, { className }, createElement(RichText, { text }));
-    return createElement(as, { className: cn(className, multiline && "whitespace-pre-wrap") }, text);
+    if (!text) return fallback ? createElement(as, { className, style }, fallback) : null;
+    if (rich) return createElement(as, { className, style }, createElement(RichText, { text }));
+    return createElement(as, { className: cn(className, multiline && "whitespace-pre-wrap"), style }, text);
   }
 
   const Tag = as as React.ElementType;
@@ -82,6 +85,7 @@ export function EditableText({
     <Tag
       key={generation}
       ref={el}
+      style={style}
       data-field={key}
       onFocus={() => {
         setFocused(true);

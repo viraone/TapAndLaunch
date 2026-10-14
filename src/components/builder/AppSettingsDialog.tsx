@@ -28,6 +28,7 @@ import { DomainSettings } from "@/components/builder/DomainSettings";
 import { Switch } from "@/components/ui/switch";
 import { SOCIAL_KINDS } from "@/components/pwa-runtime/SiteFooter";
 import { BUTTON_SHAPES, FONT_PAIRS, HEADING_SIZES } from "@/lib/pwa/theme-style";
+import { LOOKS, LOOK_IDS, lookOf, lookTheme } from "@/lib/pwa/look";
 
 /** The pictures a tab can have, in plain words (the names are what `BottomNav` draws). */
 const NAV_ICONS: Record<string, string> = {
@@ -185,7 +186,30 @@ export function AppSettingsDialog({
                 })}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            {theme.layout === "website" && (
+              <div className="space-y-2">
+                <Label>Look</Label>
+                <p className="text-xs text-muted-foreground">How the site is put together: the banner, the highlights, the reviews, the header. Picking one also sets its fonts, heading size, button shape and page background; change any of them below.</p>
+                <div role="group" aria-label="Look" className="grid grid-cols-2 gap-2 @md:grid-cols-3">
+                  {LOOK_IDS.map((id) => {
+                    const selected = lookOf(theme) === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => setTheme({ ...theme, ...lookTheme(id) })}
+                        className={`rounded-2xl border p-2.5 text-left transition ${selected ? "border-white bg-white/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"}`}
+                      >
+                        <p className="text-sm font-semibold">{LOOKS[id].name}</p>
+                        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{LOOKS[id].feel}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="theme-primary">Primary color</Label>
                 <Input
@@ -194,6 +218,17 @@ export function AppSettingsDialog({
                   value={theme.primary_color ?? "#000000"}
                   onChange={(e) => setTheme({ ...theme, primary_color: e.target.value })}
                 />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="theme-accent">Accent</Label>
+                <Input id="theme-accent" type="color" value={theme.accent_color ?? theme.primary_color ?? "#000000"} onChange={(e) => setTheme({ ...theme, accent_color: e.target.value })} />
+                {theme.accent_color ? (
+                  <button type="button" onClick={() => setTheme({ ...theme, accent_color: undefined })} className="text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground">
+                    Back to the look&apos;s own
+                  </button>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">Small things: labels, rules, stars.</p>
+                )}
               </div>
               <div className="space-y-1">
                 <Label htmlFor="theme-bg">Background color</Label>

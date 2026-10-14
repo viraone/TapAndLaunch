@@ -1,5 +1,6 @@
 "use client";
 
+import { useLook } from "@/components/pwa-runtime/Look";
 import { useState } from "react";
 import { ArrowRight, ChevronDown, Quote } from "lucide-react";
 import { EditableText } from "@/components/pwa-runtime/Editable";
@@ -39,17 +40,40 @@ export function ButtonBlockView({ config, live }: { config: ButtonBlockConfig; l
 
 /** One big quote: a review that deserves the whole width, a line from a press piece. */
 export function QuoteBlockView({ config, live }: { config: QuoteBlockConfig; live: boolean }) {
+  const look = useLook();
   if (live && !config.quote?.trim()) return null;
+  if (look === "editorial") {
+    // An oversized serif quotation mark in the accent, the words in italics: a pull quote.
+    return (
+      <section className="px-5 py-10 @lg:mx-auto @lg:max-w-3xl @lg:px-8 @lg:py-16">
+        <figure className="text-center">
+          <div aria-hidden className="text-8xl leading-[0.6] text-[var(--accent)]" style={{ fontFamily: "var(--font-heading, inherit)" }}>
+            &ldquo;
+          </div>
+          <blockquote className="mt-2">
+            <EditableText as="p" path={["quote"]} value={config.quote} placeholder="The quote" rich className="text-balance text-2xl italic leading-snug @lg:text-4xl" style={{ fontFamily: "var(--font-heading, inherit)" }} />
+          </blockquote>
+          {(config.name || !live) && (
+            <figcaption className="mt-5 text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+              <EditableText path={["name"]} value={config.name} placeholder="Who said it" />
+            </figcaption>
+          )}
+        </figure>
+      </section>
+    );
+  }
   return (
     <section className="px-5 py-8 @lg:mx-auto @lg:max-w-3xl @lg:px-8 @lg:py-12">
       <figure className="text-center">
-        <Quote className="mx-auto h-8 w-8 text-primary/60" aria-hidden="true" />
+        <Quote className="mx-auto h-8 w-8 text-[var(--accent)]/60" aria-hidden="true" />
         <blockquote className="mt-3">
-          <EditableText as="p" path={["quote"]} value={config.quote} placeholder="The quote" rich className="text-balance text-xl font-semibold leading-snug @lg:text-3xl" />
+          <EditableText as="p" path={["quote"]} value={config.quote} placeholder="The quote" rich className={`text-balance font-semibold leading-snug ${look === "bold" ? "text-3xl uppercase tracking-tight @lg:text-5xl" : "text-xl @lg:text-3xl"}`} />
         </blockquote>
-        <figcaption className="mt-4 text-sm font-medium text-muted-foreground">
-          <EditableText path={["name"]} value={config.name} placeholder="Who said it" />
-        </figcaption>
+        {(config.name || !live) && (
+          <figcaption className="mt-4 text-sm font-medium text-muted-foreground">
+            <EditableText path={["name"]} value={config.name} placeholder="Who said it" />
+          </figcaption>
+        )}
       </figure>
     </section>
   );

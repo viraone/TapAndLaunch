@@ -55,7 +55,25 @@ is now optional and inserts as null); Real estate gets a **map** on Contact with
 Design, Marketing, Technology, Construction, Music and Travel keep the core shape. A test pins exactly which trade
 gets which extra, and that galleries are empty, the map has no address and every sample says it is one.
 
-Each topic website has one of **five flavours** (`WEBSITE_STYLES`, `WebsiteTopic.style`): **classic** (Inter, light,
+## Looks: five ways a website is put together
+_Added 2026-10-14._ `theme.look` (`src/lib/pwa/look.ts`: `LOOKS`, `lookOf`, `lookTheme`) is how a website is laid
+out beyond its colours — and the answer to "every site is the same boxes in a different colour". Each look is a real
+preset of the site-wide controls (fonts, heading size, button shape, page background, dark or light) **plus**
+structure: how the banner is laid out and painted (`HeroBlockConfig.layout`: full / centered / split / minimal;
+`background`: solid / gradient / mesh / grain — the banner's own choice wins over the look's), how the highlights are
+drawn (tiles / a hairlined line / giant numbers on a black band / glass cards), how reviews run (cards / one big
+pull quote with the rest as lines), how the newsletter sits (tinted box / hairlined box / edge-to-edge colour band /
+dark band lit by the colour), and how the header sits (pills / centred masthead with small caps / a bar in the colour
+/ dark glass). The look reaches the sections through `LookProvider`/`useLook` (`Look.tsx`), provided once by the
+published layout and once by the builder's preview frame; `data-look` on the root lets globals.css set each look's
+`--accent` and `--surface` from the primary colour (an `accent_color` in the theme is set inline and wins). Nothing
+is inferred from fonts: unset is classic, so every app from before looks renders exactly as before. App settings >
+Theme shows **Look** for website-layout apps (choosing one applies its presets, all still editable) and an
+**Accent** colour next to Primary. Also from the same pass: reveal-on-scroll on published sites (`RevealObserver`,
+progressive — nothing is hidden until the script runs, off under reduced motion), a slow drift on the cinematic
+banner's mesh, a film grain on the bold one, and hover lifts on review cards. `look.test.ts` pins all of it.
+
+Each topic website has one of **five flavours** (`WEBSITE_STYLES`, `WebsiteTopic.style` — the same five looks): **classic** (Inter, light,
 pill buttons — Education, Consulting, Health, Real estate, and Personal website), **editorial** (Playfair serif on
 warm paper, larger headings, the quote moves up onto Home — Weddings, Art, Beauty), **cinematic** (Space Grotesk on a
 dark site — Photography, Music, Technology), **bold** (Bebas Neue poster headlines, square corners — Construction,

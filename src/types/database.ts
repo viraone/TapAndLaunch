@@ -109,6 +109,12 @@ export interface ThemeConfig {
   /** "website" lays the published app out like a website: full width on a laptop with a top menu of the pages,
    * the phone look (and tab bar) on a phone. Unset or "app" keeps the phone-shaped column everywhere. */
   layout?: "app" | "website";
+  /** One of five ways the site is put together (lib/pwa/look.ts): how the banner, highlights, reviews, newsletter and
+   * header are laid out. Unset is classic, which is how every site looked before looks existed. */
+  look?: "classic" | "editorial" | "cinematic" | "bold" | "split";
+  /** A second colour for small things (eyebrows, rules, stars, glows). Each look derives one from the primary colour
+   * when this is unset; set, it wins. */
+  accent_color?: string;
   /** A line across the top of every page, with an optional link; the visitor can close it. */
   announcement?: { enabled?: boolean; text?: string; url?: string };
   /** Shows a small "this site uses cookies" notice once, until the visitor dismisses it. */
@@ -164,6 +170,10 @@ export interface HeroBlockConfig {
   button_label?: string;
   /** Path of the page the button opens, e.g. "classes". Empty hides the button. */
   button_page?: string;
+  /** How the banner is laid out; unset follows the site's look (lib/pwa/look.ts). */
+  layout?: "full" | "centered" | "split" | "minimal";
+  /** How the banner is painted when it has no photo (and the panel of a split banner); unset follows the look. */
+  background?: "solid" | "gradient" | "mesh" | "grain";
 }
 
 /** A menu or price list: named sections of items with an optional description, price and small badge. */

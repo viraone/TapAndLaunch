@@ -1,3 +1,4 @@
+import { HERO_BACKGROUNDS, HERO_LAYOUTS } from "@/lib/pwa/look";
 import { Plus, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,39 @@ const removeAt = <T,>(list: T[], i: number) => list.filter((_, j) => j !== i);
 export function HeroBlockEditor({ config, organizationId, pages = [], onChange }: { config: HeroBlockConfig; organizationId: string; pages?: Array<{ path: string; name: string }>; onChange: (c: HeroBlockConfig) => void }) {
   return (
     <div className="space-y-3">
-      <ImageUploadField id="hero-image" label="Background photo" organizationId={organizationId} value={config.image_url ?? ""} onChange={(image_url) => onChange({ ...config, image_url })} />
+      <ImageUploadField id="hero-image" label="Photo" organizationId={organizationId} value={config.image_url ?? ""} onChange={(image_url) => onChange({ ...config, image_url })} />
+      <div className="grid grid-cols-2 gap-2">
+        <Field id="hero-layout" label="Layout">
+          <Select value={config.layout ?? ""} items={{ "": "Your site's look", ...HERO_LAYOUTS }} onValueChange={(v) => onChange({ ...config, layout: (v || undefined) as HeroBlockConfig["layout"] })}>
+            <SelectTrigger id="hero-layout" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Your site&apos;s look</SelectItem>
+              {Object.entries(HERO_LAYOUTS).map(([v, l]) => (
+                <SelectItem key={v} value={v}>
+                  {l}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field id="hero-background" label="Without a photo, show">
+          <Select value={config.background ?? ""} items={{ "": "Your site's look", ...HERO_BACKGROUNDS }} onValueChange={(v) => onChange({ ...config, background: (v || undefined) as HeroBlockConfig["background"] })}>
+            <SelectTrigger id="hero-background" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Your site&apos;s look</SelectItem>
+              {Object.entries(HERO_BACKGROUNDS).map(([v, l]) => (
+                <SelectItem key={v} value={v}>
+                  {l}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+      </div>
       <Field id="hero-eyebrow" label="Small label above (optional)">
         <Input id="hero-eyebrow" {...linked("eyebrow")} value={config.eyebrow ?? ""} maxLength={40} onChange={(e) => onChange({ ...config, eyebrow: e.target.value })} />
       </Field>
