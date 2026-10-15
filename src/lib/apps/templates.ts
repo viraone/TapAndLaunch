@@ -1,7 +1,7 @@
 import { defaultConfigFor } from "@/lib/builder/block-defaults";
 import { starterFiles } from "@/lib/code/prompt";
 import { isMapsBlock } from "@/lib/platform/maps-shared";
-import { LOOKS, lookOf, lookTheme, type LookId } from "@/lib/pwa/look";
+import { LOOKS, LOOK_IDS, lookOf, lookTheme, type LookId } from "@/lib/pwa/look";
 import type { BlockConfig, BlockType, FaqBlockConfig, HoursBlockConfig, ManifestConfig, PriceListBlockConfig, ThemeConfig } from "@/types/database";
 
 /**
@@ -740,6 +740,54 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
 
 const WEBSITE_TOPIC_BY_ID = new Map(WEBSITE_TOPICS.map((t) => [t.id, t]));
 
+/** Every website starter that comes in the five looks, with the look its bare id builds: the Personal website (whose
+ * own build is the classic look) and each topic (its `style`). */
+const DESIGN_BASES = new Map<string, WebsiteStyleId>([["portfolio", "classic"], ...WEBSITE_TOPICS.map((t) => [t.id, t.style] as const)]);
+
+/** One design of a website starter: the starter in one of the five looks. Its template id is
+ * `photography--editorial`; the bare id (`photography`) is the starter in its own look, so every id that worked
+ * before still does. */
+export interface WebsiteDesign {
+  id: string;
+  topicId: string;
+  look: WebsiteStyleId;
+  /** The look's name ("Editorial"): what the design's card is called. */
+  name: string;
+  /** The look's one-line feel, under the card. */
+  feel: string;
+}
+
+const DESIGN_SEPARATOR = "--";
+
+function splitDesignId(templateId: string): [base: string, look: string | undefined] {
+  const at = templateId.indexOf(DESIGN_SEPARATOR);
+  return at < 0 ? [templateId, undefined] : [templateId.slice(0, at), templateId.slice(at + DESIGN_SEPARATOR.length)];
+}
+
+/** The starter and look a template id names (`topic` set when the starter is a topic website), or nothing if the
+ * id is not a website design: not a website starter, or a look that does not exist. */
+export function parseWebsiteDesign(templateId: string): { baseId: string; look: WebsiteStyleId; topic?: WebsiteTopic } | undefined {
+  const [baseId, look] = splitDesignId(templateId);
+  const own = DESIGN_BASES.get(baseId);
+  if (own === undefined || (look !== undefined && !(look in WEBSITE_STYLES))) return undefined;
+  return { baseId, look: (look as WebsiteStyleId | undefined) ?? own, topic: WEBSITE_TOPIC_BY_ID.get(baseId) };
+}
+
+/** Every design of a website starter, its own look first (the one its bare id builds). Empty for anything that is
+ * not a website starter, so the picker knows which cards open a grid of designs and which are picked outright. */
+export function websiteDesigns(templateId: string): WebsiteDesign[] {
+  const own = DESIGN_BASES.get(templateId);
+  if (own === undefined) return [];
+  const looks = [own, ...LOOK_IDS.filter((l) => l !== own)];
+  return looks.map((look) => ({
+    id: look === own ? templateId : `${templateId}${DESIGN_SEPARATOR}${look}`,
+    topicId: templateId,
+    look,
+    name: WEBSITE_STYLES[look].name,
+    feel: WEBSITE_STYLES[look].feel,
+  }));
+}
+
 /** How long an answer to "What's your site about?" may be — long enough for a real sentence, short enough that it
  * still reads well as a hero subtext rather than a paragraph. */
 export const ABOUT_MAX_LENGTH = 240;
@@ -905,8 +953,17 @@ export function templateNeedsMaps(id: string): boolean {
   return buildStarter(id, "x").pages.some((p) => p.blocks.some((b) => isMapsBlock(b.type)));
 }
 
+/** The picker card a template id belongs to: a design of a topic (`photography--editorial`) belongs to the topic's
+ * card. Nothing for an unknown id. */
+export function starterTemplateFor(templateId: string): StarterTemplate | undefined {
+  const own = STARTER_TEMPLATES.find((t) => t.id === templateId);
+  if (own) return own;
+  const design = parseWebsiteDesign(templateId);
+  return design && STARTER_TEMPLATES.find((t) => t.id === design.baseId);
+}
+
 export function isTemplateId(id: string): boolean {
-  return STARTER_TEMPLATES.some((t) => t.id === id);
+  return starterTemplateFor(id) !== undefined;
 }
 
 export interface StarterBlock {
@@ -1004,7 +1061,7 @@ export function buildStarter(templateId: string, appName: string, about?: string
 }
 
 function buildStarterBody(templateId: string, appName: string, about?: string, heroImage?: string): Starter {
-  const template = STARTER_TEMPLATES.find((t) => t.id === templateId) ?? (STARTER_TEMPLATES.find((t) => t.id === DEFAULT_TEMPLATE_ID) as StarterTemplate);
+  const template = starterTemplateFor(templateId) ?? (STARTER_TEMPLATES.find((t) => t.id === DEFAULT_TEMPLATE_ID) as StarterTemplate);
   const manifest: ManifestConfig = {
     name: appName,
     short_name: appName.slice(0, 12),
@@ -1014,16 +1071,18 @@ function buildStarterBody(templateId: string, appName: string, about?: string, h
   const theme: ThemeConfig = { primary_color: template.color };
   const home = (blocks: StarterBlock[]): StarterPage => ({ name: "Home", path: "home", isHome: true, blocks });
 
-  // The topic websites share one shape (see `WebsiteTopic`); only the words and colour differ.
-  const topic = WEBSITE_TOPIC_BY_ID.get(template.id);
-  if (topic) {
-    const flavour = WEBSITE_STYLES[topic.style];
+  // The topic websites share one shape (see `WebsiteTopic`); only the words, colour and look differ. The look is
+  // the topic's own unless the id names another design of it (`photography--editorial`).
+  const design = parseWebsiteDesign(templateId);
+  if (design?.topic) {
+    const { topic, look } = design;
+    const flavour = WEBSITE_STYLES[look];
     const quote = block("quote", { quote: topic.quote, name: "" });
     return {
       manifest: { ...manifest, background_color: flavour.theme.background_color },
       theme: {
         ...theme,
-        ...lookTheme(topic.style),
+        ...lookTheme(look),
         layout: "website",
         bottom_nav_style: "tabs",
         bottom_nav: [
@@ -1078,13 +1137,15 @@ function buildStarterBody(templateId: string, appName: string, about?: string, h
   }
 
   switch (template.id) {
-    case "portfolio":
+    case "portfolio": {
+      // Its own page shape, in whichever of the five looks the id names (classic unless it says otherwise).
+      const look = design?.look ?? "classic";
       return {
-        manifest: { ...manifest, background_color: "#fafafa" },
+        manifest: { ...manifest, background_color: WEBSITE_STYLES[look].theme.background_color },
         theme: {
           ...theme,
+          ...lookTheme(look),
           layout: "website",
-          background_color: "#fafafa",
           bottom_nav_style: "tabs",
           bottom_nav: [
             { label: "Home", icon: "home", page_path: "home" },
@@ -1147,6 +1208,7 @@ function buildStarterBody(templateId: string, appName: string, about?: string, h
           },
         ],
       };
+    }
     case "business":
       return {
         manifest: { ...manifest, background_color: "#f8f6ff" },

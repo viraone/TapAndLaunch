@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ABOUT_MAX_LENGTH, DEFAULT_TEMPLATE_ID, STARTER_TEMPLATES, buildStarter } from "@/lib/apps/templates";
+import { ABOUT_MAX_LENGTH, DEFAULT_TEMPLATE_ID, buildStarter, isTemplateId, starterTemplateFor } from "@/lib/apps/templates";
 import { createAppFromStarter } from "@/lib/apps/create";
 import { isAiConfigured } from "@/lib/ai/generate";
 import { rewriteStarterCopy } from "@/lib/ai/rewrite";
@@ -18,8 +18,9 @@ const CreateAppSchema = z.object({
     .min(1)
     .max(63)
     .regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/, "Use lowercase letters, numbers, and hyphens only"),
-  /** A starter from `lib/apps/templates`; omitted means an empty app. */
-  template: z.enum(STARTER_TEMPLATES.map((t) => t.id) as [string, ...string[]]).default(DEFAULT_TEMPLATE_ID),
+  /** A starter from `lib/apps/templates`, or one design of a topic website (`photography--editorial`); omitted means
+   * an empty app. */
+  template: z.string().max(80).refine(isTemplateId, "Unknown template").default(DEFAULT_TEMPLATE_ID),
   /** The answer to "What's your site about?" (only asked for a template with `asksAbout: true`); ignored by every
    * other template. */
   about: z.string().max(ABOUT_MAX_LENGTH).optional(),
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
   // "What's your site about?" + a key: Claude rewrites the words (only the words; see lib/ai/rewrite.ts) for the
   // person described. Checked and counted like "Describe your app" before anything is paid for; over the limit, or
   // not an editor, the site is simply created with the trade's own words.
-  if (about && STARTER_TEMPLATES.find((t) => t.id === template)?.asksAbout && isAiConfigured()) {
+  if (about && starterTemplateFor(template)?.asksAbout && isAiConfigured()) {
     const { data: membership } = await supabase.from("memberships").select("role").eq("organization_id", organizationId).eq("user_id", user.id).maybeSingle();
     if (membership?.role === "admin" || membership?.role === "creator") {
       const admin = createAdminClient();

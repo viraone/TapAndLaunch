@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
-import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter, templateNeedsMaps, type StarterTemplate } from "@/lib/apps/templates";
+import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter, templateNeedsMaps, websiteDesigns, type StarterTemplate } from "@/lib/apps/templates";
 import { fontsHref } from "@/lib/pwa/theme-style";
 import { slugify } from "@/lib/apps/slug";
 import { TemplatePreview } from "@/components/dashboard/TemplatePreview";
@@ -248,16 +248,29 @@ const SHELVES: Array<{ id: Shelf; label: string }> = [
   { id: "phone", label: "Phone-first" },
 ];
 
+const CARD = "group flex flex-col text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950";
+
 /** Every template in one open grid, the way Squarespace lays out theirs: a row of filter pills with a result count,
  * then big edge-to-edge previews with just a name under each. "Websites" are full-size sites with a menu across the
- * top; "Phone-first" are simple phone-shaped pages visitors can save to their Home Screen. */
+ * top; "Phone-first" are simple phone-shaped pages visitors can save to their Home Screen. A website topic that
+ * comes in several designs (Photography in five looks) opens its own grid of those designs instead of being picked
+ * outright, the way picking "Photography" on Squarespace shows the photography templates. */
 function TemplateGallery({ mapsEnabled, onSelect }: { mapsEnabled: boolean; onSelect: (t: StarterTemplate) => void }) {
   const [shelf, setShelf] = useState<Shelf>("all");
+  const [topic, setTopic] = useState<StarterTemplate | null>(null);
   const available = STARTER_TEMPLATES.filter((t) => mapsEnabled || !templateNeedsMaps(t.id));
   const order = [...WEBSITE_CATEGORIES, ...APP_CATEGORIES].map((c) => c.id as string);
   const cards = available
     .filter((t) => shelf === "all" || (shelf === "website") === (t.category === "website"))
     .sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category));
+
+  function openTopic(t: StarterTemplate) {
+    setTopic(t);
+    // The headline above is tall; bring the designs up to where the filter row was.
+    document.getElementById("templates")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  if (topic) return <DesignGrid topic={topic} onBack={() => setTopic(null)} onSelect={onSelect} />;
 
   return (
     <section>
@@ -282,42 +295,82 @@ function TemplateGallery({ mapsEnabled, onSelect }: { mapsEnabled: boolean; onSe
           {shelf === "phone"
             ? "Simple phone-shaped pages your visitors can save to their Home Screen."
             : shelf === "website"
-              ? "Full-size sites with a menu across the top."
+              ? "Full-size sites with a menu across the top. Each comes in five looks."
               : "Websites and phone-first pages, all filled in so you can preview them right away."}
         </p>
       </div>
       <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((t) => (
-          <TemplateCard key={t.id} template={t} onSelect={() => onSelect(t)} />
+        {cards.map((t) => {
+          const designs = websiteDesigns(t.id).length;
+          return (
+            <button key={t.id} type="button" onClick={() => (designs > 1 ? openTopic(t) : onSelect(t))} className={CARD}>
+              <Preview templateId={t.id} color={t.color} action={designs > 1 ? `See ${designs} designs` : "Start with this"} />
+              <div className="mt-3.5 flex items-baseline justify-between gap-3">
+                <h4 className="min-w-0 truncate text-[17px] font-medium tracking-tight text-neutral-950">{t.name}</h4>
+                {designs > 1 ? (
+                  <span className="shrink-0 whitespace-nowrap text-xs text-neutral-500">{designs} designs</span>
+                ) : (
+                  t.includes.length > 0 && <span className="shrink-0 whitespace-nowrap text-xs text-neutral-500">{t.includes.slice(0, 3).join(" · ")}</span>
+                )}
+              </div>
+              <p className="mt-1 line-clamp-1 text-sm text-neutral-500">{t.tagline}</p>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/** One topic's designs: the same site (same words, same sections) in each of the five looks, drawn from the theme
+ * that design really gets, so the card is exactly the site. Picking one hands up the topic's card under the design's
+ * own id (`photography--editorial`), which is what the create call and the "Starting from" line then use. */
+function DesignGrid({ topic, onBack, onSelect }: { topic: StarterTemplate; onBack: () => void; onSelect: (t: StarterTemplate) => void }) {
+  const designs = websiteDesigns(topic.id);
+  return (
+    <section>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-neutral-200 pt-6">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex h-10 items-center gap-1.5 rounded-full bg-neutral-100 px-4 text-sm font-medium text-neutral-700 transition hover:bg-neutral-200 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950"
+        >
+          <ArrowLeft className="h-4 w-4" /> All templates
+        </button>
+        <p className="text-base font-medium text-neutral-950">
+          {topic.name} · {designs.length} designs
+        </p>
+        <p className="w-full text-sm text-neutral-500 sm:ml-auto sm:w-auto">The same site in five looks. Pick the one that feels like you; you can change it any time under Settings.</p>
+      </div>
+      <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+        {designs.map((d) => (
+          <button key={d.id} type="button" onClick={() => onSelect({ ...topic, id: d.id, name: `${topic.name} · ${d.name}` })} className={CARD}>
+            <Preview templateId={d.id} color={topic.color} action="Start with this" />
+            <div className="mt-3.5 flex items-baseline justify-between gap-3">
+              <h4 className="min-w-0 truncate text-[17px] font-medium tracking-tight text-neutral-950">{d.name}</h4>
+              {topic.includes.length > 0 && <span className="shrink-0 whitespace-nowrap text-xs text-neutral-500">{topic.includes.slice(0, 3).join(" · ")}</span>}
+            </div>
+            <p className="mt-1 line-clamp-1 text-sm text-neutral-500">{d.feel}</p>
+          </button>
         ))}
       </div>
     </section>
   );
 }
 
-function TemplateCard({ template: t, onSelect }: { template: StarterTemplate; onSelect: () => void }) {
+/** The preview is the whole card: no frame around it, just a hairline; it eases up a touch on hover under a white
+ * pill that says what clicking does. */
+function Preview({ templateId, color, action }: { templateId: string; color: string; action: string }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="group flex flex-col text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950"
-    >
-      {/* The preview is the whole card: no frame around it, just a hairline, and it eases up a touch on hover. */}
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg bg-neutral-100 ring-1 ring-black/10">
-        <div className="h-full w-full transition duration-500 ease-out group-hover:scale-[1.03]">
-          <TemplatePreview templateId={t.id} color={t.color} />
-        </div>
-        <span aria-hidden className="absolute inset-0 grid place-items-center bg-black/0 transition duration-300 group-hover:bg-black/25">
-          <span className="translate-y-1 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-neutral-950 opacity-0 shadow-lg transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
-            Start with this
-          </span>
+    <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg bg-neutral-100 ring-1 ring-black/10">
+      <div className="h-full w-full transition duration-500 ease-out group-hover:scale-[1.03]">
+        <TemplatePreview templateId={templateId} color={color} />
+      </div>
+      <span aria-hidden className="absolute inset-0 grid place-items-center bg-black/0 transition duration-300 group-hover:bg-black/25">
+        <span className="translate-y-1 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-neutral-950 opacity-0 shadow-lg transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
+          {action}
         </span>
-      </div>
-      <div className="mt-3.5 flex items-baseline justify-between gap-3">
-        <h4 className="min-w-0 truncate text-[17px] font-medium tracking-tight text-neutral-950">{t.name}</h4>
-        {t.includes.length > 0 && <span className="shrink-0 whitespace-nowrap text-xs text-neutral-500">{t.includes.slice(0, 3).join(" · ")}</span>}
-      </div>
-      <p className="mt-1 line-clamp-1 text-sm text-neutral-500">{t.tagline}</p>
-    </button>
+      </span>
+    </div>
   );
 }

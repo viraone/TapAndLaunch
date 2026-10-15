@@ -1,4 +1,4 @@
-import { STARTER_TEMPLATES, buildStarter, type StarterBlock } from "@/lib/apps/templates";
+import { buildStarter, starterTemplateFor, type StarterBlock } from "@/lib/apps/templates";
 import { WebsiteMockup } from "@/components/dashboard/WebsiteMockup";
 
 /** A tiny phone (or, for a website-layout starter, a tiny browser window) showing what a starter looks like, drawn
@@ -13,7 +13,7 @@ export function TemplatePreview({ templateId, color }: { templateId: string; col
   const soft = dark ? "#2a2a2a" : "#e5e5e5";
 
   if (starter.theme.layout === "website") {
-    return <WebsiteMockup home={home} theme={starter.theme} name={STARTER_TEMPLATES.find((t) => t.id === templateId)?.name ?? "Your site"} color={color} />;
+    return <WebsiteMockup home={home} theme={starter.theme} name={starterTemplateFor(templateId)?.name ?? "Your site"} color={color} />;
   }
 
   return (
