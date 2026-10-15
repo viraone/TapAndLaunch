@@ -6,9 +6,9 @@ import { ArrowRight } from "lucide-react";
  * headline, and a plain form with no card around it. (The shadcn tokens are the light ones, so the inputs, labels and
  * checkbox inside need no per-field restyling.)
  */
-/** The main button on the auth screens: a black pill, like the home page's "Start your free trial". */
+/** The main button on the auth screens: the brand gradient, like the home page's "Start your free trial". */
 export const AUTH_BUTTON =
-  "group mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-neutral-950 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-60 disabled:hover:bg-neutral-950";
+  "group mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_8px_20px_-10px_rgba(99,102,241,0.6)] transition hover:brightness-110 disabled:opacity-60";
 
 export function AuthShell({
   title,

@@ -9,7 +9,7 @@ import { AUDIENCES, FAQ, FEATURES, LISTED_PRICE, SITE_DESCRIPTION, SITE_NAME, SI
 import { siteOrigin } from "@/lib/site";
 import { STARTER_TEMPLATES, buildStarter, type StarterTemplate } from "@/lib/apps/templates";
 import { fontsHref } from "@/lib/pwa/theme-style";
-import { TemplatePreview } from "@/components/dashboard/TemplatePreview";
+import { SiteFrame } from "@/components/dashboard/SiteFrame";
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
@@ -73,7 +73,7 @@ export default async function Home() {
   const jsonLd = JSON.stringify(structuredData()).replace(/</g, "\\u003c");
 
   const pill = "rounded-full px-4 py-2 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-950";
-  const dark = "inline-flex min-h-12 items-center gap-2 rounded-full bg-neutral-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800";
+  const dark = "inline-flex min-h-12 items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_8px_20px_-10px_rgba(99,102,241,0.6)] transition hover:brightness-110";
 
   return (
     <div className="relative flex min-h-dvh flex-col bg-white text-neutral-950">
@@ -97,7 +97,7 @@ export default async function Home() {
             FAQ
           </a>
           {signedIn ? (
-            <Link href="/dashboard" className="rounded-full bg-neutral-950 px-4 py-2 font-medium text-white transition hover:bg-neutral-800">
+            <Link href="/dashboard" className="rounded-full px-4 py-2 font-medium bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_8px_20px_-10px_rgba(99,102,241,0.6)] transition hover:brightness-110">
               Dashboard
             </Link>
           ) : (
@@ -105,7 +105,7 @@ export default async function Home() {
               <Link href="/login" className={pill}>
                 Log in
               </Link>
-              <Link href="/signup" className="rounded-full bg-neutral-950 px-4 py-2 font-medium text-white transition hover:bg-neutral-800">
+              <Link href="/signup" className="rounded-full px-4 py-2 font-medium bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_8px_20px_-10px_rgba(99,102,241,0.6)] transition hover:brightness-110">
                 Start free
               </Link>
             </>
@@ -116,8 +116,7 @@ export default async function Home() {
       <main className="mx-auto w-full max-w-[1400px] flex-1 px-6 pb-24 sm:px-10">
         <section className="grid gap-8 pb-14 pt-10 sm:pt-16 lg:grid-cols-2 lg:items-end lg:gap-16">
           <div>
-            <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <p className="bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-xs font-semibold uppercase tracking-[0.2em] text-transparent">
               Free for {TRIAL_DAYS} days · No card needed · No code
             </p>
             <h1 className="mt-4 text-balance text-5xl font-medium leading-[0.98] tracking-[-0.04em] sm:text-7xl lg:text-8xl">Your app, one tap from launch.</h1>
@@ -154,11 +153,7 @@ export default async function Home() {
             {SHOWCASE_TEMPLATES.map((t) => (
               <li key={t.id}>
                 <Link href={startHref} className="group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950">
-                  <div className="relative aspect-[16/9] overflow-hidden rounded-lg bg-neutral-100 ring-1 ring-black/10">
-                    <div className="h-full w-full transition duration-500 ease-out group-hover:scale-[1.03]">
-                      <TemplatePreview templateId={t.id} color={t.color} />
-                    </div>
-                  </div>
+                  <SiteFrame template={t} />
                   <p className="mt-3.5 text-[17px] font-medium tracking-tight">{t.name}</p>
                 </Link>
               </li>

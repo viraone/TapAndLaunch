@@ -7,7 +7,7 @@ import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter,
 import { WEBSITE_GOALS, type GoalId } from "@/lib/apps/goals";
 import { fontsHref } from "@/lib/pwa/theme-style";
 import { slugify } from "@/lib/apps/slug";
-import { TemplatePreview } from "@/components/dashboard/TemplatePreview";
+import { SiteFrame } from "@/components/dashboard/SiteFrame";
 import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
 import { ImageUploadField } from "@/components/builder/ImageUploadField";
 
@@ -493,37 +493,11 @@ function DesignGrid({ topic, goals, onBack, onSelect }: { topic: StarterTemplate
   );
 }
 
-/** The preview is the whole card. A website is shown on a laptop with its phone version beside it (the frame says
- * "a real site, on both"); a phone-first template is its phone, as before. A white pill on hover says what clicking
- * does. `templateId` names a design of the template; the template itself when left out. */
+/** The preview is the whole card (`SiteFrame`), with a white pill on hover that says what clicking does. */
 function Preview({ template, templateId, goals, action }: { template: StarterTemplate; templateId?: string; goals?: readonly string[]; action: string }) {
-  const id = templateId ?? template.id;
-  const website = template.category === "website";
   return (
-    <div className="group/frame relative aspect-[16/10] w-full">
-      {website ? (
-        <>
-          {/* The laptop: a dark bezel around the screen, its base a shade wider, both in normal flow so the base
-              always sits right under the screen whatever the card's width. */}
-          <div className="absolute left-0 top-[3%] flex w-[86%] flex-col items-center transition duration-500 ease-out group-hover:-translate-y-0.5">
-            <div className="w-[94%] rounded-t-[10px] rounded-b-[3px] bg-[#15171a] p-[1.8%] pb-[1.2%]">
-              <div className="relative aspect-[16/10] overflow-hidden rounded-[3px] bg-neutral-100">
-                <TemplatePreview templateId={id} color={template.color} goals={goals} />
-              </div>
-            </div>
-            <div className="h-[7px] w-full rounded-b-[8px] bg-gradient-to-b from-[#e6e7ea] to-[#c9cbd0]" />
-          </div>
-          <div className="absolute bottom-[2%] right-[1%] aspect-[9/19] w-[24%] overflow-hidden rounded-[12%/6%] bg-neutral-100 shadow-[0_0_0_2.5px_#15171a,0_18px_28px_-14px_rgba(0,0,0,0.55)] transition duration-500 ease-out group-hover:-translate-y-1">
-            <TemplatePreview templateId={id} color={template.color} goals={goals} phone />
-          </div>
-        </>
-      ) : (
-        <div className="absolute inset-0 overflow-hidden rounded-lg bg-neutral-100 ring-1 ring-black/10">
-          <div className="h-full w-full transition duration-500 ease-out group-hover:scale-[1.03]">
-            <TemplatePreview templateId={id} color={template.color} />
-          </div>
-        </div>
-      )}
+    <div className="relative">
+      <SiteFrame template={template} templateId={templateId} goals={goals} />
       <span aria-hidden className="absolute inset-0 grid place-items-center">
         <span className="translate-y-1 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-neutral-950 opacity-0 shadow-lg ring-1 ring-black/10 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
           {action}
