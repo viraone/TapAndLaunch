@@ -332,7 +332,7 @@ function TemplateGallery({ mapsEnabled, onSelect }: { mapsEnabled: boolean; onSe
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search: photography, café, tutor…"
+            placeholder="Search for your site topic"
             aria-label="Search templates"
             className="h-10 w-full rounded-full bg-neutral-100 pl-10 pr-4 text-sm outline-none transition placeholder:text-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-950"
           />
