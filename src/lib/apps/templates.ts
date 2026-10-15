@@ -1,7 +1,8 @@
 import { defaultConfigFor } from "@/lib/builder/block-defaults";
 import { starterFiles } from "@/lib/code/prompt";
 import { isMapsBlock } from "@/lib/platform/maps-shared";
-import { LOOKS, LOOK_IDS, lookOf, lookTheme, type LookId } from "@/lib/pwa/look";
+import { LOOKS, lookOf, type LookId } from "@/lib/pwa/look";
+import { WEBSITE_DESIGNS, designHero, designTheme, type WebsiteDesign } from "@/lib/apps/designs";
 import type { BlockConfig, BlockType, FaqBlockConfig, HoursBlockConfig, ManifestConfig, PriceListBlockConfig, ThemeConfig } from "@/types/database";
 
 /**
@@ -740,51 +741,40 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
 
 const WEBSITE_TOPIC_BY_ID = new Map(WEBSITE_TOPICS.map((t) => [t.id, t]));
 
-/** Every website starter that comes in the five looks, with the look its bare id builds: the Personal website (whose
- * own build is the classic look) and each topic (its `style`). */
+/** Every website starter that comes in the designs (lib/apps/designs.ts), with the look its bare id builds: the
+ * Personal website (whose own build is the classic look) and each topic (its `style`). */
 const DESIGN_BASES = new Map<string, WebsiteStyleId>([["portfolio", "classic"], ...WEBSITE_TOPICS.map((t) => [t.id, t.style] as const)]);
 
-/** One design of a website starter: the starter in one of the five looks. Its template id is
- * `photography--editorial`; the bare id (`photography`) is the starter in its own look, so every id that worked
- * before still does. */
-export interface WebsiteDesign {
-  id: string;
-  topicId: string;
-  look: WebsiteStyleId;
-  /** The look's name ("Editorial"): what the design's card is called. */
-  name: string;
-  /** The look's one-line feel, under the card. */
-  feel: string;
-}
+export type { WebsiteDesign } from "@/lib/apps/designs";
 
+/** A design's template id is `photography--noir`; the bare id (`photography`) is the starter's own design: the pure
+ * look it has always had, in its own colour. So every id that worked before still does. */
 const DESIGN_SEPARATOR = "--";
 
-function splitDesignId(templateId: string): [base: string, look: string | undefined] {
+function splitDesignId(templateId: string): [base: string, design: string | undefined] {
   const at = templateId.indexOf(DESIGN_SEPARATOR);
   return at < 0 ? [templateId, undefined] : [templateId.slice(0, at), templateId.slice(at + DESIGN_SEPARATOR.length)];
 }
 
-/** The starter and look a template id names (`topic` set when the starter is a topic website), or nothing if the
- * id is not a website design: not a website starter, or a look that does not exist. */
-export function parseWebsiteDesign(templateId: string): { baseId: string; look: WebsiteStyleId; topic?: WebsiteTopic } | undefined {
-  const [baseId, look] = splitDesignId(templateId);
-  const own = DESIGN_BASES.get(baseId);
-  if (own === undefined || (look !== undefined && !(look in WEBSITE_STYLES))) return undefined;
-  return { baseId, look: (look as WebsiteStyleId | undefined) ?? own, topic: WEBSITE_TOPIC_BY_ID.get(baseId) };
+/** The starter and design a template id names (`topic` set when the starter is a topic website; `own` when it is
+ * the starter's own design), or nothing if the id is not a website design. */
+export function parseWebsiteDesign(templateId: string): { baseId: string; design: WebsiteDesign; own: boolean; topic?: WebsiteTopic } | undefined {
+  const [baseId, designId] = splitDesignId(templateId);
+  const ownLook = DESIGN_BASES.get(baseId);
+  if (ownLook === undefined) return undefined;
+  const design = WEBSITE_DESIGNS.find((d) => d.id === (designId ?? ownLook));
+  return design && { baseId, design, own: design.id === ownLook, topic: WEBSITE_TOPIC_BY_ID.get(baseId) };
 }
 
-/** Every design of a website starter, its own look first (the one its bare id builds). Empty for anything that is
- * not a website starter, so the picker knows which cards open a grid of designs and which are picked outright. */
-export function websiteDesigns(templateId: string): WebsiteDesign[] {
-  const own = DESIGN_BASES.get(templateId);
-  if (own === undefined) return [];
-  const looks = [own, ...LOOK_IDS.filter((l) => l !== own)];
-  return looks.map((look) => ({
-    id: look === own ? templateId : `${templateId}${DESIGN_SEPARATOR}${look}`,
-    topicId: templateId,
-    look,
-    name: WEBSITE_STYLES[look].name,
-    feel: WEBSITE_STYLES[look].feel,
+/** Every design of a website starter with the template id that builds it, the starter's own design first. Empty for
+ * anything that is not a website starter, so the picker knows which cards open a grid of designs and which are
+ * picked outright. */
+export function websiteDesigns(templateId: string): Array<WebsiteDesign & { templateId: string }> {
+  const ownLook = DESIGN_BASES.get(templateId);
+  if (ownLook === undefined) return [];
+  return [...WEBSITE_DESIGNS.filter((d) => d.id === ownLook), ...WEBSITE_DESIGNS.filter((d) => d.id !== ownLook)].map((d) => ({
+    ...d,
+    templateId: d.id === ownLook ? templateId : `${templateId}${DESIGN_SEPARATOR}${d.id}`,
   }));
 }
 
@@ -1075,14 +1065,32 @@ function buildStarterBody(templateId: string, appName: string, about?: string, h
   // the topic's own unless the id names another design of it (`photography--editorial`).
   const design = parseWebsiteDesign(templateId);
   if (design?.topic) {
-    const { topic, look } = design;
-    const flavour = WEBSITE_STYLES[look];
+    const { topic, design: recipe, own } = design;
     const quote = block("quote", { quote: topic.quote, name: "" });
+    // The visual trades' work: the empty gallery, video and audio are "add something" boxes in the builder and
+    // nothing on the live site until there is something to show.
+    const work = [
+      ...(topic.galleryTitle ? [block("gallery", { title: topic.galleryTitle, images: [] })] : []),
+      ...(topic.video ? [block("video", { provider: "youtube", url: "" })] : []),
+      ...(topic.audio ? [block("audio", { src: "", title: "", note: "" })] : []),
+    ];
+    const stats = block("stats", { items: topic.stats });
+    // A picture beside the words (empty: "Add a photo" in the builder, full-width words on the live site).
+    const story = block("image_text", { heading: topic.aboutHeading, body: topic.aboutBody, image_url: "", alt: "", side: "right" });
+    // The first screen after the banner is the design's choice: the numbers, the work, the story, or the quote (which
+    // otherwise closes the About page).
+    const opening = {
+      stats: [stats, ...work, story],
+      gallery: [...work, stats, story],
+      about: [story, stats, ...work],
+      quote: [quote, stats, ...work, story],
+    }[recipe.opening];
+    const siteTheme = designTheme(recipe, topic.color, own);
     return {
-      manifest: { ...manifest, background_color: flavour.theme.background_color },
+      manifest: { ...manifest, theme_color: siteTheme.primary_color, background_color: siteTheme.background_color },
       theme: {
         ...theme,
-        ...lookTheme(look),
+        ...siteTheme,
         layout: "website",
         bottom_nav_style: "tabs",
         bottom_nav: [
@@ -1093,16 +1101,16 @@ function buildStarterBody(templateId: string, appName: string, about?: string, h
       },
       pages: [
         home([
-          block("hero", { image_url: heroImage ?? "", eyebrow: topic.eyebrow, headline: topic.headline, subtext: about || topic.subtext, button_label: "Get in touch", button_page: "contact" }),
-          ...(flavour.quoteOnHome ? [quote] : []),
-          block("stats", { items: topic.stats }),
-          // The visual trades show their work before they explain it; the empty gallery, video and audio are
-          // "add something" boxes in the builder and nothing on the live site until there is something to show.
-          ...(topic.galleryTitle ? [block("gallery", { title: topic.galleryTitle, images: [] })] : []),
-          ...(topic.video ? [block("video", { provider: "youtube", url: "" })] : []),
-          ...(topic.audio ? [block("audio", { src: "", title: "", note: "" })] : []),
-          // A picture beside the words (empty: "Add a photo" in the builder, full-width words on the live site).
-          block("image_text", { heading: topic.aboutHeading, body: topic.aboutBody, image_url: "", alt: "", side: "right" }),
+          block("hero", {
+            image_url: heroImage ?? "",
+            eyebrow: topic.eyebrow,
+            headline: topic.headline,
+            subtext: about || topic.subtext,
+            button_label: "Get in touch",
+            button_page: "contact",
+            ...designHero(recipe),
+          }),
+          ...opening,
           ...(topic.priceList ? [block("price_list", topic.priceList as unknown as Record<string, unknown>)] : []),
           ...(topic.shopTitle ? [block("product_list", { title: topic.shopTitle })] : []),
           // No invented address: the map is a "Type the address on the right" box in the builder until it has one.
@@ -1116,7 +1124,7 @@ function buildStarterBody(templateId: string, appName: string, about?: string, h
           name: "About",
           path: "about",
           isHome: false,
-          blocks: [block("text", { heading: "My story", body: topic.storyBody }), ...(flavour.quoteOnHome ? [] : [quote])],
+          blocks: [block("text", { heading: "My story", body: topic.storyBody }), ...(recipe.opening === "quote" ? [] : [quote])],
         },
         {
           name: "Contact",
@@ -1139,12 +1147,13 @@ function buildStarterBody(templateId: string, appName: string, about?: string, h
   switch (template.id) {
     case "portfolio": {
       // Its own page shape, in whichever of the five looks the id names (classic unless it says otherwise).
-      const look = design?.look ?? "classic";
+      const recipe = design?.design ?? (WEBSITE_DESIGNS.find((d) => d.id === "classic") as WebsiteDesign);
+      const siteTheme = designTheme(recipe, template.color, design?.own ?? true);
       return {
-        manifest: { ...manifest, background_color: WEBSITE_STYLES[look].theme.background_color },
+        manifest: { ...manifest, theme_color: siteTheme.primary_color, background_color: siteTheme.background_color },
         theme: {
           ...theme,
-          ...lookTheme(look),
+          ...siteTheme,
           layout: "website",
           bottom_nav_style: "tabs",
           bottom_nav: [
@@ -1157,6 +1166,7 @@ function buildStarterBody(templateId: string, appName: string, about?: string, h
           home([
             block("hero", {
               image_url: heroImage ?? "",
+              ...designHero(recipe),
               eyebrow: "Welcome",
               headline: "Hi, I'm here to help.",
               subtext: about || "A short line about what you do and who you help — the kind of thing people read in the first five seconds.",

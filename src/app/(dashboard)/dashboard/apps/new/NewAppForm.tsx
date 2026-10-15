@@ -241,6 +241,9 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
   );
 }
 
+/** How many designs a website starter comes in (the same for all of them). */
+const DESIGN_COUNT = websiteDesigns("portfolio").length;
+
 type Shelf = "all" | "website" | "phone";
 const SHELVES: Array<{ id: Shelf; label: string }> = [
   { id: "all", label: "All" },
@@ -253,7 +256,7 @@ const CARD = "group flex flex-col text-left focus-visible:outline-2 focus-visibl
 /** Every template in one open grid, the way Squarespace lays out theirs: a row of filter pills with a result count,
  * then big edge-to-edge previews with just a name under each. "Websites" are full-size sites with a menu across the
  * top; "Phone-first" are simple phone-shaped pages visitors can save to their Home Screen. A website topic that
- * comes in several designs (Photography in five looks) opens its own grid of those designs instead of being picked
+ * comes in several designs (Photography in fifteen) opens its own grid of those designs instead of being picked
  * outright, the way picking "Photography" on Squarespace shows the photography templates. */
 function TemplateGallery({ mapsEnabled, onSelect }: { mapsEnabled: boolean; onSelect: (t: StarterTemplate) => void }) {
   const [shelf, setShelf] = useState<Shelf>("all");
@@ -295,7 +298,7 @@ function TemplateGallery({ mapsEnabled, onSelect }: { mapsEnabled: boolean; onSe
           {shelf === "phone"
             ? "Simple phone-shaped pages your visitors can save to their Home Screen."
             : shelf === "website"
-              ? "Full-size sites with a menu across the top. Each comes in five looks."
+              ? `Full-size sites with a menu across the top. Each comes in ${DESIGN_COUNT} designs.`
               : "Websites and phone-first pages, all filled in so you can preview them right away."}
         </p>
       </div>
@@ -322,9 +325,10 @@ function TemplateGallery({ mapsEnabled, onSelect }: { mapsEnabled: boolean; onSe
   );
 }
 
-/** One topic's designs: the same site (same words, same sections) in each of the five looks, drawn from the theme
- * that design really gets, so the card is exactly the site. Picking one hands up the topic's card under the design's
- * own id (`photography--editorial`), which is what the create call and the "Starting from" line then use. */
+/** One topic's designs: the same site (same words, same sections) in each design (lib/apps/designs.ts), drawn from
+ * the theme and pages that design really gets, so the card is exactly the site. Picking one hands up the topic's card
+ * under the design's template id (`photography--noir`), which is what the create call and the "Starting from" line
+ * then use. */
 function DesignGrid({ topic, onBack, onSelect }: { topic: StarterTemplate; onBack: () => void; onSelect: (t: StarterTemplate) => void }) {
   const designs = websiteDesigns(topic.id);
   return (
@@ -340,12 +344,12 @@ function DesignGrid({ topic, onBack, onSelect }: { topic: StarterTemplate; onBac
         <p className="text-base font-medium text-neutral-950">
           {topic.name} · {designs.length} designs
         </p>
-        <p className="w-full text-sm text-neutral-500 sm:ml-auto sm:w-auto">The same site in five looks. Pick the one that feels like you; you can change it any time under Settings.</p>
+        <p className="w-full text-sm text-neutral-500 sm:ml-auto sm:w-auto">Same words and sections, a different site each time: colours, type, banner and what comes first. You can change any of it later under Settings.</p>
       </div>
       <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
         {designs.map((d) => (
-          <button key={d.id} type="button" onClick={() => onSelect({ ...topic, id: d.id, name: `${topic.name} · ${d.name}` })} className={CARD}>
-            <Preview templateId={d.id} color={topic.color} action="Start with this" />
+          <button key={d.id} type="button" onClick={() => onSelect({ ...topic, id: d.templateId, name: `${topic.name} · ${d.name}` })} className={CARD}>
+            <Preview templateId={d.templateId} color={topic.color} action="Start with this" />
             <div className="mt-3.5 flex items-baseline justify-between gap-3">
               <h4 className="min-w-0 truncate text-[17px] font-medium tracking-tight text-neutral-950">{d.name}</h4>
               {topic.includes.length > 0 && <span className="shrink-0 whitespace-nowrap text-xs text-neutral-500">{topic.includes.slice(0, 3).join(" · ")}</span>}

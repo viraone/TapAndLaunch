@@ -1,256 +1,367 @@
-import { websiteStyleOf, type StarterPage } from "@/lib/apps/templates";
+import { websiteStyleOf, type StarterBlock, type StarterPage } from "@/lib/apps/templates";
 import { themeStyle } from "@/lib/pwa/theme-style";
-import type { HeroBlockConfig, QuoteBlockConfig, StatsBlockConfig, ThemeConfig } from "@/types/database";
+import { heroBackground, heroLayout, type HeroBackground, type LookId } from "@/lib/pwa/look";
+import type { HeroBlockConfig, ImageTextBlockConfig, QuoteBlockConfig, StatsBlockConfig, ThemeConfig } from "@/types/database";
 
 /**
- * A website starter as a tiny real site in its own flavour, not a wireframe: the site's name in a menu, the banner's
- * actual eyebrow, headline and button, the real highlight numbers, the trade's tiles — set in the site's real fonts,
- * on its real light or dark page, with its real button shape. The flavour is read from the theme the site will
- * actually have (`websiteStyleOf`), so the card never promises a look the site doesn't deliver.
+ * A website starter as a tiny real site, drawn from the theme and pages the site will actually have: the header the
+ * look gives it, the banner in its real layout and paint, then the first sections in their real order (the numbers,
+ * the work, the story or the quote), in the real fonts on the real page colour with the real button shape. Nothing
+ * here is a preview-only flourish: a design that looks different on the card is a site that looks different.
  */
 export function WebsiteMockup({ home, theme, name, color }: { home: StarterPage | undefined; theme: ThemeConfig; name: string; color: string }) {
-  const style = websiteStyleOf(theme);
+  const look = websiteStyleOf(theme);
   const blocks = home?.blocks ?? [];
-  const hero = blocks.find((b) => b.type === "hero")?.config as HeroBlockConfig | undefined;
-  const stats = ((blocks.find((b) => b.type === "stats")?.config as StatsBlockConfig | undefined)?.items ?? []).slice(0, 3);
-  const quote = (blocks.find((b) => b.type === "quote")?.config as QuoteBlockConfig | undefined)?.quote;
-  const tiles = blocks.some((b) => b.type === "gallery" || b.type === "product_list");
+  const heroBlock = blocks.find((b) => b.type === "hero");
+  const hero = (heroBlock?.config ?? {}) as HeroBlockConfig;
+  const layout = heroLayout(hero, look);
+  const paint = heroBackground(hero, look);
+  const primary = theme.primary_color ?? color;
+  const dark = theme.color_scheme === "dark";
+  const page = theme.background_color ?? (dark ? "#0a0a0a" : "#ffffff");
+  const ink = dark ? "#f5f5f5" : "#111111";
+  const muted = dark ? "rgba(255,255,255,0.62)" : "rgba(0,0,0,0.55)";
+  const line = dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.12)";
+  const mix = (pct: number, base: string) => `color-mix(in oklab, ${primary} ${pct}%, ${base})`;
+  // The accent each look derives in globals.css, unless the theme names one.
+  const accent = theme.accent_color ?? (look === "editorial" ? mix(72, "#1c1917") : look === "cinematic" ? mix(62, "white") : primary);
+  const surface = look === "cinematic" ? "rgba(255,255,255,0.06)" : look === "classic" ? (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)") : mix(look === "bold" ? 10 : 7, page);
   const vars = themeStyle(theme);
   const headingFont = vars["--font-heading"];
   const bodyFont = vars.fontFamily;
   const radius = vars["--button-radius"] ?? "9999px";
-  const tint = (pct: number, base = "white") => `color-mix(in oklab, ${color} ${pct}%, ${base})`;
-  const tileRow = (
-    <div className="grid grid-cols-3 gap-1.5 px-2.5 pt-2">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="h-7 rounded-md" style={{ background: `linear-gradient(135deg, ${tint(45 - i * 8)}, ${tint(18)})` }} />
-      ))}
-    </div>
-  );
-  const button = (cls: string, bg: string, fg: string) => (
-    <span className={`inline-block px-2 py-0.5 text-[5px] font-bold ${cls}`} style={{ background: bg, color: fg, borderRadius: radius }}>
-      {hero?.button_label ?? "Get in touch"}
+  const scale = theme.heading_size === "large" ? 1.15 : theme.heading_size === "compact" ? 0.88 : 1;
+  const px = (n: number) => `${(n * scale).toFixed(1)}px`;
+  // The two sections after the banner, in the site's real order. An empty video or audio box shows nothing on the
+  // live site, so it shows nothing here either.
+  const after = blocks.filter((b) => b !== heroBlock && b.type !== "video" && b.type !== "audio").slice(0, 2);
+
+  const button = (cls = "") => (
+    <span
+      className={`inline-block px-2 py-0.5 text-[5px] font-bold ${cls}`}
+      style={look === "cinematic" ? { background: accent, color: "#0a0a0a", borderRadius: radius } : { background: primary, color: "#ffffff", borderRadius: radius }}
+    >
+      {hero.button_label ?? "Get in touch"}
     </span>
   );
+  const backdrop = (p: HeroBackground) =>
+    p === "solid"
+      ? primary
+      : p === "mesh"
+        ? `radial-gradient(70% 70% at 85% 80%, ${mix(55, "#000")} 0%, transparent 55%), radial-gradient(55% 55% at 12% 12%, ${mix(40, "#000")} 0%, transparent 60%), #0b0b0d`
+        : `linear-gradient(135deg, ${primary}, ${mix(70, "#0a0a0a")})`;
+  const grain = (p: HeroBackground) =>
+    p === "grain" ? (
+      <div aria-hidden className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.35)_1px,transparent_0)] [background-size:3px_3px]" />
+    ) : null;
 
-  // ── Cinematic: a dark site, the colour used as light. Photography, Music, Technology.
-  if (style === "cinematic") {
-    // A dark brand colour (Photography's slate) is no light at all on a black page; mixing in white keeps the
-    // eyebrow and the numbers legible while leaving a bright colour almost as it is.
-    const light = tint(65);
-    return (
-      <Backdrop background={`radial-gradient(120% 100% at 85% 0%, ${tint(55, "#000")} 0%, #000 65%)`} glow={color} glowClass="-left-10 -top-10 opacity-60">
-        <Window bg="#0b0b0d" chrome="#18181b" ring="ring-white/10">
-          <Nav name={name} color={color} ink="#f5f5f5" muted="#a3a3a3" font={bodyFont} radius={radius} />
-          <div className="relative px-3 pb-3 pt-4" style={{ background: `linear-gradient(135deg, ${tint(55, "#0b0b0d")}, #0b0b0d 85%)` }}>
-            {hero?.eyebrow && (
-              <p className="mb-1 text-[5px] font-bold uppercase tracking-[0.25em]" style={{ color: light }}>
+  return (
+    <div aria-hidden className="absolute inset-0 overflow-hidden" style={{ background: page, color: ink, fontFamily: bodyFont }}>
+      {/* Zoomed so the site's few sections fill the frame the way a real screenshot of the top of a site would. */}
+      <div style={{ zoom: 1.5 }}>
+        <Header look={look} name={name} primary={primary} accent={accent} ink={ink} muted={muted} line={line} page={page} headingFont={headingFont} radius={radius} />
+
+        {layout === "centered" && (
+          <div className="px-4 pb-2 pt-3 text-center">
+            {hero.eyebrow && (
+              <p className="text-[5px] font-bold uppercase tracking-[0.3em]" style={{ color: accent }}>
                 {hero.eyebrow}
               </p>
             )}
-            <p className="line-clamp-2 text-[12px] font-bold leading-[1.05] tracking-tight text-white" style={{ fontFamily: headingFont }}>
-              {hero?.headline}
+            <p className="mx-auto mt-1 line-clamp-2 font-bold leading-[1.05] tracking-tight" style={{ fontFamily: headingFont, fontSize: px(13) }}>
+              {hero.headline}
             </p>
-            {button("mt-2", tint(80), "#ffffff")}
+            <div className="mx-auto mt-1.5 h-px w-8" style={{ background: accent }} />
+            <p className="mx-auto mt-1 line-clamp-1 text-[5.5px]" style={{ color: muted }}>
+              {hero.subtext}
+            </p>
+            {button("mt-1.5")}
           </div>
-          {stats.length > 0 && (
-            <div className="grid grid-cols-3 gap-1.5 px-2.5 pt-2.5">
-              {stats.map((s, i) => (
-                <div key={i} className="rounded-md bg-white/[0.06] px-1 py-1.5 text-center ring-1 ring-white/10">
-                  <p className="truncate text-[8px] font-bold" style={{ color: light, fontFamily: headingFont }}>
-                    {s.value}
-                  </p>
-                  <p className="truncate text-[4.5px] uppercase tracking-wide text-neutral-400">{s.label}</p>
-                </div>
-              ))}
-            </div>
-          )}
-          {tiles && tileRow}
-        </Window>
-      </Backdrop>
-    );
-  }
+        )}
 
-  // ── Editorial: serif headlines on warm paper, the quote right under the banner. Weddings, Art, Beauty.
-  if (style === "editorial") {
-    return (
-      <Backdrop background={`linear-gradient(160deg, ${tint(18, "#f3ece0")}, #ebe3d4)`} glow={color} glowClass="-right-12 -bottom-16 opacity-40">
-        <Window bg="#fdfaf4" chrome="#f0eadf" ring="ring-black/10">
-          <Nav name={name} color={color} ink="#1c1917" muted="#78716c" font={headingFont} radius={radius} />
-          <div className="px-4 pb-3 pt-3 text-center">
-            {hero?.eyebrow && (
-              <p className="mb-1 text-[5px] font-semibold uppercase tracking-[0.3em]" style={{ color }}>
+        {layout === "minimal" && (
+          <div className="px-3 pb-2 pt-3">
+            {hero.eyebrow && (
+              <p className="text-[5px] font-bold uppercase tracking-[0.3em]" style={{ color: accent }}>
                 {hero.eyebrow}
               </p>
             )}
-            <p className="mx-auto line-clamp-2 text-[13px] font-bold leading-[1.1] text-[#1c1917]" style={{ fontFamily: headingFont }}>
-              {hero?.headline}
+            <p className="mt-1 line-clamp-2 font-extrabold leading-[0.95] tracking-tighter" style={{ fontFamily: headingFont, fontSize: px(17) }}>
+              {hero.headline}
             </p>
-            <div className="mx-auto mt-1.5 h-px w-8" style={{ background: color }} />
-            {quote && (
-              <p className="mt-1.5 line-clamp-1 text-[6px] italic text-[#57534e]" style={{ fontFamily: headingFont }}>
-                “{quote}”
+            <div className="mt-2 flex items-center justify-between gap-3 border-t pt-1.5" style={{ borderColor: line }}>
+              <p className="line-clamp-1 text-[5.5px]" style={{ color: muted }}>
+                {hero.subtext}
               </p>
-            )}
-            {button("mt-2", "transparent", "#1c1917")}
-          </div>
-          {stats.length > 0 && (
-            <p className="flex items-center justify-center gap-2 px-3 text-[6px] text-[#44403c]" style={{ fontFamily: headingFont }}>
-              {stats.map((s, i) => (
-                <span key={i} className="flex items-center gap-2">
-                  {i > 0 && <span style={{ color }}>·</span>}
-                  <span>
-                    <b>{s.value}</b> {s.label.toLowerCase()}
-                  </span>
-                </span>
-              ))}
-            </p>
-          )}
-          {tiles && tileRow}
-        </Window>
-      </Backdrop>
-    );
-  }
-
-  // ── Bold: poster headlines in a condensed face, square corners, the colour everywhere. Construction, Marketing, Travel.
-  if (style === "bold") {
-    return (
-      <Backdrop background={`linear-gradient(135deg, ${color}, ${tint(70, "#0a0a0a")})`} glow="#ffffff" glowClass="-right-16 -top-16 opacity-20">
-        <Window bg="#fffdf7" chrome="#f3f1ea" ring="ring-black/10">
-          <Nav name={name} color={color} ink="#0a0a0a" muted="#525252" font={bodyFont} radius={radius} />
-          <div className="relative px-3 pb-3 pt-3" style={{ background: color }}>
-            {hero?.eyebrow && <p className="mb-0.5 text-[5px] font-bold uppercase tracking-[0.25em] text-white/80">{hero.eyebrow}</p>}
-            <p className="line-clamp-2 text-[18px] uppercase leading-[0.95] tracking-wide text-white" style={{ fontFamily: headingFont }}>
-              {hero?.headline}
-            </p>
-            {button("mt-2", "#0a0a0a", "#ffffff")}
-          </div>
-          {stats.length > 0 && (
-            <div className="grid grid-cols-3 divide-x divide-white/15 bg-neutral-950">
-              {stats.map((s, i) => (
-                <div key={i} className="px-1 py-1.5 text-center">
-                  <p className="truncate text-[10px] leading-none text-white" style={{ fontFamily: headingFont }}>
-                    {s.value}
-                  </p>
-                  <p className="mt-0.5 truncate text-[4.5px] uppercase tracking-wider" style={{ color: tint(60) }}>
-                    {s.label}
-                  </p>
-                </div>
-              ))}
+              {button("shrink-0")}
             </div>
-          )}
-          {tiles && tileRow}
-        </Window>
-      </Backdrop>
-    );
-  }
+          </div>
+        )}
 
-  // ── Split: the headline beside the work. Design, Apparel.
-  if (style === "split") {
-    return (
-      <Backdrop background={`linear-gradient(160deg, ${tint(24)}, ${tint(6, "#eef0f8")})`} glow={color} glowClass="-left-12 -bottom-16 opacity-35">
-        <Window bg="#ffffff" chrome="#f1f1f4" ring="ring-black/10">
-          <Nav name={name} color={color} ink="#0a0a0a" muted="#737373" font={bodyFont} radius={radius} />
-          <div className="grid grid-cols-5 gap-2 px-3 pb-2 pt-2">
-            <div className="col-span-3">
-              {hero?.eyebrow && (
-                <p className="mb-1 text-[5px] font-semibold uppercase tracking-[0.2em]" style={{ color }}>
+        {layout === "split" && (
+          <div className="mx-2.5 mt-2 grid grid-cols-5 overflow-hidden rounded-lg" style={{ background: surface }}>
+            <div className="col-span-3 px-3 py-3">
+              {hero.eyebrow && (
+                <p className="text-[5px] font-bold uppercase tracking-[0.25em]" style={{ color: accent }}>
                   {hero.eyebrow}
                 </p>
               )}
-              <p className="line-clamp-3 text-[12px] leading-[1.05] text-[#0a0a0a]" style={{ fontFamily: headingFont }}>
-                {hero?.headline}
+              <p className="mt-1 line-clamp-3 font-bold leading-[1.05] tracking-tight" style={{ fontFamily: headingFont, fontSize: px(11) }}>
+                {hero.headline}
               </p>
-              {button("mt-2", color, "#ffffff")}
+              <p className="mt-1 line-clamp-1 text-[5px]" style={{ color: muted }}>
+                {hero.subtext}
+              </p>
+              {button("mt-1.5")}
             </div>
-            <div className="col-span-2 grid grid-cols-2 gap-1">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="aspect-square rounded-md" style={{ background: `linear-gradient(135deg, ${tint(50 - i * 9)}, ${tint(14)})` }} />
-              ))}
+            <div className="relative col-span-2 min-h-[3.5rem]" style={{ background: backdrop(paint) }}>
+              {grain(paint)}
             </div>
-          </div>
-          {stats.length > 0 && (
-            <div className="grid grid-cols-3 gap-1.5 px-2.5 pt-1">
-              {stats.map((s, i) => (
-                <div key={i} className="rounded-md px-1 py-1.5 text-center" style={{ background: tint(8, "#f6f6fb") }}>
-                  <p className="truncate text-[8px] font-bold" style={{ color, fontFamily: headingFont }}>
-                    {s.value}
-                  </p>
-                  <p className="truncate text-[4.5px] uppercase tracking-wide text-neutral-500">{s.label}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </Window>
-      </Backdrop>
-    );
-  }
-
-  // ── Classic: clean and direct. Personal website, Education, Consulting, Health, Real estate.
-  return (
-    <Backdrop background={`radial-gradient(140% 120% at 10% 20%, ${tint(55, "#0a0a0a")} 0%, ${tint(18, "#0a0a0a")} 100%)`} glow={color} glowClass="-right-8 -top-12 opacity-50">
-      <Window bg="#ffffff" chrome="#f5f5f5" ring="ring-white/15">
-        <Nav name={name} color={color} ink="#0a0a0a" muted="#737373" font={bodyFont} radius={radius} />
-        <div className="relative px-3 pb-2.5 pt-3" style={{ background: color }}>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/5" />
-          <div className="relative">
-            {hero?.eyebrow && <p className="mb-1 text-[5px] font-bold uppercase tracking-[0.2em] text-white/80">{hero.eyebrow}</p>}
-            <p className="line-clamp-2 text-[11px] font-extrabold leading-[1.05] tracking-tight text-white" style={{ fontFamily: headingFont }}>
-              {hero?.headline ?? "Your headline"}
-            </p>
-            {button("mt-2", "#ffffff", "#0a0a0a")}
-          </div>
-        </div>
-        {stats.length > 0 && (
-          <div className="grid grid-cols-3 gap-1.5 px-2.5 pt-2.5">
-            {stats.map((s, i) => (
-              <div key={i} className="rounded-md bg-neutral-100 px-1 py-1.5 text-center">
-                <p className="truncate text-[8px] font-extrabold tracking-tight" style={{ color }}>
-                  {s.value}
-                </p>
-                <p className="truncate text-[4.5px] font-medium uppercase tracking-wide text-neutral-500">{s.label}</p>
-              </div>
-            ))}
           </div>
         )}
-        {tiles && tileRow}
-      </Window>
-    </Backdrop>
-  );
-}
 
-// The mockup fills its card edge to edge, like a screenshot of the real site: no gradient backdrop, no browser frame.
-// (`background`, `glow`, `chrome` and `ring` are still passed by each flavour; the page itself is what shows now.)
-function Backdrop({ children }: { background: string; glow: string; glowClass: string; children: React.ReactNode }) {
-  return (
-    <div aria-hidden className="relative h-full w-full overflow-hidden">
-      {children}
+        {layout === "full" && (
+          <div className="relative mx-2.5 mt-2 overflow-hidden rounded-lg px-3 pb-3 pt-6" style={{ background: backdrop(paint) }}>
+            {grain(paint)}
+            <div className={`absolute inset-0 bg-gradient-to-t ${paint === "mesh" ? "from-black/70 via-black/20 to-transparent" : "from-black/80 via-black/40 to-black/5"}`} />
+            <div className="relative text-white">
+              {hero.eyebrow && <p className="mb-1 inline-block rounded-full bg-white/15 px-1.5 py-0.5 text-[4.5px] font-bold uppercase tracking-[0.18em]">{hero.eyebrow}</p>}
+              <p
+                className={`line-clamp-2 font-extrabold tracking-tight ${look === "bold" ? "uppercase leading-[0.95] tracking-wide" : "leading-[1.05]"}`}
+                style={{ fontFamily: headingFont, fontSize: px(look === "bold" ? 15 : 11.5) }}
+              >
+                {hero.headline}
+              </p>
+              <p className="mt-1 line-clamp-1 max-w-[70%] text-[5px] text-white/85">{hero.subtext}</p>
+              {button("mt-1.5")}
+            </div>
+          </div>
+        )}
+
+        {after.map((b, i) => (
+          <Section key={i} block={b} look={look} primary={primary} accent={accent} ink={ink} muted={muted} line={line} page={page} surface={surface} headingFont={headingFont} dark={dark} mix={mix} />
+        ))}
+      </div>
     </div>
   );
 }
 
-function Window({ bg, children }: { bg: string; chrome: string; ring: string; children: React.ReactNode }) {
+/** The site's header as its look sits it: a centred masthead with small-caps links (editorial), a bar in the colour
+ * (bold), dark glass with the accent on the current page (cinematic), underlines (split), pills (classic). */
+function Header({
+  look,
+  name,
+  primary,
+  accent,
+  ink,
+  muted,
+  line,
+  page,
+  headingFont,
+  radius,
+}: {
+  look: LookId;
+  name: string;
+  primary: string;
+  accent: string;
+  ink: string;
+  muted: string;
+  line: string;
+  page: string;
+  headingFont?: string;
+  radius: string;
+}) {
+  const links = ["Home", "About", "Contact"];
+  if (look === "editorial") {
+    return (
+      <div className="flex flex-col items-center gap-1 border-b px-3 py-2 text-center" style={{ borderColor: line }}>
+        <span className="text-[9px] font-bold tracking-tight" style={{ color: ink, fontFamily: headingFont }}>
+          {name}
+        </span>
+        <span className="flex items-center gap-2 text-[4.5px] font-semibold uppercase tracking-[0.22em]" style={{ color: muted }}>
+          {links.map((l, i) => (
+            <span key={l} className="border-b pb-0.5" style={i === 0 ? { color: ink, borderColor: accent } : { borderColor: "transparent" }}>
+              {l}
+            </span>
+          ))}
+        </span>
+      </div>
+    );
+  }
+  if (look === "bold") {
+    return (
+      <div className="flex items-center justify-between px-3 py-2 text-white" style={{ background: primary }}>
+        <span className="truncate text-[8px] uppercase tracking-wide" style={{ fontFamily: headingFont }}>
+          {name}
+        </span>
+        <span className="flex items-center gap-1.5 text-[5px] font-bold uppercase tracking-[0.12em] text-white/85">
+          {links.map((l, i) => (
+            <span key={l} className="px-1.5 py-0.5" style={i === 0 ? { background: "#0a0a0a", color: "#ffffff", borderRadius: radius } : undefined}>
+              {l}
+            </span>
+          ))}
+        </span>
+      </div>
+    );
+  }
+  if (look === "cinematic") {
+    return (
+      <div className="flex items-center justify-between border-b border-white/10 bg-black/60 px-3 py-2 text-white">
+        <span className="truncate text-[8px] font-bold tracking-tight" style={{ fontFamily: headingFont }}>
+          {name}
+        </span>
+        <span className="flex items-center gap-2 text-[6px] font-medium text-white/70">
+          {links.map((l, i) => (
+            <span key={l} className={i === 0 ? "underline decoration-1 underline-offset-2" : ""} style={i === 0 ? { color: accent } : undefined}>
+              {l}
+            </span>
+          ))}
+        </span>
+      </div>
+    );
+  }
+  // Classic and split share the bar; classic marks the page with a pill, split with an underline.
   return (
-    <div className="absolute inset-0 overflow-hidden" style={{ background: bg }}>
-      {/* Zoomed so the site's few sections fill the frame the way a real screenshot of the top of a site would. */}
-      <div style={{ zoom: 1.5 }}>{children}</div>
-    </div>
-  );
-}
-
-function Nav({ name, color, ink, muted, font, radius }: { name: string; color: string; ink: string; muted: string; font?: string; radius: string }) {
-  return (
-    <div className="flex items-center justify-between px-3 py-2">
-      <span className="truncate text-[8px] font-bold tracking-tight" style={{ color: ink, fontFamily: font }}>
+    <div className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: line, background: page }}>
+      <span className="truncate text-[8px] font-bold tracking-tight" style={{ color: ink, fontFamily: headingFont }}>
         {name}
       </span>
       <span className="flex items-center gap-2 text-[6px] font-medium" style={{ color: muted }}>
-        <span className="px-1.5 py-0.5 font-semibold text-white" style={{ background: color, borderRadius: radius }}>
-          Home
-        </span>
-        <span>About</span>
-        <span>Contact</span>
+        {links.map((l, i) =>
+          look === "split" ? (
+            <span key={l} className="border-b pb-0.5" style={i === 0 ? { color: primary, borderColor: primary } : { borderColor: "transparent" }}>
+              {l}
+            </span>
+          ) : (
+            <span key={l} className="px-1.5 py-0.5 font-semibold" style={i === 0 ? { background: primary, color: "#ffffff", borderRadius: radius } : undefined}>
+              {l}
+            </span>
+          )
+        )}
       </span>
     </div>
   );
+}
+
+/** One of the sections after the banner, drawn the way its look draws it. */
+function Section({
+  block,
+  look,
+  primary,
+  accent,
+  ink,
+  muted,
+  line,
+  page,
+  surface,
+  headingFont,
+  dark,
+  mix,
+}: {
+  block: StarterBlock;
+  look: LookId;
+  primary: string;
+  accent: string;
+  ink: string;
+  muted: string;
+  line: string;
+  page: string;
+  surface: string;
+  headingFont?: string;
+  dark: boolean;
+  mix: (pct: number, base: string) => string;
+}) {
+  switch (block.type) {
+    case "stats": {
+      const items = ((block.config as StatsBlockConfig).items ?? []).slice(0, 3);
+      if (look === "editorial") {
+        return (
+          <p className="flex items-center justify-center gap-2 px-3 pt-2 text-[6px]" style={{ color: ink, fontFamily: headingFont }}>
+            {items.map((s, i) => (
+              <span key={i} className="flex items-center gap-2">
+                {i > 0 && <span style={{ color: accent }}>·</span>}
+                <span>
+                  <b style={{ color: accent }}>{s.value}</b> {s.label.toLowerCase()}
+                </span>
+              </span>
+            ))}
+          </p>
+        );
+      }
+      if (look === "bold") {
+        return (
+          <div className="mt-2 grid grid-cols-3 divide-x divide-white/15" style={{ background: ink, color: page }}>
+            {items.map((s, i) => (
+              <div key={i} className="px-1 py-1.5 text-center">
+                <p className="truncate text-[10px] leading-none" style={{ fontFamily: headingFont }}>
+                  {s.value}
+                </p>
+                <p className="mt-0.5 truncate text-[4.5px] uppercase tracking-wider opacity-70">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      return (
+        <div className="grid grid-cols-3 gap-1.5 px-2.5 pt-2">
+          {items.map((s, i) => (
+            <div key={i} className={`rounded-md px-1 py-1.5 text-center ${look === "cinematic" ? "ring-1 ring-white/10" : ""}`} style={{ background: surface }}>
+              <p className="truncate text-[8px] font-extrabold tracking-tight" style={{ color: look === "cinematic" ? accent : primary }}>
+                {s.value}
+              </p>
+              <p className="truncate text-[4.5px] font-medium uppercase tracking-wide" style={{ color: muted }}>
+                {s.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    case "gallery":
+    case "product_list":
+      return (
+        <div className="grid grid-cols-3 gap-1.5 px-2.5 pt-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-8 rounded-md" style={{ background: `linear-gradient(135deg, ${mix(45 - i * 8, dark ? "#1a1a1a" : "white")}, ${mix(18, dark ? "#111" : "white")})` }} />
+          ))}
+        </div>
+      );
+    case "image_text": {
+      const c = block.config as ImageTextBlockConfig;
+      return (
+        <div className="grid grid-cols-5 gap-2 px-3 pt-2.5">
+          <div className="col-span-3">
+            <p className="line-clamp-1 text-[7px] font-bold" style={{ color: ink, fontFamily: headingFont }}>
+              {c.heading}
+            </p>
+            <div className="mt-1 space-y-0.5">
+              <div className="h-[3px] w-full rounded-full" style={{ background: line }} />
+              <div className="h-[3px] w-5/6 rounded-full" style={{ background: line }} />
+              <div className="h-[3px] w-2/3 rounded-full" style={{ background: line }} />
+            </div>
+          </div>
+          <div className="col-span-2 h-9 rounded-md" style={{ background: surface }} />
+        </div>
+      );
+    }
+    case "quote": {
+      const q = (block.config as QuoteBlockConfig).quote;
+      return (
+        <p
+          className={`px-4 pt-2.5 text-center leading-snug ${look === "bold" ? "text-[7px] font-bold uppercase tracking-tight" : "text-[6.5px] italic"}`}
+          style={{ color: look === "editorial" ? accent : ink, fontFamily: headingFont }}
+        >
+          “{q}”
+        </p>
+      );
+    }
+    default:
+      return (
+        <div className="space-y-1 px-3 pt-2.5">
+          <div className="h-[4px] w-1/2 rounded-full" style={{ background: ink, opacity: 0.8 }} />
+          <div className="h-[3px] w-full rounded-full" style={{ background: line }} />
+          <div className="h-[3px] w-4/5 rounded-full" style={{ background: line }} />
+        </div>
+      );
+  }
 }

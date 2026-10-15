@@ -3,6 +3,7 @@ import { isReservedPagePath } from "@/lib/pwa/reserved-paths";
 import { BLOCK_TYPES } from "@/lib/builder/block-defaults";
 import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, WEBSITE_STYLES, WEBSITE_TOPICS, buildStarter, isTemplateId, parseWebsiteDesign, starterTemplateFor, templateNeedsMaps, websiteDesigns, websiteStyleOf } from "./templates";
 import { LOOK_IDS } from "@/lib/pwa/look";
+import { WEBSITE_DESIGNS } from "./designs";
 
 const TOPIC_IDS = ["photography", "design", "education", "consulting", "art", "health", "marketing", "technology", "construction", "apparel", "music", "realestate", "beauty", "travel", "weddings"];
 
@@ -222,40 +223,62 @@ describe("starter templates", () => {
   });
 });
 
-describe("website designs (a topic in each of the five looks)", () => {
-  it("lists five designs per website starter, its own look first, and the bare id is that first design", () => {
+describe("website designs (every website starter in each design)", () => {
+  const websites = () => STARTER_TEMPLATES.filter((x) => x.category === "website");
+
+  it("lists every design per website starter, its own look first, and the bare id is that first design", () => {
     for (const topic of WEBSITE_TOPICS) expect(websiteDesigns(topic.id)[0]?.look).toBe(topic.style);
     expect(websiteDesigns("portfolio")[0]?.look).toBe("classic");
-    for (const t of STARTER_TEMPLATES.filter((x) => x.category === "website")) {
+    for (const t of websites()) {
       const designs = websiteDesigns(t.id);
-      expect(designs[0]?.id).toBe(t.id);
-      expect([...designs.map((d) => d.look)].sort()).toEqual([...LOOK_IDS].sort());
-      expect(new Set(designs.map((d) => d.id)).size).toBe(LOOK_IDS.length);
+      expect(designs).toHaveLength(WEBSITE_DESIGNS.length);
+      expect(designs[0]?.templateId).toBe(t.id);
+      expect(new Set(designs.map((d) => d.templateId)).size).toBe(WEBSITE_DESIGNS.length);
+      expect([...new Set(designs.map((d) => d.look))].sort()).toEqual([...LOOK_IDS].sort());
     }
     for (const t of STARTER_TEMPLATES.filter((x) => x.category !== "website")) expect(websiteDesigns(t.id), t.id).toEqual([]);
   });
 
-  it("builds each design as the same site (same words, same sections) in that look", () => {
-    const shape = (s: ReturnType<typeof buildStarter>) => s.pages.map((p) => `${p.name}: ${p.blocks.filter((b) => b.type !== "quote").map((b) => b.type).join(",")}`);
-    for (const t of STARTER_TEMPLATES.filter((x) => x.category === "website")) {
+  it("builds each design as the same site (same words, same sections) with that design's theme, banner and opening", () => {
+    const sections = (s: ReturnType<typeof buildStarter>) => s.pages.flatMap((p) => p.blocks.map((b) => b.type)).sort();
+    for (const t of websites()) {
       const own = buildStarter(t.id, "X", "my words");
       for (const d of websiteDesigns(t.id)) {
-        const s = buildStarter(d.id, "X", "my words");
-        expect(s.theme.look, d.id).toBe(d.look);
-        expect(s.theme.font_pair).toBe(WEBSITE_STYLES[d.look].theme.font_pair);
-        expect(s.theme.background_color).toBe(WEBSITE_STYLES[d.look].theme.background_color);
-        expect(s.theme.primary_color).toBe(t.color);
+        const s = buildStarter(d.templateId, "X", "my words");
+        expect(s.theme.look, d.templateId).toBe(d.look);
+        expect(s.theme.font_pair).toBe(d.theme.font_pair);
+        expect(s.theme.background_color).toBe(d.theme.background_color);
+        expect(s.theme.color_scheme).toBe(d.theme.color_scheme ?? "light");
+        expect(s.theme.primary_color).toBe(d.templateId === t.id ? t.color : d.palette.primary);
         expect(s.theme.layout).toBe("website");
-        expect(shape(s), d.id).toEqual(shape(own));
-        expect((s.pages[0]?.blocks[0]?.config as { headline?: string; subtext?: string }).subtext).toBe("my words");
+        expect(s.manifest.theme_color).toBe(s.theme.primary_color);
+        expect(sections(s), d.templateId).toEqual(sections(own));
+        const hero = s.pages[0]?.blocks[0]?.config as { layout?: string; background?: string; subtext?: string };
+        expect(hero.layout).toBe(d.hero.layout);
+        expect(hero.background).toBe(d.hero.background);
+        expect(hero.subtext).toBe("my words");
       }
     }
   });
 
+  it("puts the design's opening right after the banner on a topic site", () => {
+    const first = (id: string) => buildStarter(id, "X").pages[0]?.blocks[1]?.type;
+    expect(first("photography--noir")).toBe("gallery");
+    expect(first("photography--paper")).toBe("image_text");
+    expect(first("photography--velvet")).toBe("quote");
+    expect(first("photography--studio")).toBe("stats");
+    // The quote closes About unless the design opens with it.
+    expect(buildStarter("photography--velvet", "X").pages[1]?.blocks.some((b) => b.type === "quote")).toBe(false);
+    expect(buildStarter("photography--studio", "X").pages[1]?.blocks.some((b) => b.type === "quote")).toBe(true);
+  });
+
   it("accepts design ids wherever a template id goes, and rejects made-up ones", () => {
     expect(isTemplateId("photography--editorial")).toBe(true);
-    expect(starterTemplateFor("photography--editorial")?.id).toBe("photography");
-    expect(parseWebsiteDesign("photography--editorial")?.look).toBe("editorial");
+    expect(isTemplateId("photography--noir")).toBe(true);
+    expect(starterTemplateFor("photography--noir")?.id).toBe("photography");
+    expect(parseWebsiteDesign("photography--noir")?.design.look).toBe("cinematic");
+    expect(parseWebsiteDesign("photography--cinematic")?.own).toBe(true);
+    expect(parseWebsiteDesign("photography--noir")?.own).toBe(false);
     expect(isTemplateId("photography--neon")).toBe(false);
     expect(isTemplateId("business--editorial")).toBe(false);
     expect(isTemplateId("portfolio--bold")).toBe(true);
