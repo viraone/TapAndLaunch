@@ -219,25 +219,21 @@ export function WebsiteMockup({ home, theme, name, color }: { home: StarterPage 
   );
 }
 
-function Backdrop({ background, glow, glowClass, children }: { background: string; glow: string; glowClass: string; children: React.ReactNode }) {
+// The mockup fills its card edge to edge, like a screenshot of the real site: no gradient backdrop, no browser frame.
+// (`background`, `glow`, `chrome` and `ring` are still passed by each flavour; the page itself is what shows now.)
+function Backdrop({ children }: { background: string; glow: string; glowClass: string; children: React.ReactNode }) {
   return (
-    <div aria-hidden className="relative h-48 overflow-hidden rounded-2xl" style={{ background }}>
-      <div className={`absolute h-44 w-44 rounded-full blur-3xl ${glowClass}`} style={{ background: glow }} />
+    <div aria-hidden className="relative h-full w-full overflow-hidden">
       {children}
     </div>
   );
 }
 
-function Window({ bg, chrome, ring, children }: { bg: string; chrome: string; ring: string; children: React.ReactNode }) {
+function Window({ bg, children }: { bg: string; chrome: string; ring: string; children: React.ReactNode }) {
   return (
-    <div className={`absolute left-4 right-[-10%] top-5 overflow-hidden rounded-t-xl shadow-[0_40px_80px_-24px_rgba(0,0,0,0.9)] ring-1 ${ring}`} style={{ background: bg }}>
-      <div className="flex h-5 items-center gap-1 px-2.5" style={{ background: chrome }}>
-        <span className="h-1.5 w-1.5 rounded-full bg-[#ff5f57]" />
-        <span className="h-1.5 w-1.5 rounded-full bg-[#febc2e]" />
-        <span className="h-1.5 w-1.5 rounded-full bg-[#28c840]" />
-        <span className="ml-2 h-2 w-24 rounded-full bg-white/70 ring-1 ring-black/10" />
-      </div>
-      {children}
+    <div className="absolute inset-0 overflow-hidden" style={{ background: bg }}>
+      {/* Zoomed so the site's few sections fill the frame the way a real screenshot of the top of a site would. */}
+      <div style={{ zoom: 1.5 }}>{children}</div>
     </div>
   );
 }

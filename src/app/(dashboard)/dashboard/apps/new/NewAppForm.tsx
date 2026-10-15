@@ -231,138 +231,93 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
   }
 
   return (
-    <div className="space-y-12">
+    <div>
       <div id="templates" className="scroll-mt-6" />
       {PICKER_FONTS.map((href) => (
         <link key={href} rel="stylesheet" href={href} />
       ))}
-
-      <TemplateShelf
-        title="Websites"
-        blurb="Looks and works like a regular website: full size on a computer, with a menu across the top."
-        categories={WEBSITE_CATEGORIES}
-        mapsEnabled={mapsEnabled}
-        onSelect={pickTemplate}
-        showCategoryLabel={false}
-      />
-
-      {/* A visible break, not just spacing, so the two shelves read as two different starting points at a glance. */}
-      <div className="h-px bg-neutral-200" aria-hidden />
-
-      <TemplateShelf
-        title="Phone-first templates"
-        blurb="A simple, phone-shaped page your visitors can save to their Home Screen, like an app."
-        categories={APP_CATEGORIES}
-        mapsEnabled={mapsEnabled}
-        onSelect={pickTemplate}
-      />
+      <TemplateGallery mapsEnabled={mapsEnabled} onSelect={pickTemplate} />
     </div>
   );
 }
 
-/** One labelled shelf of template cards. `showCategoryLabel` hides each card's small group pill (e.g. "Restaurants
- * & cafés") — worth skipping on a shelf whose one category would just repeat the shelf's own title. */
-function TemplateShelf({
-  title,
-  blurb,
-  categories,
-  mapsEnabled,
-  onSelect,
-  showCategoryLabel = true,
-}: {
-  title: string;
-  blurb: string;
-  categories: typeof TEMPLATE_CATEGORIES;
-  mapsEnabled: boolean;
-  onSelect: (t: StarterTemplate) => void;
-  showCategoryLabel?: boolean;
-}) {
-  const cards = categories.flatMap((category) =>
-    STARTER_TEMPLATES.filter((t) => t.category === category.id && (mapsEnabled || !templateNeedsMaps(t.id))).map((t) => ({ t, category }))
-  );
-  if (!cards.length) return null;
+type Shelf = "all" | "website" | "phone";
+const SHELVES: Array<{ id: Shelf; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "website", label: "Websites" },
+  { id: "phone", label: "Phone-first" },
+];
+
+/** Every template in one open grid, the way Squarespace lays out theirs: a row of filter pills with a result count,
+ * then big edge-to-edge previews with just a name under each. "Websites" are full-size sites with a menu across the
+ * top; "Phone-first" are simple phone-shaped pages visitors can save to their Home Screen. */
+function TemplateGallery({ mapsEnabled, onSelect }: { mapsEnabled: boolean; onSelect: (t: StarterTemplate) => void }) {
+  const [shelf, setShelf] = useState<Shelf>("all");
+  const available = STARTER_TEMPLATES.filter((t) => mapsEnabled || !templateNeedsMaps(t.id));
+  const order = [...WEBSITE_CATEGORIES, ...APP_CATEGORIES].map((c) => c.id as string);
+  const cards = available
+    .filter((t) => shelf === "all" || (shelf === "website") === (t.category === "website"))
+    .sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category));
 
   return (
-    <section className="space-y-5">
-      <div>
-        <h3 className="text-base font-semibold tracking-tight">{title}</h3>
-        <p className="mt-0.5 text-sm text-neutral-500">{blurb}</p>
+    <section>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-neutral-200 pt-6">
+        <p className="text-base font-medium text-neutral-950">{cards.length} templates</p>
+        <div role="group" aria-label="Show" className="flex flex-wrap gap-2">
+          {SHELVES.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setShelf(s.id)}
+              aria-pressed={shelf === s.id}
+              className={`h-10 rounded-full px-4 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 ${
+                shelf === s.id ? "bg-neutral-950 text-white" : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <p className="w-full text-sm text-neutral-500 sm:ml-auto sm:w-auto">
+          {shelf === "phone"
+            ? "Simple phone-shaped pages your visitors can save to their Home Screen."
+            : shelf === "website"
+              ? "Full-size sites with a menu across the top."
+              : "Websites and phone-first pages, all filled in so you can preview them right away."}
+        </p>
       </div>
-      {/* Three to a row, so a short shelf never leaves a gap; each card also says which smaller group it is in. */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map(({ t, category }) => (
-          <TemplateCard key={t.id} template={t} categoryName={showCategoryLabel ? category.name : undefined} onSelect={() => onSelect(t)} />
+      <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+        {cards.map((t) => (
+          <TemplateCard key={t.id} template={t} onSelect={() => onSelect(t)} />
         ))}
       </div>
     </section>
   );
 }
 
-const CARD =
-  "group relative flex flex-col text-left ring-1 ring-black/5 transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 enabled:hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0";
-
-function TemplateCard({ template: t, categoryName, onSelect }: { template: StarterTemplate; categoryName?: string; onSelect: () => void }) {
-  const Icon = ICONS[t.icon];
-
-  // A website card is leaner: the mockup is the point (it's a tiny real site), so a small icon, the name, a
-  // two-line tagline, and chips only for what sets this trade apart.
-  if (t.category === "website") {
-    return (
-      <button
-        type="button"
-        onClick={onSelect}
-        className={`${CARD} rounded-[1.4rem] bg-white p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_30px_-14px_rgba(0,0,0,0.25)] enabled:hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_28px_56px_-18px_rgba(0,0,0,0.35)]`}
-      >
-        <TemplatePreview templateId={t.id} color={t.color} />
-        <div className="flex items-center gap-2.5 px-2 pt-3.5">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ background: t.color }}>
-            <Icon className="h-3.5 w-3.5" />
-          </span>
-          <h4 className="text-[15px] font-semibold tracking-tight">{t.name}</h4>
-          {t.includes.length > 0 && (
-            <span className="ml-auto flex shrink-0 gap-1">
-              {t.includes.map((chip) => (
-                <span key={chip} className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: `color-mix(in oklab, ${t.color} 12%, white)`, color: `color-mix(in oklab, ${t.color} 70%, black)` }}>
-                  {chip}
-                </span>
-              ))}
-            </span>
-          )}
-        </div>
-        <p className="mt-1.5 line-clamp-2 px-2 pb-1.5 text-[13px] leading-relaxed text-neutral-500">{t.tagline}</p>
-      </button>
-    );
-  }
-
+function TemplateCard({ template: t, onSelect }: { template: StarterTemplate; onSelect: () => void }) {
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`${CARD} rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] enabled:hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_24px_48px_-16px_rgba(0,0,0,0.28)]`}
+      className="group flex flex-col text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950"
     >
-      <TemplatePreview templateId={t.id} color={t.color} />
-      {categoryName && <p className="px-2 pt-4 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{categoryName}</p>}
-      <div className={`flex items-center gap-3 px-2 ${categoryName ? "pt-1.5" : "pt-4"}`}>
-        <span
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow transition group-hover:scale-105"
-          style={{ background: `linear-gradient(135deg, ${t.color}, color-mix(in oklab, ${t.color} 55%, #0a0a0a))` }}
-        >
-          <Icon className="h-4 w-4" />
+      {/* The preview is the whole card: no frame around it, just a hairline, and it eases up a touch on hover. */}
+      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg bg-neutral-100 ring-1 ring-black/10">
+        <div className="h-full w-full transition duration-500 ease-out group-hover:scale-[1.03]">
+          <TemplatePreview templateId={t.id} color={t.color} />
+        </div>
+        <span aria-hidden className="absolute inset-0 grid place-items-center bg-black/0 transition duration-300 group-hover:bg-black/25">
+          <span className="translate-y-1 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-neutral-950 opacity-0 shadow-lg transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
+            Start with this
+          </span>
         </span>
-        <h4 className="text-base font-semibold tracking-tight">{t.name}</h4>
       </div>
-      <p className="mt-1.5 flex-1 px-2 text-sm leading-relaxed text-neutral-500">{t.tagline}</p>
-      <div className="mt-3 flex min-h-6 flex-wrap gap-1.5 px-2 pb-2">
-        {t.includes.length ? (
-          t.includes.map((chip) => (
-            <span key={chip} className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-600">
-              {chip}
-            </span>
-          ))
-        ) : (
-          <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-600">Empty page</span>
-        )}
+      <div className="mt-3.5 flex items-baseline justify-between gap-3">
+        <h4 className="min-w-0 truncate text-[17px] font-medium tracking-tight text-neutral-950">{t.name}</h4>
+        {t.includes.length > 0 && <span className="shrink-0 whitespace-nowrap text-xs text-neutral-500">{t.includes.slice(0, 3).join(" · ")}</span>}
       </div>
+      <p className="mt-1 line-clamp-1 text-sm text-neutral-500">{t.tagline}</p>
     </button>
   );
 }

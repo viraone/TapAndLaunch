@@ -16,14 +16,14 @@ export default async function NewAppPage({ searchParams }: { searchParams: Promi
   const { data: org } = await supabase.from("organizations").select("maps_enabled").eq("id", organizationId).maybeSingle();
 
   return (
-    <main className="flex-1 bg-neutral-100/70">
-      <section className="relative overflow-hidden bg-neutral-950 text-white">
-        <div aria-hidden className="pointer-events-none absolute -left-32 -top-40 h-96 w-96 rounded-full bg-indigo-600/30 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -right-24 top-10 h-80 w-80 rounded-full bg-pink-500/20 blur-3xl" />
-        <div className="relative mx-auto w-full max-w-6xl px-6 pb-12 pt-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">{firstRun ? "Welcome to TapAndLaunch" : "New app"}</p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">What are you building?</h1>
-          <p className="mt-2 max-w-xl text-sm text-neutral-400">
+    <main className="flex-1 bg-white">
+      <section className="mx-auto grid w-full max-w-[1400px] gap-8 px-6 pb-10 pt-12 sm:px-10 sm:pt-16 lg:grid-cols-2 lg:items-end lg:gap-16">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">{firstRun ? "Welcome to TapAndLaunch" : "New app"}</p>
+          <h1 className="mt-3 text-5xl font-medium leading-[0.98] tracking-[-0.04em] text-neutral-950 sm:text-7xl">What are you building?</h1>
+        </div>
+        <div className="max-w-xl">
+          <p className="text-lg leading-relaxed text-neutral-700">
             {firstRun
               ? "Let's get your first app live. Pick a starting point. You'll have something to preview in under a minute, and you can change all of it."
               : "Pick a starting point. It comes filled in, so you can preview it right away and change anything."}
@@ -34,9 +34,9 @@ export default async function NewAppPage({ searchParams }: { searchParams: Promi
                 <li
                   key={label}
                   aria-current={i === 0 ? "step" : undefined}
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 ring-1 ${i === 0 ? "bg-white text-neutral-950 ring-white" : "bg-white/5 text-neutral-300 ring-white/15"}`}
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 ring-1 ${i === 0 ? "bg-neutral-950 text-white ring-neutral-950" : "bg-white text-neutral-600 ring-neutral-200"}`}
                 >
-                  <span className={`grid h-5 w-5 place-items-center rounded-full text-[11px] font-bold ${i === 0 ? "bg-neutral-950 text-white" : "bg-white/15 text-neutral-200"}`}>{i + 1}</span>
+                  <span className={`grid h-5 w-5 place-items-center rounded-full text-[11px] font-bold ${i === 0 ? "bg-white text-neutral-950" : "bg-neutral-100 text-neutral-600"}`}>{i + 1}</span>
                   {label}
                 </li>
               ))}
@@ -44,7 +44,7 @@ export default async function NewAppPage({ searchParams }: { searchParams: Promi
           )}
         </div>
       </section>
-      <div className="relative mx-auto w-full max-w-6xl px-6 pb-16 pt-10">
+      <div className="relative mx-auto w-full max-w-[1400px] px-6 pb-20 sm:px-10">
         <NewAppForm organizationId={organizationId} rootDomain={getRootDomain()} mapsEnabled={org?.maps_enabled === true} />
       </div>
     </main>

@@ -19,10 +19,10 @@ export function TemplatePreview({ templateId, color }: { templateId: string; col
   return (
     <div
       aria-hidden
-      className="relative flex h-44 items-end justify-center overflow-hidden rounded-2xl"
+      className="relative flex h-full w-full items-end justify-center overflow-hidden"
       style={{ background: `linear-gradient(160deg, color-mix(in oklab, ${color} 22%, white), color-mix(in oklab, ${color} 8%, white))` }}
     >
-      <div className="relative -mb-3 h-[10.5rem] w-24 overflow-hidden rounded-[1.1rem] border-[3px] border-neutral-900 shadow-xl" style={{ background: bg }}>
+      <div className="relative -mb-3 h-[10.5rem] w-24 origin-bottom scale-[1.25] overflow-hidden rounded-[1.1rem] border-[3px] border-neutral-900 shadow-xl" style={{ background: bg }}>
         <div className="flex h-4 items-center gap-1 px-2" style={{ background: color }}>
           <span className="h-1 w-6 rounded-full bg-white/90" />
         </div>
