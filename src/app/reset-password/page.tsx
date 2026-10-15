@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
     return (
       <AuthShell title="Choose a new password">
         <div className="flex justify-center py-6" role="status" aria-label="Loading">
-          <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
+          <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
         </div>
       </AuthShell>
     );
@@ -86,10 +86,10 @@ export default function ResetPasswordPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <p className="text-xs text-neutral-500">At least 8 characters.</p>
+          <p className="text-xs text-neutral-9500">At least 8 characters.</p>
         </div>
         {error && (
-          <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         )}

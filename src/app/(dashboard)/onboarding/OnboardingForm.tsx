@@ -57,10 +57,10 @@ export function OnboardingForm() {
           onChange={(e) => setName(e.target.value)}
           placeholder="Acme Agency"
         />
-        {name.trim() && <p className="text-xs text-neutral-500">URL: {slugify(name)}</p>}
+        {name.trim() && <p className="text-xs text-neutral-9500">URL: {slugify(name)}</p>}
       </div>
       {error && (
-        <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}

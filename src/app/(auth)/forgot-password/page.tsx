@@ -47,15 +47,15 @@ export default function ForgotPasswordPage() {
   if (sent) {
     return (
       <AuthShell title="Check your email" subtitle="One more step.">
-        <div className="flex items-start gap-3 text-sm text-neutral-300">
-          <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+        <div className="flex items-start gap-3 text-sm text-neutral-700">
+          <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
           <p>
-            If <strong className="text-neutral-50">{email}</strong> has a TapAndLaunch account, we sent it a link to choose a
+            If <strong className="text-neutral-950">{email}</strong> has a TapAndLaunch account, we sent it a link to choose a
             new password. The link works once and expires in an hour. Check your spam folder if you don&rsquo;t see it.
           </p>
         </div>
-        <p className="mt-6 text-sm text-neutral-400">
-          <Link href="/login" className="font-medium text-neutral-100 underline-offset-4 hover:underline">
+        <p className="mt-6 text-sm text-neutral-500">
+          <Link href="/login" className="font-medium text-neutral-950 underline-offset-4 hover:underline">
             Back to log in
           </Link>
         </p>
@@ -70,7 +70,7 @@ export default function ForgotPasswordPage() {
       footer={
         <>
           Remembered it?{" "}
-          <Link href="/login" className="font-medium text-neutral-100 underline-offset-4 hover:underline">
+          <Link href="/login" className="font-medium text-neutral-950 underline-offset-4 hover:underline">
             Log in
           </Link>
         </>
@@ -95,7 +95,7 @@ export default function ForgotPasswordPage() {
           />
         </div>
         {error && (
-          <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         )}

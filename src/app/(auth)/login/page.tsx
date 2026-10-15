@@ -74,7 +74,7 @@ export default function LoginPage() {
       footer={
         <>
           No account?{" "}
-          <Link href="/signup" className="font-medium text-neutral-100 underline-offset-4 hover:underline">
+          <Link href="/signup" className="font-medium text-neutral-950 underline-offset-4 hover:underline">
             Create one
           </Link>
         </>
@@ -97,7 +97,7 @@ export default function LoginPage() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link href="/forgot-password" className="text-xs text-neutral-400 underline-offset-4 hover:text-neutral-100 hover:underline">
+            <Link href="/forgot-password" className="text-xs text-neutral-500 underline-offset-4 hover:text-neutral-950 hover:underline">
               Forgot password?
             </Link>
           </div>
@@ -109,12 +109,12 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-neutral-300">
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-neutral-700">
           <Checkbox checked={remember} onCheckedChange={(checked) => setRemember(checked === true)} />
           Remember me on this device
         </label>
         {error && (
-          <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         )}

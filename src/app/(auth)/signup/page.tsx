@@ -51,10 +51,10 @@ export default function SignupPage() {
   if (checkEmail) {
     return (
       <AuthShell title="Check your email" subtitle="One more step.">
-        <div className="flex items-start gap-3 text-sm text-neutral-300">
-          <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+        <div className="flex items-start gap-3 text-sm text-neutral-700">
+          <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
           <p>
-            We sent a confirmation link to <strong className="text-neutral-50">{email}</strong>. Click it
+            We sent a confirmation link to <strong className="text-neutral-950">{email}</strong>. Click it
             to finish creating your account.
           </p>
         </div>
@@ -69,7 +69,7 @@ export default function SignupPage() {
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-neutral-100 underline-offset-4 hover:underline">
+          <Link href="/login" className="font-medium text-neutral-950 underline-offset-4 hover:underline">
             Log in
           </Link>
         </>
@@ -99,10 +99,10 @@ export default function SignupPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <p className="text-xs text-neutral-500">At least 8 characters.</p>
+          <p className="text-xs text-neutral-9500">At least 8 characters.</p>
         </div>
         {error && (
-          <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         )}
@@ -114,13 +114,13 @@ export default function SignupPage() {
           {loading ? "Creating account…" : "Create account"}
           {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
         </button>
-        <p className="text-center text-xs text-neutral-500">
+        <p className="text-center text-xs text-neutral-9500">
           By creating an account you agree to our{" "}
-          <Link href="/terms" className="underline underline-offset-4 hover:text-neutral-300">
+          <Link href="/terms" className="underline underline-offset-4 hover:text-neutral-950">
             Terms
           </Link>{" "}
           and{" "}
-          <Link href="/privacy" className="underline underline-offset-4 hover:text-neutral-300">
+          <Link href="/privacy" className="underline underline-offset-4 hover:text-neutral-950">
             Privacy Policy
           </Link>
           .
