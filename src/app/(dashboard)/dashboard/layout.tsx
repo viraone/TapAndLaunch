@@ -35,58 +35,59 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="dark relative z-20 flex h-16 items-center justify-between border-b border-white/10 bg-neutral-950 px-4 text-neutral-50 sm:px-6">
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-indigo-400/40 to-transparent" />
-        <div className="flex items-center gap-3">
-          {/* Always-visible way home: every dashboard page, however deep
-           * (builder, analytics, org settings), is one click from the app
-           * list. */}
-          <Link href="/dashboard" aria-label="All apps" className="flex items-center gap-2.5 text-lg font-semibold tracking-tight">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-indigo-400 to-pink-400 text-neutral-950 shadow-lg shadow-indigo-500/30">
-              <ArrowRight className="h-4 w-4 -rotate-45" strokeWidth={2.5} />
-            </span>
-            <span className="hidden sm:inline">TapAndLaunch</span>
-          </Link>
-          {/* "Browse Templates" used to sit here too; "New app" on the dashboard is the one way to start. The organization
-           * switcher only appears for someone who belongs to more than one: for everyone else it was a name they could
-           * not do anything with. A new organization can still be made from Settings. */}
-          {memberships.length > 1 && (
-            <>
-              <span className="h-6 w-px bg-white/10" aria-hidden />
-              <OrgSwitcher
-                memberships={memberships}
-                activeOrganizationId={activeOrganizationId}
-                logoUrl={activeOrg?.branding.logo_url}
-              />
-            </>
-          )}
-        </div>
-        <nav className="flex items-center gap-0.5 text-[15px] sm:gap-1">
-          <Link
-            aria-label="Apps"
-            href="/dashboard"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] font-semibold text-neutral-50 transition hover:bg-white/5 sm:px-3.5"
-          >
-            <LayoutGrid className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Apps</span>
-          </Link>
-          {platformAdmin && (
-            <Link
-              aria-label="Admin"
-              href="/dashboard/admin"
-              className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] font-semibold text-indigo-300 transition hover:bg-white/5 hover:text-indigo-200 sm:px-3.5"
-            >
-              <ShieldCheck className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Admin</span>
+      <header className="relative z-20 border-b border-neutral-200 bg-white text-neutral-950">
+        <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between px-4 sm:px-10">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            {/* Always-visible way home: every dashboard page, however deep
+             * (builder, analytics, org settings), is one click from the app
+             * list. */}
+            <Link href="/dashboard" aria-label="All apps" className="flex items-center gap-2.5 text-lg font-semibold tracking-tight">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-indigo-400 to-pink-400 text-white shadow-lg shadow-indigo-500/20">
+                <ArrowRight className="h-4 w-4 -rotate-45" strokeWidth={2.5} />
+              </span>
+              <span className="hidden sm:inline">TapAndLaunch</span>
             </Link>
-          )}
-          <Link
-            aria-label="Settings"
-            href="/dashboard/settings"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] font-semibold text-neutral-50 transition hover:bg-white/5 sm:px-3.5"
-          >
-            <Settings className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Settings</span>
-          </Link>
-          <SignOutButton />
-        </nav>
+            {/* "Browse Templates" used to sit here too; "New app" on the dashboard is the one way to start. The organization
+             * switcher only appears for someone who belongs to more than one: for everyone else it was a name they could
+             * not do anything with. A new organization can still be made from Settings. */}
+            {memberships.length > 1 && (
+              <>
+                <span className="h-6 w-px bg-neutral-200" aria-hidden />
+                <OrgSwitcher
+                  memberships={memberships}
+                  activeOrganizationId={activeOrganizationId}
+                  logoUrl={activeOrg?.branding.logo_url}
+                />
+              </>
+            )}
+          </div>
+          <nav className="flex items-center gap-0.5 text-[15px] sm:gap-1">
+            <Link
+              aria-label="Apps"
+              href="/dashboard"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[15px] font-medium text-neutral-700 transition hover:bg-neutral-100 hover:text-neutral-950 sm:px-3.5"
+            >
+              <LayoutGrid className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Apps</span>
+            </Link>
+            {platformAdmin && (
+              <Link
+                aria-label="Admin"
+                href="/dashboard/admin"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[15px] font-medium text-indigo-600 transition hover:bg-neutral-100 hover:text-indigo-700 sm:px-3.5"
+              >
+                <ShieldCheck className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Admin</span>
+              </Link>
+            )}
+            <Link
+              aria-label="Settings"
+              href="/dashboard/settings"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[15px] font-medium text-neutral-700 transition hover:bg-neutral-100 hover:text-neutral-950 sm:px-3.5"
+            >
+              <Settings className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Settings</span>
+            </Link>
+            <SignOutButton />
+          </nav>
+        </div>
       </header>
       {banner && (
         <Link

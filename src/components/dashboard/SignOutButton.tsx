@@ -15,7 +15,7 @@ export function SignOutButton() {
   }
 
   return (
-    <Button type="button" variant="ghost" className="min-h-11 rounded-full px-3.5 text-[15px] font-semibold text-neutral-50 hover:bg-white/5 hover:text-neutral-50" onClick={handleSignOut}>
+    <Button type="button" variant="ghost" className="min-h-11 rounded-full px-2 text-[15px] sm:px-3.5 font-medium text-neutral-700 hover:bg-neutral-100 hover:text-neutral-950" onClick={handleSignOut}>
       Sign out
     </Button>
   );

@@ -76,68 +76,55 @@ export function AppCard({
   const total = views.reduce((a, b) => a + b, 0);
   const next = checklist && !checklist.complete ? checklist.next : null;
 
+  const coverHref = `/dashboard/apps/${app.id}`;
+
   return (
-    <article
-      className="group relative flex flex-col overflow-hidden rounded-3xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_24px_48px_-16px_rgba(0,0,0,0.28)]"
-      style={{ ["--brand" as string]: brand }}
-    >
-      <div
-        className="relative h-32 overflow-hidden"
+    <article className="group relative flex flex-col" style={{ ["--brand" as string]: brand }}>
+      {/* The cover is the whole point of the card, like a template preview: the app's own colour with its icon and the
+       * week's views drawn across it, no frame around it. */}
+      <Link
+        href={coverHref}
+        aria-label={`Open ${app.name}`}
+        className="relative block aspect-[16/9] overflow-hidden rounded-lg ring-1 ring-black/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950"
         style={{ background: cover }}
       >
-        <div
-          aria-hidden
-          className="absolute -right-10 -top-16 h-44 w-44 rounded-full bg-white/15 blur-2xl"
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.18)_1px,transparent_0)] [background-size:14px_14px] opacity-40"
-        />
-        <Sparkline values={views} />
+        <div className="absolute inset-0 transition duration-500 ease-out group-hover:scale-[1.03]">
+          <div aria-hidden className="absolute -right-10 -top-16 h-44 w-44 rounded-full bg-white/15 blur-2xl" />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.18)_1px,transparent_0)] [background-size:14px_14px] opacity-40"
+          />
+          <Sparkline values={views} />
+          <div className="absolute inset-0 grid place-items-center pb-6">
+            {iconUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
+              <img src={iconUrl} alt="" className="h-20 w-20 rounded-2xl object-cover shadow-xl ring-4 ring-white/90" />
+            ) : (
+              <span className="grid h-20 w-20 place-items-center rounded-2xl bg-white/15 text-3xl font-bold text-white shadow-xl ring-4 ring-white/80 backdrop-blur">
+                {tileInitial(app.name)}
+              </span>
+            )}
+          </div>
+        </div>
+        <span className="absolute left-3.5 top-3 text-[11px] font-semibold tabular-nums text-white/90">
+          {total.toLocaleString()} {total === 1 ? "view" : "views"} this week
+        </span>
         <span
-          className={`absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md ${
-            published
-              ? "bg-black/25 text-white ring-1 ring-white/25"
-              : "bg-white/80 text-neutral-700"
+          className={`absolute right-3 top-2.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md ${
+            published ? "bg-black/25 text-white ring-1 ring-white/25" : "bg-white/85 text-neutral-700"
           }`}
         >
           <span className="relative flex h-1.5 w-1.5">
-            {published && (
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
-            )}
-            <span
-              className={`relative inline-flex h-1.5 w-1.5 rounded-full ${published ? "bg-emerald-300" : "bg-neutral-400"}`}
-            />
+            {published && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />}
+            <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${published ? "bg-emerald-300" : "bg-neutral-400"}`} />
           </span>
           {takenDown ? "Taken down" : published ? "Live" : "Draft"}
         </span>
-        <span className="absolute left-4 top-3.5 text-[11px] font-semibold text-white/90 tabular-nums">
-          {total.toLocaleString()} {total === 1 ? "view" : "views"} this week
-        </span>
-      </div>
+      </Link>
 
-      <div className="relative flex flex-1 flex-col px-5 pb-5">
-        <div className="-mt-8 mb-3">
-          {iconUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
-            <img
-              src={iconUrl}
-              alt=""
-              className="h-16 w-16 rounded-2xl object-cover shadow-lg ring-4 ring-white"
-            />
-          ) : (
-            <span
-              className={`grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br text-2xl font-bold text-white shadow-lg ring-4 ring-white ${app.theme.primary_color ? "" : tile.classes}`}
-              style={
-                app.theme.primary_color ? { background: cover } : undefined
-              }
-            >
-              {tileInitial(app.name)}
-            </span>
-          )}
-        </div>
-        <h2 className="truncate text-lg font-semibold tracking-tight text-neutral-950">
-          <Link href={`/dashboard/apps/${app.id}`} className="hover:underline">
+      <div className="flex flex-1 flex-col">
+        <h2 className="mt-3.5 truncate text-[17px] font-medium tracking-tight text-neutral-950">
+          <Link href={coverHref} className="hover:underline">
             {app.name}
           </Link>
         </h2>
@@ -147,7 +134,7 @@ export function AppCard({
             href={previewUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate text-sm text-neutral-500 transition hover:text-neutral-950"
+            className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-sm text-neutral-500 transition hover:text-neutral-950"
           >
             <span className="truncate">
               {app.slug}.{appRoot}
@@ -155,36 +142,24 @@ export function AppCard({
             <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
           </a>
         ) : (
-          <p className="mt-0.5 truncate text-sm text-neutral-500">
-            <span className="text-neutral-400">When live: </span>
-            {app.slug}.{appRoot}
+          <p className="mt-1 truncate text-sm text-neutral-500">
+            When live: {app.slug}.{appRoot}
           </p>
         )}
 
         {checklist && !checklist.complete && checklist.next && (
-          <Link
-            href={`/dashboard/apps/${app.id}/builder`}
-            className="mt-4 block rounded-2xl bg-neutral-50 p-3 ring-1 ring-black/5 transition hover:bg-neutral-100"
-          >
+          <Link href={`/dashboard/apps/${app.id}/builder`} className="mt-4 block">
             <span className="flex items-center justify-between gap-2 text-xs">
-              <span className="font-semibold text-neutral-950">Get live</span>
+              <span className="font-medium text-neutral-950">Get live</span>
               <span className="tabular-nums text-neutral-500">
                 {checklist.doneCount} of {checklist.total}
               </span>
             </span>
-            <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-neutral-200">
-              <span
-                className="block h-full rounded-full bg-gradient-to-r from-indigo-500 to-pink-500"
-                style={{
-                  width: `${(checklist.doneCount / checklist.total) * 100}%`,
-                }}
-              />
+            <span className="mt-2 block h-1 overflow-hidden rounded-full bg-neutral-200">
+              <span className="block h-full rounded-full bg-neutral-950" style={{ width: `${(checklist.doneCount / checklist.total) * 100}%` }} />
             </span>
             <span className="mt-2 block truncate text-xs text-neutral-500">
-              Next:{" "}
-              <span className="font-medium text-neutral-800">
-                {checklist.next.title}
-              </span>
+              Next: <span className="font-medium text-neutral-800">{checklist.next.title}</span>
             </span>
           </Link>
         )}

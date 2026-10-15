@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus } from "lucide-react";
 import { STARTER_TEMPLATES } from "@/lib/apps/templates";
 import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
 import { AppCard, type DailyViews } from "@/components/dashboard/AppCard";
@@ -48,88 +48,70 @@ export default async function DashboardPage() {
   const live = (apps ?? []).filter((a) => a.status === "published").length;
 
   return (
-    <main className="flex-1 bg-neutral-100/70">
-      <section className="relative overflow-hidden bg-neutral-950 text-white">
-        <div aria-hidden className="pointer-events-none absolute -left-32 -top-40 h-96 w-96 rounded-full bg-indigo-600/30 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -right-24 top-10 h-80 w-80 rounded-full bg-pink-500/20 blur-3xl" />
-        <div className="relative mx-auto w-full max-w-6xl px-6 pb-24 pt-10">
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div className="min-w-0">
-              {/* The organization's name only matters to someone who belongs to more than one. */}
-              {orgName && memberships.length > 1 && <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">{orgName}</p>}
-              <h1 className="mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">Your apps</h1>
-              <p className="mt-2 max-w-md text-sm text-neutral-400">
-                {apps?.length
-                  ? "Everything you've launched, with how it did this week."
-                  : "Build your first app in minutes and publish it to its own address."}
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href="/dashboard/apps/new"
-                  className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-neutral-950 shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_10px_30px_-10px_rgba(129,140,248,0.8)] transition hover:bg-indigo-50"
-                >
-                  <Plus className="h-4 w-4" /> New app
-                </Link>
-              </div>
-              <p className="text-xs text-neutral-400">Pick a template to start from</p>
-            </div>
-          </div>
-
-          {!!apps?.length && (
-            // "Added to home screens" (an "install", in app-store words) only shows once it has happened: a zero in the
-            // headline row read as bad news.
-            <dl className={`mt-8 grid max-w-2xl gap-px overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/10 ${installs > 0 ? "grid-cols-3" : "grid-cols-2"}`}>
-              <Stat label="Apps live" value={`${live}`} sub={`of ${apps.length}`} />
-              <Stat label="Views" value={views.toLocaleString()} sub="this week" />
-              {installs > 0 && <Stat label="Added to home screens" value={installs.toLocaleString()} sub="this week" />}
-            </dl>
-          )}
+    <main className="flex-1 bg-white">
+      <section className="mx-auto grid w-full max-w-[1400px] gap-8 px-6 pb-10 pt-12 sm:px-10 sm:pt-16 lg:grid-cols-2 lg:items-end lg:gap-16">
+        <div className="min-w-0">
+          {/* The organization's name only matters to someone who belongs to more than one. */}
+          {orgName && memberships.length > 1 && <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">{orgName}</p>}
+          <h1 className="mt-3 text-5xl font-medium leading-[0.98] tracking-[-0.04em] sm:text-7xl">Your apps</h1>
+        </div>
+        <div className="flex flex-wrap items-end justify-between gap-6 lg:justify-end lg:gap-10">
+          <p className="max-w-sm text-lg leading-relaxed text-neutral-700">
+            {apps?.length ? "Everything you've launched, with how it did this week." : "Build your first app in minutes and publish it to its own address."}
+          </p>
+          <Link
+            href="/dashboard/apps/new"
+            className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-neutral-950 px-6 text-sm font-semibold text-white transition hover:bg-neutral-800"
+          >
+            <Plus className="h-4 w-4" /> New app
+          </Link>
         </div>
       </section>
 
-      <div className="relative mx-auto -mt-14 w-full max-w-6xl px-6 pb-16">
+      <div className="mx-auto w-full max-w-[1400px] px-6 pb-20 sm:px-10">
+        {!!apps?.length && (
+          // "Added to home screens" (an "install", in app-store words) only shows once it has happened: a zero in the
+          // headline row read as bad news.
+          <dl className="flex flex-wrap items-baseline gap-x-12 gap-y-4 border-t border-neutral-200 pb-10 pt-6">
+            <Stat label="Apps live" value={`${live}`} sub={`of ${apps.length}`} />
+            <Stat label="Views" value={views.toLocaleString()} sub="this week" />
+            {installs > 0 && <Stat label="Added to home screens" value={installs.toLocaleString()} sub="this week" />}
+          </dl>
+        )}
         {!apps || apps.length === 0 ? (
-          <div className="rounded-3xl bg-white p-12 text-center shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5">
-            <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-indigo-500 to-pink-500 text-white shadow-lg shadow-indigo-500/30">
-              <Sparkles className="h-6 w-6" />
-            </span>
-            <h2 className="mt-5 text-xl font-semibold tracking-tight">No apps yet</h2>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-neutral-500">
-              Create one, drop in a few blocks, and publish it to its own subdomain.
-            </p>
+          <div className="border-t border-neutral-200 py-20 text-center">
+            <h2 className="text-3xl font-medium tracking-[-0.03em]">No apps yet</h2>
+            <p className="mx-auto mt-2 max-w-sm text-neutral-600">Create one, drop in a few blocks, and publish it to its own subdomain.</p>
             <Link
               href="/dashboard/apps/new"
-              className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800"
+              className="mt-8 inline-flex min-h-12 items-center gap-2 rounded-full bg-neutral-950 px-6 text-sm font-semibold text-white transition hover:bg-neutral-800"
             >
               <Plus className="h-4 w-4" /> Create your first app
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
             {apps.map((app) => (
               <AppCard key={app.id} app={app} rootDomain={rootDomain} views={perApp.get(app.id) ?? new Array(DAYS).fill(0)} checklist={checklists.get(app.id)} canDelete={isAdmin} />
             ))}
-            <Link
-              href="/dashboard/apps/new"
-              className="group flex min-h-72 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-neutral-300 text-neutral-500 transition hover:border-neutral-950 hover:bg-white hover:text-neutral-950"
-            >
-              <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition group-hover:bg-neutral-950 group-hover:text-white">
-                <Plus className="h-6 w-6" />
-              </span>
-              <span className="text-sm font-semibold">New app</span>
-              <span className="-mt-2 text-xs text-neutral-500">From a template or a sentence</span>
-              <span className="mt-1 flex -space-x-2" aria-hidden>
-                {FEATURED.map((t) => {
-                  const Icon = TEMPLATE_ICONS[t.icon];
-                  return (
-                    <span key={t.id} className="grid h-9 w-9 place-items-center rounded-full text-white ring-2 ring-neutral-100 transition group-hover:ring-white" style={{ background: t.color }}>
-                      <Icon className="h-4 w-4" />
-                    </span>
-                  );
-                })}
-              </span>
+            <Link href="/dashboard/apps/new" className="group flex flex-col focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950">
+              <div className="grid aspect-[16/9] w-full place-items-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50 text-neutral-500 transition group-hover:border-neutral-950 group-hover:bg-white group-hover:text-neutral-950">
+                <span className="flex flex-col items-center gap-2">
+                  <Plus className="h-7 w-7" />
+                  <span className="flex -space-x-2" aria-hidden>
+                    {FEATURED.map((t) => {
+                      const Icon = TEMPLATE_ICONS[t.icon];
+                      return (
+                        <span key={t.id} className="grid h-8 w-8 place-items-center rounded-full text-white ring-2 ring-white" style={{ background: t.color }}>
+                          <Icon className="h-3.5 w-3.5" />
+                        </span>
+                      );
+                    })}
+                  </span>
+                </span>
+              </div>
+              <p className="mt-3.5 text-[17px] font-medium tracking-tight text-neutral-950">New app</p>
+              <p className="mt-1 text-sm text-neutral-500">Pick a template to start from</p>
             </Link>
           </div>
         )}
@@ -140,11 +122,11 @@ export default async function DashboardPage() {
 
 function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="bg-neutral-950/60 px-4 py-4 backdrop-blur sm:px-5">
-      <dt className="text-xs font-medium text-neutral-400">{label}</dt>
-      <dd className="mt-1 flex flex-col sm:flex-row sm:items-baseline sm:gap-1.5">
-        <span className="text-2xl font-semibold tabular-nums tracking-tight">{value}</span>
-        <span className="text-xs text-neutral-500">{sub}</span>
+    <div>
+      <dt className="text-sm text-neutral-500">{label}</dt>
+      <dd className="mt-1 flex items-baseline gap-2">
+        <span className="text-5xl font-medium tabular-nums tracking-[-0.04em]">{value}</span>
+        <span className="text-sm text-neutral-500">{sub}</span>
       </dd>
     </div>
   );
