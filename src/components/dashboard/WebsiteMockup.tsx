@@ -9,7 +9,7 @@ import type { HeroBlockConfig, ImageTextBlockConfig, QuoteBlockConfig, StatsBloc
  * the work, the story or the quote), in the real fonts on the real page colour with the real button shape. Nothing
  * here is a preview-only flourish: a design that looks different on the card is a site that looks different.
  */
-export function WebsiteMockup({ home, theme, name, color }: { home: StarterPage | undefined; theme: ThemeConfig; name: string; color: string }) {
+export function WebsiteMockup({ home, theme, name, color, phone }: { home: StarterPage | undefined; theme: ThemeConfig; name: string; color: string; phone?: boolean }) {
   const look = websiteStyleOf(theme);
   const blocks = home?.blocks ?? [];
   const heroBlock = blocks.find((b) => b.type === "hero");
@@ -54,6 +54,68 @@ export function WebsiteMockup({ home, theme, name, color }: { home: StarterPage 
     p === "grain" ? (
       <div aria-hidden className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.35)_1px,transparent_0)] [background-size:3px_3px]" />
     ) : null;
+
+  if (phone) {
+    // The same site on a phone: the menu folds into three lines, every banner stacks, one section fits under it.
+    const bar =
+      look === "bold"
+        ? { background: primary, color: "#ffffff" }
+        : look === "cinematic"
+          ? { background: "rgba(0,0,0,0.6)", color: "#ffffff", borderBottom: "1px solid rgba(255,255,255,0.1)" }
+          : { background: page, color: ink, borderBottom: `1px solid ${line}` };
+    const boxed = layout === "full";
+    return (
+      <div aria-hidden className="absolute inset-0 overflow-hidden" style={{ background: page, color: ink, fontFamily: bodyFont }}>
+        <div className="flex items-center justify-between px-2 py-1.5" style={bar}>
+          <span className={`truncate text-[6px] font-bold tracking-tight ${look === "bold" ? "uppercase" : ""}`} style={{ fontFamily: headingFont }}>
+            {name}
+          </span>
+          <span className="flex w-2.5 flex-col gap-[1.5px]">
+            <span className="h-px w-full" style={{ background: "currentColor" }} />
+            <span className="h-px w-full" style={{ background: "currentColor" }} />
+            <span className="h-px w-full" style={{ background: "currentColor" }} />
+          </span>
+        </div>
+        <div
+          className={`relative overflow-hidden ${boxed ? "mx-1.5 mt-1.5 rounded-md px-2 pb-2 pt-5 text-white" : layout === "split" ? "mx-1.5 mt-1.5 rounded-md px-2 pb-1.5 pt-2" : layout === "centered" ? "px-2 pb-1.5 pt-2.5 text-center" : "px-2 pb-1.5 pt-2.5"}`}
+          style={boxed ? { background: backdrop(paint) } : layout === "split" ? { background: surface } : undefined}
+        >
+          {boxed && grain(paint)}
+          {boxed && <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/5" />}
+          <div className="relative">
+            {hero.eyebrow && (
+              <p className="text-[3.5px] font-bold uppercase tracking-[0.25em]" style={boxed ? { color: "rgba(255,255,255,0.8)" } : { color: accent }}>
+                {hero.eyebrow}
+              </p>
+            )}
+            <p
+              className={`mt-0.5 line-clamp-3 font-extrabold tracking-tight ${layout === "minimal" ? "leading-[0.95] tracking-tighter" : "leading-[1.05]"} ${look === "bold" && boxed ? "uppercase" : ""}`}
+              style={{ fontFamily: headingFont, fontSize: px(layout === "minimal" ? 10 : 8.5) }}
+            >
+              {hero.headline}
+            </p>
+            {layout === "centered" && <div className="mx-auto mt-1 h-px w-5" style={{ background: accent }} />}
+            <div className={layout === "minimal" ? "mt-1.5 border-t pt-1" : "mt-1"} style={layout === "minimal" ? { borderColor: line } : undefined}>
+              <span
+                className="inline-block px-1.5 py-0.5 text-[4px] font-bold"
+                style={look === "cinematic" ? { background: accent, color: "#0a0a0a", borderRadius: radius } : boxed ? { background: "#ffffff", color: "#0a0a0a", borderRadius: radius } : { background: primary, color: "#ffffff", borderRadius: radius }}
+              >
+                {hero.button_label ?? "Get in touch"}
+              </span>
+            </div>
+            {layout === "split" && (
+              <div className="relative mt-1.5 h-7 overflow-hidden rounded" style={{ background: backdrop(paint) }}>
+                {grain(paint)}
+              </div>
+            )}
+          </div>
+        </div>
+        {after.slice(0, 1).map((b, i) => (
+          <Section key={i} block={b} look={look} primary={primary} accent={accent} ink={ink} muted={muted} line={line} page={page} surface={surface} headingFont={headingFont} dark={dark} mix={mix} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div aria-hidden className="absolute inset-0 overflow-hidden" style={{ background: page, color: ink, fontFamily: bodyFont }}>

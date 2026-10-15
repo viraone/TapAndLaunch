@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ABOUT_MAX_LENGTH, DEFAULT_TEMPLATE_ID, buildStarter, isTemplateId, starterTemplateFor } from "@/lib/apps/templates";
+import { isGoalId } from "@/lib/apps/goals";
 import { createAppFromStarter } from "@/lib/apps/create";
 import { isAiConfigured } from "@/lib/ai/generate";
 import { rewriteStarterCopy } from "@/lib/ai/rewrite";
@@ -27,6 +28,12 @@ const CreateAppSchema = z.object({
   /** A photo for the banner, uploaded in the same step (an https address, e.g. the app-assets bucket); only a
    * template with `asksAbout: true` uses it. */
   hero_image: z.string().max(2000).regex(/^https?:\/\//, "The photo must be a web address").optional(),
+  /** "What do you want to do with your site?" (lib/apps/goals.ts); each adds its section to a website starter. */
+  goals: z
+    .array(z.string().max(32))
+    .max(16)
+    .optional()
+    .refine((gs) => !gs || gs.every(isGoalId), "Unknown goal"),
 });
 
 /**
@@ -50,8 +57,8 @@ export async function POST(request: Request) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { organization_id: organizationId, name, slug, template, about, hero_image } = parsed.data;
-  const starter = buildStarter(template, name, about, hero_image);
+  const { organization_id: organizationId, name, slug, template, about, hero_image, goals } = parsed.data;
+  const starter = buildStarter(template, name, about, hero_image, goals);
 
   // "What's your site about?" + a key: Claude rewrites the words (only the words; see lib/ai/rewrite.ts) for the
   // person described. Checked and counted like "Describe your app" before anything is paid for; over the limit, or

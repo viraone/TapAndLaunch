@@ -3,6 +3,7 @@ import { starterFiles } from "@/lib/code/prompt";
 import { isMapsBlock } from "@/lib/platform/maps-shared";
 import { LOOKS, lookOf, type LookId } from "@/lib/pwa/look";
 import { WEBSITE_DESIGNS, designHero, designTheme, type WebsiteDesign } from "@/lib/apps/designs";
+import { WEBSITE_GOALS } from "@/lib/apps/goals";
 import type { BlockConfig, BlockType, FaqBlockConfig, HoursBlockConfig, ManifestConfig, PriceListBlockConfig, ThemeConfig } from "@/types/database";
 
 /**
@@ -1044,10 +1045,43 @@ const CONTACT_FIELDS = [
 /** The rows for a new app of this template, named `appName`. Every starter begins with the app's name in the header
  * bar. `about` is the customer's own answer to "What's your site about?" and `heroImage` the photo they added in the
  * same step (both only asked, and only used, for a template with `asksAbout: true`); `about` is trimmed to
- * `ABOUT_MAX_LENGTH`, and both are ignored for every other template. */
-export function buildStarter(templateId: string, appName: string, about?: string, heroImage?: string): Starter {
-  const starter = buildStarterBody(templateId, appName, about?.trim().slice(0, ABOUT_MAX_LENGTH), heroImage?.trim() || undefined);
+ * `ABOUT_MAX_LENGTH`, and both are ignored for every other template. `goals` are the answers to "What do you want
+ * to do with your site?" (lib/apps/goals.ts): each adds its section to a website starter that lacks it; ignored for
+ * everything else. */
+export function buildStarter(templateId: string, appName: string, about?: string, heroImage?: string, goals?: readonly string[]): Starter {
+  const built = buildStarterBody(templateId, appName, about?.trim().slice(0, ABOUT_MAX_LENGTH), heroImage?.trim() || undefined);
+  const starter = goals?.length && built.theme.layout === "website" ? withGoals(built, goals) : built;
   return { ...starter, theme: { ...starter.theme, header_title: appName } };
+}
+
+/** The sections the customer asked for, added to a website starter that does not already have one of that kind: the
+ * work and media right after the banner (and the quote, where a design opens with it), lists before the reviews,
+ * and the Contact page's extras before its form. Sample appointments or products come with a calendar or a shop so
+ * neither is empty on first open; a starter that already ships its own keeps those. */
+function withGoals(starter: Starter, goals: readonly string[]): Starter {
+  const has = (type: BlockType) => starter.pages.some((p) => p.blocks.some((b) => b.type === type));
+  const wanted = WEBSITE_GOALS.filter((g) => goals.includes(g.id) && !has(g.block));
+  if (!wanted.length) return starter;
+  const pages = starter.pages.map((p) => ({ ...p, blocks: [...p.blocks] }));
+  const home = pages.find((p) => p.isHome) ?? pages[0];
+  const contact = pages.find((p) => p.path === "contact") ?? home;
+  const insertBefore = (page: StarterPage, isNext: (b: StarterBlock) => boolean, b: StarterBlock) => {
+    const at = page.blocks.findIndex(isNext);
+    page.blocks.splice(at < 0 ? page.blocks.length : at, 0, b);
+  };
+  const opening: BlockType[] = ["hero", "quote", "gallery", "video", "audio"];
+  for (const g of wanted) {
+    const b = block(g.block, g.config);
+    if (g.page === "contact") insertBefore(contact, (x) => x.type === "contact_form", b);
+    else if (opening.includes(g.block)) insertBefore(home, (x) => !opening.includes(x.type), b);
+    else insertBefore(home, (x) => x.type === "reviews" || x.type === "newsletter", b);
+  }
+  return {
+    ...starter,
+    pages,
+    events: starter.events?.length ? starter.events : wanted.find((g) => g.events)?.events,
+    products: starter.products?.length ? starter.products : wanted.find((g) => g.products)?.products,
+  };
 }
 
 function buildStarterBody(templateId: string, appName: string, about?: string, heroImage?: string): Starter {

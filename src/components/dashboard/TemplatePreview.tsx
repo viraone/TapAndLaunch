@@ -1,10 +1,11 @@
 import { buildStarter, starterTemplateFor, type StarterBlock } from "@/lib/apps/templates";
 import { WebsiteMockup } from "@/components/dashboard/WebsiteMockup";
 
-/** A tiny phone (or, for a website-layout starter, a tiny browser window) showing what a starter looks like, drawn
- * from the starter's own blocks so it always matches what the customer gets. */
-export function TemplatePreview({ templateId, color }: { templateId: string; color: string }) {
-  const starter = buildStarter(templateId, "App");
+/** A tiny phone (or, for a website-layout starter, a tiny site) showing what a starter looks like, drawn from the
+ * starter's own blocks so it always matches what the customer gets: with the `goals` they ticked, and as the phone
+ * version when `phone` is set. */
+export function TemplatePreview({ templateId, color, goals, phone }: { templateId: string; color: string; goals?: readonly string[]; phone?: boolean }) {
+  const starter = buildStarter(templateId, "App", undefined, undefined, goals);
   const home = starter.pages.find((p) => p.isHome) ?? starter.pages[0];
   const dark = starter.theme.color_scheme === "dark";
   const nav = starter.theme.bottom_nav ?? [];
@@ -13,7 +14,7 @@ export function TemplatePreview({ templateId, color }: { templateId: string; col
   const soft = dark ? "#2a2a2a" : "#e5e5e5";
 
   if (starter.theme.layout === "website") {
-    return <WebsiteMockup home={home} theme={starter.theme} name={starterTemplateFor(templateId)?.name ?? "Your site"} color={color} />;
+    return <WebsiteMockup home={home} theme={starter.theme} name={starterTemplateFor(templateId)?.name ?? "Your site"} color={color} phone={phone} />;
   }
 
   return (
