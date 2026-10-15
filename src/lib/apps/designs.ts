@@ -102,11 +102,11 @@ export const WEBSITE_DESIGNS: WebsiteDesign[] = [
   {
     id: "studio",
     name: "Studio",
-    feel: "A cool tinted page, a techy grotesk, a big headline and the numbers. Reads like a product.",
+    feel: "A cool tinted page, a techy grotesk, an indigo gradient banner and the numbers. Reads like a product.",
     look: "split",
     theme: { font_pair: "space", heading_size: "normal", button_shape: "rounded", background_color: "#eef2ff" },
     palette: { primary: "#4f46e5" },
-    hero: { layout: "minimal", background: "gradient" },
+    hero: { layout: "full", background: "gradient" },
     opening: "stats",
   },
   {
@@ -122,11 +122,11 @@ export const WEBSITE_DESIGNS: WebsiteDesign[] = [
   {
     id: "linen",
     name: "Linen",
-    feel: "Small, calm type on linen, the words beside a terracotta panel, the figures in a line.",
+    feel: "Small, calm type on linen, a terracotta banner box, the figures in a line under it.",
     look: "editorial",
     theme: { font_pair: "dm", heading_size: "compact", button_shape: "rounded", background_color: "#fbf7f2" },
     palette: { primary: "#c2410c" },
-    hero: { layout: "split", background: "solid" },
+    hero: { layout: "full", background: "solid" },
     opening: "stats",
   },
   {
@@ -142,11 +142,11 @@ export const WEBSITE_DESIGNS: WebsiteDesign[] = [
   {
     id: "mono",
     name: "Mono",
-    feel: "Charcoal on white, a bookish serif kept small, one huge line and the quote. Spare.",
+    feel: "Charcoal on white, a plain grotesk kept small, the words centred, then the quote. Spare.",
     look: "classic",
-    theme: { font_pair: "lora", heading_size: "compact", button_shape: "square", background_color: "#ffffff" },
+    theme: { font_pair: "space", heading_size: "compact", button_shape: "square", background_color: "#ffffff" },
     palette: { primary: "#27272a" },
-    hero: { layout: "minimal", background: "solid" },
+    hero: { layout: "centered", background: "solid" },
     opening: "quote",
   },
 ];

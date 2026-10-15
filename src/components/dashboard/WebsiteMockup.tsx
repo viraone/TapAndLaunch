@@ -318,6 +318,15 @@ function Section({
       );
     }
     case "gallery":
+      // The live gallery is three square tiles across on a laptop; two rows of them read as the photo grid they are
+      // (shorter than square so both rows fit the card).
+      return (
+        <div className="grid grid-cols-3 gap-1 px-2.5 pt-2">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-5 rounded-md" style={{ background: `linear-gradient(135deg, ${mix(45 - (i % 3) * 8, dark ? "#1a1a1a" : "white")}, ${mix(18 + (i >= 3 ? 10 : 0), dark ? "#111" : "white")})` }} />
+          ))}
+        </div>
+      );
     case "product_list":
       return (
         <div className="grid grid-cols-3 gap-1.5 px-2.5 pt-2">
