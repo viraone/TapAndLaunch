@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, MailCheck } from "lucide-react";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { AUTH_BUTTON, AuthShell } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-errors";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -18,33 +19,46 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [checkEmail, setCheckEmail] = useState(false);
   const [loading, setLoading] = useState(false);
+  // `disabled={loading}` only takes effect after React re-renders, so a fast double-click gets a second submit through
+  // (a second sign-up request, and on prod a second confirmation email). The ref closes that gap at once.
+  const submitting = useRef(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setLoading(true);
     setError(null);
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
 
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
+      if (error) {
+        setError(friendlyError(error));
+        submitting.current = false;
+        return;
+      }
 
-    // With email confirmation required (the default for a new Supabase
-    // project), `data.session` is null until the user clicks the emailed
-    // link, which lands on /auth/callback. With confirmation disabled, a
-    // session comes back immediately and we can go straight to onboarding.
-    if (data.session) {
-      router.push("/onboarding");
-      router.refresh();
-    } else {
-      setCheckEmail(true);
+      // With email confirmation required (the default for a new Supabase
+      // project), `data.session` is null until the user clicks the emailed
+      // link, which lands on /auth/callback. With confirmation disabled, a
+      // session comes back immediately and we can go straight to onboarding.
+      // The guard stays on from here: this page is about to be replaced.
+      if (data.session) {
+        router.push("/onboarding");
+        router.refresh();
+      } else {
+        setCheckEmail(true);
+      }
+    } catch (err) {
+      setError(friendlyError(err as Error));
+      submitting.current = false;
+    } finally {
+      setLoading(false);
     }
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2, Search } from "lucide-react";
 import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter, templateNeedsMaps, websiteDesigns, type StarterTemplate } from "@/lib/apps/templates";
@@ -10,6 +10,7 @@ import { slugify } from "@/lib/apps/slug";
 import { SiteFrame } from "@/components/dashboard/SiteFrame";
 import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
 import { ImageUploadField } from "@/components/builder/ImageUploadField";
+import { NETWORK_ERROR, SERVER_ERROR } from "@/lib/friendly-errors";
 
 const ICONS = TEMPLATE_ICONS;
 
@@ -61,6 +62,8 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Closes the gap before `disabled={loading}` takes effect, so a fast double-click cannot create two apps.
+  const submitting = useRef(false);
 
   function chooseCard(t: StarterTemplate) {
     if (websiteDesigns(t.id).length > 1) {
@@ -92,31 +95,47 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selected) return;
+    if (!selected || submitting.current) return;
+    submitting.current = true;
     setLoading(true);
     setError(null);
 
-    const res = await fetch("/api/apps", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        organization_id: organizationId,
-        name,
-        slug: slugify(name),
-        template: selected.id,
-        ...(selected.asksAbout && about.trim() ? { about: about.trim() } : {}),
-        ...(selected.asksAbout && photo.trim() ? { hero_image: photo.trim() } : {}),
-        ...(topic && goals.length ? { goals } : {}),
-      }),
-    });
-    const body = await res.json();
-
-    if (!res.ok) {
+    // Whatever goes wrong (offline, a server error page instead of JSON), the button must come back with a sentence a
+    // person can read; otherwise it sits on "Setting up your app…" for good.
+    const fail = (message: string) => {
       setLoading(false);
-      setError(body.error ?? "Something went wrong");
+      setError(message);
+      submitting.current = false;
+    };
+
+    let res: Response;
+    try {
+      res = await fetch("/api/apps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organization_id: organizationId,
+          name,
+          slug: slugify(name),
+          template: selected.id,
+          ...(selected.asksAbout && about.trim() ? { about: about.trim() } : {}),
+          ...(selected.asksAbout && photo.trim() ? { hero_image: photo.trim() } : {}),
+          ...(topic && goals.length ? { goals } : {}),
+        }),
+      });
+    } catch {
+      fail(NETWORK_ERROR);
       return;
     }
 
+    const body: { error?: string; app?: { id: string } } | null = await res.json().catch(() => null);
+
+    if (!res.ok || !body?.app) {
+      fail(res.status === 401 ? "Your session has ended. Log in again, then create your app." : (typeof body?.error === "string" && body.error.trim() && res.status < 500 ? body.error : SERVER_ERROR));
+      return;
+    }
+
+    // The guard stays on from here: this page is about to be replaced.
     router.push(`/dashboard/apps/${body.app.id}/builder`);
   }
 

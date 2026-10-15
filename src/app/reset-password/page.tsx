@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Loader2 } from "lucide-react";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { AUTH_BUTTON, AuthShell } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-errors";
 
 /**
  * Choose a new password. Reached from the reset email: `/auth/confirm` (or `/auth/callback`) has already signed the
@@ -21,6 +22,8 @@ export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // See the sign-up page: the ref stops a fast double-click saving twice.
+  const submitting = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,22 +37,32 @@ export default function ResetPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setSaving(true);
     setError(null);
-    const { error } = await supabase.auth.updateUser({ password });
-    setSaving(false);
-    if (error) {
-      setError(
-        /different from the old/i.test(error.message)
-          ? "Choose a password you haven't used for this account."
-          : /at least/i.test(error.message)
-            ? "Use at least 8 characters."
-            : error.message
-      );
-      return;
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setError(
+          /different from the old/i.test(error.message)
+            ? "Choose a password you haven't used for this account."
+            : /at least/i.test(error.message)
+              ? "Use at least 8 characters."
+              : friendlyError(error)
+        );
+        submitting.current = false;
+        return;
+      }
+      // The guard stays on from here: this page is about to be replaced.
+      router.push("/dashboard?password=updated");
+      router.refresh();
+    } catch (err) {
+      setError(friendlyError(err as Error));
+      submitting.current = false;
+    } finally {
+      setSaving(false);
     }
-    router.push("/dashboard?password=updated");
-    router.refresh();
   }
 
   if (status === "checking") {

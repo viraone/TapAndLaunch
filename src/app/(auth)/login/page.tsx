@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AUTH_BUTTON, AuthShell } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-errors";
 
 /** localStorage key for the "Remember me" email. Only the email is stored —
  * the password stays with the browser's own password manager (the inputs
@@ -41,30 +42,41 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // See the sign-up page: the ref stops a fast double-click sending two requests before the button is disabled.
+  const submitting = useRef(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
     try {
-      if (remember) window.localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
-      else window.localStorage.removeItem(REMEMBERED_EMAIL_KEY);
-    } catch {
-      // Private mode / blocked storage: logging in still works, we just
-      // won't prefill next time.
-    }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setError(friendlyError(error));
+        submitting.current = false;
+        return;
+      }
 
-    router.push("/dashboard");
-    router.refresh();
+      try {
+        if (remember) window.localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+        else window.localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      } catch {
+        // Private mode / blocked storage: logging in still works, we just
+        // won't prefill next time.
+      }
+
+      // The guard stays on from here: this page is about to be replaced.
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      setError(friendlyError(err as Error));
+      submitting.current = false;
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
