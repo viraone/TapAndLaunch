@@ -169,7 +169,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
             <button
               type="button"
               onClick={() => setStep("name")}
-              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-neutral-950 text-sm font-semibold text-white transition hover:bg-neutral-800"
+              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-semibold bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_8px_20px_-10px_rgba(99,102,241,0.6)] transition hover:brightness-110"
             >
               Next <ArrowRight className="h-4 w-4" />
             </button>
@@ -239,7 +239,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
           <button
             type="submit"
             disabled={loading || !slugify(name)}
-            className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-neutral-950 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
+            className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_8px_20px_-10px_rgba(99,102,241,0.6)] transition hover:brightness-110 disabled:opacity-50"
           >
             {loading ? (
               <>
@@ -304,9 +304,9 @@ const SHELVES: Array<{ id: Shelf; label: string }> = [
 
 const CARD = "group flex flex-col text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950";
 const PILL = "inline-flex h-10 items-center gap-1.5 rounded-full bg-neutral-100 px-4 text-sm font-medium text-neutral-700 transition hover:bg-neutral-200 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950";
-const DARK = "inline-flex h-12 items-center justify-center gap-2 rounded-full bg-neutral-950 px-6 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50";
+const DARK = "inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_8px_20px_-10px_rgba(99,102,241,0.6)] transition hover:brightness-110 disabled:opacity-50";
 
-/** "What's your site about?": every template in one open grid, the way Squarespace lays out theirs: a search box, a
+/** "Who's it for?": every template in one open grid, the way Squarespace lays out theirs: a search box, a
  * row of filter pills with a result count, then big previews with just a name under each. "Websites" are full-size
  * sites with a menu across the top; "Phone-first" are simple phone-shaped pages visitors can save to their Home
  * Screen. A website topic goes on to its goals and designs; a phone-first template is picked outright. */
@@ -325,14 +325,14 @@ function TemplateGallery({ mapsEnabled, onSelect }: { mapsEnabled: boolean; onSe
   return (
     <section>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-neutral-200 pt-6">
-        <p className="text-base font-medium text-neutral-950">What&apos;s your site about?</p>
+        <p className="text-base font-medium text-neutral-950">Who&apos;s it for?</p>
         <label className="relative block w-full sm:w-72">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" aria-hidden />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search for your site topic"
+            placeholder="Search by trade"
             aria-label="Search templates"
             className="h-10 w-full rounded-full bg-neutral-100 pl-10 pr-4 text-sm outline-none transition placeholder:text-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-950"
           />
@@ -345,7 +345,7 @@ function TemplateGallery({ mapsEnabled, onSelect }: { mapsEnabled: boolean; onSe
               onClick={() => setShelf(s.id)}
               aria-pressed={shelf === s.id}
               className={`h-10 rounded-full px-4 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950 ${
-                shelf === s.id ? "bg-neutral-950 text-white" : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                shelf === s.id ? "bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_8px_20px_-10px_rgba(99,102,241,0.6)] transition hover:brightness-110" : "bg-neutral-100 text-neutral-700 transition hover:bg-neutral-200"
               }`}
             >
               {s.label}
@@ -390,7 +390,7 @@ function TemplateGallery({ mapsEnabled, onSelect }: { mapsEnabled: boolean; onSe
   );
 }
 
-/** "What do you want to do with your site?": the goals (lib/apps/goals.ts), each a ready-made section the site gets.
+/** "What should it do for you?": the goals (lib/apps/goals.ts), each a ready-made section the site gets.
  * The ones the topic already ships are shown ticked and fixed, so a photographer sees that the gallery is in. */
 function GoalsStep({ topic, goals, onChange, onBack, onNext }: { topic: StarterTemplate; goals: GoalId[]; onChange: (g: GoalId[]) => void; onBack: () => void; onNext: () => void }) {
   const built = buildStarter(topic.id, "x");
@@ -403,7 +403,7 @@ function GoalsStep({ topic, goals, onChange, onBack, onNext }: { topic: StarterT
         <button type="button" onClick={onBack} className={PILL}>
           <ArrowLeft className="h-4 w-4" /> All templates
         </button>
-        <p className="text-base font-medium text-neutral-950">{topic.name} · What do you want to do with your site?</p>
+        <p className="text-base font-medium text-neutral-950">{topic.name} · What should it do for you?</p>
         <p className="w-full text-sm text-neutral-500 sm:ml-auto sm:w-auto">Tick what you need; each one adds a ready-made section. You can add or remove any of them later.</p>
       </div>
       <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -482,7 +482,7 @@ function DesignGrid({ topic, goals, onBack, onSelect }: { topic: StarterTemplate
       </div>
       {best.length > 0 && (
         <>
-          <h3 className="mt-8 text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">Best matches · {showsWork ? "your work up front" : "your numbers up front"}</h3>
+          <h3 className="mt-8 text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">Made for that · {showsWork ? "your work up front" : "your numbers up front"}</h3>
           <div className="mt-4">{grid(best)}</div>
           <h3 className="mt-14 text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">All designs</h3>
           <div className="mt-4">{grid(rest)}</div>
