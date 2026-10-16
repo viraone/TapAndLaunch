@@ -5,8 +5,9 @@ import { siteOrigin } from "@/lib/site";
 /** Search-engine facing text for the home page. Kept in one place so the page, the preview card and the structured data agree. */
 export const SITE_NAME = "TapAndLaunch";
 export const SITE_TITLE = "TapAndLaunch: build your own app in minutes, no code";
-/** One description for the page, the share card and the structured data: the category, who it is for, how big, what it does. */
-export const SITE_DESCRIPTION = `No-code app builder for restaurants, gyms, shops and event businesses with 1-50 employees. Share by link or QR code, take card payments, send push notifications. Free for ${TRIAL_DAYS} days.`;
+/** One description for the page, the share card and the structured data: the category, who it is for, how big, what it does.
+ * Kept to 160 characters or fewer so a search result shows all of it. */
+export const SITE_DESCRIPTION = `No-code app builder for restaurants, gyms, shops and event businesses with 1-50 employees. Share by link, take payments, send push alerts. Free for ${TRIAL_DAYS} days.`;
 
 /** The price as the public site shows it. The pricing card, the FAQ and the search-engine data all read this. */
 export const LISTED_PRICE = {

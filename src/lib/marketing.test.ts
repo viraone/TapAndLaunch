@@ -44,7 +44,7 @@ describe("SITE_DESCRIPTION", () => {
     expect(SITE_DESCRIPTION).not.toContain("!");
   });
   it("is short enough to show in a search result without being cut", () => {
-    expect(SITE_DESCRIPTION.length).toBeLessThanOrEqual(200);
+    expect(SITE_DESCRIPTION.length).toBeLessThanOrEqual(160);
   });
 });
 
