@@ -6,10 +6,11 @@ import { ArrowLeft, ArrowRight, Loader2, Search } from "lucide-react";
 import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter, templateNeedsMaps, websiteDesigns, type StarterTemplate } from "@/lib/apps/templates";
 import { WEBSITE_GOALS, type GoalId } from "@/lib/apps/goals";
 import { fontsHref } from "@/lib/pwa/theme-style";
-import { slugify } from "@/lib/apps/slug";
+import { addressFor, randomAddress } from "@/lib/apps/slug";
 import { SiteFrame } from "@/components/dashboard/SiteFrame";
 import { TEMPLATE_ICONS } from "@/components/dashboard/templateIcons";
 import { ImageUploadField } from "@/components/builder/ImageUploadField";
+import { useSetFlowStage } from "./FlowProgress";
 import { NETWORK_ERROR, SERVER_ERROR } from "@/lib/friendly-errors";
 
 const ICONS = TEMPLATE_ICONS;
@@ -51,7 +52,16 @@ type Step = "pick" | "goals" | "designs" | "about" | "name";
 
 export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organizationId: string; rootDomain: string; mapsEnabled: boolean }) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("pick");
+  const [step, setStepState] = useState<Step>("pick");
+  const setFlowStage = useSetFlowStage();
+  /** Moves to a screen and tells the first-run list (page header) which of its steps that screen belongs to. */
+  function setStep(next: Step) {
+    setStepState(next);
+    setFlowStage(next === "about" || next === "name" ? 1 : 0);
+  }
+  // The address for a name with no letters or digits we can read (日本語, emoji). Chosen once, so the address shown
+  // under the name box is the one the app gets.
+  const [fallbackAddress] = useState(() => randomAddress("app"));
   /** The website topic being walked through (goals, then designs); null for a phone-first pick. */
   const [topic, setTopic] = useState<StarterTemplate | null>(null);
   const [goals, setGoals] = useState<GoalId[]>([]);
@@ -115,8 +125,8 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           organization_id: organizationId,
-          name,
-          slug: slugify(name),
+          name: name.trim(),
+          slug: addressFor(name, fallbackAddress),
           template: selected.id,
           ...(selected.asksAbout && about.trim() ? { about: about.trim() } : {}),
           ...(selected.asksAbout && photo.trim() ? { hero_image: photo.trim() } : {}),
@@ -193,7 +203,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
               Next <ArrowRight className="h-4 w-4" />
             </button>
             {!about.trim() && !photo.trim() && (
-              <button type="button" onClick={() => setStep("name")} className="text-sm font-medium text-neutral-500 transition hover:text-neutral-950">
+              <button type="button" onClick={() => setStep("name")} className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-neutral-500 transition hover:text-neutral-950">
                 Skip
               </button>
             )}
@@ -242,9 +252,9 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
             className="mt-2 h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-base outline-none transition focus:border-neutral-950 focus:ring-4 focus:ring-neutral-950/5"
           />
           <p className="mt-2 min-h-5 text-sm text-neutral-500">
-            {slugify(name) ? (
+            {name.trim() ? (
               <>
-                Your app will live at <span className="font-medium text-neutral-950">{slugify(name)}.{rootDomain}</span>
+                Your app will live at <span className="font-medium text-neutral-950">{addressFor(name, fallbackAddress)}.{rootDomain}</span>
               </>
             ) : (
               "This becomes your app's web address. You can change the name later."
@@ -257,7 +267,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
           )}
           <button
             type="submit"
-            disabled={loading || !slugify(name)}
+            disabled={loading || !name.trim()}
             className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_8px_20px_-10px_rgba(99,102,241,0.6)] transition hover:brightness-110 disabled:opacity-50"
           >
             {loading ? (
@@ -449,7 +459,7 @@ function GoalsStep({ topic, goals, onChange, onBack, onNext }: { topic: StarterT
         </button>
         <div className="flex items-center gap-4">
           {goals.length === 0 && (
-            <button type="button" onClick={onNext} className="text-sm font-medium text-neutral-500 transition hover:text-neutral-950">
+            <button type="button" onClick={onNext} className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-neutral-500 transition hover:text-neutral-950">
               Skip
             </button>
           )}

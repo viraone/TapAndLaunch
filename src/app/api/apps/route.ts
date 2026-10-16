@@ -14,7 +14,7 @@ export const maxDuration = 60;
 
 const CreateAppSchema = z.object({
   organization_id: z.string().uuid(),
-  name: z.string().min(1).max(120),
+  name: z.string().trim().min(1).max(120),
   slug: z
     .string()
     .min(1)

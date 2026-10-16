@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addressFor, slugify } from "./slug";
+import { addressFor, randomAddress, slugify } from "./slug";
 
 describe("slugify", () => {
   it("makes lowercase words joined by hyphens", () => {
@@ -22,20 +22,30 @@ describe("slugify", () => {
   });
 });
 
-describe("addressFor", () => {
+describe("randomAddress", () => {
   const valid = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+  it("makes a valid address with the prefix and a six-character tail", () => {
+    expect(randomAddress("app", () => 0.123456789)).toMatch(/^app-[a-z0-9]{6}$/);
+    expect(randomAddress(undefined, () => 0.987654321)).toMatch(/^workspace-[a-z0-9]{6}$/);
+    expect(valid.test(randomAddress("app"))).toBe(true);
+  });
+  it("still has six characters when the random number has few digits", () => {
+    expect(randomAddress("app", () => 0.5)).toMatch(/^app-[a-z0-9]{6}$/);
+    expect(randomAddress("app", () => 0)).toMatch(/^app-[a-z0-9]{6}$/);
+  });
+  it("differs from one call to the next", () => {
+    expect(randomAddress("app", () => 0.111111)).not.toBe(randomAddress("app", () => 0.999999));
+  });
+});
+
+describe("addressFor", () => {
   it("uses the name when it can", () => {
-    expect(addressFor("Maple Street Bakery")).toBe("maple-street-bakery");
+    expect(addressFor("Maple Street Bakery", "app-abc123")).toBe("maple-street-bakery");
   });
-  it("makes a valid, different address for names that have no letters we can read", () => {
-    const a = addressFor("日本語カフェ", () => 0.123456789);
-    const b = addressFor("日本語カフェ", () => 0.987654321);
-    expect(a).toMatch(/^workspace-[a-z0-9]{6}$/);
-    expect(valid.test(a)).toBe(true);
-    expect(a).not.toBe(b);
+  it("uses the given fallback for names with no letters or digits we can read, so shown and saved agree", () => {
+    for (const name of ["日本語カフェ", "🍕🍕🍕", "!!!"]) expect(addressFor(name, "app-abc123")).toBe("app-abc123");
   });
-  it("still makes a valid address when the random number has few digits", () => {
-    expect(addressFor("!!!", () => 0.5)).toMatch(/^workspace-[a-z0-9]{6}$/);
-    expect(addressFor("!!!", () => 0)).toMatch(/^workspace-[a-z0-9]{6}$/);
+  it("makes its own valid fallback when none is given", () => {
+    expect(addressFor("日本語カフェ")).toMatch(/^workspace-[a-z0-9]{6}$/);
   });
 });
