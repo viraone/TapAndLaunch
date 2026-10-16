@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { orgHasMaps } from "@/lib/platform/maps";
 import { MAPS_LOCKED_MESSAGE, isMapsBlock } from "@/lib/platform/maps-shared";
 import { BLOCK_TYPES } from "@/lib/builder/block-defaults";
+import { isAppEditor } from "@/lib/org";
 import type { BlockType } from "@/types/database";
 
 const BlockSchema = z.object({
@@ -41,6 +42,16 @@ export async function PUT(request: Request, context: { params: Promise<{ appId: 
   const parsed = SaveBlocksSchema.safeParse(await request.json());
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
+  }
+
+  // The app must be one the caller may edit, and the page one of its pages. Checked first: an outsider used to get a
+  // "success" for an empty save, because the delete below silently touched nothing under RLS.
+  const { data: page } = await supabase.from("pages").select("id, app_id").eq("id", pageId).eq("app_id", appId).maybeSingle();
+  if (!page) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+  if (!(await isAppEditor(supabase, appId))) {
+    return Response.json({ error: "Only admins and creators of this organization can change its apps." }, { status: 403 });
   }
 
   // Live food / Gas prices cost Google money: only organizations a platform

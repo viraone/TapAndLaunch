@@ -11,6 +11,7 @@ import { GatedPlaceholder } from "@/components/pwa-runtime/GatedPlaceholder";
 import { recordAnalyticsEvent } from "@/lib/pwa/analytics";
 import { CodeAppFrame } from "@/components/pwa-runtime/CodeAppFrame";
 import { getCurrentMember, memberSatisfiesTier } from "@/lib/pwa/get-current-member";
+import { pageTitle } from "@/lib/pwa/page-title";
 
 // See the note in `../layout.tsx` on why `params` is typed by hand here
 // instead of via the generated `PageProps<'/published-apps/[appSlug]/[[...path]]'>`
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const page = resolvePage(published, path);
   if (!page) return {};
 
-  const title = page.seo_title?.trim() || (page.is_home ? undefined : `${page.name} · ${published.app.name}`);
+  const title = pageTitle(published.app, page);
   const description = page.seo_description?.trim() || published.app.manifest.description;
   if (!page.share_image_url) return { title, description };
 

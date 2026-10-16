@@ -14,6 +14,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
+import { NETWORK_ERROR, SERVER_ERROR } from "@/lib/friendly-errors";
 import { toast } from "sonner";
 import Link from "next/link";
 import {
@@ -596,14 +597,22 @@ export function BuilderClient({
       // page (exactly what happened the first time this was used).
       if (nextStatus === "published" && !(await saveBlocks())) return;
 
-      const res = await fetch(`/api/apps/${currentApp.id}/publish`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
-      });
-      const body = await res.json();
-      if (!res.ok) {
-        toast.error(body.error ?? "Failed to update publish status");
+      // Whatever goes wrong (offline, a server error page instead of JSON), the owner gets a sentence and keeps the
+      // builder; an error thrown here used to unmount the whole page.
+      let res: Response;
+      try {
+        res = await fetch(`/api/apps/${currentApp.id}/publish`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: nextStatus }),
+        });
+      } catch {
+        toast.error(NETWORK_ERROR);
+        return;
+      }
+      const body: { error?: string; app?: AppRow } | null = await res.json().catch(() => null);
+      if (!res.ok || !body?.app) {
+        toast.error(typeof body?.error === "string" && body.error.trim() && res.status < 500 ? body.error : SERVER_ERROR);
         return;
       }
       setCurrentApp(body.app);
