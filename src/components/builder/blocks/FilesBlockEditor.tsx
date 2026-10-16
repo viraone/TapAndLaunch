@@ -2,6 +2,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FileUploadField } from "@/components/builder/FileUploadField";
 import type { FilesBlockConfig } from "@/types/database";
 import { linked } from "@/lib/builder/field-link";
@@ -24,6 +25,13 @@ export function FilesBlockEditor({ config, organizationId, onChange }: { config:
         <Label htmlFor="files-intro">A line under the title (optional)</Label>
         <Textarea id="files-intro" {...linked("intro")} rows={2} value={config.intro ?? ""} maxLength={200} onChange={(e) => onChange({ ...config, intro: e.target.value })} />
       </div>
+      <label className="flex items-start gap-2 text-sm">
+        <Checkbox className="mt-0.5" checked={!!config.collapsed} onCheckedChange={(checked) => onChange({ ...config, collapsed: checked === true })} />
+        <span>
+          Start folded
+          <span className="block text-xs text-neutral-400">One card with the title; visitors tap it to see the files.</span>
+        </span>
+      </label>
       {items.map((item, i) => (
         <div key={i} className="space-y-2 rounded-xl bg-white/[0.04] p-3 ring-1 ring-white/10">
           <div className="flex items-start gap-2">

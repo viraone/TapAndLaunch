@@ -213,6 +213,8 @@ export interface FilesBlockConfig {
   title?: string;
   intro?: string;
   items?: Array<{ label: string; url: string; note?: string }>;
+  /** Folded into one card whose title opens the list; false or missing shows the files right away. */
+  collapsed?: boolean;
 }
 
 /** A button on its own, to a page of the app (`page`) or a web address (`url`); `url` wins when both are set. */
