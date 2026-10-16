@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { extractAppSlug, getRootDomain, hostRoot, resolveAppSlugForHost } from "@/lib/tenant";
+import { extractAppSlug, getRootDomain, hostRoot, resolveAppSlugForHost, wwwRedirectTarget } from "@/lib/tenant";
 import { updateSession } from "@/lib/supabase/middleware";
 
 /**
- * Two responsibilities, in order:
+ * Two responsibilities, in order (after sending www to the bare domain):
  *  1. Refresh the Supabase session cookie (`lib/supabase/middleware.ts`) —
  *     irrelevant on tenant subdomains today (no dashboard auth there) but
  *     harmless, and keeps this correct if that ever changes.
@@ -23,6 +23,9 @@ import { updateSession } from "@/lib/supabase/middleware";
  */
 export async function proxy(request: NextRequest) {
   const host = request.headers.get("host");
+  // www.tapandlaunch.com goes to tapandlaunch.com (same path), so the site has one address. 308 keeps a POST a POST.
+  const bare = wwwRedirectTarget(host, request.nextUrl.pathname, request.nextUrl.search);
+  if (bare) return new Response(null, { status: 308, headers: { Location: bare } });
   // The AI-apps domain only ever serves apps: its bare address (and anything that isn't one app) goes to the main site,
   // so the website, sign-in and dashboard live on one domain only.
   if (hostRoot(host) === "code" && !extractAppSlug(host)) {

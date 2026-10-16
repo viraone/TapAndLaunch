@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { extractAppSlug } from "./tenant";
+import { extractAppSlug, wwwRedirectTarget } from "./tenant";
 
 describe("opening an app by IP address (local development only)", () => {
   afterEach(() => {
@@ -72,5 +72,31 @@ describe("the separate domain for AI-written apps", () => {
     expect(appLiveUrl({ slug: "gym", custom_domain: null, custom_domain_status: null, kind: "blocks" }, "tapandlaunch.com")).toBe("https://gym.tapandlaunch.com");
     expect(validateCustomDomain("shop.tapandlaunch.app")).toMatch(/Can't use tapandlaunch.app/);
     expect(validateCustomDomain("tapandlaunch.com")).toMatch(/Can't use tapandlaunch.com/);
+  });
+});
+
+describe("www goes to the bare domain", () => {
+  const before = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+  afterEach(() => {
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN = before;
+  });
+
+  it("sends www to the same path on the bare domain, keeping the query", () => {
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN = "tapandlaunch.com";
+    expect(wwwRedirectTarget("www.tapandlaunch.com", "/pricing", "?a=1")).toBe("https://tapandlaunch.com/pricing?a=1");
+    expect(wwwRedirectTarget("WWW.TapAndLaunch.com", "/", "")).toBe("https://tapandlaunch.com/");
+  });
+
+  it("leaves the bare domain, apps and custom domains alone", () => {
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN = "tapandlaunch.com";
+    expect(wwwRedirectTarget("tapandlaunch.com", "/", "")).toBeNull();
+    expect(wwwRedirectTarget("davidbabu.tapandlaunch.com", "/", "")).toBeNull();
+    expect(wwwRedirectTarget("www.davidbabucomedy.com", "/", "")).toBeNull();
+    expect(wwwRedirectTarget(null, "/", "")).toBeNull();
+  });
+
+  it("does nothing in local development", () => {
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN = "localhost:3100";
+    expect(wwwRedirectTarget("www.localhost:3100", "/", "")).toBeNull();
   });
 });

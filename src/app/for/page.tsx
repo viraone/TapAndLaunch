@@ -6,6 +6,7 @@ import { jsonLdText, pageMetadata, structuredData } from "@/lib/marketing";
 import { TRADES_INDEX, TRADE_PAGES } from "@/lib/marketing/trades";
 import { buildStarter } from "@/lib/apps/templates";
 import { fontsHref } from "@/lib/pwa/theme-style";
+import { LateFonts } from "@/components/marketing/LateFonts";
 import { SiteFrame } from "@/components/dashboard/SiteFrame";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/MarketingChrome";
 
@@ -23,9 +24,7 @@ export default async function TradesIndexPage() {
   return (
     <div className="relative flex min-h-dvh flex-col bg-white text-neutral-950">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdText(structuredData(["software"])) }} />
-      {FONTS.map((href) => (
-        <link key={href} rel="stylesheet" href={href} />
-      ))}
+      <LateFonts hrefs={FONTS} />
       <MarketingHeader signedIn={!!user} />
       <main className="mx-auto w-full max-w-[1400px] flex-1 px-6 pb-24 sm:px-10">
         <section className="grid gap-8 pb-14 pt-10 sm:pt-16 lg:grid-cols-2 lg:items-end lg:gap-16">

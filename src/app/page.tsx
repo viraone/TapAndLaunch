@@ -6,6 +6,7 @@ import { TRIAL_DAYS } from "@/lib/billing/plans";
 import { AUDIENCES, FEATURES, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, STEPS, jsonLdText, structuredData } from "@/lib/marketing";
 import { STARTER_TEMPLATES, buildStarter, type StarterTemplate } from "@/lib/apps/templates";
 import { fontsHref } from "@/lib/pwa/theme-style";
+import { LateFonts } from "@/components/marketing/LateFonts";
 import { SiteFrame } from "@/components/dashboard/SiteFrame";
 import { CTA_BUTTON, MarketingFooter, MarketingHeader } from "@/components/marketing/MarketingChrome";
 import { FaqSection, PricingSection, WhoItsForSection } from "@/components/marketing/Sections";
@@ -46,9 +47,7 @@ export default async function Home() {
   return (
     <div className="relative flex min-h-dvh flex-col bg-white text-neutral-950">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
-      {SHOWCASE_FONTS.map((href) => (
-        <link key={href} rel="stylesheet" href={href} />
-      ))}
+      <LateFonts hrefs={SHOWCASE_FONTS} />
 
       <MarketingHeader signedIn={signedIn} />
 

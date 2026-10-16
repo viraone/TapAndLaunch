@@ -36,6 +36,18 @@ export function hostRoot(host: string | null): "main" | "code" | null {
 }
 
 /**
+ * Where `www.<root domain>` should go: the same path on the bare domain, so Google sees one site. Null for any other
+ * host (apps and custom domains are untouched). Local development has no www address, so `localhost` never matches.
+ */
+export function wwwRedirectTarget(host: string | null, pathname: string, search: string): string | null {
+  if (!host) return null;
+  const main = getRootDomain().toLowerCase();
+  if (/(^|\.)localhost(:\d+)?$/.test(main)) return null;
+  if (host.toLowerCase() !== `www.${main}`) return null;
+  return `https://${main}${pathname}${search}`;
+}
+
+/**
  * Returns the published-app slug for a request `Host` header, or `null` if
  * the request is for the root domain itself (the marketing site / dashboard)
  * rather than a tenant subdomain.
