@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AUTH_BUTTON } from "@/components/auth/AuthShell";
-import { addressFor, slugify } from "@/lib/apps/slug";
+import { addressFor } from "@/lib/apps/slug";
 import { NETWORK_ERROR, SERVER_ERROR } from "@/lib/friendly-errors";
 
 /** The longest an organization name may be (the server enforces the same limit). */
@@ -58,8 +58,6 @@ export function OnboardingForm() {
     router.refresh();
   }
 
-  const address = slugify(name);
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
@@ -74,7 +72,6 @@ export function OnboardingForm() {
           onChange={(e) => setName(e.target.value)}
           placeholder="Acme Agency"
         />
-        {name.trim() && <p className="text-xs text-neutral-500">{address ? `URL: ${address}` : "We'll choose a web address for you."}</p>}
       </div>
       {error && (
         <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

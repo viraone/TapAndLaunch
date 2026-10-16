@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addressFor, randomAddress, slugify } from "./slug";
+import { addressCandidates, addressFor, randomAddress, slugify } from "./slug";
 
 describe("slugify", () => {
   it("makes lowercase words joined by hyphens", () => {
@@ -47,5 +47,31 @@ describe("addressFor", () => {
   });
   it("makes its own valid fallback when none is given", () => {
     expect(addressFor("日本語カフェ")).toMatch(/^workspace-[a-z0-9]{6}$/);
+  });
+});
+
+describe("addressCandidates", () => {
+  const valid = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+  it("tries the plain address, then -2 to -5, then a random tail", () => {
+    expect(addressCandidates("maple-street-bakery", () => 0.123456789)).toEqual([
+      "maple-street-bakery",
+      "maple-street-bakery-2",
+      "maple-street-bakery-3",
+      "maple-street-bakery-4",
+      "maple-street-bakery-5",
+      expect.stringMatching(/^maple-street-bakery-[a-z0-9]{6}$/),
+    ]);
+  });
+  it("keeps every candidate valid and within 63 characters, even for the longest address", () => {
+    for (const slug of ["a", "k".repeat(63), `${"k".repeat(59)}-b`, `${"k".repeat(55)}-bbbbbbb`]) {
+      for (const c of addressCandidates(slug, () => 0.5)) {
+        expect(c.length, c).toBeLessThanOrEqual(63);
+        expect(valid.test(c), c).toBe(true);
+      }
+    }
+  });
+  it("has no duplicates, so each try is a different address", () => {
+    const list = addressCandidates("k".repeat(63), () => 0.31415);
+    expect(new Set(list).size).toBe(list.length);
   });
 });

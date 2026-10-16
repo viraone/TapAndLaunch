@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { activeOrgCookieHeader } from "@/lib/org";
+import { addressCandidates } from "@/lib/apps/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPlatformAdmin } from "@/lib/platform/admin";
 import type { Database } from "@/types/database";
@@ -42,10 +43,18 @@ export async function POST(request: Request) {
 
   // No `.single()`: the function returns one composite row (not `setof`),
   // which PostgREST already serializes as a single object.
-  const { data, error } = await supabase.rpc("create_organization", {
-    p_name: parsed.data.name,
-    p_slug: parsed.data.slug,
-  });
+  // An organization's address is an internal label the person never sees, so two businesses with the same name must
+  // both be able to sign up: when the address is taken, quietly take the next free one (`name-2`, `name-3`...). The
+  // function inserts the organization and the admin membership in one transaction, so a refused try leaves nothing behind.
+  let data: unknown = null;
+  let error: { code?: string; message: string } | null = null;
+  for (const slug of addressCandidates(parsed.data.slug)) {
+    const result = await supabase.rpc("create_organization", { p_name: parsed.data.name, p_slug: slug });
+    data = result.data;
+    error = result.error;
+    if (!error) break;
+    if (error.code !== "23505") break; // only "taken" is worth another try
+  }
   const org = data as OrganizationRow | null;
 
   if (error || !org) {

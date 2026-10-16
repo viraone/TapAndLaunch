@@ -24,3 +24,13 @@ export function randomAddress(prefix = "workspace", random: () => number = Math.
 export function addressFor(name: string, fallback: string = randomAddress()): string {
   return slugify(name) || fallback;
 }
+
+/**
+ * The addresses to try, in order, when creating something whose address must be unique and the person has not seen it
+ * (an organization): the plain one, then `-2` to `-5`, then one with a random tail, which is all but certain to be
+ * free. Every candidate is at most 63 characters and never ends in a hyphen.
+ */
+export function addressCandidates(slug: string, random: () => number = Math.random): string[] {
+  const trim = (s: string) => s.replace(/-+$/g, "");
+  return [slug, ...[2, 3, 4, 5].map((n) => `${trim(slug.slice(0, 60))}-${n}`), `${trim(slug.slice(0, 56))}-${random().toString(36).slice(2, 8).padEnd(6, "0")}`];
+}
