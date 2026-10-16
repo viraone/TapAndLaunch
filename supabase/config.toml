@@ -248,6 +248,12 @@ otp_expiry = 3600
 subject = "Reset your TapAndLaunch password"
 content_path = "./supabase/templates/recovery.html"
 
+# Sign-up confirmation email (keep in step with the production template; see docs/runbooks.md). Local sign-ups skip
+# confirmation (`enable_confirmations = false`), so this is only seen if that is turned on.
+[auth.email.template.confirmation]
+subject = "Confirm your email address"
+content_path = "./supabase/templates/confirmation.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

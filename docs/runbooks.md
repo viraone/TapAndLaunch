@@ -57,6 +57,16 @@ Supabase's default, resets still work but only when the link is opened in the sa
 Locally, the template is loaded from `supabase/config.toml`; emails land in Mailpit at http://127.0.0.1:54324. After
 changing `config.toml`, run `supabase stop` then `supabase start` (restarting Docker alone keeps the old settings).
 
+## Sign-up confirmation email
+
+New accounts get a "Confirm your email address" email. The link must go to `/auth/confirm` (token hash), which works on any
+device. The default Supabase link goes through `/auth/callback`, which only works in the browser that signed up: opened on a
+phone, the person ends on the login page, signed out (their email is confirmed anyway). The login page shows a notice for
+that case (`?error=auth_callback_failed`) so nobody is left guessing.
+
+**Production email template** (Supabase > Authentication > Emails > Confirm sign up): subject
+`Confirm your email address`, body = contents of `supabase/templates/confirmation.html`. Same local-config note as above.
+
 ## Reset StageTime test requests
 
 Claude Code skill `reset-stagetime-test` (on the owner's Mac) deletes only the owner's own test addresses from the request

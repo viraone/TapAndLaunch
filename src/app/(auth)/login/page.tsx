@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useRef, useState, useSyncExternalStore } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,19 @@ function readRememberedEmail(): string {
 // server render ("") and the first client render agree, then the remembered
 // value appears without a setState-in-effect.
 const noopSubscribe = () => () => {};
+
+/** An emailed link that could not sign this browser in (`/auth/callback` sends it here with `?error=auth_callback_failed`).
+ * The usual cause is a confirmation link opened on another device than the one that signed up; the email is confirmed
+ * by then, so the password works. Said without promising that, because an expired link looks the same. */
+function LinkNotice() {
+  const params = useSearchParams();
+  if (params.get("error") !== "auth_callback_failed") return null;
+  return (
+    <p role="status" className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-900">
+      We couldn&rsquo;t finish signing you in from that link. If you just confirmed your email, log in with your password to continue.
+    </p>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -92,6 +105,9 @@ export default function LoginPage() {
         </>
       }
     >
+      <Suspense fallback={null}>
+        <LinkNotice />
+      </Suspense>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>

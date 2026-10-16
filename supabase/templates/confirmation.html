@@ -1,0 +1,15 @@
+<!-- Supabase "Confirm sign up" email for TapAndLaunch. Locally it is loaded by supabase/config.toml; in production the
+     same subject and HTML are set in Supabase > Authentication > Emails > Confirm sign up. The link uses the token hash
+     (not the code exchange) so it works on any device: someone can sign up on a laptop and tap the link on their phone.
+     /auth/confirm verifies it, signs them in and sends them on to onboarding. -->
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#171717">
+  <p style="font-size:18px;font-weight:600;margin:0 0 16px">TapAndLaunch</p>
+  <h1 style="font-size:22px;margin:0 0 12px">Confirm your email address</h1>
+  <p style="font-size:15px;line-height:1.5;margin:0 0 24px">Click the button to confirm this email address and finish creating your TapAndLaunch account.</p>
+  <p style="margin:0 0 24px">
+    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/onboarding"
+       style="display:inline-block;background:#4F46E5;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 20px;border-radius:999px">Confirm email address</a>
+  </p>
+  <p style="font-size:13px;line-height:1.5;color:#525252;margin:0 0 8px">The link works once. It works on any device, so you can open it on your phone.</p>
+  <p style="font-size:13px;line-height:1.5;color:#525252;margin:0">If you didn't sign up, you can ignore this email.</p>
+</div>
