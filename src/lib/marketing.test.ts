@@ -50,11 +50,22 @@ describe("SITE_DESCRIPTION", () => {
 
 describe("structuredData", () => {
   it("always names the organization, and adds only the parts a page shows", () => {
-    const types = (parts: Array<"software" | "faq">) => structuredData(parts)["@graph"].map((n) => n["@type"]);
+    const types = (parts: Array<"software" | "faq" | "support">) => structuredData(parts)["@graph"].map((n) => n["@type"]);
     expect(types([])).toEqual(["Organization"]);
     expect(types(["software"])).toEqual(["Organization", "SoftwareApplication"]);
     expect(types(["faq"])).toEqual(["Organization", "FAQPage"]);
     expect(types(["software", "faq"])).toEqual(["Organization", "SoftwareApplication", "FAQPage"]);
+    expect(types(["support"])).toEqual(["Organization", "ContactPage"]);
+  });
+  it("puts the contact details on the support page only", () => {
+    const org = (parts: Array<"software" | "faq" | "support">) => structuredData(parts)["@graph"][0] as { contactPoint?: { email: string; contactType: string } };
+    expect(org(["support"]).contactPoint).toMatchObject({ contactType: "customer support", email: "support@tapandlaunch.com" });
+    for (const parts of [[], ["software"], ["faq"], ["software", "faq"]] as Array<Array<"software" | "faq" | "support">>) expect(org(parts).contactPoint).toBeUndefined();
+  });
+  it("points the contact page at the organization and the support address", () => {
+    const page = structuredData(["support"])["@graph"].find((n) => n["@type"] === "ContactPage") as { url: string; about: { "@id": string } };
+    expect(new URL(page.url).pathname).toBe("/support");
+    expect(page.about["@id"]).toMatch(/#org$/);
   });
   it("lists every question", () => {
     const faq = structuredData(["faq"])["@graph"].find((n) => n["@type"] === "FAQPage") as { mainEntity: unknown[] };

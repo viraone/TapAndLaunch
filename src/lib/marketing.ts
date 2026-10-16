@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PLAN, TRIAL_DAYS } from "@/lib/billing/plans";
 import { siteOrigin } from "@/lib/site";
+import { SUPPORT_EMAIL } from "@/lib/legal";
 
 /** Search-engine facing text for the home page. Kept in one place so the page, the preview card and the structured data agree. */
 export const SITE_NAME = "TapAndLaunch";
@@ -91,11 +92,19 @@ export const WHO_FOR = {
 
 /**
  * What search engines read to understand a page: who we are, and the parts that page actually shows (the product and
- * its price on the home and pricing pages, the questions on the home and FAQ pages).
+ * its price on the home and pricing pages, the questions on the home and FAQ pages, the contact details on the support page).
  */
-export function structuredData(parts: Array<"software" | "faq">) {
+export function structuredData(parts: Array<"software" | "faq" | "support">) {
   const origin = siteOrigin();
-  const graph: Array<Record<string, unknown>> = [{ "@type": "Organization", "@id": `${origin}/#org`, name: SITE_NAME, url: origin }];
+  const organization: Record<string, unknown> = { "@type": "Organization", "@id": `${origin}/#org`, name: SITE_NAME, url: origin };
+  // The support page says how to reach us, so it (and only it) carries the contact details.
+  if (parts.includes("support")) {
+    organization.contactPoint = { "@type": "ContactPoint", contactType: "customer support", email: SUPPORT_EMAIL, availableLanguage: "English" };
+  }
+  const graph: Array<Record<string, unknown>> = [organization];
+  if (parts.includes("support")) {
+    graph.push({ "@type": "ContactPage", "@id": `${origin}/support#page`, url: `${origin}/support`, name: "Support and Contact", about: { "@id": `${origin}/#org` } });
+  }
   if (parts.includes("software")) {
     graph.push({
       "@type": "SoftwareApplication",
