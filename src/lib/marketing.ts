@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { PLAN, TRIAL_DAYS } from "@/lib/billing/plans";
+import { siteOrigin } from "@/lib/site";
 
 /** Search-engine facing text for the home page. Kept in one place so the page, the preview card and the structured data agree. */
 export const SITE_NAME = "TapAndLaunch";
 export const SITE_TITLE = "TapAndLaunch: build your own app in minutes, no code";
-export const SITE_DESCRIPTION =
-  "Build an app for your restaurant, gym, shop or event, no code needed. Share it by link or QR code, take payments and send push notifications. Free for 30 days.";
-
+/** One description for the page, the share card and the structured data: the category, who it is for, how big, what it does. */
+export const SITE_DESCRIPTION = `No-code app builder for restaurants, gyms, shops and event businesses with 1-50 employees. Share by link or QR code, take card payments, send push notifications. Free for ${TRIAL_DAYS} days.`;
 
 /** The price as the public site shows it. The pricing card, the FAQ and the search-engine data all read this. */
 export const LISTED_PRICE = {
@@ -61,6 +61,65 @@ export const STEPS = [
 ] as const;
 
 export const AUDIENCES = ["Restaurants and cafés", "Gyms and studios", "Venues and events", "Shops", "Clubs and communities"] as const;
+
+/**
+ * "Who it's for", in plain sentences, so a reader that never runs JavaScript (a search engine, an assistant, a
+ * sales-research tool) learns the business types, the size and the region without guessing. The size and region are
+ * who the product is made for, not a lock: nothing in the product refuses a larger business or another country, and
+ * where card payments work is up to Stripe (each customer connects their own Stripe account and picks its country).
+ */
+export const WHO_FOR = {
+  heading: "Who it's for",
+  types: {
+    label: "Business types",
+    text: "TapAndLaunch is for restaurants and cafés, gyms and studios, shops, venues and events, and clubs and communities. It also suits solo creative businesses such as photographers, designers and artists.",
+  },
+  size: {
+    label: "Business size",
+    text: "It is built for independent businesses with 1-50 employees, including solo owners. You do not need a developer.",
+  },
+  region: {
+    label: "Where",
+    text: "It is made for businesses in the United States and Canada. Card payments run on your own Stripe account, so where you can take payments follows the countries Stripe supports.",
+  },
+  notFor: {
+    label: "Who it's not for",
+    text: "It is not for businesses that need a listing in the Apple App Store or Google Play, or that have their own mobile engineering team. Your app installs from a link or QR code instead.",
+  },
+} as const;
+
+/**
+ * What search engines read to understand a page: who we are, and the parts that page actually shows (the product and
+ * its price on the home and pricing pages, the questions on the home and FAQ pages).
+ */
+export function structuredData(parts: Array<"software" | "faq">) {
+  const origin = siteOrigin();
+  const graph: Array<Record<string, unknown>> = [{ "@type": "Organization", "@id": `${origin}/#org`, name: SITE_NAME, url: origin }];
+  if (parts.includes("software")) {
+    graph.push({
+      "@type": "SoftwareApplication",
+      name: SITE_NAME,
+      url: origin,
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      description: SITE_DESCRIPTION,
+      offers: [
+        { "@type": "Offer", name: `${LISTED_PRICE.name}, billed yearly`, price: LISTED_PRICE.dollarsPerYear.toFixed(2), priceCurrency: "USD" },
+        { "@type": "Offer", name: `${LISTED_PRICE.name}, billed monthly`, price: LISTED_PRICE.dollarsPerMonth.toFixed(2), priceCurrency: "USD" },
+      ],
+      publisher: { "@id": `${origin}/#org` },
+    });
+  }
+  if (parts.includes("faq")) {
+    graph.push({ "@type": "FAQPage", mainEntity: FAQ.map(({ q, a }) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) });
+  }
+  return { "@context": "https://schema.org", "@graph": graph };
+}
+
+/** The data as the text of a `<script type="application/ld+json">`; `<` is escaped so nothing inside can close the tag. */
+export function jsonLdText(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
 
 /**
  * Metadata for one of the main site's own pages: its title and description, canonical address, and the share card.

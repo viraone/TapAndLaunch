@@ -6,6 +6,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const origin = siteOrigin();
   return [
     { url: `${origin}/`, changeFrequency: "weekly", priority: 1 },
+    { url: `${origin}/pricing`, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${origin}/faq`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${origin}/signup`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${origin}/support`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${origin}/terms`, changeFrequency: "yearly", priority: 0.3 },

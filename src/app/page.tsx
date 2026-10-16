@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { LegalLinks } from "@/components/legal/Doc";
-import { LEGAL_NAME } from "@/lib/legal";
 import { TRIAL_DAYS } from "@/lib/billing/plans";
-import { AUDIENCES, FAQ, FEATURES, LISTED_PRICE, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, STEPS } from "@/lib/marketing";
-import { siteOrigin } from "@/lib/site";
+import { AUDIENCES, FEATURES, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, STEPS, jsonLdText, structuredData } from "@/lib/marketing";
 import { STARTER_TEMPLATES, buildStarter, type StarterTemplate } from "@/lib/apps/templates";
 import { fontsHref } from "@/lib/pwa/theme-style";
 import { SiteFrame } from "@/components/dashboard/SiteFrame";
+import { CTA_BUTTON, MarketingFooter, MarketingHeader } from "@/components/marketing/MarketingChrome";
+import { FaqSection, PricingSection, WhoItsForSection } from "@/components/marketing/Sections";
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
@@ -32,34 +31,6 @@ const SHOWCASE = ["photography", "design", "art", "marketing", "technology", "be
 const SHOWCASE_TEMPLATES = SHOWCASE.map((id) => STARTER_TEMPLATES.find((t) => t.id === id)).filter((t): t is StarterTemplate => !!t);
 const SHOWCASE_FONTS = Array.from(new Set(SHOWCASE_TEMPLATES.map((t) => fontsHref(buildStarter(t.id, "x").theme)).filter((h): h is string => !!h)));
 
-/** What search engines read to understand the page: who we are, what the product is, and the questions answered below. */
-function structuredData() {
-  const origin = siteOrigin();
-  return {
-    "@context": "https://schema.org",
-    "@graph": [
-      { "@type": "Organization", "@id": `${origin}/#org`, name: SITE_NAME, url: origin },
-      {
-        "@type": "SoftwareApplication",
-        name: SITE_NAME,
-        url: origin,
-        applicationCategory: "BusinessApplication",
-        operatingSystem: "Web",
-        description: SITE_DESCRIPTION,
-        offers: [
-          { "@type": "Offer", name: `${LISTED_PRICE.name}, billed yearly`, price: LISTED_PRICE.dollarsPerYear.toFixed(2), priceCurrency: "USD" },
-          { "@type": "Offer", name: `${LISTED_PRICE.name}, billed monthly`, price: LISTED_PRICE.dollarsPerMonth.toFixed(2), priceCurrency: "USD" },
-        ],
-        publisher: { "@id": `${origin}/#org` },
-      },
-      {
-        "@type": "FAQPage",
-        mainEntity: FAQ.map(({ q, a }) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
-      },
-    ],
-  };
-}
-
 export default async function Home() {
   // A returning user with a live session gets "Dashboard" links instead of
   // being asked to log in again.
@@ -69,11 +40,8 @@ export default async function Home() {
   } = await supabase.auth.getUser();
   const signedIn = !!user;
   const startHref = signedIn ? "/dashboard" : "/signup";
-  // `<` is escaped so nothing inside the data can close the script tag.
-  const jsonLd = JSON.stringify(structuredData()).replace(/</g, "\\u003c");
-
-  const pill = "rounded-full px-4 py-2 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-950";
-  const dark = "inline-flex min-h-12 items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_8px_20px_-10px_rgba(99,102,241,0.6)] transition hover:brightness-110";
+  const jsonLd = jsonLdText(structuredData(["software", "faq"]));
+  const dark = CTA_BUTTON;
 
   return (
     <div className="relative flex min-h-dvh flex-col bg-white text-neutral-950">
@@ -82,36 +50,7 @@ export default async function Home() {
         <link key={href} rel="stylesheet" href={href} />
       ))}
 
-      <header className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-6 py-5 sm:px-10">
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-indigo-400 to-pink-400 text-white shadow-lg shadow-indigo-500/20">
-            <ArrowRight className="h-4 w-4 -rotate-45" strokeWidth={2.5} />
-          </span>
-          TapAndLaunch
-        </Link>
-        <nav aria-label="Main" className="flex items-center gap-1 text-sm sm:gap-2">
-          <a href="#pricing" className={`hidden sm:inline-block ${pill}`}>
-            Pricing
-          </a>
-          <a href="#faq" className={`hidden sm:inline-block ${pill}`}>
-            FAQ
-          </a>
-          {signedIn ? (
-            <Link href="/dashboard" className="rounded-full px-4 py-2 font-medium bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_8px_20px_-10px_rgba(99,102,241,0.6)] transition hover:brightness-110">
-              Dashboard
-            </Link>
-          ) : (
-            <>
-              <Link href="/login" className={pill}>
-                Log in
-              </Link>
-              <Link href="/signup" className="rounded-full px-4 py-2 font-medium bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_8px_20px_-10px_rgba(99,102,241,0.6)] transition hover:brightness-110">
-                Start free
-              </Link>
-            </>
-          )}
-        </nav>
-      </header>
+      <MarketingHeader signedIn={signedIn} />
 
       <main className="mx-auto w-full max-w-[1400px] flex-1 px-6 pb-24 sm:px-10">
         <section className="grid gap-8 pb-14 pt-10 sm:pt-16 lg:grid-cols-2 lg:items-end lg:gap-16">
@@ -140,7 +79,9 @@ export default async function Home() {
           </div>
         </section>
 
-        <section aria-labelledby="templates" className="border-t border-neutral-200 pt-6">
+        <WhoItsForSection />
+
+        <section aria-labelledby="templates" className="mt-24 border-t border-neutral-200 pt-6">
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
             <h2 id="templates" className="text-base font-medium">
               Start from a template that already looks like you
@@ -203,54 +144,9 @@ export default async function Home() {
           </ol>
         </section>
 
-        <section id="pricing" aria-labelledby="pricing-title" className="mt-24 scroll-mt-8">
-          <h2 id="pricing-title" className="text-balance text-4xl font-medium leading-[1.02] tracking-[-0.03em] sm:text-6xl">
-            One simple plan
-          </h2>
-          <div className="mt-12 rounded-3xl bg-neutral-100 p-8 sm:p-10">
-            <div className="flex flex-wrap items-end justify-between gap-6">
-              <div>
-                <p className="text-sm font-semibold text-neutral-500">{LISTED_PRICE.name}</p>
-                <p className="mt-1 flex items-baseline gap-1">
-                  <span className="text-6xl font-medium tracking-[-0.04em]">${LISTED_PRICE.dollarsPerMonth}</span>
-                  <span className="text-neutral-500">/month</span>
-                </p>
-                <p className="mt-1 text-sm text-neutral-500">
-                  or ${LISTED_PRICE.dollarsPerYear}/year, save ${LISTED_PRICE.dollarsSavedPerYear}
-                </p>
-                <p className="mt-3 max-w-sm leading-relaxed text-neutral-700">{LISTED_PRICE.pitch}</p>
-              </div>
-              <Link href={signedIn ? "/dashboard/settings" : "/signup"} className={dark}>
-                {signedIn ? "Choose a plan" : `Start ${TRIAL_DAYS} days free`}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-            <ul className="mt-8 grid gap-3 border-t border-neutral-300 pt-6 text-neutral-700 sm:grid-cols-2">
-              {["Build apps by chatting, with your own Claude or ChatGPT key", `${TRIAL_DAYS}-day free trial, no card needed`, "Your apps on their own web address", "Push notifications and email", "Card payments through your Stripe account", "Cancel any time"].map((line) => (
-                <li key={line} className="flex gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> {line}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+        <PricingSection signedIn={signedIn} />
 
-        <section id="faq" aria-labelledby="faq-title" className="mt-24 scroll-mt-8">
-          <h2 id="faq-title" className="text-balance text-4xl font-medium leading-[1.02] tracking-[-0.03em] sm:text-6xl">
-            Questions, answered
-          </h2>
-          <div className="mt-12 divide-y divide-neutral-200 border-y border-neutral-200">
-            {FAQ.map(({ q, a }) => (
-              <details key={q} className="group py-5">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-lg font-medium tracking-tight marker:content-none">
-                  {q}
-                  <span aria-hidden className="text-2xl text-neutral-400 transition group-open:rotate-45">+</span>
-                </summary>
-                <p className="mt-2 max-w-3xl leading-relaxed text-neutral-600">{a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
+        <FaqSection />
 
         <section aria-labelledby="final" className="mt-24 rounded-3xl bg-neutral-950 px-8 py-16 text-center text-white sm:py-24">
           <h2 id="final" className="mx-auto max-w-3xl text-balance text-4xl font-medium leading-[1.02] tracking-[-0.03em] sm:text-6xl">
@@ -266,12 +162,7 @@ export default async function Home() {
         </section>
       </main>
 
-      <footer className="space-y-2 border-t border-neutral-200 px-6 py-6 text-center text-xs text-neutral-500">
-        <LegalLinks className="[&_a]:hover:text-neutral-950" />
-        <p>
-          © {new Date().getFullYear()} {LEGAL_NAME}, doing business as TapAndLaunch
-        </p>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }
