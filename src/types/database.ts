@@ -215,6 +215,8 @@ export interface FilesBlockConfig {
   items?: Array<{ label: string; url: string; note?: string }>;
   /** Folded into one card whose title opens the list; false or missing shows the files right away. */
   collapsed?: boolean;
+  /** Rows are shown greyed out with a lock and can't be opened, until the owner switches it off. */
+  disabled?: boolean;
 }
 
 /** A button on its own, to a page of the app (`page`) or a web address (`url`); `url` wins when both are set. */

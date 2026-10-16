@@ -32,6 +32,13 @@ export function FilesBlockEditor({ config, organizationId, onChange }: { config:
           <span className="block text-xs text-neutral-400">One card with the title; visitors tap it to see the files.</span>
         </span>
       </label>
+      <label className="flex items-start gap-2 text-sm">
+        <Checkbox className="mt-0.5" checked={!!config.disabled} onCheckedChange={(checked) => onChange({ ...config, disabled: checked === true })} />
+        <span>
+          Grey out and lock
+          <span className="block text-xs text-neutral-400">The files stay on the page but visitors can&apos;t open them yet.</span>
+        </span>
+      </label>
       {items.map((item, i) => (
         <div key={i} className="space-y-2 rounded-xl bg-white/[0.04] p-3 ring-1 ring-white/10">
           <div className="flex items-start gap-2">

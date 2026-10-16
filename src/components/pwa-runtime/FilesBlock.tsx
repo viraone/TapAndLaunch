@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpRight, ChevronDown } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Lock } from "lucide-react";
 import type { FilesBlockConfig } from "@/types/database";
 import { EditableText } from "@/components/pwa-runtime/Editable";
 
@@ -16,6 +16,7 @@ import { EditableText } from "@/components/pwa-runtime/Editable";
 export function FilesBlockView({ config, live }: { config: FilesBlockConfig; live: boolean }) {
   const items = (config.items ?? []).filter((i) => i.url?.trim());
   const folded = !!config.collapsed;
+  const locked = !!config.disabled;
   // The builder always starts open so the rows can be edited; on the site a folded card starts closed.
   const [open, setOpen] = useState(!live || !folded);
   if (items.length === 0) {
@@ -28,21 +29,34 @@ export function FilesBlockView({ config, live }: { config: FilesBlockConfig; liv
         const kind = fileKind(item.url);
         return (
           <li key={i}>
-            <a
-              href={live ? item.url : undefined}
-              target="_blank"
-              rel="noreferrer"
-              className="flex min-h-16 items-center gap-3 rounded-2xl bg-muted/60 p-3 ring-1 ring-border transition [&:hover]:bg-muted"
-            >
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/15 text-[11px] font-extrabold uppercase tracking-wide text-primary">
-                {kind}
-              </span>
-              <span className="min-w-0 flex-1">
-                <EditableText as="span" path={["items", i, "label"]} value={item.label} fallback={fileName(item.url)} placeholder={fileName(item.url)} className="line-clamp-2 block text-[15px] font-semibold leading-snug" />
-                <EditableText as="span" path={["items", i, "note"]} value={item.note} placeholder="A short note" className="mt-0.5 block text-sm leading-snug text-muted-foreground" />
-              </span>
-              <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-            </a>
+            {locked ? (
+              <div aria-disabled="true" className="flex min-h-16 cursor-not-allowed select-none items-center gap-3 rounded-2xl bg-muted/40 p-3 opacity-50 ring-1 ring-border grayscale">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-muted text-[11px] font-extrabold uppercase tracking-wide text-muted-foreground">
+                  {kind}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <EditableText as="span" path={["items", i, "label"]} value={item.label} fallback={fileName(item.url)} placeholder={fileName(item.url)} className="line-clamp-2 block text-[15px] font-semibold leading-snug" />
+                  <EditableText as="span" path={["items", i, "note"]} value={item.note} placeholder="A short note" className="mt-0.5 block text-sm leading-snug text-muted-foreground" />
+                </span>
+                <Lock className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+              </div>
+            ) : (
+              <a
+                href={live ? item.url : undefined}
+                target="_blank"
+                rel="noreferrer"
+                className="flex min-h-16 items-center gap-3 rounded-2xl bg-muted/60 p-3 ring-1 ring-border transition [&:hover]:bg-muted"
+              >
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/15 text-[11px] font-extrabold uppercase tracking-wide text-primary">
+                  {kind}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <EditableText as="span" path={["items", i, "label"]} value={item.label} fallback={fileName(item.url)} placeholder={fileName(item.url)} className="line-clamp-2 block text-[15px] font-semibold leading-snug" />
+                  <EditableText as="span" path={["items", i, "note"]} value={item.note} placeholder="A short note" className="mt-0.5 block text-sm leading-snug text-muted-foreground" />
+                </span>
+                <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+              </a>
+            )}
           </li>
         );
       })}
