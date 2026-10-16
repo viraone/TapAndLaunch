@@ -16,7 +16,7 @@ accounts, card payments, push notifications, email and the StageTime sign-up.
 | [template-photos.md](template-photos.md) | Where the template photos come from (Unsplash, free licence) |
 | [first-run-and-ai.md](first-run-and-ai.md) | What a new customer sees, the template picker, and "Describe your app" (Claude) |
 | [billing.md](billing.md) | What customers pay TapAndLaunch: the plan, trial, Stripe Billing, enforcement switch |
-| [email.md](email.md) | Sending email (Resend), receiving email (support@), and the DNS records behind both |
+| [email.md](email.md) | Sending email (Amazon SES for sign-in emails, Resend for the rest), receiving email (support@), and the DNS records behind both |
 | [push-notifications.md](push-notifications.md) | Web push: keys, service worker, click handling, testing |
 | [stagetime-signup.md](stagetime-signup.md) | The Read The Room sign-up at stagetimepnw.tapandlaunch.com |
 | [legal-and-support.md](legal-and-support.md) | Terms, Privacy, Refunds and Support pages, and what Stripe expects |

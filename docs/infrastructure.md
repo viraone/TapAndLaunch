@@ -16,7 +16,7 @@ web apps (PWAs) for many customers ("tenants") from one codebase.
         +--> [ Stripe ]        card payments for stores (Connect) <--- webhook ---> /api/stripe/webhook
         +--> [ Web push ]      browser push services (Chrome, Firefox), signed with our VAPID keys
         +--> [ Google Maps ]   Places data for the Gas and Food blocks (cost-gated per organization)
-        +--> [ Resend ]        outgoing email (sign-in emails via Supabase SMTP)
+        +--> [ Amazon SES ]   outgoing email (sign-in emails via Supabase SMTP); Resend: app-level email
         +--> [ Twilio ]        text messages (optional, not switched on)
 
  Email sent TO @tapandlaunch.com --> [ ImprovMX ] --> the owner's inbox        (support@tapandlaunch.com)
@@ -34,7 +34,8 @@ web apps (PWAs) for many customers ("tenants") from one codebase.
 | **Supabase** project "TapAndLaunch" (Pro plan) | Main database, sign-in, file storage. Region/plan are in the Supabase dashboard | supabase.com |
 | **Supabase** project "rickshaw-open-mic" (Free plan) | StageTime's request list, its own sign-in, edge functions and scheduled jobs. See [stagetime-signup.md](stagetime-signup.md) | supabase.com |
 | **Stripe** | Card payments for customers' stores. Currently the **sandbox (test) key is on production**. See [stripe-payments.md](stripe-payments.md) | stripe.com |
-| **Resend** | Sends email. Supabase Auth uses it as its SMTP server. The Resend account is shared with another of the owner's projects | resend.com |
+| **Amazon SES** | Sends sign-in emails (Supabase Auth uses it as its SMTP server, region Oregon). Switched from Resend on 2026-10-16 | aws.amazon.com |
+| **Resend** | Sends app-level email (the Notifications email channel). The Resend account is shared with another of the owner's projects, and its free plan is 100 emails a day | resend.com |
 | **ImprovMX** (free) | Forwards mail sent to `*@tapandlaunch.com` (including support@) to the owner's inbox | improvmx.com |
 | **Google Maps Platform** | Places and map data for the Gas prices and Live food blocks. **It costs money per use**, so those blocks are off until a platform admin switches them on for an organization | console.cloud.google.com |
 | **Twilio** | Optional text messages from the notifications page. Not configured on production | twilio.com |

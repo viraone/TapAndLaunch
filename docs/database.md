@@ -77,7 +77,7 @@ Set in the Supabase dashboard (Authentication), read back on 2026-10-03:
 | Email confirmation | Required (users click a link before they can sign in) |
 | Minimum password length | **8** (raised from 6 on 2026-10-03; the signup form says the same) |
 | Leaked-password protection | Off |
-| SMTP | Resend (`smtp.resend.com`, port 465), sender `noreply@tapandlaunch.com`, name "TapAndLaunch" |
+| SMTP | Amazon SES, Oregon (`email-smtp.us-west-2.amazonaws.com`, port 465), sender `noreply@tapandlaunch.com`, name "TapAndLaunch" (switched from Resend 2026-10-16; see [email.md](email.md)) |
 | Email rate limit | 30 per hour |
 | Reset password email | `supabase/templates/recovery.html`, subject "Reset your TapAndLaunch password" (set on production 2026-10-04; link goes to `/auth/confirm` and works on any device) |
 
