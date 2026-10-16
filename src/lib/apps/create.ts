@@ -44,7 +44,12 @@ export async function createAppFromStarter(
     if (result.error.code !== "23505") break; // only "taken" is worth another number
   }
   if (!app) {
-    const message = appError?.code === "23505" ? "That address is already taken. Try a different name." : (appError?.message ?? "Could not create the app");
+    const message =
+      appError?.code === "23505"
+        ? "That address is already taken. Try a different name."
+        : appError?.code === "42501"
+          ? "You don't have permission to create apps in this organization." // row-level security refused it
+          : (appError?.message ?? "Could not create the app");
     return { error: message, status: 400 };
   }
 

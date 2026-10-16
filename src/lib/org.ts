@@ -20,15 +20,25 @@ export interface MembershipSummary {
 
 /**
  * All organizations the current user belongs to, with their role in each.
- * RLS (`memberships` select policy) already scopes this to the caller —
- * there is no explicit `user_id` filter here.
+ *
+ * The `user_id` filter is required. The `memberships` select policy lets every member read ALL the memberships of
+ * their organization (that is how a team sees who is on it), so without the filter an organization with teammates
+ * returned one row per member: `find(...)?.role` then gave the first member's role (usually the admin's), which
+ * handed admin-only actions to creators and clients and showed the organization switcher to single-organization users.
  */
 export async function getMemberships(
   supabase: SupabaseClient<Database>
 ): Promise<MembershipSummary[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
   const { data } = await supabase
     .from("memberships")
-    .select("organization_id, role, organizations(name, slug)");
+    .select("organization_id, role, organizations(name, slug)")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true });
 
   // See the `Relationships: []` note in `types/database.ts` — with no
   // relationship metadata for the generic to resolve, an embedded select

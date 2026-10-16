@@ -7,13 +7,14 @@ import type { Database } from "@/types/database";
 
 type OrganizationRow = Database["public"]["Tables"]["organizations"]["Row"];
 
+// The messages are what a person reads under the form, so they say what to change in plain words.
 const CreateOrgSchema = z.object({
-  name: z.string().min(1).max(120),
+  name: z.string().trim().min(1, "Give your organization a name.").max(120, "Use 120 characters or fewer for the name."),
   slug: z
     .string()
-    .min(1)
-    .max(63)
-    .regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/, "Use lowercase letters, numbers, and hyphens only"),
+    .min(1, "Use at least one letter or number in the name.")
+    .max(63, "That name is too long to make a web address from. Try a shorter one.")
+    .regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/, "Use only letters, numbers and hyphens in the web address."),
 });
 
 /**
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
   const org = data as OrganizationRow | null;
 
   if (error || !org) {
-    const message = error?.code === "23505" ? "That URL slug is already taken" : (error?.message ?? "Failed to create organization");
+    const message = error?.code === "23505" ? "That address is already taken. Try a different name." : (error?.message ?? "Failed to create organization");
     return Response.json({ error: message }, { status: 400 });
   }
 

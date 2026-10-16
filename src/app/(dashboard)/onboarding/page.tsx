@@ -14,6 +14,7 @@ export default async function OnboardingPage() {
   const { data: existingMembership } = await supabase
     .from("memberships")
     .select("organization_id")
+    .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
 

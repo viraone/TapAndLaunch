@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     .from("memberships")
     .select("organization_id")
     .eq("organization_id", parsed.data.organization_id)
+    .eq("user_id", user.id) // without this, an organization with teammates matches several rows and the switch is refused
     .maybeSingle();
 
   if (!membership) {

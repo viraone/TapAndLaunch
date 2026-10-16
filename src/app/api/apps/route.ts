@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ABOUT_MAX_LENGTH, DEFAULT_TEMPLATE_ID, buildStarter, isTemplateId, starterTemplateFor } from "@/lib/apps/templates";
 import { isGoalId } from "@/lib/apps/goals";
+import { isEditorRole } from "@/lib/org";
 import { createAppFromStarter } from "@/lib/apps/create";
 import { isAiConfigured } from "@/lib/ai/generate";
 import { rewriteStarterCopy } from "@/lib/ai/rewrite";
@@ -58,6 +59,13 @@ export async function POST(request: Request) {
   }
 
   const { organization_id: organizationId, name, slug, template, about, hero_image, goals } = parsed.data;
+
+  // A client (or a non-member) gets a plain answer here, instead of the database's row-level-security error.
+  const { data: callerMembership } = await supabase.from("memberships").select("role").eq("organization_id", organizationId).eq("user_id", user.id).maybeSingle();
+  if (!isEditorRole(callerMembership?.role)) {
+    return Response.json({ error: "Only admins and creators of this organization can create apps. Ask an admin to change your role." }, { status: 403 });
+  }
+
   const starter = buildStarter(template, name, about, hero_image, goals);
 
   // "What's your site about?" + a key: Claude rewrites the words (only the words; see lib/ai/rewrite.ts) for the
