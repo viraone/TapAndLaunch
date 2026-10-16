@@ -5,8 +5,8 @@ import { getActiveOrganizationId, getMemberships } from "@/lib/org";
 import { NewAppForm } from "./NewAppForm";
 import { FirstRunSteps, FlowProgressProvider } from "./FlowProgress";
 
-export default async function NewAppPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
-  const { welcome } = await searchParams;
+export default async function NewAppPage({ searchParams }: { searchParams: Promise<{ welcome?: string; template?: string }> }) {
+  const { welcome, template } = await searchParams;
   const firstRun = welcome === "1";
   const supabase = await createClient();
 
@@ -34,7 +34,7 @@ export default async function NewAppPage({ searchParams }: { searchParams: Promi
         </div>
       </section>
       <div className="relative mx-auto w-full max-w-[1400px] px-6 pb-20 sm:px-10">
-        <NewAppForm organizationId={organizationId} rootDomain={getRootDomain()} mapsEnabled={org?.maps_enabled === true} />
+        <NewAppForm organizationId={organizationId} rootDomain={getRootDomain()} mapsEnabled={org?.maps_enabled === true} initialTemplateId={template} />
       </div>
       </FlowProgressProvider>
     </main>

@@ -15,3 +15,15 @@ and manifest and are not listed in the sitemap.
 
 When the pricing or plan changes, the home page, the FAQ and the structured data update by themselves (they read `PLAN`).
 After a big change, test the share card at the platforms' own debuggers and run the audit tool (`seo-audit`, its own project).
+
+## Trade pages (`/for`, `/for/<trade>`)
+
+_Added 2026-10-16._ One public page per website topic in `src/lib/apps/templates.ts` (photographers, consultants, tutors,
+builders and so on): what someone searching "website for a photographer" lands on, since nobody searches for the product's
+name. The data is `src/lib/marketing/trades.ts`: everything on a page comes from the trade's own starter (its tagline, the
+real laptop-and-phone preview drawn by `SiteFrame`, and "What it includes" worked out from the sections the starter really
+has), so a page can never promise something the template does not do, and a new topic gets its page without anyone writing
+one. The only hand-written part is who each page speaks to (`PEOPLE`). Titles stay under 60 characters and descriptions
+under 160 (tests). Every page is in the sitemap, linked from the header ("Trades") and the home page, and its button opens
+the picker with that topic already chosen (`/dashboard/apps/new?template=<id>`) for a signed-in person, or sign-up otherwise.
+Search engines take weeks to months to rank new pages; the weekly SEO check covers them.

@@ -20,6 +20,9 @@ export function MarketingHeader({ signedIn }: { signedIn: boolean }) {
         TapAndLaunch
       </Link>
       <nav aria-label="Main" className="flex items-center gap-1 text-sm sm:gap-2">
+        <Link href="/for" className={`hidden sm:inline-block ${NAV_PILL}`}>
+          Trades
+        </Link>
         <Link href="/pricing" className={`hidden sm:inline-block ${NAV_PILL}`}>
           Pricing
         </Link>

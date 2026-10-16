@@ -113,6 +113,9 @@ export default async function Home() {
               </li>
             ))}
           </ul>
+          <Link href="/for" className="text-sm text-neutral-500 underline-offset-4 transition hover:text-neutral-950 hover:underline">
+            Websites by trade: photographers, consultants, tutors and more
+          </Link>
         </section>
 
         <section aria-labelledby="features" className="mt-24">

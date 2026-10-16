@@ -50,9 +50,11 @@ const DESIGN_COUNT = websiteDesigns("portfolio").length;
  * phone-first template skips straight from the pick to the name. */
 type Step = "pick" | "goals" | "designs" | "about" | "name";
 
-export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organizationId: string; rootDomain: string; mapsEnabled: boolean }) {
+export function NewAppForm({ organizationId, rootDomain, mapsEnabled, initialTemplateId }: { organizationId: string; rootDomain: string; mapsEnabled: boolean; initialTemplateId?: string }) {
   const router = useRouter();
-  const [step, setStepState] = useState<Step>("pick");
+  // A trade page (/for/photographers) links here with its topic chosen, so the person starts on that topic's goals.
+  const initialTopic = (initialTemplateId && STARTER_TEMPLATES.find((t) => t.id === initialTemplateId && websiteDesigns(t.id).length > 1)) || null;
+  const [step, setStepState] = useState<Step>(initialTopic ? "goals" : "pick");
   const setFlowStage = useSetFlowStage();
   /** Moves to a screen and tells the first-run list (page header) which of its steps that screen belongs to. */
   function setStep(next: Step) {
@@ -63,7 +65,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled }: { organi
   // under the name box is the one the app gets.
   const [fallbackAddress] = useState(() => randomAddress("app"));
   /** The website topic being walked through (goals, then designs); null for a phone-first pick. */
-  const [topic, setTopic] = useState<StarterTemplate | null>(null);
+  const [topic, setTopic] = useState<StarterTemplate | null>(initialTopic);
   const [goals, setGoals] = useState<GoalId[]>([]);
   /** The template the app is created from: a design of the topic (`photography--noir`) or a phone-first template. */
   const [selected, setSelected] = useState<StarterTemplate | null>(null);
