@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildStarter } from "@/lib/apps/templates";
-import { suggestNext, templateTextSet } from "./suggestions";
+import { suggestNext, templateTextSet, withoutAi } from "./suggestions";
 
 const now = new Date("2026-10-14T20:00:00Z");
 const blocksOf = (templateId: string, name: string) => buildStarter(templateId, name).pages[0].blocks.map((b, i) => ({ id: `b${i}`, type: b.type, config: b.config as Record<string, unknown> }));
@@ -50,5 +50,19 @@ describe("suggestNext", () => {
   it("caches the template text per name", () => {
     expect(templateTextSet("A")).toBe(templateTextSet("A"));
     expect(templateTextSet("A").size).toBeGreaterThan(50);
+  });
+});
+
+describe("withoutAi", () => {
+  it("turns write-it-for-me into fill-in-mine and drops the banner line only the AI could do", () => {
+    const blocks = blocksOf("photography", "Mia Chen");
+    const hero = blocks.find((b) => b.type === "hero")!;
+    const events = [{ id: "e1", title: "Halloween Laughs", starts_at: "2026-10-17T03:00:00Z", description: null, created_at: "2026-10-13T00:00:00Z" }];
+    const all = suggestNext({ appId: "a", appName: "Mia Chen", blocks, events, now });
+    expect(all.some((s) => s.action.kind === "ai")).toBe(true);
+    const out = withoutAi(all);
+    expect(out.some((s) => s.action.kind === "ai")).toBe(false);
+    expect(out.find((s) => s.id.startsWith("event:"))).toBeUndefined();
+    expect(out.find((s) => s.id === `words:${hero.id}`)?.action).toMatchObject({ kind: "open", label: "Fill in mine" });
   });
 });

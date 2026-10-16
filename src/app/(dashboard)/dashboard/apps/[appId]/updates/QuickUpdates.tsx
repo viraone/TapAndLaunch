@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import { uploadAppAsset } from "@/lib/storage/upload";
 import { formatDayTimeRange } from "@/lib/format-date";
 import { PasteCard } from "./PasteCard";
+import { ASK_AI_VISIBLE } from "@/lib/ai/visible";
 import type { Database } from "@/types/database";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
@@ -54,7 +55,7 @@ export function QuickUpdates({
 }) {
   return (
     <div className="space-y-5">
-      <PasteCard appId={appId} organizationId={organizationId} />
+      {ASK_AI_VISIBLE && <PasteCard appId={appId} organizationId={organizationId} />}
       {/* Keyed on the events, so a paste that adds shows (and a page refresh) shows them in the list below. */}
       <ShowsCard key={initialEvents.map((e) => e.id).join(",")} appId={appId} initialEvents={initialEvents} />
       <PhotosCard appId={appId} organizationId={organizationId} initialPhotos={initialPhotos} />

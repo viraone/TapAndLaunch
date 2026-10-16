@@ -36,7 +36,7 @@ export function SortableBlockItem({
   /** Whose storage folder a replaced photo goes to. */
   organizationId: string;
   /** Opens Ask AI for this section (Cmd+K). */
-  onAsk: () => void;
+  onAsk?: () => void;
   /** The AI just changed this section: a Keep / Undo pair sits on it until the owner decides. */
   pending?: { label: string; onKeep: () => void; onUndo: () => void };
 }) {
@@ -110,19 +110,21 @@ export function SortableBlockItem({
         </div>
       )}
       <div className={`absolute right-1.5 top-1.5 flex gap-1 transition ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
-        {/* Cmd+K for this section: say what should change, in words. */}
-        <button
-          type="button"
-          aria-label="Ask AI to change this section"
-          title="Ask AI to change this section (⌘K)"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAsk();
-          }}
-          className="inline-flex h-6 items-center gap-1 rounded-md bg-neutral-950 px-1.5 text-[11px] font-semibold text-neutral-200 shadow-md transition hover:bg-neutral-800 hover:text-white"
-        >
-          <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" /> Ask AI
-        </button>
+        {/* Cmd+K for this section: say what should change, in words. Only shown while Ask AI is switched on. */}
+        {onAsk && (
+          <button
+            type="button"
+            aria-label="Ask AI to change this section"
+            title="Ask AI to change this section (⌘K)"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAsk();
+            }}
+            className="inline-flex h-6 items-center gap-1 rounded-md bg-neutral-950 px-1.5 text-[11px] font-semibold text-neutral-200 shadow-md transition hover:bg-neutral-800 hover:text-white"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" /> Ask AI
+          </button>
+        )}
         {([
           ["Move up", ChevronUp, onMoveUp],
           ["Move down", ChevronDown, onMoveDown],

@@ -159,3 +159,15 @@ export function suggestNext(input: { appId: string; appName: string; blocks: Sug
 
   return out;
 }
+
+/**
+ * Next up without the AI: the "write it for me" lines become "fill in mine" (the owner does it by hand) and the
+ * banner-mention line, which only the AI could do, goes away.
+ */
+export function withoutAi(list: Suggestion[]): Suggestion[] {
+  return list.flatMap((s): Suggestion[] => {
+    if (s.action.kind !== "ai") return [s];
+    if (!s.id.startsWith("words:") || !s.blockId) return [];
+    return [{ ...s, detail: "Only you know the real words. It takes a minute.", action: { kind: "open", label: "Fill in mine" } }];
+  });
+}

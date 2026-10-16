@@ -38,7 +38,8 @@ import { FIELD_FOCUS_EVENT, flashField, type FieldFocusDetail } from "@/lib/buil
 import { Inspector } from "@/components/builder/Inspector";
 import { AskAiBar, type AskScope } from "@/components/builder/AskAiBar";
 import { planCurrentPage, planSite, type PendingChange } from "@/lib/builder/agent-plan";
-import { suggestNext, type Suggestion, type SuggestionEvent } from "@/lib/apps/suggestions";
+import { suggestNext, withoutAi, type Suggestion, type SuggestionEvent } from "@/lib/apps/suggestions";
+import { ASK_AI_VISIBLE } from "@/lib/ai/visible";
 import type { Draft, DraftBlock } from "@/lib/ai/builder-ops";
 import { PageTabs, slugify, type PageActions } from "@/components/builder/PageTabs";
 import { SortableBlockItem } from "@/components/builder/SortableBlockItem";
@@ -172,10 +173,10 @@ export function BuilderClient({
   }, [selectedBlockId]);
 
   // "Next up": what is still the template's, and news the banner isn't telling. Recomputed as the page changes.
-  const suggestions = useMemo(
-    () => suggestNext({ appId: currentApp.id, appName: currentApp.name, blocks: blocks.map((b) => ({ id: b.id, type: b.type, config: b.config as Record<string, unknown> })), events: recentEvents }),
-    [blocks, recentEvents, currentApp.id, currentApp.name]
-  );
+  const suggestions = useMemo(() => {
+    const all = suggestNext({ appId: currentApp.id, appName: currentApp.name, blocks: blocks.map((b) => ({ id: b.id, type: b.type, config: b.config as Record<string, unknown> })), events: recentEvents });
+    return ASK_AI_VISIBLE ? all : withoutAi(all);
+  }, [blocks, recentEvents, currentApp.id, currentApp.name]);
 
   /** Adds a section at `index` (between two sections, from the + bar) or at the end (from the side list). */
   function addBlock(type: BlockType, index?: number) {
@@ -283,7 +284,7 @@ export function BuilderClient({
   // ⌘K opens Ask AI, even from inside a text field: that is where the owner is when they want help with the words.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "k") return;
+      if (!ASK_AI_VISIBLE || !(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "k") return;
       e.preventDefault();
       setAsk((prev) => (prev.open ? { open: false, scope: prev.scope } : { open: true, scope: selectedRef.current ? "section" : "site" }));
     };
@@ -1129,10 +1130,14 @@ export function BuilderClient({
                                 onDuplicate={() => duplicateBlock(block.id)}
                                 onChange={(config) => updateBlockConfig(block.id, config)}
                                 organizationId={currentApp.organization_id}
-                                onAsk={() => {
-                                  setSelectedBlockId(block.id);
-                                  openAsk("section");
-                                }}
+                                onAsk={
+                                  ASK_AI_VISIBLE
+                                    ? () => {
+                                        setSelectedBlockId(block.id);
+                                        openAsk("section");
+                                      }
+                                    : undefined
+                                }
                                 pending={pendingPropsFor(block.id)}
                               />
                             </div>
@@ -1160,15 +1165,17 @@ export function BuilderClient({
               </PreviewFrame>
             )}
           </div>
-          <AskAiBar
-            open={ask.open}
-            scope={ask.scope}
-            sectionLabel={selectedBlock ? BLOCK_TYPE_LABELS[selectedBlock.type] : null}
-            busy={aiBusy}
-            onScope={(scope) => setAsk({ open: true, scope })}
-            onClose={() => setAsk((prev) => ({ ...prev, open: false }))}
-            onSubmit={(instruction, scope) => (scope === "section" && selectedBlockId ? askSection(selectedBlockId, instruction) : askSite(instruction))}
-          />
+          {ASK_AI_VISIBLE && (
+            <AskAiBar
+              open={ask.open}
+              scope={ask.scope}
+              sectionLabel={selectedBlock ? BLOCK_TYPE_LABELS[selectedBlock.type] : null}
+              busy={aiBusy}
+              onScope={(scope) => setAsk({ open: true, scope })}
+              onClose={() => setAsk((prev) => ({ ...prev, open: false }))}
+              onSubmit={(instruction, scope) => (scope === "section" && selectedBlockId ? askSection(selectedBlockId, instruction) : askSite(instruction))}
+            />
+          )}
           </div>
 
           <aside ref={inspectorRef} className="overflow-y-auto border-l border-white/[0.06] bg-neutral-950">
