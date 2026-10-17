@@ -30,7 +30,10 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
       }
       onUpdated(body.app);
       setDomain("");
-      toast.success(body.app.custom_domain_status === "verified" ? "Domain verified" : "Domain added. Now add the DNS record below where you bought the domain.");
+      if (body.app.custom_domain_status === "verified") toast.success("Domain connected");
+      else if (body.dns === "set") toast.success("Domain added and its DNS set for you. Connecting usually takes a few minutes.");
+      else if (body.dns === "failed") toast.warning(`Domain added, but its DNS could not be set for you (${body.dnsError ?? "unknown reason"}). Add the record below by hand.`);
+      else toast.success("Domain added. Now add the DNS record below where you bought the domain.");
     } finally {
       setBusy(false);
     }
@@ -61,7 +64,7 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
         toast.error(body.error ?? "Failed to remove domain");
         return;
       }
-      onUpdated({ ...app, custom_domain: null, custom_domain_status: null, custom_domain_verification: [] });
+      onUpdated({ ...app, custom_domain: null, custom_domain_status: null, custom_domain_verification: [], custom_domain_dns: null });
       toast.success("Domain removed");
     } finally {
       setBusy(false);
@@ -101,7 +104,13 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
         </Badge>
       </div>
 
-      {app.custom_domain_status !== "verified" && app.custom_domain_verification.length > 0 && (
+      {app.custom_domain_status !== "verified" && app.custom_domain_dns === "namesilo" && (
+        <p className="rounded-md border p-3 text-xs">
+          The DNS records were set for you. Connecting usually takes a few minutes, sometimes up to an hour. Tap Check again in a while; the secure padlock (SSL) turns on by itself.
+        </p>
+      )}
+
+      {app.custom_domain_status !== "verified" && app.custom_domain_dns !== "namesilo" && app.custom_domain_verification.length > 0 && (
         <div className="space-y-1 rounded-md border p-3 text-xs">
           <p className="font-medium">Add this at the company where you bought your domain (GoDaddy, Namecheap, Google, ...), in its DNS settings:</p>
           <table className="w-full">

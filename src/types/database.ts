@@ -595,6 +595,8 @@ export interface Database {
           suspended_reason: string | null;
           custom_domain_status: CustomDomainStatus | null;
           custom_domain_verification: DomainVerificationRecord[];
+          /** `namesilo` when the server set the domain's DNS itself (the domain is in the platform's NameSilo account). */
+          custom_domain_dns: "namesilo" | null;
           theme: ThemeConfig;
           manifest: ManifestConfig;
           created_by: string | null;
