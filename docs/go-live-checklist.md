@@ -16,13 +16,13 @@ _Last updated: 2026-10-06._ Tick items as they are done and note the date.
 - [x] One small real store purchase and refund: done 2026-10-14. StageTimePNW's workspace is connected in live mode (sole proprietor, Radar Lite);
       a $1.00 order went Paid by itself via the webhook, and a refund from Stripe's dashboard turned it Refunded. The test app was unpublished.
 - [x] Delete test organizations and test apps from production: shop1 was gone by 2026-10-05; the firstrun3 login and its workspace and
-      apps were deleted 2026-10-14 (its Stripe trial subscription is set to cancel itself on Nov 4); the live-test app "corner store" was deleted
+      apps were deleted 2026-10-14 (its Stripe trial subscription was canceled immediately on 2026-10-17, $0 charged); the live-test app "corner store" was deleted
       2026-10-14 (soft delete, erased after 30 days)
 
 ## Platform account
 - [x] Vercel Pro (2026-10-05; Hobby is non-commercial)
 - [x] `BILLING_ENFORCED=true` on production (2026-10-05)
-- [ ] Remove the 4 leftover `tl-…test…` entries from the Vercel team's Domains list (needs the dashboard; the API token can't)
+- [x] Remove the 4 leftover `tl-…test…` entries from the Vercel team's Domains list (already gone when checked 2026-10-17; the team list shows only davidbabucomedy.com, tapandlaunch.app, tapandlaunch.com)
 - [ ] EIN by phone (1-800-829-4933, reference 101) when convenient; optional Stripe Tax after an accountant's advice
 
 ## Product basics before inviting real builders
