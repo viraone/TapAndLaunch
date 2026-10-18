@@ -29,8 +29,8 @@ minute, and `lineup_url`. **The show-day lineup stays off until `lineup_url` is 
 
 The **Profile** tab (stage name, Instagram, email, and the Sign Out button) is the same block type with `"view": "profile"`
 in its settings (`src/components/pwa-runtime/OpenMicProfileRuntime.tsx`). The Sign-Up page's "Signed in as" row has no
-Sign Out button. At launch, `docs/stagetime-profile-tab.sql` adds the Profile page and both new tabs (Sign-Up & Lineup,
-Profile) to the live app; run it in the TapAndLaunch project's SQL editor.
+Sign Out button. `docs/stagetime-profile-tab.sql` added the Profile page and its tab to the live app on 2026-10-18; the
+Sign-Up & Lineup tab is still added at launch.
 
 ## Testing
 

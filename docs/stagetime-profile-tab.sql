@@ -1,4 +1,5 @@
--- StageTime launch: the Profile page (Sign Out lives there) and the two new tabs.
+-- StageTime: the Profile page (Sign Out lives there) and its tab. Run once in the TapAndLaunch project.
+-- Live since 2026-10-18. The Sign-Up & Lineup tab is added separately at launch.
 begin;
 with app as (select id from apps where slug = 'stagetimepnw'),
 signup as (
@@ -16,9 +17,6 @@ select pg.id, 'open_mic_signup', 0,
 from pg, signup;
 
 update apps
-set theme = jsonb_set(theme, '{bottom_nav}', (theme->'bottom_nav') || '[
-  {"icon": "signup", "label": "Sign-Up & Lineup", "page_path": "signup"},
-  {"icon": "profile", "label": "Profile", "page_path": "profile"}
-]'::jsonb)
+set theme = jsonb_set(theme, '{bottom_nav}', (theme->'bottom_nav') || '[{"icon": "profile", "label": "Profile", "page_path": "profile"}]'::jsonb)
 where slug = 'stagetimepnw';
 commit;
