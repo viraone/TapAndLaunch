@@ -245,10 +245,11 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
 
   // While requests are closed, the screen shows the lineup and each comic's own status.
   const showDayOn = !open && !!config.lineup_url;
-  // Show day (Fri 6 AM until requests reopen): a signed-in comic's card already says what
-  // they need, so the Open/Closed pill is left out. Also hidden while we find out who's signed in,
-  // so it doesn't flash for returning comics.
-  const hidePill = showDayOn && isLineupTime(window_, now) && (phase === "loading" || !!user);
+  // A comic who has already requested doesn't need the deadline, and on show day (Fri 6 AM until
+  // requests reopen) a signed-in comic's card already says what they need, so the Open/Closed pill
+  // is left out. Also hidden while we find out who's signed in, so it doesn't flash for returning comics.
+  const hidePill =
+    phase === "loading" || phase === "requested" || (showDayOn && isLineupTime(window_, now) && !!user);
 
   // Show day with the lineup showing: the header stays pinned and only the area below it
   // scrolls (the page itself doesn't scroll, so there's no scroll-inside-scroll).
