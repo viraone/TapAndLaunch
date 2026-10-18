@@ -21,7 +21,14 @@ export function isApexDomain(domain: string): boolean {
   return labels.length === 3 && TWO_PART_SUFFIXES.has(labels.slice(1).join("."));
 }
 
-const lowestRank = <T extends { rank?: number }>(items: T[] | undefined): T | undefined =>
+/** The domain that was bought at a registrar (`brand.com` for `shop.app.brand.com`, `brand.co.uk` for `www.brand.co.uk`). */
+export function registeredDomain(host: string): string {
+  const labels = host.trim().toLowerCase().replace(/\.$/, "").split(".");
+  const take = labels.length >= 3 && TWO_PART_SUFFIXES.has(labels.slice(-2).join(".")) ? 3 : 2;
+  return labels.slice(-take).join(".");
+}
+
+const lowestRank =<T extends { rank?: number }>(items: T[] | undefined): T | undefined =>
   items && items.length ? [...items].sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99))[0] : undefined;
 
 /** The one DNS record that points the domain at Vercel: an A record for a root domain, otherwise a CNAME. */

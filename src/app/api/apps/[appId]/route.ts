@@ -138,6 +138,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ appI
       custom_domain: null,
       custom_domain_status: null,
       custom_domain_verification: [],
+      custom_domain_dns: null,
     })
     .eq("id", appId);
   if (error) return Response.json({ error: error.message }, { status: 500 });

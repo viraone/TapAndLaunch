@@ -23,6 +23,16 @@ only in Vercel's settings.
 4. "Check again" (`POST .../domain/verify`) re-checks. SSL is automatic once DNS works.
 5. Traffic arriving on a connected, published app's domain is routed by `proxy.ts` (`resolveAppSlugForHost`).
 
+## Domains in the platform's NameSilo account (2026-10-17)
+TapAndLaunch buys domains for customers at NameSilo (one account, `NAMESILO_API_KEY`). When a domain that lives there is
+typed into the Domain tab, step 3 above happens by itself: `pointDomainAtUs` (`lib/domains/namesilo.ts`) checks the
+domain is in the account and still on NameSilo's nameservers (`*.dnsowl.com`), reads its DNS records, replaces the
+parking A/CNAME records on that host with the one Vercel wants, adds any TXT record, then asks Vercel to check once
+more. `apps.custom_domain_dns = 'namesilo'` marks it; the builder then says "set for you" instead of showing records.
+A domain bought anywhere else is untouched (`not_here`); a NameSilo domain moved to other nameservers is left alone
+too (`other_dns`) and falls back to the by-hand records. Removing the domain from the app does not touch the records
+at NameSilo. NameSilo answers `code` 300 on success and lists come back as one object when there is one item.
+
 ## Notes
 - Removing a domain removes it from Vercel and the app row. A 404 from Vercel on removal counts as success.
 - Hobby is Vercel's non-commercial plan. Once TapAndLaunch charges customers, Vercel's terms call for the Pro plan.
