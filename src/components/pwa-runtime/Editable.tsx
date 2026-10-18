@@ -4,7 +4,7 @@ import { createContext, createElement, useContext, useEffect, useRef, useState }
 import { toast } from "sonner";
 import { Bold, ImageUp, Italic, Link2, List } from "lucide-react";
 import { RichText } from "@/components/pwa-runtime/RichText";
-import { richTextFromDom } from "@/lib/rich-text";
+import { linkHref, richTextFromDom } from "@/lib/rich-text";
 import { cn } from "@/lib/utils";
 import { announceField, fieldKey, FIELD_FOCUS_EVENT, FIELD_HOT_ATTR, FIELD_HOT_MS, type FieldFocusDetail } from "@/lib/builder/field-link";
 
@@ -180,9 +180,9 @@ function RichToolbar({ onDone }: { onDone: () => void }) {
           toast("Select the words that should be the link first");
           return;
         }
-        const url = window.prompt("Where should the link go? (a web address starting with https://)");
+        const url = window.prompt("Where should the link go? (a web address, a phone number like 206-555-0100, or an email)")?.trim();
         if (!url) return;
-        const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+        const href = linkHref(url);
         run("createLink", href);
       },
     ],

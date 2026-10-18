@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { parseRichText, type Run } from "@/lib/rich-text";
+import { isContactHref, parseRichText, type Run } from "@/lib/rich-text";
 
 /** A paragraph with its bold, italic, links and bullets, from the plain text the app stores (see `lib/rich-text`). */
 export function RichText({ text }: { text: string }) {
@@ -39,7 +39,11 @@ function Runs({ runs }: { runs: Run[] }) {
         if (run.bold) node = <strong className="font-semibold text-foreground">{node}</strong>;
         if (run.italic) node = <em>{node}</em>;
         if (run.href)
-          node = (
+          node = isContactHref(run.href) ? (
+            <a href={run.href} className="font-medium text-primary underline underline-offset-2">
+              {node}
+            </a>
+          ) : (
             <a href={run.href} target="_blank" rel="noreferrer" className="font-medium text-primary underline underline-offset-2">
               {node}
             </a>

@@ -3,6 +3,7 @@
  * database, in the inspector's text box and to the AI:
  *
  *   **bold**   _italic_   [link text](https://…)   lines starting with "- " are a bulleted list
+ *   a link can also be a phone number [206-555-0100](tel:+12065550100) or an email [write us](mailto:hi@example.com)
  *   one newline is a line break, an empty line starts a new paragraph.
  *
  * `parseRichText` turns that text into blocks the page renders (never HTML: links are checked, nothing is injected).
@@ -14,13 +15,33 @@ export interface Run {
   text: string;
   bold?: boolean;
   italic?: boolean;
-  /** Only http(s) addresses survive parsing. */
+  /** Only http(s), tel: and mailto: addresses survive parsing. */
   href?: string;
 }
 
 export type RichBlock = { type: "p"; lines: Run[][] } | { type: "ul"; items: Run[][] };
 
-const SAFE_HREF = /^https?:\/\/[^\s)]+$/i;
+const SAFE_HREF = /^(https?:\/\/[^\s)]+|tel:\+?[\d()./-]+|mailto:[^\s)@]+@[^\s)@]+)$/i;
+
+/** True for a link that places a call or opens the mail app, which stays in the same tab. */
+export function isContactHref(href: string): boolean {
+  return /^(tel|mailto):/i.test(href);
+}
+
+/**
+ * The address for what the owner typed into the link box: an email becomes mailto:, a phone number becomes tel:
+ * (digits only, a US number gets +1), anything else is a web address and gets https:// when it has no scheme.
+ */
+export function linkHref(typed: string): string {
+  const value = typed.trim();
+  if (/^(https?:\/\/|tel:|mailto:)/i.test(value)) return value;
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return `mailto:${value}`;
+  const digits = value.replace(/[^\d+]/g, "");
+  if (/^\+?\d{7,15}$/.test(digits) && /^[\d\s()+.-]+$/.test(value)) {
+    return `tel:${digits.startsWith("+") ? digits : digits.length === 10 ? `+1${digits}` : digits.length === 11 && digits.startsWith("1") ? `+${digits}` : digits}`;
+  }
+  return `https://${value}`;
+}
 
 export function parseRichText(text: string | null | undefined): RichBlock[] {
   const blocks: RichBlock[] = [];
@@ -71,7 +92,7 @@ export function parseInline(line: string): Run[] {
 
 /** True when the text carries any formatting at all; plain text can be shown as it is. */
 export function hasFormatting(text: string | null | undefined): boolean {
-  return /\*\*|(?<![A-Za-z0-9])_.+?_(?![A-Za-z0-9])|\]\(https?:\/\/|^\s*[-*•]\s+/m.test(text ?? "");
+  return /\*\*|(?<![A-Za-z0-9])_.+?_(?![A-Za-z0-9])|\]\((https?:\/\/|tel:|mailto:)|^\s*[-*•]\s+/m.test(text ?? "");
 }
 
 /**
