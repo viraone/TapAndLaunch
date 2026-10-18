@@ -43,6 +43,7 @@ import { FoodDirectoryPreview, FoodDirectoryRuntime } from "@/components/pwa-run
 import { ListingDirectoryRuntime } from "@/components/pwa-runtime/ListingDirectoryRuntime";
 import { OpenMicSignupRuntime } from "@/components/pwa-runtime/OpenMicSignupRuntime";
 import { OpenMicProfileRuntime } from "@/components/pwa-runtime/OpenMicProfileRuntime";
+import { OpenMicHostsRuntime } from "@/components/pwa-runtime/OpenMicHostsRuntime";
 import { ClassFinderRuntime } from "@/components/pwa-runtime/ClassFinderRuntime";
 import type { RuntimeListing } from "@/lib/pwa/listings";
 
@@ -141,6 +142,9 @@ function BlockBody({
     case "food_directory":
       return <FoodDirectoryBlockView config={block.config as FoodDirectoryBlockConfig} live={live} />;
     case "open_mic_signup":
+      if ((block.config as OpenMicSignupBlockConfig).view === "hosts") {
+        return live ? <OpenMicHostsRuntime config={block.config as OpenMicSignupBlockConfig} /> : <OpenMicHostsBlockView />;
+      }
       if ((block.config as OpenMicSignupBlockConfig).view === "profile") {
         return live ? (
           <OpenMicProfileRuntime config={block.config as OpenMicSignupBlockConfig} />
@@ -442,6 +446,17 @@ function OpenMicProfileBlockView() {
       <h2 className="text-lg font-semibold">Profile</h2>
       <p className="mt-2 rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
         A signed-in comedian sees their stage name, Instagram and email here, and the Sign Out button.
+      </p>
+    </div>
+  );
+}
+
+function OpenMicHostsBlockView() {
+  return (
+    <div className="px-4 py-3">
+      <h2 className="text-lg font-semibold">Hosts</h2>
+      <p className="mt-2 rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+        The show&apos;s hosts chat here, with text and photos. Only the hosts can see it.
       </p>
     </div>
   );

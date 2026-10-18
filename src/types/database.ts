@@ -91,7 +91,8 @@ export interface ThemeConfig {
   header_logo_url?: string;
   /** Set once the owner has saved their colours in App settings, so the "Get live" checklist can tick that step. */
   looks_confirmed?: boolean;
-  bottom_nav?: Array<{ label: string; icon: string; page_path: string }>;
+  /** `show_if`: the tab appears only once that browser switch is on (lib/pwa/nav-flags.ts), e.g. StageTime's Hosts tab. */
+  bottom_nav?: Array<{ label: string; icon: string; page_path: string; show_if?: string }>;
   /** "dark" puts the published app on a dark zinc palette, the whole page
    * (not just the column) in `background_color`. Unset keeps the light look. */
   color_scheme?: "light" | "dark";
@@ -435,8 +436,8 @@ export interface ClassFinderBlockConfig {
  * StageTime iOS app and the Google Sheet sync there. Requests open
  * `opens_*` and close `closes_*`, in `time_zone`. */
 export interface OpenMicSignupBlockConfig {
-  /** "profile" shows the comic's account and Sign Out (the Profile tab) instead of the sign-up. */
-  view?: "signup" | "profile";
+  /** "profile" shows the comic's account and Sign Out (the Profile tab); "hosts" is the hosts' group chat (the Hosts tab). */
+  view?: "signup" | "profile" | "hosts";
   title?: string;
   show_name?: string;
   venue?: string;

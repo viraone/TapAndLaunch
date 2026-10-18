@@ -7,6 +7,7 @@ import { Check, ChevronRight, CircleCheck, Loader2, Mail, X } from "lucide-react
 import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
+import { syncHostsTab } from "@/lib/openmic/host-chat";
 
 /**
  * StageTime PNW's weekly showcase sign-up. Accounts and the request list live
@@ -211,6 +212,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
     // eslint-disable-next-line react-hooks/preserve-manual-memoization
     async (u: User | null) => {
       setUser(u);
+      if (client) void syncHostsTab(client, u);
       if (!client || !u) {
         setRequest(null);
         setPhase("email");
