@@ -206,10 +206,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
 
   const profile = profileOf(user);
 
-  // The React Compiler flags this memo (it only opts the component out of its own
-  // optimizing); the callback itself is correct, so the rule is skipped here.
   const load = useCallback(
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     async (u: User | null) => {
       setUser(u);
       if (client) void syncChatTabs(client, u);
@@ -330,7 +327,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
           ) : showDayOn ? (
             <ShowDayScreen client={client} userId={user.id} signedIn requested={false} config={config} dateLabel={showDate} window={window_} now={now} />
           ) : (
-            <ClosedCard name={profile.stage_name} />
+            <ClosedCard name={profile.stage_name} reopenText={reopenLabel(window_, now)} />
           )
         )}
 
@@ -792,13 +789,13 @@ function RequestedCard({
   );
 }
 
-function ClosedCard({ name }: { name: string }) {
+/** Signed in, no request, requests closed, lineup off: when they open again, in the pill's words. */
+function ClosedCard({ name, reopenText }: { name: string; reopenText: string }) {
   return (
     <div className="rounded-2xl border bg-muted/60 p-6 text-center">
       <h2 className="text-lg font-bold">Requests are closed for this week</h2>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {name ? `${name.split(/\s+/)[0]}, the` : "The"} list reopens right after the show. You&apos;re signed in, so it&apos;ll be one
-        tap.
+      <p className="mt-2 text-[15px] text-foreground/85">
+        {name ? `${name.split(/\s+/)[0]}, requests` : "Requests"} open again {reopenText}.
       </p>
     </div>
   );
