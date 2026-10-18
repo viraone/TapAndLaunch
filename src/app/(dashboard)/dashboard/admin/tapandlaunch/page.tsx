@@ -71,6 +71,18 @@ const SEEDED: SeededTodo[] = [
     ],
   },
   {
+    key: "seositetuneup-search-console",
+    section: "SEO Site Tuneup (seositetuneup.com)",
+    title: "Tell Google and Bing about seositetuneup.com",
+    detail: "The site went live on 2026-10-18 and scores an A on the audit tool; search engines still need to be told it exists. About 10 minutes.",
+    steps: [
+      { title: "search.google.com/search-console → Add property → Domain → seositetuneup.com → Continue. Copy the TXT value it shows and tell Claude \"add this TXT to seositetuneup.com: …\".", detail: "Claude adds the record at NameSilo by API. Then click Verify; if it says not found, wait 10 minutes and try again." },
+      { title: "In the new property: Sitemaps → enter https://seositetuneup.com/sitemap.xml → Submit." },
+      { title: "Settings → Users and permissions → Add user → seo-audit-reader@seo-audit-510708.iam.gserviceaccount.com → Restricted.", detail: "Done when the row shows. From then on the audit tool's reports include the site's real searches and positions." },
+      { title: "bing.com/webmasters → Add a site → Import from Google Search Console → pick seositetuneup.com." },
+    ],
+  },
+  {
     key: "ein-phone",
     section: "Later, optional",
     title: "EIN by phone",
