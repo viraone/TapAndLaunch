@@ -22,6 +22,17 @@ export interface BlockEditing {
 
 export const BlockEditContext = createContext<BlockEditing | null>(null);
 
+/**
+ * True around the one section whose heading is the page's `<h1>` (the first with a heading; lib/pwa/seo.ts picks
+ * it): inside it, an `as="h2"` heading renders as h1. Sections keep writing h2, so the rest of the page is unchanged.
+ */
+export const PromoteHeadingContext = createContext(false);
+
+/** Wraps that section; a component rather than the bare context so a server component (BlockRenderer) can use it. */
+export function PromoteHeading({ on, children }: { on: boolean; children: React.ReactNode }) {
+  return <PromoteHeadingContext.Provider value={on}>{children}</PromoteHeadingContext.Provider>;
+}
+
 export function EditableText({
   as = "span",
   path,
@@ -51,6 +62,9 @@ export function EditableText({
   rich?: boolean;
 }) {
   const editing = useContext(BlockEditContext);
+  const promote = useContext(PromoteHeadingContext);
+  // The section's sub-headings move up with it (h3 → h2), so the page's heading order stays unbroken.
+  const tag = promote ? ({ h2: "h1", h3: "h2" } as Record<string, string>)[as] ?? as : as;
   const text = value ?? "";
   const key = fieldKey(path);
   const el = useRef<HTMLElement>(null);
@@ -75,12 +89,12 @@ export function EditableText({
   }, [editing, key]);
 
   if (!editing) {
-    if (!text) return fallback ? createElement(as, { className, style }, fallback) : null;
-    if (rich) return createElement(as, { className, style }, createElement(RichText, { text }));
-    return createElement(as, { className: cn(className, multiline && "whitespace-pre-wrap"), style }, text);
+    if (!text) return fallback ? createElement(tag, { className, style }, fallback) : null;
+    if (rich) return createElement(tag, { className, style }, createElement(RichText, { text }));
+    return createElement(tag, { className: cn(className, multiline && "whitespace-pre-wrap"), style }, text);
   }
 
-  const Tag = as as React.ElementType;
+  const Tag = tag as React.ElementType;
   const field = (
     <Tag
       key={generation}

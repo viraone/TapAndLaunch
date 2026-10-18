@@ -14,10 +14,13 @@ import { lookOf } from "@/lib/pwa/look";
 export function SiteHeader({
   theme,
   activePagePath,
+  homePagePath,
   onNavigate,
 }: {
   theme: ThemeConfig;
   activePagePath?: string;
+  /** The home page's path: its link goes to "/", the one address that page has for search engines. */
+  homePagePath?: string;
   onNavigate?: (pagePath: string) => void;
 }) {
   const title = theme.header_title?.trim();
@@ -83,7 +86,7 @@ export function SiteHeader({
                   {item.label}
                 </button>
               ) : (
-                <a key={item.page_path} href={`/${item.page_path}`} aria-current={active ? "page" : undefined} className={className}>
+                <a key={item.page_path} href={item.page_path === homePagePath ? "/" : `/${item.page_path}`} aria-current={active ? "page" : undefined} className={className}>
                   {item.label}
                 </a>
               );

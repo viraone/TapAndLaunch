@@ -86,7 +86,8 @@ export function resolvePage(published: PublishedApp, pathSegments: string[] | un
   return page ?? null;
 }
 
-export async function getBlocksForPage(pageId: string): Promise<BlockRow[]> {
+/** Cached per request like `getPublishedApp`: the page's metadata (which reads the first words) and its body share one query. */
+export const getBlocksForPage = cache(async (pageId: string): Promise<BlockRow[]> => {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("blocks")
@@ -96,4 +97,4 @@ export async function getBlocksForPage(pageId: string): Promise<BlockRow[]> {
 
   if (error) throw error;
   return data ?? [];
-}
+});

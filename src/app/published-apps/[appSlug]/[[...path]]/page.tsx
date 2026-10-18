@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { getCodeAppsDomain, hostRoot } from "@/lib/tenant";
 import { appOrigin } from "@/lib/stripe/checkout";
 import { getBlocksForPage, getPublishedApp, resolvePage } from "@/lib/pwa/data";
@@ -12,13 +12,18 @@ import { recordAnalyticsEvent } from "@/lib/pwa/analytics";
 import { CodeAppFrame } from "@/components/pwa-runtime/CodeAppFrame";
 import { getCurrentMember, memberSatisfiesTier } from "@/lib/pwa/get-current-member";
 import { pageTitle } from "@/lib/pwa/page-title";
+import { canonicalOrigin, firstHeadedBlockIndex, pageJsonLd, publishedPageMetadata } from "@/lib/pwa/seo";
+import { jsonLdText } from "@/lib/marketing";
 
 // See the note in `../layout.tsx` on why `params` is typed by hand here
 // instead of via the generated `PageProps<'/published-apps/[appSlug]/[[...path]]'>`
 // helper.
 type Params = Promise<{ appSlug: string; path?: string[] }>;
 
-/** A page's own title/description/share picture for search engines and link previews, falling back to the app's. */
+/**
+ * A page's title, description, one canonical address and share card for search engines and link previews. The
+ * page's own SEO fields win; the rest is worked out from the app and the page's first words (lib/pwa/seo.ts).
+ */
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { appSlug, path } = await params;
   const published = await getPublishedApp(appSlug);
@@ -27,14 +32,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const page = resolvePage(published, path);
   if (!page) return {};
 
-  const title = pageTitle(published.app, page);
-  const description = page.seo_description?.trim() || published.app.manifest.description;
-  if (!page.share_image_url) return { title, description };
-
-  const host = (await headers()).get("host") ?? "";
-  const origin = `${/localhost|127\.0\.0\.1/.test(host) ? "http" : "https"}://${host}`;
-  const image = /^https?:\/\//i.test(page.share_image_url) ? page.share_image_url : `${origin}${page.share_image_url}`;
-  return { title, description, openGraph: { title, description, images: [image] }, twitter: { card: "summary_large_image", title, description, images: [image] } };
+  const blocks = await getBlocksForPage(page.id);
+  const origin = canonicalOrigin(published.app, (await headers()).get("host"));
+  return publishedPageMetadata(published.app, page, blocks, origin);
 }
 
 export default async function PublishedAppPage({ params }: { params: Params }) {
@@ -54,6 +54,8 @@ export default async function PublishedAppPage({ params }: { params: Params }) {
 
   const page = resolvePage(published, path);
   if (!page) notFound();
+  // The home page has one address, "/": its path ("/home") forwards there, so search engines never see it twice.
+  if (page.is_home && path?.length) permanentRedirect("/");
 
   const blocks = await getBlocksForPage(page.id);
   const member = await getCurrentMember(published.app.id);
@@ -76,16 +78,30 @@ export default async function PublishedAppPage({ params }: { params: Params }) {
   // is not a visitor, so that view is not counted (and does not tick the "someone opened it" step).
   if (!published.preview) void recordAnalyticsEvent({ appId: published.app.id, pageId: page.id, eventType: "view" });
 
+  // The first section with a heading carries the page's <h1>; a page of photos or forms alone gets a hidden one.
+  const mainHeadingAt = firstHeadedBlockIndex(blocks);
+  const origin = canonicalOrigin(published.app, (await headers()).get("host"));
+
   return (
     <main className="flex-1">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdText(pageJsonLd(published.app, page, blocks, origin)) }} />
+      {mainHeadingAt < 0 && <h1 className="sr-only">{pageTitle(published.app, page)}</h1>}
       {blocks.length === 0 ? (
         <p className="p-6 text-center text-sm text-muted-foreground">
           This page has no content yet.
         </p>
       ) : (
-        blocks.map((block) =>
+        blocks.map((block, index) =>
           memberSatisfiesTier(member, block.min_tier) ? (
-            <BlockRenderer key={block.id} block={block} pageId={page.id} products={products} events={events} listings={listings} />
+            <BlockRenderer
+              key={block.id}
+              block={block}
+              pageId={page.id}
+              products={products}
+              events={events}
+              listings={listings}
+              headingLevel={index === mainHeadingAt ? "h1" : undefined}
+            />
           ) : (
             <GatedPlaceholder key={block.id} signedIn={!!member} next={currentPath} />
           )

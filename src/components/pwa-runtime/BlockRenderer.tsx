@@ -34,7 +34,7 @@ import { GalleryBlockView, HeroBlockView, HoursBlockView, PriceListBlockView, Re
 import { FilesBlockView } from "@/components/pwa-runtime/FilesBlock";
 import { ButtonBlockView, FaqBlockView, QuoteBlockView } from "@/components/pwa-runtime/ExtraBlocks";
 import { AudioBlockView, ImageTextBlockView, MapBlockView, NewsletterBlockView, ShareBlockView } from "@/components/pwa-runtime/MoreBlocks";
-import { EditableImage, EditableText } from "@/components/pwa-runtime/Editable";
+import { EditableImage, EditableText, PromoteHeading } from "@/components/pwa-runtime/Editable";
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
 import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
@@ -77,6 +77,8 @@ export function BlockRenderer(props: {
   products?: RuntimeProduct[];
   events?: RuntimeEvent[];
   listings?: RuntimeListing[];
+  /** "h1" for the one section whose heading is the page's main heading (lib/pwa/seo.ts picks it); others are h2. */
+  headingLevel?: "h1" | "h2";
 }) {
   const options = props.block.config as SectionOptions;
   const live = props.pageId !== undefined;
@@ -86,7 +88,9 @@ export function BlockRenderer(props: {
   const classes = [APPEARANCE[options.appearance ?? ""], live ? SHOW_ON[options.show_on ?? ""] : ""].filter(Boolean).join(" ");
   return (
     <div className={classes || undefined} data-block-type={props.block.type} {...(live ? { "data-reveal": "" } : {})}>
-      <BlockBody {...props} />
+      <PromoteHeading on={props.headingLevel === "h1"}>
+        <BlockBody {...props} />
+      </PromoteHeading>
     </div>
   );
 }

@@ -23,7 +23,7 @@ export function PublishedBottomNav({
       items={items}
       variant={variant}
       activePagePath={activePath}
-      onNavigate={(pagePath) => router.push(`/${pagePath}`)}
+      onNavigate={(pagePath) => router.push(pagePath === homePagePath ? "/" : `/${pagePath}`)}
     />
   );
 }

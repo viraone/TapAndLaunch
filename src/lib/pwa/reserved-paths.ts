@@ -16,6 +16,7 @@ export const RESERVED_PAGE_PATHS = new Set([
   "newsletter",
   "orders",
   "robots.txt",
+  "share-image",
   "sitemap.xml",
   "unsubscribe",
   "push",

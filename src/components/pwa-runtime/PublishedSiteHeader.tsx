@@ -8,5 +8,5 @@ import type { ThemeConfig } from "@/types/database";
 export function PublishedSiteHeader({ theme, homePagePath }: { theme: ThemeConfig; homePagePath?: string }) {
   const pathname = usePathname();
   const activePath = pathname.replace(/^\//, "") || homePagePath;
-  return <SiteHeader theme={theme} activePagePath={activePath} />;
+  return <SiteHeader theme={theme} activePagePath={activePath} homePagePath={homePagePath} />;
 }
