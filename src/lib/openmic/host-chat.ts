@@ -25,3 +25,24 @@ export async function syncChatTabs(client: SupabaseClient, user: User | null): P
   setNavFlag(COMIC_NAV_FLAG, !host);
   return host;
 }
+
+const seenKey = (userId: string) => `host-chat-seen:${userId}`;
+
+/** The newest hosts-chat message this phone has shown this host (ISO time), or null if it never has. */
+export function readHostChatSeen(userId: string): string | null {
+  try {
+    return window.localStorage.getItem(seenKey(userId));
+  } catch {
+    return null;
+  }
+}
+
+/** Remember how far this host has read the hosts' chat on this phone. Only moves forward. */
+export function markHostChatSeen(userId: string, iso: string): void {
+  try {
+    const prev = window.localStorage.getItem(seenKey(userId));
+    if (!prev || iso > prev) window.localStorage.setItem(seenKey(userId), iso);
+  } catch {
+    // Storage blocked (private mode): the card just counts from the start each time.
+  }
+}

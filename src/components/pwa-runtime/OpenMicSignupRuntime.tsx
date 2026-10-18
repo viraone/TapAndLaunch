@@ -8,6 +8,7 @@ import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type Li
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
+import { HostInbox, HostInboxView } from "./OpenMicHostInbox";
 
 /**
  * StageTime PNW's weekly showcase sign-up. Accounts and the request list live
@@ -168,8 +169,36 @@ const readPreview = () => (PREVIEW_ENABLED ? new URLSearchParams(window.location
 
 export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockConfig }) {
   const preview = useSyncExternalStore(noopSubscribe, readPreview, () => null);
+  if (PREVIEW_ENABLED && (preview === "host" || preview === "host-empty")) return <HostPreview config={config} empty={preview === "host-empty"} />;
   if (PreviewScreen && preview) return <PreviewScreen kind={preview} config={config} />;
   return <OpenMicSignupLive config={config} />;
+}
+
+/** Local only: /signup?preview=host (messages waiting) and ?preview=host-empty (none), with made-up data. */
+function HostPreview({ config, empty }: { config: OpenMicSignupBlockConfig; empty: boolean }) {
+  const window_ = windowOf(config);
+  const now = useNow();
+  const ago = (minutes: number) => new Date(now.getTime() - minutes * 60_000).toISOString();
+  return (
+    <div className="mx-auto w-full max-w-md px-4 pb-12 pt-8">
+      <SignupHeader config={config} showDate={formatShowDate(showDateFor(window_, now))} open={false} hidePill reopenText="" closesAt="" />
+      <SignedInBar name="Viradeth" />
+      <div className="mt-6">
+        <HostInboxView
+          timeZone={window_.timeZone}
+          threads={
+            empty
+              ? []
+              : [
+                  { comedian_id: "a", comedian_name: "Lori Peck", last_at: ago(12), last_body: "Running about 15 min late, can I go later in the lineup?", last_has_photo: false, unread: 2 },
+                  { comedian_id: "b", comedian_name: "Sam Ortiz", last_at: ago(60 * 26), last_body: null, last_has_photo: true, unread: 1 },
+                ]
+          }
+          chat={empty ? { count: 0, names: [] } : { count: 3, names: ["Nick", "Noah"] }}
+        />
+      </div>
+    </div>
+  );
 }
 
 /** The show's own Supabase client. Same storage key on every page, so the Sign-Up and Profile tabs share one sign-in. */
@@ -350,6 +379,8 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
             <ClosedCard name={profile.stage_name} reopenText={reopenLabel(window_, now)} />
           )
         )}
+
+        {phase === "host" && user && <HostInbox client={client} user={user} timeZone={window_.timeZone} />}
 
         {phase === "requested" && request && (showDayOn ? (
           <ShowDayScreen client={client} userId={user?.id} signedIn requested config={config} dateLabel={showDate} window={window_} now={now} />

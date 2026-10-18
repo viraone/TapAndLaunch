@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { ChevronLeft, ChevronRight, Loader2, Lock } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { PINNED_PAGE, useOpenMicClient } from "./OpenMicSignupRuntime";
 import { ChatThread, joinNames, markThreadRead } from "./OpenMicChatThread";
-import { syncChatTabs } from "@/lib/openmic/host-chat";
+import { markHostChatSeen, syncChatTabs } from "@/lib/openmic/host-chat";
 
 /**
  * StageTime's Hosts tab, for the show's hosts (Viradeth, Nick and Noah) only. Two parts:
@@ -106,7 +106,10 @@ export function Notice({ heading, title, children }: { heading: string; title: s
 }
 
 function HostsScreen({ client, user, timeZone }: { client: SupabaseClient; user: User; timeZone: string }) {
-  const [part, setPart] = useState<Part>("hosts");
+  // The Sign-Up screen's Messages card links here with ?part=comedians&thread=<comedian id>.
+  const [link] = useState(() => new URLSearchParams(typeof window === "undefined" ? "" : window.location.search));
+  const wantedThread = useRef(link.get("thread"));
+  const [part, setPart] = useState<Part>(link.get("part") === "comedians" ? "comedians" : "hosts");
   const [names, setNames] = useState<string[]>([]);
   const [threads, setThreads] = useState<Thread[] | null>(null);
   const [open, setOpen] = useState<Thread | null>(null);
@@ -114,7 +117,15 @@ function HostsScreen({ client, user, timeZone }: { client: SupabaseClient; user:
   const loadThreads = useCallback(
     () =>
       client.rpc("comedian_threads").then(({ data }) => {
-        if (data) setThreads(data as Thread[]);
+        if (!data) return;
+        const list = data as Thread[];
+        setThreads(list);
+        const wantedId = wantedThread.current;
+        if (wantedId) {
+          wantedThread.current = null;
+          const t = list.find((x) => x.comedian_id === wantedId);
+          if (t) setOpen(t);
+        }
       }),
     [client]
   );
@@ -221,6 +232,7 @@ function HostsScreen({ client, user, timeZone }: { client: SupabaseClient; user:
             folder: user.id,
             mine: (m, me) => m.author_id === me.id,
             emptyText: "No messages yet. Say hi.",
+            onSeen: (latest) => markHostChatSeen(user.id, latest.created_at),
           }}
         />
       ) : (
