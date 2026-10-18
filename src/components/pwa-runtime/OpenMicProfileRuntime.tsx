@@ -6,7 +6,7 @@ import type { User } from "@supabase/supabase-js";
 import { Loader2, UserRound } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { initialsOf, profileOf, useOpenMicClient } from "./OpenMicSignupRuntime";
-import { syncHostsTab } from "@/lib/openmic/host-chat";
+import { syncChatTabs } from "@/lib/openmic/host-chat";
 
 /**
  * StageTime's Profile tab: who is signed in (stage name, Instagram, email) and the Sign Out
@@ -41,11 +41,11 @@ function OpenMicProfileLive({ config }: { config: OpenMicSignupBlockConfig }) {
     void client.auth.getSession().then(({ data }) => {
       if (cancelled) return;
       setUser(data.session?.user ?? null);
-      void syncHostsTab(client, data.session?.user ?? null);
+      void syncChatTabs(client, data.session?.user ?? null);
     });
     const { data: sub } = client.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      void syncHostsTab(client, session?.user ?? null);
+      void syncChatTabs(client, session?.user ?? null);
     });
     return () => {
       cancelled = true;

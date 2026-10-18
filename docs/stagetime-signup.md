@@ -45,6 +45,17 @@ trigger), private bucket `host-chat`, realtime on. The tab carries `show_if: "op
 once the StageTime screens have asked `is_host_chat_member()` for the signed-in person (`src/lib/pwa/nav-flags.ts`,
 `src/lib/openmic/host-chat.ts`); everyone else sees two tabs. The page itself tells a non-host it is hosts only.
 
+**Message the Hosts tab** (2026-10-18): a signed-in comedian's private line to the hosts (running late, "can I go
+later?"). Block view `"messages"` (`OpenMicMessagesRuntime.tsx`), added by `docs/stagetime-message-hosts-tab.sql`; its
+tab carries `show_if: "openmic-comic"` (any signed-in non-host). One thread per comedian in `comedian_messages`
+(rickshaw-open-mic, migrations `20261018010000` and `20261018020000`): a comedian reads and posts only their own
+thread, hosts every thread; the author is set by a trigger. The hosts read and answer in the **Hosts tab**, which now
+has two parts: "Hosts chat" and "Comedians" (an inbox from `comedian_threads()`, with per-host unread counts kept in
+`comedian_thread_reads`). New comedian messages email all hosts: the `notify-hosts` function runs every minute
+(cron `notify-hosts-of-comedian-messages`, same secret as the signup sync) and sets `hosts_notified_at`;
+`{"test_to": "you@example.com"}` sends a sample. Photos: private bucket `comedian-chat`, a folder per comedian. The
+thread screen is shared code: `OpenMicChatThread.tsx`.
+
 A page opened from the tab bar used to stay invisible until a refresh (the fade-in observer only looked once); fixed
 2026-10-18 in `src/components/pwa-runtime/Look.tsx` with a MutationObserver.
 
