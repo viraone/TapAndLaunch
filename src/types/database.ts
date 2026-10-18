@@ -91,8 +91,9 @@ export interface ThemeConfig {
   header_logo_url?: string;
   /** Set once the owner has saved their colours in App settings, so the "Get live" checklist can tick that step. */
   looks_confirmed?: boolean;
-  /** `show_if`: the tab appears only once that browser switch is on (lib/pwa/nav-flags.ts), e.g. StageTime's Hosts tab. */
-  bottom_nav?: Array<{ label: string; icon: string; page_path: string; show_if?: string }>;
+  /** `show_if`: the tab appears only once that browser switch is on (lib/pwa/nav-flags.ts), e.g. StageTime's Hosts tab.
+   * `label_if`: while that switch is on, the tab reads `label` instead (StageTime's first tab says "Home" to hosts). */
+  bottom_nav?: Array<{ label: string; icon: string; page_path: string; show_if?: string; label_if?: { flag: string; label: string } }>;
   /** "dark" puts the published app on a dark zinc palette, the whole page
    * (not just the column) in `background_color`. Unset keeps the light look. */
   color_scheme?: "light" | "dark";

@@ -44,6 +44,14 @@ and shown name: Viradeth, Nick, Noah; to add a host, insert a row), `host_messag
 trigger), private bucket `host-chat`, realtime on. The tab carries `show_if: "openmic-hosts"`: the bar shows it only
 once the StageTime screens have asked `is_host_chat_member()` for the signed-in person (`src/lib/pwa/nav-flags.ts`,
 `src/lib/openmic/host-chat.ts`); everyone else sees two tabs. The page itself tells a non-host it is hosts only.
+For hosts the first tab reads **Home** (`label_if` on the Sign-Up tab: `{"flag": "openmic-hosts", "label": "Home"}`,
+`docs/stagetime-host-home-label.sql`); everyone else sees Sign-Up & Lineup. The Sign-Up screen for a host also has a
+**Messages** card under "Signed in as" (`OpenMicHostInbox.tsx`): "0 new" when nothing is waiting, otherwise the
+comedian threads with unread messages (from `comedian_threads()`) and new hosts-chat messages. The hosts chat has no read
+marks in the database, so "new" there is counted from what that phone last showed (`localStorage`,
+`host-chat-seen:<user id>` in `src/lib/openmic/host-chat.ts`). Previews: `/?preview=host` and `/?preview=host-empty`.
+The builder API's tab schema (`src/app/api/apps/[appId]/route.ts`) now keeps `show_if` and `label_if`; before, a Save
+settings in the builder would have dropped them.
 
 **Message the Hosts tab** (2026-10-18): a signed-in comedian's private line to the hosts (running late, "can I go
 later?"). Block view `"messages"` (`OpenMicMessagesRuntime.tsx`), added by `docs/stagetime-message-hosts-tab.sql`; its

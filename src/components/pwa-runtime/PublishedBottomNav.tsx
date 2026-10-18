@@ -20,15 +20,18 @@ export function PublishedBottomNav({
   const pathname = usePathname();
   const activePath = pathname.replace(/^\//, "") || homePagePath;
 
-  // Tabs marked show_if appear only once this browser's switch for them is on (lib/pwa/nav-flags.ts). The
-  // snapshot is a string so it compares by value; the server render leaves them out.
-  const flagged = items.filter((i) => i.show_if).map((i) => i.show_if!);
+  // Tabs marked show_if appear only once this browser's switch for them is on, and a tab with label_if is renamed
+  // while its switch is on (lib/pwa/nav-flags.ts). The snapshot is a string so it compares by value; the server
+  // render leaves the flagged tabs out and keeps the plain labels.
+  const flagged = [...new Set(items.flatMap((i) => [i.show_if, i.label_if?.flag]).filter((f): f is string => !!f))];
   const onFlags = useSyncExternalStore(
     subscribeNavFlags,
     () => flagged.filter(readNavFlag).join("|"),
     () => ""
-  );
-  const visible = items.filter((i) => !i.show_if || onFlags.split("|").includes(i.show_if));
+  ).split("|");
+  const visible = items
+    .filter((i) => !i.show_if || onFlags.includes(i.show_if))
+    .map((i) => (i.label_if && onFlags.includes(i.label_if.flag) ? { ...i, label: i.label_if.label } : i));
 
   return (
     <BottomNav

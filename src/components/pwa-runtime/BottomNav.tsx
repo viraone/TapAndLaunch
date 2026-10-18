@@ -73,6 +73,8 @@ export interface BottomNavItem {
   page_path: string;
   /** Show this tab only once the browser's switch with this name is on (lib/pwa/nav-flags.ts). */
   show_if?: string;
+  /** While the browser's switch `flag` is on, show `label` instead of the tab's own label. */
+  label_if?: { flag: string; label: string };
 }
 
 /**
