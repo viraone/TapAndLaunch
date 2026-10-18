@@ -59,3 +59,11 @@ a plain `toLocaleString()` in a server page shows UTC.
 
 Typing an address without `.com` on the StageTime sign-in shows "Something went wrong. Try again." instead of "Check that your
 email address is right." (recorded in the test plan as AUTH-EML-001).
+
+## iPhone Home Screen app: sign-in lost if closed right after signing in (2026-10-18)
+
+On an iPhone, an app added to the Home Screen saves its storage with a short delay. If a comic signs in (StageTime
+Sign-Up) and force-closes the app within a few seconds, the sign-in can be gone when they reopen it; the server-side
+session is still there, nothing signed them out. After a normal pause (tested: one minute) the sign-in survives closing
+and reopening. Accepted as is; they just sign in again. A possible hardening, if it ever matters: also keep the session in
+IndexedDB, which is written to disk sooner.
