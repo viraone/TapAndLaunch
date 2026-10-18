@@ -21,7 +21,14 @@ export function isApexDomain(domain: string): boolean {
   return labels.length === 3 && TWO_PART_SUFFIXES.has(labels.slice(1).join("."));
 }
 
-const lowestRank = <T extends { rank?: number }>(items: T[] | undefined): T | undefined =>
+/** The domain that was bought at a registrar (`brand.com` for `shop.app.brand.com`, `brand.co.uk` for `www.brand.co.uk`). */
+export function registeredDomain(host: string): string {
+  const labels = host.trim().toLowerCase().replace(/\.$/, "").split(".");
+  const take = labels.length >= 3 && TWO_PART_SUFFIXES.has(labels.slice(-2).join(".")) ? 3 : 2;
+  return labels.slice(-take).join(".");
+}
+
+const lowestRank =<T extends { rank?: number }>(items: T[] | undefined): T | undefined =>
   items && items.length ? [...items].sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99))[0] : undefined;
 
 /** The one DNS record that points the domain at Vercel: an A record for a root domain, otherwise a CNAME. */
@@ -33,4 +40,23 @@ export function routingRecord(domain: string, config: VercelDomainConfig | null)
   const label = domain.split(".")[0];
   const cname = lowestRank(config?.recommendedCNAME)?.value;
   return { type: "CNAME", domain: label, value: (cname || DEFAULT_CNAME).replace(/\.$/, ""), reason: "Points your domain at TapAndLaunch" };
+}
+
+/**
+ * The other spelling of a domain that visitors type too: `www.brand.com` for `brand.com`, and `brand.com` for
+ * `www.brand.com`. Null for any other subdomain (`app.brand.com` has no twin). Both spellings are added to Vercel, the
+ * companion as a 308 redirect to the one the customer connected, so "www and non-www agree" always holds.
+ */
+export function companionDomain(domain: string): string | null {
+  const d = domain.trim().toLowerCase().replace(/\.$/, "");
+  if (isApexDomain(d)) return `www.${d}`;
+  if (d.startsWith("www.") && isApexDomain(d.slice(4))) return d.slice(4);
+  return null;
+}
+
+/** The DNS record that makes the companion spelling reach Vercel, so its redirect can answer. */
+export function companionRecord(domain: string, config: VercelDomainConfig | null): DomainVerificationRecord | null {
+  const companion = companionDomain(domain);
+  if (!companion) return null;
+  return { ...routingRecord(companion, config), reason: `Sends ${companion} to ${domain.trim().toLowerCase()}` };
 }

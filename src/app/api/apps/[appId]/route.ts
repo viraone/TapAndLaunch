@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isAppAdmin } from "@/lib/org";
 import { confirmationMatches } from "@/lib/apps/deletion";
 import { removeDomain } from "@/lib/domains/vercel";
+import { companionOptions } from "@/lib/domains/companion";
 
 const ThemeSchema = z.object({
   primary_color: z.string().optional(),
@@ -120,7 +121,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ appI
 
   // Detach the domain first: if Vercel can't be reached the app stays as it was, rather than leaving a domain behind.
   if (app.custom_domain) {
-    const removed = await removeDomain(app.custom_domain);
+    const removed = await removeDomain(app.custom_domain, await companionOptions(appId, app.custom_domain));
     if (!removed.ok) {
       return Response.json({ error: `Couldn't remove the custom domain: ${removed.error ?? "try again"}` }, { status: 502 });
     }
@@ -138,6 +139,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ appI
       custom_domain: null,
       custom_domain_status: null,
       custom_domain_verification: [],
+      custom_domain_dns: null,
     })
     .eq("id", appId);
   if (error) return Response.json({ error: error.message }, { status: 500 });

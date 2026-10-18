@@ -2,7 +2,9 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { isAppEditor } from "@/lib/org";
 import { validateCustomDomain } from "@/lib/domains/validate";
-import { addDomain, removeDomain } from "@/lib/domains/vercel";
+import { addDomain, removeDomain, verifyDomain } from "@/lib/domains/vercel";
+import { pointDomainAtUs, type PointResult } from "@/lib/domains/namesilo";
+import { companionOptions } from "@/lib/domains/companion";
 
 const AddDomainSchema = z.object({
   domain: z.string().min(1),
@@ -35,9 +37,23 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
     return Response.json({ error: validationError }, { status: 400 });
   }
 
-  const result = await addDomain(domain);
+  // A root domain brings its `www.` twin along (and the other way round) as a redirect, unless another app owns it.
+  const twin = await companionOptions(appId, domain);
+  let result = await addDomain(domain, twin);
   if (result.error) {
     return Response.json({ error: result.error }, { status: 400 });
+  }
+  const companionError = result.companionError;
+
+  // A domain in the platform's own NameSilo account gets its DNS written here and now, then one fresh check with
+  // Vercel so a quick registrar makes it "Connected" straight away. Any other domain keeps today's add-it-yourself flow.
+  let dns: PointResult = { status: "not_here" };
+  if (!result.verified) {
+    dns = await pointDomainAtUs(domain, result.verification);
+    if (dns.status === "set") {
+      const again = await verifyDomain(domain, twin);
+      if (!again.error) result = again;
+    }
   }
 
   const { data: app, error } = await supabase
@@ -46,6 +62,7 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
       custom_domain: domain,
       custom_domain_status: result.verified ? "verified" : "pending",
       custom_domain_verification: result.verification,
+      custom_domain_dns: dns.status === "set" ? "namesilo" : null,
     })
     .eq("id", appId)
     .select("*")
@@ -56,12 +73,12 @@ export async function POST(request: Request, context: { params: Promise<{ appId:
     // was supposed to record it failed (not authorized, app not found,
     // etc.) — detach it again rather than leaving an orphaned Vercel
     // domain no app in this system knows about.
-    await removeDomain(domain).catch(() => {});
+    await removeDomain(domain, twin).catch(() => {});
     const message = error.code === "23505" ? "That domain is already in use by another app" : error.message;
     return Response.json({ error: message }, { status: 400 });
   }
 
-  return Response.json({ app });
+  return Response.json({ app, dns: dns.status, dnsError: dns.status === "failed" ? dns.error : undefined, companionError });
 }
 
 /** Detaches an app's custom domain, both from Vercel and from the app row. */
@@ -79,7 +96,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ app
   }
 
   if (app.custom_domain) {
-    const result = await removeDomain(app.custom_domain);
+    const result = await removeDomain(app.custom_domain, await companionOptions(appId, app.custom_domain));
     if (!result.ok) {
       return Response.json({ error: result.error }, { status: 400 });
     }
@@ -87,7 +104,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ app
 
   const { error } = await supabase
     .from("apps")
-    .update({ custom_domain: null, custom_domain_status: null, custom_domain_verification: [] })
+    .update({ custom_domain: null, custom_domain_status: null, custom_domain_verification: [], custom_domain_dns: null })
     .eq("id", appId);
 
   if (error) {
