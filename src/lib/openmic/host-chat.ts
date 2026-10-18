@@ -11,15 +11,17 @@ import { setNavFlag } from "@/lib/pwa/nav-flags";
 export const HOSTS_NAV_FLAG = "openmic-hosts";
 export const COMIC_NAV_FLAG = "openmic-comic";
 
-export async function syncChatTabs(client: SupabaseClient, user: User | null): Promise<void> {
+/** Flips the two tab switches for whoever is signed in, and says whether they are a host (false if unknown). */
+export async function syncChatTabs(client: SupabaseClient, user: User | null): Promise<boolean> {
   if (!user) {
     setNavFlag(HOSTS_NAV_FLAG, false);
     setNavFlag(COMIC_NAV_FLAG, false);
-    return;
+    return false;
   }
   const { data, error } = await client.rpc("is_host_chat_member");
-  if (error) return;
+  if (error) return false;
   const host = data === true;
   setNavFlag(HOSTS_NAV_FLAG, host);
   setNavFlag(COMIC_NAV_FLAG, !host);
+  return host;
 }

@@ -36,7 +36,8 @@ interface RequestRow {
   created_at: string;
 }
 
-type Phase = "loading" | "email" | "code" | "ready" | "requested";
+/** "host": a signed-in host (Viradeth, Nick, Noah) has nothing to request: just the show and who is signed in. */
+type Phase = "loading" | "email" | "code" | "ready" | "requested" | "host";
 
 const CODE_LENGTH = 6;
 
@@ -201,6 +202,8 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   const [user, setUser] = useState<User | null>(null);
   const [request, setRequest] = useState<RequestRow | null>(null);
   const [email, setEmail] = useState("");
+  // A signed-in host's name from the hosts list (the "Signed in as" row), since hosts never fill in a stage name.
+  const [hostName, setHostName] = useState("");
   // While sign-ups are closed, the email box stays tucked behind a small link.
   const [showSignIn, setShowSignIn] = useState(false);
 
@@ -209,18 +212,35 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   const load = useCallback(
     async (u: User | null) => {
       setUser(u);
-      if (client) void syncChatTabs(client, u);
       if (!client || !u) {
+        if (client) void syncChatTabs(client, u);
         setRequest(null);
         setPhase("email");
         return;
       }
-      const { data } = await client
-        .from("signups")
-        .select("id, created_at")
-        .eq("auth_user_id", u.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
+      // Who is signed in decides the screen: hosts see no request form or request card. The same call
+      // flips the Hosts / Message the Hosts tabs.
+      const [{ data }, isHost] = await Promise.all([
+        client
+          .from("signups")
+          .select("id, created_at")
+          .eq("auth_user_id", u.id)
+          .order("created_at", { ascending: false })
+          .limit(1),
+        syncChatTabs(client, u),
+      ]);
+      if (isHost) {
+        const { data: me } = await client
+          .from("host_chat_members")
+          .select("display_name")
+          .eq("email", (u.email ?? "").toLowerCase())
+          .maybeSingle();
+        setHostName((me?.display_name as string | undefined) ?? "");
+        setRequest(null);
+        setPhase("host");
+        return;
+      }
+      setHostName("");
       const row = (data?.[0] as RequestRow | undefined) ?? null;
       setRequest(row);
       setPhase(row ? "requested" : "ready");
@@ -260,7 +280,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   // requests reopen) a signed-in comic's card already says what they need, so the Open/Closed pill
   // is left out. Also hidden while we find out who's signed in, so it doesn't flash for returning comics.
   const hidePill =
-    phase === "loading" || phase === "requested" || (showDayOn && isLineupTime(window_, now) && !!user);
+    phase === "loading" || phase === "requested" || phase === "host" || (showDayOn && isLineupTime(window_, now) && !!user);
 
   // Show day with the lineup showing: the header stays pinned and only the area below it
   // scrolls (the page itself doesn't scroll, so there's no scroll-inside-scroll).
@@ -279,7 +299,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
       <div className={pinned ? "shrink-0" : undefined}>
       <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
 
-      {user && phase !== "loading" && phase !== "code" && <SignedInBar name={profile.stage_name || user.email || ""} />}
+      {user && phase !== "loading" && phase !== "code" && <SignedInBar name={hostName || profile.stage_name || user.email || ""} />}
       </div>
 
       <div className={pinned ? PINNED_SCROLL : "mt-6"}>
