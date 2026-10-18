@@ -32,6 +32,14 @@ in its settings (`src/components/pwa-runtime/OpenMicProfileRuntime.tsx`). The Si
 Sign Out button. `docs/stagetime-profile-tab.sql` added the Profile page and its tab to the live app on 2026-10-18; the
 Sign-Up & Lineup tab is still added at launch.
 
+Since 2026-10-18 (`docs/stagetime-signup-home.sql`) **Sign-Up is the home page** and the tab bar is just Sign-Up & Lineup
+and Profile; the open mic list (Home) and Submit Your Open Mic left the bar (the list lives on stagetimepnw.com; their
+pages still exist). `/signup` forwards to `/`. The test sign-out link is now `/?signout` (a bare `?signout` is dropped by
+the forward; `?signout=1` survives it).
+
+A page opened from the tab bar used to stay invisible until a refresh (the fade-in observer only looked once); fixed
+2026-10-18 in `src/components/pwa-runtime/Look.tsx` with a MutationObserver.
+
 ## Testing
 
 - A local-only preview shows every show-day screen with a made-up comic:
