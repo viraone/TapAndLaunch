@@ -40,7 +40,8 @@ const asList = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : v == nul
 export interface NameSiloRecord {
   id: string;
   type: string;
-  /** Full host name as NameSilo stores it, e.g. `brand.com` or `www.brand.com`. */
+  /** The host as NameSilo lists it: `@` for the root and a bare label (`www`) for a subdomain, though a full name
+   * (`brand.com`, `www.brand.com`) is accepted too. Compare with `hostLabel`, never as text. */
   host: string;
   value: string;
 }
@@ -71,8 +72,8 @@ export function planRecords(root: string, wanted: DomainVerificationRecord[], ex
   for (const want of wanted) {
     const type = want.type.toUpperCase();
     const label = hostLabel(root, want.domain);
-    const fqdn = label ? `${label}.${root}` : root;
-    const atHost = existing.filter((r) => same(r.host, fqdn));
+    // A fresh domain's parking records come back with host `@` (seen on the first real one), so match by label.
+    const atHost = existing.filter((r) => hostLabel(root, r.host) === label);
     const match = atHost.find((r) => r.type.toUpperCase() === type && same(r.value, want.value));
     if (ROUTING.has(type)) {
       const keep = match ?? atHost.find((r) => r.type.toUpperCase() === type);

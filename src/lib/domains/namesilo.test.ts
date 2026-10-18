@@ -38,6 +38,20 @@ describe("planRecords", () => {
     ]);
   });
 
+  it("matches hosts the way NameSilo really lists them: `@` for the root and a bare label for a subdomain", () => {
+    // What seositetuneup.com came with on 2026-10-17: three parking A records on `@` and three on `www`.
+    const parking = [rec("1", "A", "@", "172.232.24.235"), rec("2", "A", "@", "172.232.24.161"), rec("3", "A", "@", "172.234.25.42"), rec("4", "A", "www", "172.232.24.235"), rec("5", "TXT", "_domainconnect", "www.namesilo.com/domainconnect")];
+    expect(planRecords("seositetuneup.com", [A], parking)).toEqual([
+      { kind: "delete", id: "2" },
+      { kind: "delete", id: "3" },
+      { kind: "update", id: "1", type: "A", host: "", value: "216.198.79.1" },
+    ]);
+    expect(planRecords("brand.com", [CNAME], [rec("4", "A", "app", "1.2.3.4")])).toEqual([
+      { kind: "delete", id: "4" },
+      { kind: "add", type: "CNAME", host: "app", value: "cname.vercel-dns.com" },
+    ]);
+  });
+
   it("does nothing when the record is already right, except clear rivals on the same host", () => {
     expect(planRecords("brand.com", [A], [rec("1", "A", "brand.com", "216.198.79.1")])).toEqual([]);
     expect(planRecords("brand.com", [A], [rec("1", "A", "brand.com", "216.198.79.1"), rec("9", "AAAA", "brand.com", "::1")])).toEqual([{ kind: "delete", id: "9" }]);
