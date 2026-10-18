@@ -228,6 +228,17 @@ html[data-reveal-ready] [data-reveal]:not([data-in]) {
   opacity: 0;
   transform: translateY(14px);
 }
+/* On a phone the reveal is off: fading sections in as they scroll into view made iPhone Safari's first swipes
+   stick, and a short phone page gains little from it. */
+@media (max-width: 767px) {
+  [data-reveal] {
+    transition: none;
+  }
+  html[data-reveal-ready] [data-reveal]:not([data-in]) {
+    opacity: 1;
+    transform: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .hero-mesh {
     animation: none;

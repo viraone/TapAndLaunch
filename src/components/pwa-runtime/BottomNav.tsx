@@ -101,7 +101,7 @@ export function BottomNav({
 
   if (variant === "tabs") {
     return (
-      <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto flex h-16 max-w-md items-center justify-around border-t border-border bg-background/95 px-3 backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto flex h-16 max-w-md items-center justify-around border-t border-border bg-background/95 px-3 sm:backdrop-blur">
         {items.map((item, index) => {
           const active = item.page_path === activePagePath;
           return (
