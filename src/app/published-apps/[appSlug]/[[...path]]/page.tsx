@@ -19,6 +19,7 @@ import { jsonLdText } from "@/lib/marketing";
 // instead of via the generated `PageProps<'/published-apps/[appSlug]/[[...path]]'>`
 // helper.
 type Params = Promise<{ appSlug: string; path?: string[] }>;
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 /**
  * A page's title, description, one canonical address and share card for search engines and link previews. The
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return publishedPageMetadata(published.app, page, blocks, origin);
 }
 
-export default async function PublishedAppPage({ params }: { params: Params }) {
+export default async function PublishedAppPage({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   const { appSlug, path } = await params;
 
   const published = await getPublishedApp(appSlug);
@@ -55,7 +56,15 @@ export default async function PublishedAppPage({ params }: { params: Params }) {
   const page = resolvePage(published, path);
   if (!page) notFound();
   // The home page has one address, "/": its path ("/home") forwards there, so search engines never see it twice.
-  if (page.is_home && path?.length) permanentRedirect("/");
+  // The query string goes along (StageTime's "/signup?signout" test link, when Sign-Up is the home page).
+  if (page.is_home && path?.length) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(await searchParams)) {
+      for (const v of Array.isArray(value) ? value : value === undefined ? [] : [value]) query.append(key, v);
+    }
+    const rest = query.toString();
+    permanentRedirect(rest ? `/?${rest}` : "/");
+  }
 
   const blocks = await getBlocksForPage(page.id);
   const member = await getCurrentMember(published.app.id);
