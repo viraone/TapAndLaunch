@@ -37,6 +37,14 @@ and Profile; the open mic list (Home) and Submit Your Open Mic left the bar (the
 pages still exist). `/signup` forwards to `/`. The test sign-out link is now `/?signout` (a bare `?signout` is dropped by
 the forward; `?signout=1` survives it).
 
+**Hosts tab** (2026-10-18): a group chat for the show's three hosts, text and photos, no alerts. Same block type
+with `"view": "hosts"` (`src/components/pwa-runtime/OpenMicHostsRuntime.tsx`), added by `docs/stagetime-hosts-tab.sql`.
+Data lives in rickshaw-open-mic (slotted-killer migration `20261018000000_host_chat.sql`): `host_chat_members` (email
+and shown name: Viradeth, Nick, Noah; to add a host, insert a row), `host_messages` (members only, author set by a
+trigger), private bucket `host-chat`, realtime on. The tab carries `show_if: "openmic-hosts"`: the bar shows it only
+once the StageTime screens have asked `is_host_chat_member()` for the signed-in person (`src/lib/pwa/nav-flags.ts`,
+`src/lib/openmic/host-chat.ts`); everyone else sees two tabs. The page itself tells a non-host it is hosts only.
+
 A page opened from the tab bar used to stay invisible until a refresh (the fade-in observer only looked once); fixed
 2026-10-18 in `src/components/pwa-runtime/Look.tsx` with a MutationObserver.
 
