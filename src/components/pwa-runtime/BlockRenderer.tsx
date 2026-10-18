@@ -42,6 +42,7 @@ import { GasDirectoryRuntime } from "@/components/pwa-runtime/GasDirectoryRuntim
 import { FoodDirectoryPreview, FoodDirectoryRuntime } from "@/components/pwa-runtime/FoodDirectoryRuntime";
 import { ListingDirectoryRuntime } from "@/components/pwa-runtime/ListingDirectoryRuntime";
 import { OpenMicSignupRuntime } from "@/components/pwa-runtime/OpenMicSignupRuntime";
+import { OpenMicProfileRuntime } from "@/components/pwa-runtime/OpenMicProfileRuntime";
 import { ClassFinderRuntime } from "@/components/pwa-runtime/ClassFinderRuntime";
 import type { RuntimeListing } from "@/lib/pwa/listings";
 
@@ -140,6 +141,13 @@ function BlockBody({
     case "food_directory":
       return <FoodDirectoryBlockView config={block.config as FoodDirectoryBlockConfig} live={live} />;
     case "open_mic_signup":
+      if ((block.config as OpenMicSignupBlockConfig).view === "profile") {
+        return live ? (
+          <OpenMicProfileRuntime config={block.config as OpenMicSignupBlockConfig} />
+        ) : (
+          <OpenMicProfileBlockView />
+        );
+      }
       return live ? (
         <OpenMicSignupRuntime config={block.config as OpenMicSignupBlockConfig} />
       ) : (
@@ -423,6 +431,17 @@ function OpenMicSignupBlockView({ config }: { config: OpenMicSignupBlockConfig }
       <p className="mt-2 rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
         Comedians sign in with an emailed code and request a spot for the next show
         {config.supabase_url ? "." : " (connect a Supabase project in the inspector)."}
+      </p>
+    </div>
+  );
+}
+
+function OpenMicProfileBlockView() {
+  return (
+    <div className="px-4 py-3">
+      <h2 className="text-lg font-semibold">Profile</h2>
+      <p className="mt-2 rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+        A signed-in comedian sees their stage name, Instagram and email here, and the Sign Out button.
       </p>
     </div>
   );

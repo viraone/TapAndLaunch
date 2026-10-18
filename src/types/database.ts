@@ -435,6 +435,8 @@ export interface ClassFinderBlockConfig {
  * StageTime iOS app and the Google Sheet sync there. Requests open
  * `opens_*` and close `closes_*`, in `time_zone`. */
 export interface OpenMicSignupBlockConfig {
+  /** "profile" shows the comic's account and Sign Out (the Profile tab) instead of the sign-up. */
+  view?: "signup" | "profile";
   title?: string;
   show_name?: string;
   venue?: string;

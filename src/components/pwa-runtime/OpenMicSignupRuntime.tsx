@@ -100,19 +100,25 @@ export function SignupHeader({
   );
 }
 
-/**
- * "Signed in as …", like the account row at the top of iOS Settings: a rounded card with a
- * large tinted avatar holding the initials, a grey caption, and the name in larger semibold text,
- * with a tinted "Sign Out" button at the trailing edge.
- */
-export function SignedInBar({ name, onSignOut }: { name: string; onSignOut: () => void }) {
-  const initials =
+/** Up to two initials from a stage name or email, for the avatar circle. */
+export function initialsOf(name: string): string {
+  return (
     name
       .split(/[\s@.]+/)
       .filter(Boolean)
       .slice(0, 2)
       .map((w) => w[0]!.toUpperCase())
-      .join("") || "?";
+      .join("") || "?"
+  );
+}
+
+/**
+ * "Signed in as …", like the account row at the top of iOS Settings: a rounded card with a
+ * large tinted avatar holding the initials, a grey caption, and the name in larger semibold text.
+ * Sign Out lives on the Profile tab; the button here shows only where onSignOut is passed.
+ */
+export function SignedInBar({ name, onSignOut }: { name: string; onSignOut?: () => void }) {
+  const initials = initialsOf(name);
   return (
     <div className="mt-5 flex min-h-[4.5rem] items-center gap-3 rounded-xl bg-muted px-4 py-3 min-[375px]:gap-4">
       <span
@@ -125,13 +131,15 @@ export function SignedInBar({ name, onSignOut }: { name: string; onSignOut: () =
         <span className="block whitespace-nowrap text-[15px] text-muted-foreground">Signed in as</span>
         <span className="mt-0.5 block truncate text-[20px] font-semibold text-foreground">{name}</span>
       </p>
-      <button
-        type="button"
-        onClick={onSignOut}
-        className="ml-auto flex h-11 shrink-0 items-center rounded-full bg-primary/15 px-3 text-[15px] font-semibold text-primary active:bg-primary/25 min-[375px]:px-4"
-      >
-        Sign Out
-      </button>
+      {onSignOut && (
+        <button
+          type="button"
+          onClick={onSignOut}
+          className="ml-auto flex h-11 shrink-0 items-center rounded-full bg-primary/15 px-3 text-[15px] font-semibold text-primary active:bg-primary/25 min-[375px]:px-4"
+        >
+          Sign Out
+        </button>
+      )}
     </div>
   );
 }
@@ -162,11 +170,11 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
   return <OpenMicSignupLive config={config} />;
 }
 
-function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
+/** The show's own Supabase client. Same storage key on every page, so the Sign-Up and Profile tabs share one sign-in. */
+export function useOpenMicClient(config: OpenMicSignupBlockConfig): SupabaseClient | null {
   const url = config.supabase_url ?? "";
   const key = config.anon_key ?? "";
-
-  const client = useMemo<SupabaseClient | null>(() => {
+  return useMemo<SupabaseClient | null>(() => {
     if (!url || !key) return null;
     return createClient(url, key, {
       auth: {
@@ -178,6 +186,10 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
       },
     });
   }, [url, key]);
+}
+
+function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
+  const client = useOpenMicClient(config);
 
   const window_ = windowOf(config);
   const now = useNow();
@@ -220,7 +232,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   useEffect(() => {
     if (!client) return;
     let cancelled = false;
-    // `?signout` signs out on load (handy for testing); the account row has a Sign Out button.
+    // `?signout` signs out on load (handy for testing); the Profile tab has the Sign Out button.
     const params = new URLSearchParams(window.location.search);
     const start = params.has("signout")
       ? client.auth.signOut().then(() => {
@@ -268,7 +280,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
       <div className={pinned ? "shrink-0" : undefined}>
       <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
 
-      {user && phase !== "loading" && phase !== "code" && <SignedInBar name={profile.stage_name || user.email || ""} onSignOut={() => void client?.auth.signOut()} />}
+      {user && phase !== "loading" && phase !== "code" && <SignedInBar name={profile.stage_name || user.email || ""} />}
       </div>
 
       <div className={pinned ? PINNED_SCROLL : "mt-6"}>
@@ -812,7 +824,7 @@ function Agreement({
   );
 }
 
-function profileOf(user: User | null): Profile {
+export function profileOf(user: User | null): Profile {
   const m = (user?.user_metadata ?? {}) as Record<string, unknown>;
   return {
     stage_name: typeof m.stage_name === "string" ? m.stage_name : "",

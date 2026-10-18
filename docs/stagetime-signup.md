@@ -27,11 +27,17 @@ _Last checked: 2026-10-03._ The weekly open-mic sign-up for the Read The Room sh
 The block's settings (in the app's page JSON) include `supabase_url`, `anon_key` (public), `time_zone`, open/close weekday and
 minute, and `lineup_url`. **The show-day lineup stays off until `lineup_url` is set on the live block.**
 
+The **Profile** tab (stage name, Instagram, email, and the Sign Out button) is the same block type with `"view": "profile"`
+in its settings (`src/components/pwa-runtime/OpenMicProfileRuntime.tsx`). The Sign-Up page's "Signed in as" row has no
+Sign Out button. At launch, `docs/stagetime-profile-tab.sql` adds the Profile page and both new tabs (Sign-Up & Lineup,
+Profile) to the live app; run it in the TapAndLaunch project's SQL editor.
+
 ## Testing
 
 - A local-only preview shows every show-day screen with a made-up comic:
   `http://localhost:3100/signup?preview=selected` (also `not-selected`, `no-request`, `pending`, `closed-night`, `signed-out`).
   It is compiled out of production builds.
+- Profile tab preview: `/profile?preview=signed-in` and `/profile?preview=signed-out` (local only, same rule).
 - On a phone on the same Wi-Fi: `npm run dev:phone`, then open `http://{Mac IP}:3101/signup?preview=selected`.
 - The manual test plan ("StageTime PNW · Open-mic sign-up - Pass 1.0") is on the `preview-links` branch:
   `docs/stagetime-regression-tests.csv` and `docs/stagetime-regression-report.html`.
