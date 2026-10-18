@@ -21,7 +21,7 @@ const ThemeSchema = z.object({
         page_path: z.string(),
         // StageTime's role-based tabs (lib/pwa/nav-flags.ts); dropped here, a Save settings would have undone them.
         show_if: z.string().max(40).optional(),
-        label_if: z.object({ flag: z.string().max(40), label: z.string().max(30) }).optional(),
+        label_if: z.object({ flag: z.string().max(40), label: z.string().max(30), icon: z.string().max(30).optional() }).optional(),
       })
     )
     .optional(),

@@ -44,8 +44,8 @@ and shown name: Viradeth, Nick, Noah; to add a host, insert a row), `host_messag
 trigger), private bucket `host-chat`, realtime on. The tab carries `show_if: "openmic-hosts"`: the bar shows it only
 once the StageTime screens have asked `is_host_chat_member()` for the signed-in person (`src/lib/pwa/nav-flags.ts`,
 `src/lib/openmic/host-chat.ts`); everyone else sees two tabs. The page itself tells a non-host it is hosts only.
-For hosts the first tab reads **Home** (`label_if` on the Sign-Up tab: `{"flag": "openmic-hosts", "label": "Home"}`,
-`docs/stagetime-host-home-label.sql`); everyone else sees Sign-Up & Lineup. The Sign-Up screen for a host also has a
+For hosts the first tab reads **Home** with a house icon instead of the pencil (`label_if` on the Sign-Up tab:
+`{"flag": "openmic-hosts", "label": "Home", "icon": "home"}`, `docs/stagetime-host-home-label.sql`); everyone else sees Sign-Up & Lineup. The Sign-Up screen for a host also has a
 **Messages** card under "Signed in as" (`OpenMicHostInbox.tsx`): "0 new" when nothing is waiting, otherwise the
 comedian threads with unread messages (from `comedian_threads()`) and new hosts-chat messages. The hosts chat has no read
 marks in the database, so "new" there is counted from what that phone last showed (`localStorage`,

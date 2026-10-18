@@ -31,7 +31,7 @@ export function PublishedBottomNav({
   ).split("|");
   const visible = items
     .filter((i) => !i.show_if || onFlags.includes(i.show_if))
-    .map((i) => (i.label_if && onFlags.includes(i.label_if.flag) ? { ...i, label: i.label_if.label } : i));
+    .map((i) => (i.label_if && onFlags.includes(i.label_if.flag) ? { ...i, label: i.label_if.label, icon: i.label_if.icon ?? i.icon } : i));
 
   return (
     <BottomNav
