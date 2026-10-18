@@ -32,8 +32,9 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
       setDomain("");
       if (body.app.custom_domain_status === "verified") toast.success("Domain connected");
       else if (body.dns === "set") toast.success("Domain added and its DNS set for you. Connecting usually takes a few minutes.");
-      else if (body.dns === "failed") toast.warning(`Domain added, but its DNS could not be set for you (${body.dnsError ?? "unknown reason"}). Add the record below by hand.`);
-      else toast.success("Domain added. Now add the DNS record below where you bought the domain.");
+      else if (body.dns === "failed") toast.warning(`Domain added, but its DNS could not be set for you (${body.dnsError ?? "unknown reason"}). Add the records below by hand.`);
+      else toast.success("Domain added. Now add the DNS records below where you bought the domain.");
+      if (body.companionError) toast.warning(`The other spelling of the address (www or without) could not be added as a redirect (${body.companionError}). Try removing and adding the domain again later.`);
     } finally {
       setBusy(false);
     }
@@ -49,7 +50,9 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
         return;
       }
       onUpdated(body.app);
-      toast.success(body.app.custom_domain_status === "verified" ? "Domain verified" : "Not working yet. DNS changes can take from a few minutes to a few hours.");
+      if (body.app.custom_domain_status !== "verified") toast.success("Not working yet. DNS changes can take from a few minutes to a few hours.");
+      else if (body.app.custom_domain_verification.length > 0) toast.success("Domain connected. One record is still missing for the other spelling of the address.");
+      else toast.success("Domain connected");
     } finally {
       setBusy(false);
     }
@@ -86,7 +89,7 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
         </div>
         <p className="text-xs text-muted-foreground">
           Your app stays reachable at its {"{slug}"}.subdomain either way — a custom domain is
-          additional, not a replacement.
+          additional, not a replacement. A root domain (yourbrand.com) gets its www. version too, and the other way round.
         </p>
         <Button type="submit" disabled={busy || !domain}>
           {busy ? "Adding…" : "Add domain"}
@@ -110,9 +113,13 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
         </p>
       )}
 
-      {app.custom_domain_status !== "verified" && app.custom_domain_dns !== "namesilo" && app.custom_domain_verification.length > 0 && (
+      {app.custom_domain_dns !== "namesilo" && app.custom_domain_verification.length > 0 && (
         <div className="space-y-1 rounded-md border p-3 text-xs">
-          <p className="font-medium">Add this at the company where you bought your domain (GoDaddy, Namecheap, Google, ...), in its DNS settings:</p>
+          <p className="font-medium">
+            {app.custom_domain_status === "verified"
+              ? "One more record so the other spelling of your address works too. Add it at the company where you bought your domain, in its DNS settings:"
+              : "Add this at the company where you bought your domain (GoDaddy, Namecheap, Google, ...), in its DNS settings:"}
+          </p>
           <table className="w-full">
             <tbody>
               {app.custom_domain_verification.map((record, i) => (
@@ -124,12 +131,15 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
               ))}
             </tbody>
           </table>
-          <p className="text-muted-foreground">Type = the kind of record, then its name (host), then its value. Once it works, tap Check again; the secure padlock (SSL) turns on by itself.</p>
+          <p className="text-muted-foreground">
+            Type = the kind of record, then its name (host), then its value. Once it works, tap Check again
+            {app.custom_domain_status === "verified" ? "." : "; the secure padlock (SSL) turns on by itself."}
+          </p>
         </div>
       )}
 
       <div className="flex gap-2">
-        {app.custom_domain_status !== "verified" && (
+        {(app.custom_domain_status !== "verified" || (app.custom_domain_dns !== "namesilo" && app.custom_domain_verification.length > 0)) && (
           <Button type="button" variant="outline" size="sm" disabled={busy} onClick={handleVerify}>
             Check again
           </Button>

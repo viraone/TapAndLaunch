@@ -17,9 +17,9 @@ only in Vercel's settings.
 2. The app is **Connected** only when Vercel owns the domain *and* its DNS points at Vercel. Vercel's own `verified: true`
    only means the project owns the domain (a domain pointing nowhere is still "verified"), so we also check
    `GET /v6/domains/{domain}/config` (`misconfigured`).
-3. Until then the builder shows **Waiting for DNS** and the record to add: a **CNAME** for a subdomain, an **A** record for a
-   root domain (`routingRecord`, using Vercel's recommended values; today the A value is 216.198.79.1). If Vercel also
-   wants a TXT ownership record it is shown too.
+3. Until then the builder shows **Waiting for DNS** and the records to add: a **CNAME** for a subdomain, an **A** record for a
+   root domain (`routingRecord`, using Vercel's recommended values; today the A value is 216.198.79.1), plus the `www`
+   CNAME for a root domain (see "www and non-www" below). If Vercel also wants a TXT ownership record it is shown too.
 4. "Check again" (`POST .../domain/verify`) re-checks. SSL is automatic once DNS works.
 5. Traffic arriving on a connected, published app's domain is routed by `proxy.ts` (`resolveAppSlugForHost`).
 
@@ -32,6 +32,26 @@ more. `apps.custom_domain_dns = 'namesilo'` marks it; the builder then says "set
 A domain bought anywhere else is untouched (`not_here`); a NameSilo domain moved to other nameservers is left alone
 too (`other_dns`) and falls back to the by-hand records. Removing the domain from the app does not touch the records
 at NameSilo. NameSilo answers `code` 300 on success and lists come back as one object when there is one item.
+
+## www and non-www (2026-10-18)
+A root domain and its `www.` spelling are handled as a pair, so a site never answers on one and not the other (the SEO
+audit's "www and non-www agree" check; seositetuneup.com failed it before this and was fixed by hand). `companionDomain`
+(`lib/domains/dns.ts`) names the twin: `www.brand.com` for `brand.com`, `brand.com` for `www.brand.com`, none for any other
+subdomain. When a domain is connected, `addDomain` also adds the twin to the Vercel project as a **308 redirect** to the
+connected domain (`ensureRedirect`: `POST /v10/projects/{id}/domains` with `{name, redirect, redirectStatusCode: 308}`; a
+twin already on the project gets its redirect set with a `PATCH` instead). The redirect happens at Vercel's edge, before
+`proxy.ts`, which only redirects the platform's own `www.tapandlaunch.com`.
+
+- The Domain tab lists the twin's record next to the main one: `CNAME www → cname.vercel-dns.com` beside a root domain's
+  A record, or the root's A record beside a connected `www`. The twin never blocks **Connected**: once the main domain
+  routes the app is verified, and a still-missing twin record stays on the list with "Check again" until it points here.
+- A domain in the platform's NameSilo account gets the twin's record written by `pointDomainAtUs` too (it is just one more
+  wanted record; the parking `www` CNAME is replaced).
+- Removing a domain removes the twin from Vercel as well. The twin is left alone, on add and on remove, when another app
+  uses it as its own custom domain (`companionOptions`, `lib/domains/companion.ts`).
+- A twin that cannot be added does not fail the connection; the builder shows a warning (`companionError`).
+- Domains connected before this date: `docs/private/add-www-redirects.mjs` (git-ignored) lists them and adds the missing
+  redirects; dry run by default, `--apply` to do it.
 
 ## Notes
 - Removing a domain removes it from Vercel and the app row. A 404 from Vercel on removal counts as success.

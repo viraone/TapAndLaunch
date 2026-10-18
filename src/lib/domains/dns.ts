@@ -41,3 +41,22 @@ export function routingRecord(domain: string, config: VercelDomainConfig | null)
   const cname = lowestRank(config?.recommendedCNAME)?.value;
   return { type: "CNAME", domain: label, value: (cname || DEFAULT_CNAME).replace(/\.$/, ""), reason: "Points your domain at TapAndLaunch" };
 }
+
+/**
+ * The other spelling of a domain that visitors type too: `www.brand.com` for `brand.com`, and `brand.com` for
+ * `www.brand.com`. Null for any other subdomain (`app.brand.com` has no twin). Both spellings are added to Vercel, the
+ * companion as a 308 redirect to the one the customer connected, so "www and non-www agree" always holds.
+ */
+export function companionDomain(domain: string): string | null {
+  const d = domain.trim().toLowerCase().replace(/\.$/, "");
+  if (isApexDomain(d)) return `www.${d}`;
+  if (d.startsWith("www.") && isApexDomain(d.slice(4))) return d.slice(4);
+  return null;
+}
+
+/** The DNS record that makes the companion spelling reach Vercel, so its redirect can answer. */
+export function companionRecord(domain: string, config: VercelDomainConfig | null): DomainVerificationRecord | null {
+  const companion = companionDomain(domain);
+  if (!companion) return null;
+  return { ...routingRecord(companion, config), reason: `Sends ${companion} to ${domain.trim().toLowerCase()}` };
+}

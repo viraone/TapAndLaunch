@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isAppEditor } from "@/lib/org";
 import { verifyDomain } from "@/lib/domains/vercel";
+import { companionOptions } from "@/lib/domains/companion";
 
 /** Re-checks a pending custom domain's DNS/verification status with Vercel. */
 export async function POST(_request: Request, context: { params: Promise<{ appId: string }> }) {
@@ -16,7 +17,7 @@ export async function POST(_request: Request, context: { params: Promise<{ appId
     return Response.json({ error: "This app has no custom domain to verify" }, { status: 400 });
   }
 
-  const result = await verifyDomain(app.custom_domain);
+  const result = await verifyDomain(app.custom_domain, await companionOptions(appId, app.custom_domain));
   if (result.error) {
     return Response.json({ error: result.error }, { status: 400 });
   }
