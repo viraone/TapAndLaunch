@@ -115,12 +115,12 @@ function ProfileScreen({ comic, onSignOut }: { comic: Comic | null; onSignOut?: 
             <UserRound className="h-10 w-10" />
           </span>
           <p className="mt-4 text-[20px] font-semibold">You&apos;re not signed in</p>
-          <p className="mt-1 text-[15px] text-muted-foreground">Sign in on the Sign-Up page with your email.</p>
+          <p className="mt-1 text-[15px] text-muted-foreground">Sign in with your email on the Sign-Up &amp; Lineup tab.</p>
           <Link
             href="/signup"
             className="mt-5 flex h-12 w-full items-center justify-center rounded-xl bg-[#dc2626] text-[17px] font-semibold text-white active:bg-[#991b1b]"
           >
-            Go to Sign-Up
+            Sign in
           </Link>
         </div>
       )}
