@@ -93,7 +93,7 @@ export function SignupHeader({
             {open && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
             <span className={`relative inline-flex h-3 w-3 rounded-full ${open ? "bg-emerald-400" : "bg-amber-400"}`} />
           </span>
-          {open ? `Open · closes ${closesAt}` : `Sign ups are closed - reopens ${reopenText}`}
+          {open ? `Open - sign up closes ${closesAt}` : `Sign ups are closed - reopens ${reopenText}`}
         </div>
       )}
     </header>
