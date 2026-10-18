@@ -78,7 +78,7 @@ export function SignupHeader({
           />
         )}
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">Next show</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Next show</p>
           <h1 className="mt-1 text-3xl font-black tracking-tight">{showDate}</h1>
         </div>
       </div>
