@@ -83,8 +83,8 @@ export interface BottomNavItem {
  * fall back to a plain dot rather than rejecting the config, since a
  * creator typing "cart" vs "shop" shouldn't be a validation error.
  *
- * `variant="tabs"` is a taller bar fixed to the bottom of the screen with
- * large icons, as StageTime has it; the page leaves room for it (pb-20). Its
+ * `variant="tabs"` is a floating bar fixed above the bottom of the screen with
+ * large icons, as StageTime has it; the page leaves room for it (pb-32). Its
  * hover background is [&:hover]:, not hover:, so a tapped tab keeps it on a
  * phone, as on StageTime.
  */
@@ -103,25 +103,30 @@ export function BottomNav({
 
   if (variant === "tabs") {
     return (
-      <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto flex h-16 max-w-md items-center justify-around border-t border-border bg-background/95 px-3 sm:backdrop-blur">
-        {items.map((item, index) => {
-          const active = item.page_path === activePagePath;
-          return (
-            <button
-              key={index}
-              type="button"
-              onClick={() => onNavigate(item.page_path)}
-              aria-current={active ? "page" : undefined}
-              className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-[12px] px-2 py-2 transition [&:hover]:bg-muted ${
-                active ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <TabIcon name={item.icon} />
-              <span className="text-center text-[11px] font-semibold leading-tight">{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      // A floating bar lifted off the screen's bottom edge (clear of the phone's home bar), with the current tab
+      // in a filled pill, so it reads as the app's navigation. The outer layer ignores taps so the gaps beside
+      // the bar don't block the page.
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom)+14px)]">
+        <nav className="pointer-events-auto mx-auto flex max-w-md items-stretch gap-1 rounded-[24px] border border-foreground/15 bg-muted p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+          {items.map((item, index) => {
+            const active = item.page_path === activePagePath;
+            return (
+              <button
+                key={index}
+                type="button"
+                onClick={() => onNavigate(item.page_path)}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-[18px] px-1 py-2 transition active:scale-[0.97] ${
+                  active ? "bg-primary/15 text-primary" : "text-muted-foreground [&:hover]:bg-foreground/10"
+                }`}
+              >
+                <TabIcon name={item.icon} />
+                <span className={`text-center text-[11px] leading-tight ${active ? "font-bold" : "font-semibold"}`}>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
     );
   }
 

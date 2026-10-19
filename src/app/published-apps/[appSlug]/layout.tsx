@@ -135,7 +135,7 @@ export default async function PublishedAppLayout({
 
   return (
     <div
-      className={`mx-auto flex min-h-dvh w-full flex-col bg-background ${website ? "" : "max-w-md"} ${dark ? "dark text-foreground" : ""} ${tabs ? (website ? "pb-20 lg:pb-0" : "pb-20") : ""}`}
+      className={`mx-auto flex min-h-dvh w-full flex-col bg-background ${website ? "" : "max-w-md"} ${dark ? "dark text-foreground" : ""} ${tabs ? (website ? "pb-32 lg:pb-0" : "pb-32") : ""}`}
       style={style}
       {...themeAttributes(theme)}
     >
