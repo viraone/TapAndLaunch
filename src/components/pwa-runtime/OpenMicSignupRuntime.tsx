@@ -826,7 +826,7 @@ function RequestedCard({
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">What happens next</p>
         <ol className="mt-3 space-y-3 text-sm">
           <li>
-            <span className="font-semibold">Thursday</span> — if you&apos;re selected, we&apos;ll email you.
+            <span className="font-semibold">Thursday</span> — if you&apos;re selected, we&apos;ll notify you.
           </li>
           <li>
             <span className="font-semibold">{showDate.split(",")[0]}</span> — {config.show_name ?? "the show"}
