@@ -84,7 +84,7 @@ export interface BottomNavItem {
  * creator typing "cart" vs "shop" shouldn't be a validation error.
  *
  * `variant="tabs"` is a floating bar fixed above the bottom of the screen with
- * large icons, as StageTime has it; the page leaves room for it (pb-32). Its
+ * large icons, as StageTime has it; the page leaves room for it (7.5rem plus the phone's bottom inset). Its
  * hover background is [&:hover]:, not hover:, so a tapped tab keeps it on a
  * phone, as on StageTime.
  */

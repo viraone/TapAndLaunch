@@ -46,7 +46,7 @@ const CODE_LENGTH = 6;
  * even before anything is typed (the theme's light coral with dark text
  * looked disabled). */
 /** Pinned show-day layout: the viewport minus the app's header bar and tab bar, as a column. */
-export const PINNED_PAGE = "mx-auto flex h-[calc(100dvh-11rem)] w-full max-w-md flex-col px-4 pt-6";
+export const PINNED_PAGE = "mx-auto flex h-[calc(100dvh-12rem)] w-full max-w-md flex-col px-4 pt-6";
 // clip-path hard-clips everything painted inside to the scroller's box. iOS Safari can paint a
 // scrolled-under row a few px past the scroller's top edge (above the pinned lineup header).
 export const PINNED_SCROLL = "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6 [clip-path:inset(0)]";
