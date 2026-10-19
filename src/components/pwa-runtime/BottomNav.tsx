@@ -117,7 +117,7 @@ export function BottomNav({
                 onClick={() => onNavigate(item.page_path)}
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-[60px] flex-1 flex-col items-center justify-center gap-1 rounded-[18px] px-1 py-2 transition active:scale-[0.97] ${
-                  active ? "bg-primary/15 text-primary" : "text-muted-foreground [&:hover]:bg-foreground/10"
+                  active ? "bg-primary/15 text-primary" : "text-foreground/85 [&:hover]:bg-foreground/10"
                 }`}
               >
                 <TabIcon name={item.icon} />
