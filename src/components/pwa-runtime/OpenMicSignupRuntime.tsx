@@ -819,7 +819,7 @@ function RequestedCard({
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white">
         <Check className="h-7 w-7" strokeWidth={3} />
       </div>
-      <h2 className="mt-4 text-xl font-bold">You&apos;re on the request list for {showDate}</h2>
+      <h2 className="mt-4 text-xl font-bold">You&apos;re on the Request list for this {showDate}</h2>
       {/* Chrome: "Tue, Oct 6, 12:13 PM"; Safari: "Tue, Oct 6 at 12:13 PM" (found by automation 2026-10-06). Both -> " · ". */}
       <p className="mt-1 text-sm text-muted-foreground">Requested {at.replace(/(?:, | at )(?=\d{1,2}:\d{2})/, " · ")}</p>
       <div className="mt-5 rounded-xl border bg-background p-4 text-left">
