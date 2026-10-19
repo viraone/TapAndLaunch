@@ -385,7 +385,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
         {phase === "requested" && request && (showDayOn ? (
           <ShowDayScreen client={client} userId={user?.id} signedIn requested config={config} dateLabel={showDate} window={window_} now={now} />
         ) : (
-          <RequestedCard request={request} showDate={showDate} config={config} timeZone={window_.timeZone} />
+          <RequestedCard showDate={showDate} config={config} />
         ))}
 
       </div>
@@ -795,33 +795,18 @@ function RequestForm({
 }
 
 function RequestedCard({
-  request,
   showDate,
   config,
-  timeZone,
 }: {
-  request: RequestRow;
   showDate: string;
   config: OpenMicSignupBlockConfig;
-  timeZone: string;
 }) {
-  const at = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(request.created_at));
-
   return (
     <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white">
         <Check className="h-7 w-7" strokeWidth={3} />
       </div>
       <h2 className="mt-4 text-xl font-bold">You&apos;re on the Request list for this {showDate}</h2>
-      {/* Chrome: "Tue, Oct 6, 12:13 PM"; Safari: "Tue, Oct 6 at 12:13 PM" (found by automation 2026-10-06). Both -> " · ". */}
-      <p className="mt-1 text-sm text-muted-foreground">Requested {at.replace(/(?:, | at )(?=\d{1,2}:\d{2})/, " · ")}</p>
       <div className="mt-5 rounded-xl border bg-background p-4 text-left">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">What happens next</p>
         <ol className="mt-3 space-y-3 text-sm">
