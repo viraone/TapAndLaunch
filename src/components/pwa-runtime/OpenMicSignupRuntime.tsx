@@ -808,8 +808,8 @@ function RequestedCard({
       </div>
       <h2 className="mt-4 text-xl font-bold">You&apos;re on the Request list for this {showDate}</h2>
       <div className="mt-5 rounded-xl border bg-background p-4 text-left">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">What happens next</p>
-        <ol className="mt-3 space-y-3 text-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">What happens next</p>
+        <ol className="mt-3 space-y-3 text-[15px]">
           <li>
             <span className="font-semibold">Thursday</span> — if you&apos;re selected, we&apos;ll notify you.
           </li>
