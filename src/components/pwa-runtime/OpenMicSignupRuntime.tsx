@@ -116,29 +116,29 @@ export function initialsOf(name: string): string {
 }
 
 /**
- * "Signed in as …", like the account row at the top of iOS Settings: a rounded card with a
- * large tinted avatar holding the initials, a grey caption, and the name in larger semibold text.
- * Sign Out lives on the Profile tab; the button here shows only where onSignOut is passed.
+ * "Signed in as …": a slim one-line row (small tinted avatar with the initials, a grey caption, the name in
+ * semibold) so it never competes with the card under it. Sign Out lives on the Profile tab; the button here
+ * shows only where onSignOut is passed.
  */
 export function SignedInBar({ name, onSignOut }: { name: string; onSignOut?: () => void }) {
   const initials = initialsOf(name);
   return (
-    <div className="mt-5 flex min-h-[4.5rem] items-center gap-3 rounded-xl bg-muted px-4 py-3 min-[375px]:gap-4">
+    <div className="mt-4 flex min-h-12 items-center gap-3 rounded-xl bg-muted px-3 py-2">
       <span
         aria-hidden
-        className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-b from-primary/40 to-primary/15 text-[19px] font-semibold text-primary min-[375px]:h-14 min-[375px]:w-14 min-[375px]:text-[22px]"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-b from-primary/40 to-primary/15 text-[13px] font-semibold text-primary"
       >
         {initials}
       </span>
-      <p className="min-w-0 leading-tight">
-        <span className="block whitespace-nowrap text-[15px] text-muted-foreground">Signed in as</span>
-        <span className="mt-0.5 block truncate text-[20px] font-semibold text-foreground">{name}</span>
+      <p className="flex min-w-0 items-baseline gap-1.5 leading-tight">
+        <span className="whitespace-nowrap text-[14px] text-muted-foreground">Signed in as</span>
+        <span className="truncate text-[16px] font-semibold text-foreground">{name}</span>
       </p>
       {onSignOut && (
         <button
           type="button"
           onClick={onSignOut}
-          className="ml-auto flex h-11 shrink-0 items-center rounded-full bg-primary/15 px-3 text-[15px] font-semibold text-primary active:bg-primary/25 min-[375px]:px-4"
+          className="ml-auto flex h-9 shrink-0 items-center rounded-full bg-primary/15 px-3 text-[14px] font-semibold text-primary active:bg-primary/25"
         >
           Sign Out
         </button>
