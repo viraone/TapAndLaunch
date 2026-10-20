@@ -814,10 +814,24 @@ function RequestedCard({
     minute: "2-digit",
   }).format(new Date(request.created_at));
 
+  // Celebrate once per request: the first time this card shows after the request was made. Later visits get the
+  // glow only. Per-viewer convenience, so blocked storage just means it may play again.
+  const celebrateKey = `stagetime-request-celebrated-${request.id}`;
+  const [celebrate] = useState(() => !readFlag(celebrateKey));
+  useEffect(() => {
+    writeFlag(celebrateKey);
+  }, [celebrateKey]);
+
   return (
     <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white">
-        <Check className="h-7 w-7" strokeWidth={3} />
+      <div className="relative mx-auto flex h-14 w-14 items-center justify-center">
+        <span aria-hidden className="request-check-glow absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full" />
+        {celebrate && <span aria-hidden className="request-check-ring absolute inset-0 rounded-full border-2 border-emerald-400" />}
+        <div
+          className={`relative flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_0_24px_rgba(16,185,129,0.45)] ${celebrate ? "request-check-pop" : ""}`}
+        >
+          <Check className="h-7 w-7" strokeWidth={3} />
+        </div>
       </div>
       <h2 className="mt-4 text-xl font-bold">You&apos;re on the request list for {showDate}</h2>
       {/* Chrome: "Tue, Oct 6, 12:13 PM"; Safari: "Tue, Oct 6 at 12:13 PM" (found by automation 2026-10-06). Both -> " · ". */}
