@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { Check, ChevronRight, CircleCheck, Loader2, Mail, X } from "lucide-react";
+import { Bell, Check, ChevronRight, CircleCheck, Loader2, Mail, Mic, X } from "lucide-react";
 import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
@@ -825,17 +825,28 @@ function RequestedCard({
       <h2 className="mt-4 text-xl font-bold">
         You&apos;re on the <span className="text-emerald-400">Request list</span>
       </h2>
-      <div className="mt-5 rounded-xl border bg-background p-4 text-left">
+      <div className="mt-5 rounded-xl bg-foreground/[0.04] p-4 text-left">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">What happens next</p>
-        <ol className="mt-3 space-y-3 text-[15px]">
-          <li>
-            <span className="font-semibold">Thursday</span> — if you&apos;re selected, we&apos;ll notify you.
+        <ol className="mt-4 space-y-5 text-[15px]">
+          <li className="relative pl-12">
+            <span aria-hidden className="absolute left-4 top-9 -bottom-5 w-px bg-primary/30" />
+            <span aria-hidden className="absolute left-0 top-0 grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary">
+              <Bell className="h-4 w-4" />
+            </span>
+            <span className="font-semibold text-primary">Thursday</span>
+            <p className="mt-0.5">If you&apos;re selected, we&apos;ll notify you.</p>
           </li>
-          <li>
-            <span className="font-semibold">{showDate.split(",")[0]}</span> — {config.show_name ?? "the show"}
-            {config.venue ? ` at ${config.venue}` : ""}
-            {config.show_time ? `, ${config.show_time.replace(/^Fridays\s*/i, "")}` : ""}. Not selected? You can request
-            again next week.
+          <li className="relative pl-12">
+            <span aria-hidden className="absolute left-0 top-0 grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary">
+              <Mic className="h-4 w-4" />
+            </span>
+            <span className="font-semibold text-primary">{showDate.split(",")[0]}</span>
+            <p className="mt-0.5">
+              {config.show_name ?? "The show"}
+              {config.venue ? ` at ${config.venue}` : ""}
+              {config.show_time ? `, ${config.show_time.replace(/^Fridays\s*/i, "")}` : ""}. Not selected? You can request
+              again next week.
+            </p>
           </li>
         </ol>
       </div>
