@@ -385,7 +385,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
         {phase === "requested" && request && (showDayOn ? (
           <ShowDayScreen client={client} userId={user?.id} signedIn requested config={config} dateLabel={showDate} window={window_} now={now} />
         ) : (
-          <RequestedCard request={request} showDate={showDate} config={config} timeZone={window_.timeZone} />
+          <RequestedCard requestId={request.id} showDate={showDate} config={config} />
         ))}
 
       </div>
@@ -795,28 +795,17 @@ function RequestForm({
 }
 
 function RequestedCard({
-  request,
+  requestId,
   showDate,
   config,
-  timeZone,
 }: {
-  request: RequestRow;
+  requestId: number;
   showDate: string;
   config: OpenMicSignupBlockConfig;
-  timeZone: string;
 }) {
-  const at = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(request.created_at));
-
   // Celebrate once per request: the first time this card shows after the request was made. Later visits get the
   // glow only. Per-viewer convenience, so blocked storage just means it may play again.
-  const celebrateKey = `stagetime-request-celebrated-${request.id}`;
+  const celebrateKey = `stagetime-request-celebrated-${requestId}`;
   const [celebrate] = useState(() => !readFlag(celebrateKey));
   useEffect(() => {
     writeFlag(celebrateKey);
@@ -833,12 +822,12 @@ function RequestedCard({
           <Check className="h-7 w-7" strokeWidth={3} />
         </div>
       </div>
-      <h2 className="mt-4 text-xl font-bold">You&apos;re on the request list for {showDate}</h2>
-      {/* Chrome: "Tue, Oct 6, 12:13 PM"; Safari: "Tue, Oct 6 at 12:13 PM" (found by automation 2026-10-06). Both -> " · ". */}
-      <p className="mt-1 text-sm text-muted-foreground">Requested {at.replace(/(?:, | at )(?=\d{1,2}:\d{2})/, " · ")}</p>
+      <h2 className="mt-4 text-xl font-bold">
+        You&apos;re on the <span className="text-emerald-400">Request list</span>
+      </h2>
       <div className="mt-5 rounded-xl border bg-background p-4 text-left">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">What happens next</p>
-        <ol className="mt-3 space-y-3 text-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">What happens next</p>
+        <ol className="mt-3 space-y-3 text-[15px]">
           <li>
             <span className="font-semibold">Thursday</span> — if you&apos;re selected, we&apos;ll notify you.
           </li>
