@@ -32,6 +32,7 @@ export interface TradePage {
 /** Who each trade's page speaks to. Written once, by hand: the one thing the starter data does not say. */
 const PEOPLE: Record<string, string> = {
   entertainment: "comedy clubs and live venues",
+  comedians: "stand-up comedians",
   photography: "photographers",
   design: "designers",
   education: "tutors and teachers",

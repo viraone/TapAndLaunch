@@ -5,7 +5,7 @@ import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, WEBSITE_STYLE
 import { LOOK_IDS } from "@/lib/pwa/look";
 import { WEBSITE_DESIGNS } from "./designs";
 
-const TOPIC_IDS = ["entertainment", "photography", "design", "education", "consulting", "art", "health", "marketing", "technology", "construction", "apparel", "music", "realestate", "beauty", "travel", "weddings"];
+const TOPIC_IDS = ["entertainment", "comedians", "photography", "design", "education", "consulting", "art", "health", "marketing", "technology", "construction", "apparel", "music", "realestate", "beauty", "travel", "weddings"];
 
 describe("starter templates", () => {
   it("offers a template for everything, ending with a blank one", () => {
@@ -148,6 +148,7 @@ describe("starter templates", () => {
     };
     const expected: Record<string, ReturnType<typeof extras>> = {
       entertainment: { home: ["gallery", "video", "event_calendar", "faq"], contact: ["hours", "map"], events: 3, products: 0 },
+      comedians: { home: ["gallery", "video", "event_calendar", "faq"], contact: [], events: 3, products: 0 },
       photography: { home: ["gallery", "video"], contact: [], events: 0, products: 0 },
       weddings: { home: ["gallery", "video"], contact: [], events: 0, products: 0 },
       art: { home: ["gallery"], contact: [], events: 0, products: 0 },
