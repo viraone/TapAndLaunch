@@ -24,7 +24,7 @@ const SEEDED: SeededTodo[] = [
       { title: "Copy the NameSilo key: on this Mac, open ~/Developer/beezer/.env.local and copy the value after NAMESILO_API_KEY= (64 characters).", detail: "Don't paste it into Claude or chat." },
       { title: "vercel.com → tap-and-launch project → Settings → Environment Variables → Add: key NAMESILO_API_KEY, paste the value, tick Sensitive, environment Production → Save." },
       { title: "Deployments → the latest one → ⋯ → Redeploy (leave 'Use existing Build Cache' ticked).", detail: "Done when the new deployment says Ready." },
-      { title: "Check: open any site's builder on tapandlaunch.com → App settings → Domain. It should show the 'Get your own address' search box.", detail: "If it only shows 'Custom domain', the key did not reach production." },
+      { title: "Check: open tapandlaunch.com/domains and search a name. It should list .com/.net/.org with prices (and the builder's Domain tab shows 'Get your own address').", detail: "If the page says 'Domain search isn't available right now', the key did not reach production." },
       { title: "Make sure the NameSilo account balance covers the next domain ($17.29 for a .com): namesilo.com → Account Funds." },
     ],
   },

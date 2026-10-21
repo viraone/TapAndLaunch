@@ -92,3 +92,20 @@ remove the test domain from the app afterwards. Stripe's webhook does not reach 
 
 Making a customer's account free (Alfredo, the first one): once they have signed up, with the service role,
 `update org_billing set status = 'complimentary' where organization_id = (select organization_id from memberships m join auth.users u on u.id = m.user_id where u.email = '…')`.
+
+## tapandlaunch.com/domains and Dashboard > Domains (2026-10-20, later the same day)
+Domains are something a customer owns on TapAndLaunch, not only a setting of one site. `domain_orders.app_id` is
+nullable (migration 0047): a domain bought on its own has no site until it is connected.
+
+- **/domains** (public, `src/app/domains`): a registrar-style search page. `GET /api/domains/search?q=` needs no
+  account and is limited to 20 searches a minute per address (`lib/domains/search-limit.ts`, in memory). "Buy" sends a
+  visitor to `/signup?next=/domains?q=…` (sign-up → onboarding → back here; `lib/auth/next-path.ts` `withNext`, and
+  login/signup/onboarding honour `?next=` for same-site paths) and a signed-in **organization admin** to Stripe
+  (`POST /api/domains/buy`, `startDomainCheckout` with `appId: null`), which returns to `/dashboard/domains`.
+- **Dashboard > Domains** (`src/app/(dashboard)/dashboard/domains`): every order of the organization (not cancelled),
+  which site each registered domain is connected to, and a site picker + Connect for the ones that aren't
+  (`POST /api/domains/{orderId}/connect` → `connectDomainOrder`: records `app_id` on the order, then `attachDomain`).
+  Finishes a purchase on `?domain=success&order=…` exactly like the builder page does.
+- The builder's Domain tab lists the organization's unattached purchases too (`GET /api/apps/{id}/domain/orders`
+  returns orders for this app or with no app) and its "Connect it to this site" goes through the same connect route.
+- Nav: "Domains" in the marketing header and the dashboard header; `/domains` is in the sitemap.

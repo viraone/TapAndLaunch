@@ -151,6 +151,23 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
     }
   }
 
+  // A domain bought here and not yet on a site: connecting it records the site on the order too.
+  async function connectOwned(order: OrderRow) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/domains/${order.id}/connect`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ app_id: app.id }) });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(body.error ?? "Couldn't connect the domain");
+        return;
+      }
+      onUpdated(body.app);
+      toast.success(body.app.custom_domain_status === "verified" ? "Domain connected" : "Domain connected. It starts working in a few minutes, once its DNS has spread.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const bought = orders.find((o) => o.status === "registered");
   const settingUp = orders.find((o) => o.status === "paid");
   const failed = orders.find((o) => o.status === "failed");
@@ -202,7 +219,7 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
           <div className="space-y-2 rounded-md border p-3 text-sm">
             <p className="font-medium">{bought.domain} is yours (bought {longDate(bought.created_at)}).</p>
             {bought.error && <p className="text-xs text-muted-foreground">{bought.error}</p>}
-            <Button type="button" size="sm" disabled={busy} onClick={() => void addDomain(bought.domain)}>
+            <Button type="button" size="sm" disabled={busy} onClick={() => void connectOwned(bought)}>
               {busy ? "Connecting…" : "Connect it to this site"}
             </Button>
           </div>
@@ -228,7 +245,11 @@ export function DomainSettings({ app, onUpdated }: { app: AppRow; onUpdated: (ap
               </div>
               <p className="text-xs text-muted-foreground">
                 You pay the registrar&apos;s price, nothing on top. We register it for you with privacy for your contact details and connect it
-                to this site. It renews each year; we&apos;ll be in touch before then.
+                to this site. It renews each year; we&apos;ll be in touch before then. Your domains are listed under{" "}
+                <a href="/dashboard/domains" target="_blank" rel="noreferrer" className="underline underline-offset-4">
+                  Dashboard › Domains
+                </a>
+                .
               </p>
             </form>
 

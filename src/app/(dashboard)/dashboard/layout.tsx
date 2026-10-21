@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, LayoutGrid, Settings, ShieldCheck } from "lucide-react";
+import { ArrowRight, Globe, LayoutGrid, Settings, ShieldCheck } from "lucide-react";
 import { isPlatformAdmin } from "@/lib/platform/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId, getMemberships } from "@/lib/org";
@@ -68,6 +68,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
               className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[15px] font-medium text-neutral-700 transition hover:bg-neutral-100 hover:text-neutral-950 sm:px-3.5"
             >
               <LayoutGrid className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Apps</span>
+            </Link>
+            <Link
+              aria-label="Domains"
+              href="/dashboard/domains"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[15px] font-medium text-neutral-700 transition hover:bg-neutral-100 hover:text-neutral-950 sm:px-3.5"
+            >
+              <Globe className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Domains</span>
             </Link>
             {platformAdmin && (
               <Link

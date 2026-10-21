@@ -571,7 +571,8 @@ export interface Database {
         Row: {
           id: string;
           organization_id: string;
-          app_id: string;
+          /** The site it is connected to; null for a domain bought on its own (tapandlaunch.com/domains) and not yet connected. */
+          app_id: string | null;
           domain: string;
           years: number;
           price_cents: number;
@@ -587,7 +588,6 @@ export interface Database {
         };
         Insert: Partial<Database["public"]["Tables"]["domain_orders"]["Row"]> & {
           organization_id: string;
-          app_id: string;
           domain: string;
           price_cents: number;
           renew_cents: number;

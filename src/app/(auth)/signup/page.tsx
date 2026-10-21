@@ -10,6 +10,7 @@ import { AUTH_BUTTON, AuthShell } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/friendly-errors";
+import { safeNextPath, withNext } from "@/lib/auth/next-path";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -49,7 +50,8 @@ export default function SignupPage() {
       // session comes back immediately and we can go straight to onboarding.
       // The guard stays on from here: this page is about to be replaced.
       if (data.session) {
-        router.push("/onboarding");
+        // A page that sent someone here (`?next=/domains?q=…`) gets them back after onboarding.
+        router.push(withNext("/onboarding", safeNextPath(new URLSearchParams(window.location.search).get("next"), "") || null));
         router.refresh();
       } else {
         setCheckEmail(true);

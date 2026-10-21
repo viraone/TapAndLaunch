@@ -23,6 +23,9 @@ export function MarketingHeader({ signedIn }: { signedIn: boolean }) {
         <Link href="/for" className={`hidden sm:inline-block ${NAV_PILL}`}>
           Trades
         </Link>
+        <Link href="/domains" className={`hidden sm:inline-block ${NAV_PILL}`}>
+          Domains
+        </Link>
         <Link href="/pricing" className={`hidden sm:inline-block ${NAV_PILL}`}>
           Pricing
         </Link>

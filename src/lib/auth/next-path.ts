@@ -6,3 +6,8 @@ export function safeNextPath(raw: string | null | undefined, fallback: string): 
   if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\") || raw.length > 200) return fallback;
   return raw;
 }
+
+/** `/login?next=…` and friends: the path with a `next` carried along, or plain when there is none. */
+export function withNext(path: string, next: string | null): string {
+  return next ? `${path}?next=${encodeURIComponent(next)}` : path;
+}

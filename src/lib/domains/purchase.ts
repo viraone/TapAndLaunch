@@ -11,9 +11,10 @@ type Admin = SupabaseClient<Database>;
 export type DomainOrderRow = Database["public"]["Tables"]["domain_orders"]["Row"];
 
 /**
- * Buying a domain from the Domain tab. The customer searches, sees the registrar's price, pays it through Stripe
- * Checkout (one payment, on our own account), and the domain is registered in the platform's NameSilo account, then
- * attached to the app the same way a typed domain is. Every step is recorded on a `domain_orders` row.
+ * Buying a domain on TapAndLaunch. The customer searches (tapandlaunch.com/domains, or a site's Domain tab), sees the
+ * registrar's price, pays it through Stripe Checkout (one payment, on our own account), and the domain is registered in
+ * the platform's NameSilo account. Bought from a site's Domain tab it is attached to that site at once; bought on its
+ * own it waits in Dashboard > Domains until the customer connects it. Every step is recorded on a `domain_orders` row.
  *
  * Money and the registrar are both outside our database, so fulfilment is written to be safe to run twice: the page
  * the customer comes back to and Stripe's webhook both call `fulfillDomainOrder`, and only the one that flips the
@@ -47,10 +48,14 @@ export async function searchDomains(query: string): Promise<{ offers: DomainOffe
   };
 }
 
-/** Opens Stripe Checkout for one domain, one year, at the registrar's price as of right now. Returns Stripe's page. */
+/**
+ * Opens Stripe Checkout for one domain, one year, at the registrar's price as of right now. Returns Stripe's page.
+ * With `appId` the domain is for that site and Stripe returns to its builder; without, it is bought on its own and
+ * Stripe returns to Dashboard > Domains.
+ */
 export async function startDomainCheckout(input: {
   admin: Admin;
-  appId: string;
+  appId: string | null;
   organizationId: string;
   orgName: string;
   email: string | undefined;
@@ -65,6 +70,10 @@ export async function startDomainCheckout(input: {
   const offer = results.find((r) => r.domain === domain);
   if (error) return { error };
   if (!offer?.available || offer.premium || offer.priceCents == null || offer.renewCents == null) return { error: `${domain} is not available any more` };
+
+  // Already bought here (by anyone): the registrar would refuse too, but say so before taking money.
+  const { data: owned } = await input.admin.from("domain_orders").select("id").eq("domain", domain).in("status", ["paid", "registered"]).limit(1).maybeSingle();
+  if (owned) return { error: `${domain} is already registered through TapAndLaunch` };
 
   const { data: order, error: insertError } = await input.admin
     .from("domain_orders")
@@ -83,7 +92,7 @@ export async function startDomainCheckout(input: {
   if (insertError || !order) return { error: insertError?.message ?? "Could not start the purchase" };
 
   const customer = await customerFor(input.admin, input.organizationId, input.orgName, input.email);
-  const builder = `${input.origin}/dashboard/apps/${input.appId}/builder`;
+  const back = input.appId ? `${input.origin}/dashboard/apps/${input.appId}/builder` : `${input.origin}/dashboard/domains`;
   const session = await getStripe().checkout.sessions.create({
     mode: "payment",
     customer,
@@ -97,16 +106,18 @@ export async function startDomainCheckout(input: {
           unit_amount: offer.priceCents,
           product_data: {
             name: `${domain} (domain, 1 year)`,
-            description: "Registered for you and connected to your site. Includes privacy for your contact details.",
+            description: input.appId
+              ? "Registered for you and connected to your site. Includes privacy for your contact details."
+              : "Registered for you, ready to connect to any of your TapAndLaunch sites. Includes privacy for your contact details.",
           },
         },
       },
     ],
     client_reference_id: order.id,
-    metadata: { domain_order_id: order.id, app_id: input.appId, organization_id: input.organizationId, domain },
+    metadata: { domain_order_id: order.id, app_id: input.appId ?? "", organization_id: input.organizationId, domain },
     payment_intent_data: { description: `Domain ${domain}, 1 year`, ...(input.email ? { receipt_email: input.email } : {}) },
-    success_url: `${builder}?domain=success&order=${order.id}`,
-    cancel_url: `${builder}?domain=cancelled&order=${order.id}`,
+    success_url: `${back}?domain=success&order=${order.id}`,
+    cancel_url: `${back}?domain=cancelled&order=${order.id}`,
   });
   if (!session.url) return { error: "Stripe returned no checkout page" };
 
@@ -115,9 +126,10 @@ export async function startDomainCheckout(input: {
 }
 
 /**
- * Finishes a purchase once Stripe has the money: registers the domain, then attaches it to the app. Safe to call more
- * than once and from two places at the same time (see the note at the top). Returns the row as it stands afterwards:
- * `registered` with `error` set means the domain is bought but could not be connected (the tab offers "Connect it").
+ * Finishes a purchase once Stripe has the money: registers the domain, then attaches it to the site when the order
+ * names one. Safe to call more than once and from two places at the same time (see the note at the top). Returns the
+ * row as it stands afterwards: `registered` with `error` set means the domain is bought but could not be connected
+ * (the Domain tab and Dashboard > Domains offer "Connect").
  */
 export async function fulfillDomainOrder(admin: Admin, orderId: string): Promise<DomainOrderRow | null> {
   const { data: order } = await admin.from("domain_orders").select("*").eq("id", orderId).maybeSingle();
@@ -148,17 +160,40 @@ export async function fulfillDomainOrder(admin: Admin, orderId: string): Promise
   const expires = new Date();
   expires.setFullYear(expires.getFullYear() + order.years);
   await admin.from("domain_orders").update({ status: "registered", expires_at: expires.toISOString().slice(0, 10), error: null }).eq("id", orderId);
+  if (!order.app_id) return (await admin.from("domain_orders").select("*").eq("id", orderId).maybeSingle()).data;
 
   // Attached with the service-role client: the purchase itself was the authorization.
-  const attached = await attachDomain(admin, order.app_id, order.domain);
-  const note =
-    "error" in attached
-      ? `Registered, but it could not be connected yet: ${attached.error}`
-      : attached.dns === "failed"
-        ? `Connected, but its DNS could not be set for you: ${attached.dnsError ?? "unknown reason"}`
-        : null;
+  const note = attachNote(await attachDomain(admin, order.app_id, order.domain));
   const { data } = await admin.from("domain_orders").update({ error: note }).eq("id", orderId).select("*").single();
   return data;
+}
+
+function attachNote(attached: Awaited<ReturnType<typeof attachDomain>>): string | null {
+  if ("error" in attached) return `Registered, but it could not be connected yet: ${attached.error}`;
+  if (attached.dns === "failed") return `Connected, but its DNS could not be set for you: ${attached.dnsError ?? "unknown reason"}`;
+  return null;
+}
+
+/**
+ * Connects a domain the organization owns (a `registered` order) to one of its sites: records the site on the order,
+ * then attaches it like a typed domain. `db` is the signed-in user's client, so the app write obeys RLS; the order
+ * write uses the service role. The caller checks the user may edit the app.
+ */
+export async function connectDomainOrder(db: SupabaseClient<Database>, admin: Admin, orderId: string, appId: string): Promise<{ order: DomainOrderRow; app: Database["public"]["Tables"]["apps"]["Row"] } | { error: string }> {
+  const { data: order } = await admin.from("domain_orders").select("*").eq("id", orderId).maybeSingle();
+  if (!order || order.status !== "registered") return { error: "That domain isn't registered yet" };
+  const { data: app } = await db.from("apps").select("id, organization_id, custom_domain").eq("id", appId).maybeSingle();
+  if (!app || app.organization_id !== order.organization_id) return { error: "Not found" };
+  if (order.app_id && order.app_id !== appId) {
+    const { data: other } = await admin.from("apps").select("custom_domain").eq("id", order.app_id).maybeSingle();
+    if (other?.custom_domain === order.domain) return { error: "That domain is connected to another of your sites. Disconnect it there first." };
+  }
+  if (app.custom_domain && app.custom_domain !== order.domain) return { error: "This site already has a custom domain. Remove it first." };
+
+  const attached = await attachDomain(db, appId, order.domain);
+  if ("error" in attached) return { error: attached.error };
+  const { data: updated } = await admin.from("domain_orders").update({ app_id: appId, error: attachNote(attached) }).eq("id", orderId).select("*").single();
+  return { order: updated ?? { ...order, app_id: appId }, app: attached.app };
 }
 
 /** A checkout that was closed or expired: the row says so, and nothing was charged. Paid orders are left alone. */

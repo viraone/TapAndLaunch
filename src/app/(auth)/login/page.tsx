@@ -11,6 +11,7 @@ import { AUTH_BUTTON, AuthShell } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/friendly-errors";
+import { safeNextPath } from "@/lib/auth/next-path";
 
 /** localStorage key for the "Remember me" email. Only the email is stored —
  * the password stays with the browser's own password manager (the inputs
@@ -81,8 +82,9 @@ export default function LoginPage() {
         // won't prefill next time.
       }
 
-      // The guard stays on from here: this page is about to be replaced.
-      router.push("/dashboard");
+      // The guard stays on from here: this page is about to be replaced. A page that sent someone here to log in
+      // (`?next=/domains?q=…`) gets them back.
+      router.push(safeNextPath(new URLSearchParams(window.location.search).get("next"), "/dashboard"));
       router.refresh();
     } catch (err) {
       setError(friendlyError(err as Error));
