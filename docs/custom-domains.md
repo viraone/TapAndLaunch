@@ -109,3 +109,14 @@ nullable (migration 0047): a domain bought on its own has no site until it is co
 - The builder's Domain tab lists the organization's unattached purchases too (`GET /api/apps/{id}/domain/orders`
   returns orders for this app or with no app) and its "Connect it to this site" goes through the same connect route.
 - Nav: "Domains" in the marketing header and the dashboard header; `/domains` is in the sitemap.
+
+### Domain first, site later (2026-10-20, later still)
+A registered domain whose organization has no site shows "Build the site for brand.com" on Dashboard > Domains, which opens
+the picker with `?domain=<orderId>`. The picker says so in its header and on the name step, sends `domain_order_id` with
+`POST /api/apps`, and the route connects the domain (`connectDomainOrder`) right after `createAppFromStarter`; the
+answer carries `domain` (connected) or `domainError` (the site exists, connect by hand from the Domain tab). The
+builder opens with the domain attached and "Waiting for DNS" until Vercel sees it.
+
+**Removal order:** `removeDomain` deletes the www/root twin (a redirect) *before* the domain. Vercel refuses the other
+order with "Cannot remove X until existing redirects to X are removed"; before this fix every root domain connected
+since the www pair shipped could not be removed from the Domain tab.
