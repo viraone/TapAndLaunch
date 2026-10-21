@@ -56,6 +56,25 @@ export type AnalyticsEventType =
   | "booking_created";
 export type OrderStatus = "pending" | "paid" | "fulfilled" | "cancelled" | "refunded";
 export type PaymentMethod = "request" | "stripe";
+/** How often a recurring product is charged; null means a one-time purchase. See migration 0046. */
+export type BillingInterval = "month" | "year";
+/** One shipping choice the shopper sees on Stripe's page (`store_settings.shipping_rates`). */
+export interface ShippingRate {
+  name: string;
+  amount_cents: number;
+  /** Delivery estimate in business days, both optional. */
+  min_days?: number;
+  max_days?: number;
+}
+/** The address the shopper typed on Stripe's page, in Stripe's own shape. */
+export interface ShippingAddress {
+  line1?: string | null;
+  line2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+}
 
 export type CustomDomainStatus = "pending" | "verified" | "error";
 /** A domain bought through the Domain tab: see migration 0045 and `lib/domains/purchase.ts`. */
@@ -830,6 +849,8 @@ export interface Database {
           image_url: string | null;
           is_active: boolean;
           position: number;
+          /** null = one-time purchase; month/year = a subscription. */
+          billing_interval: BillingInterval | null;
           created_at: string;
           updated_at: string;
         };
@@ -856,6 +877,14 @@ export interface Database {
           stripe_checkout_session_id: string | null;
           stripe_payment_intent_id: string | null;
           paid_at: string | null;
+          /** What Stripe added on top of the items once paid (migration 0046). */
+          shipping_cents: number;
+          tax_cents: number;
+          discount_cents: number;
+          shipping_name: string | null;
+          shipping_address: ShippingAddress | null;
+          /** Set when the cart held a recurring product: Stripe runs the renewals. */
+          stripe_subscription_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -876,6 +905,7 @@ export interface Database {
           product_name: string;
           unit_price_cents: number;
           quantity: number;
+          billing_interval: BillingInterval | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["order_items"]["Row"]> & {
@@ -885,6 +915,24 @@ export interface Database {
           quantity: number;
         };
         Update: Partial<Database["public"]["Tables"]["order_items"]["Row"]>;
+        Relationships: [];
+      };
+      /** Per-app shipping, tax and promo-code choices for the store (migration 0046). */
+      store_settings: {
+        Row: {
+          app_id: string;
+          shipping_enabled: boolean;
+          shipping_rates: ShippingRate[];
+          ship_to_countries: string[];
+          tax_enabled: boolean;
+          promo_codes_enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["store_settings"]["Row"]> & {
+          app_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["store_settings"]["Row"]>;
         Relationships: [];
       };
       events: {

@@ -73,13 +73,23 @@ export default async function OrdersPage({ params }: { params: Params }) {
               <ul className="space-y-0.5 text-xs text-muted-foreground">
                 {(itemsByOrderId.get(order.id) ?? []).map((item) => (
                   <li key={item.id}>
-                    {item.quantity}× {item.product_name} ({formatMoney(item.unit_price_cents, order.currency)} each)
+                    {item.quantity}× {item.product_name} ({formatMoney(item.unit_price_cents, order.currency)}
+                    {item.billing_interval ? `/${item.billing_interval}` : ""} each)
                   </li>
                 ))}
+                {order.shipping_cents > 0 && <li>Shipping {formatMoney(order.shipping_cents, order.currency)}</li>}
+                {order.tax_cents > 0 && <li>Tax {formatMoney(order.tax_cents, order.currency)}</li>}
+                {order.discount_cents > 0 && <li>Discount −{formatMoney(order.discount_cents, order.currency)}</li>}
               </ul>
+              {order.shipping_address && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Ship to: {[order.shipping_name, order.shipping_address.line1, order.shipping_address.line2, order.shipping_address.city, order.shipping_address.state, order.shipping_address.postal_code, order.shipping_address.country].filter(Boolean).join(", ")}
+                </p>
+              )}
               <p className="mt-2 text-xs text-muted-foreground">
                 <LocalTime iso={order.created_at} />
                 {order.payment_method === "stripe" ? " · Card payment" : " · Order request"}
+                {order.stripe_subscription_id ? " · Subscription" : ""}
               </p>
             </div>
           ))}

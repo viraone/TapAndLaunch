@@ -9,9 +9,33 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Trash2 } from "lucide-react";
 import { ImageUploadField } from "@/components/builder/ImageUploadField";
-import type { Database } from "@/types/database";
+import type { BillingInterval, Database } from "@/types/database";
 
 type ProductRow = Database["public"]["Tables"]["products"]["Row"];
+
+const INTERVALS: Array<[string, string]> = [
+  ["once", "One-time"],
+  ["month", "Every month"],
+  ["year", "Every year"],
+];
+
+/** One-time or recurring. Recurring products check out as a Stripe subscription. */
+function IntervalSelect({ id, value, onChange }: { id: string; value: BillingInterval | null; onChange: (v: BillingInterval | null) => void }) {
+  return (
+    <select
+      id={id}
+      value={value ?? "once"}
+      onChange={(e) => onChange(e.target.value === "once" ? null : (e.target.value as BillingInterval))}
+      className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+    >
+      {INTERVALS.map(([v, label]) => (
+        <option key={v} value={v}>
+          {label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 function dollarsToCents(value: string): number {
   return Math.round(Number(value || "0") * 100);
@@ -33,6 +57,7 @@ function NewProductForm({
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [interval, setInterval] = useState<BillingInterval | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -47,6 +72,7 @@ function NewProductForm({
           description: description || undefined,
           price_cents: dollarsToCents(price),
           image_url: imageUrl || undefined,
+          billing_interval: interval,
         }),
       });
       const body = await res.json();
@@ -59,6 +85,7 @@ function NewProductForm({
       setDescription("");
       setPrice("");
       setImageUrl("");
+      setInterval(null);
       toast.success("Product added");
     } finally {
       setSaving(false);
@@ -85,6 +112,10 @@ function NewProductForm({
             onChange={(e) => setPrice(e.target.value)}
           />
         </div>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="new-product-interval">Charge</Label>
+        <IntervalSelect id="new-product-interval" value={interval} onChange={setInterval} />
       </div>
       <div className="space-y-1">
         <Label htmlFor="new-product-description">Description</Label>
@@ -120,6 +151,7 @@ function ProductRowEditor({
   const [name, setName] = useState(product.name);
   const [price, setPrice] = useState(centsToDollars(product.price_cents));
   const [imageUrl, setImageUrl] = useState(product.image_url ?? "");
+  const [interval, setInterval] = useState<BillingInterval | null>(product.billing_interval);
   const [isActive, setIsActive] = useState(product.is_active);
   const [saving, setSaving] = useState(false);
 
@@ -160,9 +192,10 @@ function ProductRowEditor({
 
   return (
     <div className="space-y-3 rounded-lg border p-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-[1fr_7rem_9rem] gap-3">
         <Input value={name} onChange={(e) => setName(e.target.value)} />
         <Input type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
+        <IntervalSelect id={`product-interval-${product.id}`} value={interval} onChange={setInterval} />
       </div>
       <ImageUploadField id={`product-image-${product.id}`} label="Image" organizationId={organizationId} value={imageUrl} onChange={setImageUrl} />
       <div className="flex items-center justify-between">
@@ -182,7 +215,7 @@ function ProductRowEditor({
             variant="outline"
             size="sm"
             disabled={saving}
-            onClick={() => save({ name, price_cents: dollarsToCents(price), image_url: imageUrl || null })}
+            onClick={() => save({ name, price_cents: dollarsToCents(price), image_url: imageUrl || null, billing_interval: interval })}
           >
             Save
           </Button>

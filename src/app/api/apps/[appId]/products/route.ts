@@ -7,6 +7,7 @@ const CreateProductSchema = z.object({
   price_cents: z.number().int().min(0),
   currency: z.string().length(3).optional(),
   image_url: z.string().optional(),
+  billing_interval: z.enum(["month", "year"]).nullable().optional(),
 });
 
 export async function POST(request: Request, context: { params: Promise<{ appId: string }> }) {

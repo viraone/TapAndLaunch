@@ -7,6 +7,7 @@ const UpdateProductSchema = z.object({
   price_cents: z.number().int().min(0).optional(),
   currency: z.string().length(3).optional(),
   image_url: z.string().nullable().optional(),
+  billing_interval: z.enum(["month", "year"]).nullable().optional(),
   is_active: z.boolean().optional(),
   position: z.number().int().min(0).optional(),
 });

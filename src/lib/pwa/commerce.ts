@@ -1,9 +1,14 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canTakeCards } from "@/lib/stripe/accounts";
-import { canPayByCard } from "@/lib/stripe/checkout";
 import type { RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import type { RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
+import type { Database } from "@/types/database";
+
+export type StoreSettings = Pick<
+  Database["public"]["Tables"]["store_settings"]["Row"],
+  "shipping_enabled" | "shipping_rates" | "ship_to_countries" | "tax_enabled" | "promo_codes_enabled"
+>;
 
 /** Every active product for an app, in display order — see the migration
  * comment on `products` for why there's no per-block curation to filter by. */
@@ -11,15 +16,28 @@ export async function getActiveProducts(appId: string, organizationId: string): 
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("products")
-    .select("id, name, description, price_cents, currency, image_url")
+    .select("id, name, description, price_cents, currency, image_url, billing_interval")
     .eq("app_id", appId)
     .eq("is_active", true)
     .order("position", { ascending: true });
 
   if (error) throw error;
-  // With card payments on, Stripe's page collects the shopper's name and email, so the buy form skips them.
+  // With card payments on, Stripe's page collects the shopper's name and email, so the cart skips them
+  // (the cart itself checks its total against Stripe's minimum charge).
   const cards = await canTakeCards(admin, organizationId);
-  return (data ?? []).map((p) => ({ ...p, card_checkout: cards && canPayByCard(p.price_cents) }));
+  return (data ?? []).map((p) => ({ ...p, card_checkout: cards }));
+}
+
+/** The app's shipping, tax and promo-code choices; the defaults (nothing on) when the owner never set any. */
+export async function getStoreSettings(appId: string): Promise<StoreSettings> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("store_settings")
+    .select("shipping_enabled, shipping_rates, ship_to_countries, tax_enabled, promo_codes_enabled")
+    .eq("app_id", appId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ?? { shipping_enabled: false, shipping_rates: [], ship_to_countries: ["US"], tax_enabled: false, promo_codes_enabled: false };
 }
 
 /**

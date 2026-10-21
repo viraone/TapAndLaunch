@@ -3,24 +3,32 @@ import { getPublishedApp } from "@/lib/pwa/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentMember } from "@/lib/pwa/get-current-member";
 import { recordAnalyticsEvent } from "@/lib/pwa/analytics";
+import { getStoreSettings, type StoreSettings } from "@/lib/pwa/commerce";
 import { canTakeCards, getStripeAccountRow } from "@/lib/stripe/accounts";
-import { appOrigin, applicationFeeCents, buildCheckoutSessionParams, canPayByCard, safeReturnPath } from "@/lib/stripe/checkout";
+import { appOrigin, buildCheckoutSessionParams, canPayByCard, safeReturnPath } from "@/lib/stripe/checkout";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/server";
 import { getRootDomain } from "@/lib/tenant";
+import { MAX_CART_LINES, cartHasSubscription, cartSubtotalCents, mergeCartRequests, subscriptionShippingLine, type CartLine } from "@/lib/store/cart";
 
-const OrderSchema = z.object({
-  productId: z.string().uuid(),
-  quantity: z.number().int().min(1).max(999),
-  /** Left out when the shopper pays by card: Stripe's checkout page asks for them. */
-  customerName: z.string().min(1).max(200).optional(),
-  customerEmail: z.string().email().optional(),
-  /** The page the shopper bought from, so they come back to it after paying. */
-  returnPath: z.string().optional(),
-});
+const ItemSchema = z.object({ productId: z.string().uuid(), quantity: z.number().int().min(1).max(999) });
+
+const OrderSchema = z
+  .object({
+    /** The cart. */
+    items: z.array(ItemSchema).min(1).max(MAX_CART_LINES).optional(),
+    /** The old one-product form (a site installed before the cart may still send this). */
+    productId: z.string().uuid().optional(),
+    quantity: z.number().int().min(1).max(999).optional(),
+    /** Left out when the shopper pays by card: Stripe's checkout page asks for them. */
+    customerName: z.string().min(1).max(200).optional(),
+    customerEmail: z.string().email().optional(),
+    /** The page the shopper bought from, so they come back to it after paying. */
+    returnPath: z.string().optional(),
+  })
+  .refine((o) => (o.items && o.items.length > 0) || o.productId, { message: "Nothing in the cart" });
 
 /**
- * Creates one order with one line item — see `ProductBuyRuntime`'s comment
- * on why this is "buy this product now," not a multi-item cart.
+ * Creates one order for the whole cart (one line per product).
  *
  * If the app's organization has connected Stripe (and the order is big enough
  * for a card), the response carries a `checkoutUrl` on Stripe's hosted page and
@@ -34,31 +42,53 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  const parsed = OrderSchema.safeParse(await request.json());
+  const parsed = OrderSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
+  const requested = mergeCartRequests(parsed.data.items ?? [{ productId: parsed.data.productId!, quantity: parsed.data.quantity ?? 1 }]);
+  if (requested.length === 0) return Response.json({ error: "Nothing in the cart" }, { status: 400 });
+
   const admin = createAdminClient();
 
-  const { data: product } = await admin
+  const { data: products } = await admin
     .from("products")
-    .select("id, name, price_cents, currency, is_active")
-    .eq("id", parsed.data.productId)
+    .select("id, name, price_cents, currency, is_active, billing_interval")
     .eq("app_id", published.app.id)
-    .maybeSingle();
+    .in(
+      "id",
+      requested.map((r) => r.productId)
+    );
 
-  if (!product || !product.is_active) {
-    return Response.json({ error: "Product not available" }, { status: 400 });
+  const byId = new Map((products ?? []).filter((p) => p.is_active).map((p) => [p.id, p]));
+  const lines: CartLine[] = [];
+  const currencies = new Set<string>();
+  for (const r of requested) {
+    const p = byId.get(r.productId);
+    if (!p) return Response.json({ error: "A product in the cart is no longer available." }, { status: 400 });
+    lines.push({ productId: p.id, name: p.name, unitPriceCents: p.price_cents, quantity: r.quantity, interval: p.billing_interval });
+    currencies.add(p.currency);
+  }
+  if (currencies.size !== 1) {
+    return Response.json({ error: "These products can't be bought together." }, { status: 400 });
+  }
+  const [currency] = currencies;
+
+  // A subscription checkout can't offer shipping rates on Stripe's page, so the charge becomes a line of its own.
+  const settings = await getStoreSettings(published.app.id);
+  if (settings.shipping_enabled && cartHasSubscription(lines)) {
+    const shippingLine = subscriptionShippingLine(settings.shipping_rates);
+    if (shippingLine) lines.push(shippingLine);
   }
 
   const member = await getCurrentMember(published.app.id);
-  const totalCents = product.price_cents * parsed.data.quantity;
+  const subtotalCents = cartSubtotalCents(lines);
 
   // Name and email are only optional when the shopper is about to pay on Stripe, which asks for them.
   const { customerName, customerEmail } = parsed.data;
   const hasContact = !!customerName && !!customerEmail;
-  if (!hasContact && !(canPayByCard(totalCents) && (await canTakeCards(admin, published.app.organization_id)))) {
+  if (!hasContact && !(canPayByCard(subtotalCents) && (await canTakeCards(admin, published.app.organization_id)))) {
     return Response.json({ error: "Please enter your name and email." }, { status: 400 });
   }
 
@@ -70,8 +100,9 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
       // Blank until Stripe tells us who paid (see `markOrderPaid`).
       customer_name: customerName ?? "",
       customer_email: customerEmail ?? "",
-      total_cents: totalCents,
-      currency: product.currency,
+      // The items only; shipping, tax and discounts come from Stripe once paid.
+      total_cents: subtotalCents,
+      currency,
     })
     .select("id")
     .single();
@@ -80,13 +111,16 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
     return Response.json({ error: orderError.message }, { status: 400 });
   }
 
-  const { error: itemError } = await admin.from("order_items").insert({
-    order_id: order.id,
-    product_id: product.id,
-    product_name: product.name,
-    unit_price_cents: product.price_cents,
-    quantity: parsed.data.quantity,
-  });
+  const { error: itemError } = await admin.from("order_items").insert(
+    lines.map((l) => ({
+      order_id: order.id,
+      product_id: l.productId,
+      product_name: l.name,
+      unit_price_cents: l.unitPriceCents,
+      quantity: l.quantity,
+      billing_interval: l.interval,
+    }))
+  );
 
   if (itemError) {
     return Response.json({ error: itemError.message }, { status: 400 });
@@ -96,7 +130,7 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
     appId: published.app.id,
     memberId: member?.id,
     eventType: "order_placed",
-    metadata: { productId: product.id, quantity: parsed.data.quantity, totalCents },
+    metadata: { items: lines.filter((l) => l.productId).map((l) => ({ productId: l.productId, quantity: l.quantity })), totalCents: subtotalCents },
   });
 
   const checkoutUrl = await startCardCheckout({
@@ -105,9 +139,10 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
     appId: published.app.id,
     appSlug,
     orderId: order.id,
-    product,
-    quantity: parsed.data.quantity,
-    totalCents,
+    lines,
+    currency,
+    subtotalCents,
+    settings,
     customerEmail,
     returnPath: safeReturnPath(parsed.data.returnPath),
   });
@@ -132,30 +167,32 @@ async function startCardCheckout(input: {
   appId: string;
   appSlug: string;
   orderId: string;
-  product: { id: string; name: string; price_cents: number; currency: string };
-  quantity: number;
-  totalCents: number;
+  lines: CartLine[];
+  currency: string;
+  subtotalCents: number;
+  settings: StoreSettings;
   customerEmail: string | undefined;
   returnPath: string;
 }): Promise<string | null> {
-  if (!isStripeConfigured() || !canPayByCard(input.totalCents)) return null;
+  if (!isStripeConfigured() || !canPayByCard(input.subtotalCents)) return null;
   const account = await getStripeAccountRow(input.admin, input.organizationId);
   if (!account?.charges_enabled) return null;
+  const { settings } = input;
 
   try {
     const session = await getStripe().checkout.sessions.create(
       buildCheckoutSessionParams({
         orderId: input.orderId,
         appId: input.appId,
-        productId: input.product.id,
-        productName: input.product.name,
-        unitPriceCents: input.product.price_cents,
-        currency: input.product.currency,
-        quantity: input.quantity,
+        currency: input.currency,
+        lines: input.lines,
         customerEmail: input.customerEmail,
         origin: appOrigin(input.appSlug, getRootDomain()),
         returnPath: input.returnPath,
-        feeCents: applicationFeeCents(input.totalCents, process.env.STRIPE_APPLICATION_FEE_PERCENT),
+        feePercentSetting: process.env.STRIPE_APPLICATION_FEE_PERCENT,
+        shipping: settings.shipping_enabled ? { rates: settings.shipping_rates, countries: settings.ship_to_countries } : null,
+        automaticTax: settings.tax_enabled,
+        promoCodes: settings.promo_codes_enabled,
       }),
       { stripeAccount: account.stripe_account_id }
     );

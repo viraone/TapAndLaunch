@@ -2,7 +2,7 @@ import { z } from "zod";
 import { getPublishedApp } from "@/lib/pwa/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripeAccountRow } from "@/lib/stripe/accounts";
-import { customerOf } from "@/lib/stripe/events";
+import { paidDetailsOf } from "@/lib/stripe/events";
 import { markOrderPaid } from "@/lib/stripe/orders";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/server";
 
@@ -43,8 +43,7 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
       stripeAccount: account.stripe_account_id,
     });
     if (session.payment_status !== "paid") return Response.json({ status: "pending" });
-    const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : (session.payment_intent?.id ?? null);
-    const { error } = await markOrderPaid(admin, { orderId: order.id, sessionId: session.id, paymentIntentId, customer: customerOf(session) });
+    const { error } = await markOrderPaid(admin, { orderId: order.id, sessionId: session.id, ...paidDetailsOf(session) });
     if (error) return Response.json({ error }, { status: 500 });
     return Response.json({ status: "paid" });
   } catch (error) {

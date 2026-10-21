@@ -36,7 +36,7 @@ import { ButtonBlockView, FaqBlockView, QuoteBlockView } from "@/components/pwa-
 import { AudioBlockView, ImageTextBlockView, MapBlockView, NewsletterBlockView, ShareBlockView } from "@/components/pwa-runtime/MoreBlocks";
 import { EditableImage, EditableText, PromoteHeading } from "@/components/pwa-runtime/Editable";
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
-import { ProductBuyRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
+import { StoreRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
 import { GasDirectoryRuntime } from "@/components/pwa-runtime/GasDirectoryRuntime";
 import { FoodDirectoryPreview, FoodDirectoryRuntime } from "@/components/pwa-runtime/FoodDirectoryRuntime";
@@ -288,11 +288,7 @@ function ProductListBlockView({
       ) : products.length === 0 ? (
         <p className="text-sm text-muted-foreground">No products yet.</p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 @lg:grid-cols-3 @lg:gap-5 @5xl:grid-cols-4">
-          {products.map((product) => (
-            <ProductBuyRuntime key={product.id} product={product} />
-          ))}
-        </div>
+        <StoreRuntime products={products} />
       )}
     </div>
   );
