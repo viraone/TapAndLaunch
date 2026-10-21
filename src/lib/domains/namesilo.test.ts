@@ -136,3 +136,99 @@ describe("pointDomainAtUs", () => {
     expect(await pointDomainAtUs("brand.com", [A])).toEqual({ status: "failed", error: "DNS modification error" });
   });
 });
+
+describe("checkAvailability", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("prices the available names and lists the rest as taken", async () => {
+    vi.stubEnv("NAMESILO_API_KEY", "k");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          reply: {
+            code: 300,
+            detail: "success",
+            available: [{ domain: "brand.com", price: 17.29, renew: 17.29, premium: 0 }, { domain: "brand.org", price: 10.79, renew: 14.99, premium: 0 }],
+            unavailable: "brand.net",
+          },
+        }),
+      ),
+    );
+    const { checkAvailability } = await import("./namesilo");
+    const { results, error } = await checkAvailability(["brand.com", "brand.net", "brand.org"]);
+    expect(error).toBeUndefined();
+    expect(results).toEqual([
+      { domain: "brand.com", available: true, priceCents: 1729, renewCents: 1729, premium: false },
+      { domain: "brand.org", available: true, priceCents: 1079, renewCents: 1499, premium: false },
+      { domain: "brand.net", available: false, priceCents: null, renewCents: null, premium: false },
+    ]);
+  });
+
+  it("reads a single result, which NameSilo wraps once more than a list", async () => {
+    vi.stubEnv("NAMESILO_API_KEY", "k");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({ reply: { code: 300, detail: "success", available: { domain: { domain: "costumecontestsseattle.com", price: 17.29, renew: 17.29, premium: 0, duration: 10 } } } }),
+      ),
+    );
+    const { checkAvailability } = await import("./namesilo");
+    expect((await checkAvailability(["costumecontestsseattle.com"])).results).toEqual([
+      { domain: "costumecontestsseattle.com", available: true, priceCents: 1729, renewCents: 1729, premium: false },
+    ]);
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ reply: { code: 300, detail: "success", unavailable: { domain: "taken.com" } } })));
+    expect((await checkAvailability(["taken.com"])).results).toEqual([{ domain: "taken.com", available: false, priceCents: null, renewCents: null, premium: false }]);
+  });
+
+  it("reports NameSilo's refusal", async () => {
+    vi.stubEnv("NAMESILO_API_KEY", "k");
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ reply: { code: 110, detail: "Invalid API key" } })));
+    const { checkAvailability } = await import("./namesilo");
+    expect(await checkAvailability(["brand.com"])).toEqual({ results: [], error: "Invalid API key" });
+  });
+});
+
+describe("registerDomain", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("registers for the given years with privacy and auto-renew on, and never logs the key", async () => {
+    vi.stubEnv("NAMESILO_API_KEY", "secret-key");
+    const fetchMock = vi.fn<(input: URL | string) => Promise<Response>>(async () =>
+      Response.json({ reply: { code: 300, detail: "success", message: "Your domain registration was successfully processed.", domain: "brand.com", order_amount: 17.29 } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { registerDomain } = await import("./namesilo");
+    expect(await registerDomain("brand.com", 1)).toEqual({ ok: true, orderAmount: 17.29 });
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]));
+    expect(url.pathname).toBe("/api/registerDomain");
+    expect(url.searchParams.get("domain")).toBe("brand.com");
+    expect(url.searchParams.get("years")).toBe("1");
+    expect(url.searchParams.get("private")).toBe("1");
+    expect(url.searchParams.get("auto_renew")).toBe("1");
+  });
+
+  it("passes the registrar's reason on when it refuses", async () => {
+    vi.stubEnv("NAMESILO_API_KEY", "k");
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ reply: { code: 261, detail: "Insufficient funds" } })));
+    const { registerDomain } = await import("./namesilo");
+    expect(await registerDomain("brand.com", 1)).toEqual({ ok: false, error: "Insufficient funds" });
+  });
+
+  it("pretends outside production when NAMESILO_FAKE_REGISTER is on", async () => {
+    vi.stubEnv("NAMESILO_API_KEY", "k");
+    vi.stubEnv("NAMESILO_FAKE_REGISTER", "1");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { registerDomain } = await import("./namesilo");
+    expect(await registerDomain("brand.com", 1)).toEqual({ ok: true, orderAmount: null });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

@@ -38,6 +38,13 @@ export default function RefundsPage() {
           We do not currently charge for {BRAND}. If we introduce paid plans, the refund terms will be shown clearly before you pay.
         </p>
       </Section>
+      <Section title="Domains bought through us">
+        <p>
+          A domain name you buy in the Domain tab is registered for you with a domain registrar, at the price shown before you pay. Registrars
+          do not take a registration back, so once a domain is registered the payment is not refundable. If we take your payment and the
+          registration then fails, you get a full refund.
+        </p>
+      </Section>
       <Section title="Questions">
         <p>
           Email {SUPPORT_EMAIL}. We will point you in the right direction, even when the refund is the business&apos;s to give.

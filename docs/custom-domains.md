@@ -57,3 +57,38 @@ twin already on the project gets its redirect set with a `PATCH` instead). The r
 - Removing a domain removes it from Vercel and the app row. A 404 from Vercel on removal counts as success.
 - Hobby is Vercel's non-commercial plan. Once TapAndLaunch charges customers, Vercel's terms call for the Pro plan.
 - Every customer domain is added to the same Vercel project, so Vercel's domain limits per project apply.
+
+## Buying a domain in the Domain tab (2026-10-20)
+A customer can buy a domain without leaving the builder: App settings > Domain > **Get your own address**. Code in
+`lib/domains/buy.ts` (pure helpers), `purchase.ts` (server), `attach.ts` (the connect step, shared with "Add domain"),
+the routes under `api/apps/[appId]/domain/{search,buy,orders}`, and the `domain_orders` table (migration 0045).
+
+1. **Search**: words or a name (`costume contests seattle`, `brand.org`) become one label priced with each ending we
+   sell (`.com`, `.net`, `.org`; `BUYABLE_TLDS`), the typed ending first. `checkRegisterAvailability` gives the first-year
+   and renewal prices; premium names are shown as taken. The customer pays **the registrar's price, nothing on top**
+   (as of 2026-10-20: .com $17.29, .net $15.95, .org $10.79 then $14.99); Stripe's fee (~3% + 30¢) is ours to absorb.
+2. **Buy and connect** (org admins only): `POST .../domain/buy` prices the domain again, inserts a `pending` order and
+   opens Stripe Checkout in payment mode on **our own** Stripe account (same customer as the plan, `customerFor`), with
+   `domain_order_id` in the session metadata. Success and cancel both return to the builder with `?domain=…&order=…`.
+3. **Fulfilment** (`fulfillDomainOrder`) runs from two places, the builder page the customer returns to (so the result
+   shows at once) and the billing webhook's `checkout.session.completed` (the backstop); `checkout.session.expired`
+   cancels a pending order. It is safe to run twice: it checks the session is `paid` with Stripe, then flips the row
+   `pending → paid` with a conditional update, and only the caller whose update matched goes on to `registerDomain`
+   (1 year, WHOIS privacy and auto-renew on, the account's default contact, paid from the NameSilo balance). Success
+   marks the row `registered` with `expires_at`, then `attachDomain` connects it exactly like a typed domain (Vercel +
+   www twin + NameSilo DNS). A refused registration marks the row `failed` with the reason: **refund by hand** in Stripe
+   and the Refund Policy page promises that. A registered domain that could not be connected keeps a note in `error`
+   and the tab offers "Connect it to this site".
+4. The builder opens the Domain tab on return (`domainReturn` → the `open-app-settings` event) with a toast for each
+   outcome, and drops the query string so a reload does not repeat it.
+
+Renewals are by hand for now: NameSilo auto-renews from the account balance; `domain_orders.expires_at` says when each
+customer's year ends, and the customer is asked to pay again before then. Not built: renewal reminders, transfers out,
+a refund from the app, other endings.
+
+Trying it locally: Stripe's test key is in `.env.local`; set `NAMESILO_FAKE_REGISTER=1` so the test card (4242…) does not
+register a real domain. The "connect" step still talks to the real Vercel project (as "Add domain" does locally), so
+remove the test domain from the app afterwards. Stripe's webhook does not reach localhost; the return page does the work.
+
+Making a customer's account free (Alfredo, the first one): once they have signed up, with the service role,
+`update org_billing set status = 'complimentary' where organization_id = (select organization_id from memberships m join auth.users u on u.id = m.user_id where u.email = '…')`.

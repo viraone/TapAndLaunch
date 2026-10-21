@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { applySubscription } from "@/lib/billing/stripe";
+import { cancelDomainOrder, fulfillDomainOrder } from "@/lib/domains/purchase";
 
 /**
  * Stripe tells us here when someone subscribes, changes plan, fails a payment or cancels. This is a *separate*
@@ -36,14 +37,26 @@ export async function POST(request: Request) {
       if (error) return Response.json({ error }, { status: 500 });
       break;
     }
+    case "checkout.session.async_payment_succeeded":
     case "checkout.session.completed": {
-      // The subscription events carry the details; this just makes sure the customer is linked right away.
       const session = event.data.object;
+      // A domain bought from the Domain tab: register and attach it (the return page tries first; this is the backstop,
+      // and the only path when the money arrives later, as with a bank payment).
+      if (session.mode === "payment" && session.metadata?.domain_order_id) {
+        await fulfillDomainOrder(admin, session.metadata.domain_order_id);
+        break;
+      }
+      // The subscription events carry the details; this just makes sure the customer is linked right away.
       const organizationId = session.metadata?.organization_id ?? session.client_reference_id;
       const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
       if (session.mode === "subscription" && organizationId && customerId) {
         await admin.from("org_billing").update({ stripe_customer_id: customerId }).eq("organization_id", organizationId);
       }
+      break;
+    }
+    case "checkout.session.expired": {
+      const session = event.data.object;
+      if (session.metadata?.domain_order_id) await cancelDomainOrder(admin, session.metadata.domain_order_id);
       break;
     }
     default:

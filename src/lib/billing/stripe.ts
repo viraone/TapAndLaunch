@@ -40,7 +40,8 @@ export async function ensurePrices(): Promise<Record<Interval, string>> {
   return { month: ids.month as string, year: ids.year as string };
 }
 
-async function customerFor(admin: Admin, organizationId: string, orgName: string, email: string | undefined): Promise<string> {
+/** The organization's Stripe customer, created on first use. Shared with domain purchases, so one customer holds every charge. */
+export async function customerFor(admin: Admin, organizationId: string, orgName: string, email: string | undefined): Promise<string> {
   const { data: row } = await admin.from("org_billing").select("stripe_customer_id").eq("organization_id", organizationId).maybeSingle();
   if (row?.stripe_customer_id) return row.stripe_customer_id;
   const customer = await getStripe().customers.create({ name: orgName, email, metadata: { organization_id: organizationId } });

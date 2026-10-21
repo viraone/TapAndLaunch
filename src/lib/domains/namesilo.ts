@@ -31,7 +31,8 @@ async function call(operation: string, params: Record<string, string>): Promise<
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   const res = await fetch(url, { cache: "no-store" });
   const body = (await res.json().catch(() => null)) as { reply?: Reply } | null;
-  return body?.reply ?? { code: res.status, detail: `NameSilo answered ${res.status}` };
+  // No JSON reply: NameSilo is down or behind an error page (seen as a Cloudflare 521 on 2026-10-20).
+  return body?.reply ?? { code: res.status, detail: `The domain registrar isn't answering right now (HTTP ${res.status}). Try again in a few minutes.` };
 }
 
 const succeeded = (r: Reply) => Number(r.code) === 300;
@@ -137,5 +138,80 @@ export async function pointDomainAtUs(domain: string, wanted: DomainVerification
     return { status: "set", changes: actions.length };
   } catch (e) {
     return { status: "failed", error: e instanceof Error ? e.message : "Could not reach NameSilo" };
+  }
+}
+
+export interface Availability {
+  domain: string;
+  available: boolean;
+  /** Registration and renewal prices for one year, in cents; null when the domain is taken. */
+  priceCents: number | null;
+  renewCents: number | null;
+  /** A premium name: NameSilo prices it on its own, so it is not sold through the Domain tab. */
+  premium: boolean;
+}
+
+/**
+ * `checkRegisterAvailability` lists several results as an array (`available: [{domain, price…}, …]`) but wraps a
+ * single one once more (`available: { domain: {domain, price…} }`, seen on the real account), so both are read here.
+ */
+function domainItems<T>(v: unknown): T[] {
+  if (v && typeof v === "object" && !Array.isArray(v) && "domain" in v && typeof (v as { domain: unknown }).domain !== "string") {
+    return asList<T>((v as { domain: unknown }).domain);
+  }
+  return asList<T>(v);
+}
+
+const toCents = (v: unknown): number | null => {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.round(n * 100) : null;
+};
+
+/** Which of these domains can be bought right now, and at what price (`checkRegisterAvailability`). */
+export async function checkAvailability(domains: string[]): Promise<{ results: Availability[]; error?: string }> {
+  if (!isNameSiloConfigured()) return { results: [], error: "Domain registration is not set up on this server" };
+  try {
+    const r = await call("checkRegisterAvailability", { domains: domains.join(",") });
+    if (!succeeded(r)) return { results: [], error: r.detail ?? "NameSilo could not check that name" };
+    const available = domainItems<Record<string, unknown>>(r.available).map((x) => ({
+      domain: String(x.domain ?? "").toLowerCase(),
+      available: true,
+      priceCents: toCents(x.price),
+      renewCents: toCents(x.renew),
+      premium: Number(x.premium) === 1,
+    }));
+    const taken = [...domainItems<unknown>(r.unavailable), ...domainItems<unknown>(r.invalid)].map((x) => ({
+      domain: String(typeof x === "object" && x !== null && "domain" in x ? (x as { domain: unknown }).domain : x).toLowerCase(),
+      available: false,
+      priceCents: null,
+      renewCents: null,
+      premium: false,
+    }));
+    return { results: [...available, ...taken] };
+  } catch (e) {
+    return { results: [], error: e instanceof Error ? e.message : "Could not reach NameSilo" };
+  }
+}
+
+export type RegisterResult = { ok: true; orderAmount: number | null } | { ok: false; error: string };
+
+/**
+ * Registers a domain in the platform's account (`registerDomain`), paid from the account balance, with WHOIS privacy
+ * and auto-renew on and the account's default contact. Real money: `NAMESILO_FAKE_REGISTER=1` (never in production)
+ * pretends it worked, for trying the purchase flow locally.
+ */
+export async function registerDomain(domain: string, years: number): Promise<RegisterResult> {
+  if (!isNameSiloConfigured()) return { ok: false, error: "Domain registration is not set up on this server" };
+  if (process.env.NAMESILO_FAKE_REGISTER === "1" && process.env.NODE_ENV !== "production") {
+    console.warn(`NAMESILO_FAKE_REGISTER: pretending to register ${domain}`);
+    return { ok: true, orderAmount: null };
+  }
+  try {
+    const r = await call("registerDomain", { domain, years: String(years), private: "1", auto_renew: "1" });
+    if (!succeeded(r)) return { ok: false, error: r.detail ?? "NameSilo refused the registration" };
+    const amount = Number(r.order_amount);
+    return { ok: true, orderAmount: Number.isFinite(amount) ? amount : null };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Could not reach NameSilo" };
   }
 }

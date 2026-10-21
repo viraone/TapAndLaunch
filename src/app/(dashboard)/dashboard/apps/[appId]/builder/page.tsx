@@ -9,22 +9,45 @@ import { latestVersion, listVersions } from "@/lib/code/store";
 import { getRootDomain, rootDomainFor } from "@/lib/tenant";
 import { appHasVisit } from "@/lib/apps/signals";
 import { isVercelDomainsConfigured } from "@/lib/domains/vercel";
+import { cancelDomainOrder, fulfillDomainOrder } from "@/lib/domains/purchase";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { DomainOrderStatus } from "@/types/database";
 
 // See the note in `published-apps/[appSlug]/layout.tsx` on why `params` is typed by
 // hand instead of via the generated `PageProps<...>` helper.
 type Params = Promise<{ appId: string }>;
 
-export default async function BuilderPage({ params, searchParams }: { params: Params; searchParams: Promise<{ ai?: string }> }) {
+export default async function BuilderPage({ params, searchParams }: { params: Params; searchParams: Promise<{ ai?: string; domain?: string; order?: string }> }) {
   const { appId } = await params;
-  const { ai } = await searchParams;
+  const { ai, domain: domainReturnKind, order: orderId } = await searchParams;
   const supabase = await createClient();
 
   // RLS (`is_org_member`) is what actually enforces "this user may view this
   // app" — a `.maybeSingle()` that comes back empty here means either the
   // app doesn't exist or the user isn't a member of its org, and both cases
   // should look identical (404), not leak which one it was.
-  const { data: app } = await supabase.from("apps").select("*").eq("id", appId).maybeSingle();
+  let { data: app } = await supabase.from("apps").select("*").eq("id", appId).maybeSingle();
   if (!app) notFound();
+
+  // Back from paying for a domain (Domain tab -> Stripe): finish the purchase here, so the tab shows the result without
+  // waiting for Stripe's webhook, then reload the app row, since the domain was just attached to it. The order has to
+  // be one this app's members can see; the fulfilment itself runs with the service role.
+  let domainReturn: DomainOrderStatus | null = null;
+  if ((domainReturnKind === "success" || domainReturnKind === "cancelled") && orderId) {
+    const { data: known } = await supabase.from("domain_orders").select("id").eq("id", orderId).eq("app_id", appId).maybeSingle();
+    if (known) {
+      try {
+        const admin = createAdminClient();
+        const row = domainReturnKind === "success" ? await fulfillDomainOrder(admin, orderId) : await cancelDomainOrder(admin, orderId);
+        domainReturn = row?.status ?? null;
+      } catch (error) {
+        console.error("domain purchase fulfilment failed:", error instanceof Error ? error.message : error);
+        domainReturn = "pending";
+      }
+      const { data: fresh } = await supabase.from("apps").select("*").eq("id", appId).maybeSingle();
+      if (fresh) app = fresh;
+    }
+  }
 
   // An AI-written (BYOB) app has its own builder: chat on one side, a live sandboxed preview on the other.
   if (app.kind === "code") {
@@ -99,6 +122,7 @@ export default async function BuilderPage({ params, searchParams }: { params: Pa
       hasVisit={hasVisit}
       contentOnOtherPages={!!otherBlocks.data?.length}
       recentEvents={events ?? []}
+      domainReturn={domainReturn}
     />
     {/* Build with AI is switched off for now (2026-10-14): one less thing on the screen while the builder is being simplified. */}
     {AI_CHAT_ENABLED && <AiChatPanel appId={appId} appName={app.name} initiallyOpen={ai === "1"} />}

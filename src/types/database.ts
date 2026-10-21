@@ -58,6 +58,8 @@ export type OrderStatus = "pending" | "paid" | "fulfilled" | "cancelled" | "refu
 export type PaymentMethod = "request" | "stripe";
 
 export type CustomDomainStatus = "pending" | "verified" | "error";
+/** A domain bought through the Domain tab: see migration 0045 and `lib/domains/purchase.ts`. */
+export type DomainOrderStatus = "pending" | "paid" | "registered" | "failed" | "cancelled";
 
 /** One DNS record Vercel's Domains API asks the tenant to add, passed
  * through verbatim — see `lib/domains/vercel.ts`. */
@@ -563,6 +565,34 @@ export interface Database {
           stripe_account_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["stripe_accounts"]["Row"]>;
+        Relationships: [];
+      };
+      domain_orders: {
+        Row: {
+          id: string;
+          organization_id: string;
+          app_id: string;
+          domain: string;
+          years: number;
+          price_cents: number;
+          renew_cents: number;
+          currency: string;
+          status: DomainOrderStatus;
+          stripe_session_id: string | null;
+          stripe_payment_intent_id: string | null;
+          expires_at: string | null;
+          error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["domain_orders"]["Row"]> & {
+          organization_id: string;
+          app_id: string;
+          domain: string;
+          price_cents: number;
+          renew_cents: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["domain_orders"]["Row"]>;
         Relationships: [];
       };
       memberships: {

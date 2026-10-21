@@ -57,7 +57,7 @@ import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { createClient } from "@/lib/supabase/client";
 import { BLOCK_TYPE_LABELS, defaultConfigFor } from "@/lib/builder/block-defaults";
 import type { BuilderBlock } from "@/components/builder/types";
-import type { ThemeConfig, BlockConfig, BlockType, Database } from "@/types/database";
+import type { ThemeConfig, BlockConfig, BlockType, Database, DomainOrderStatus } from "@/types/database";
 
 type AppRow = Database["public"]["Tables"]["apps"]["Row"];
 type PageRow = Database["public"]["Tables"]["pages"]["Row"];
@@ -86,6 +86,7 @@ export function BuilderClient({
   mapsEnabled,
   domainsEnabled,
   recentEvents,
+  domainReturn = null,
 }: {
   app: AppRow;
   rootDomain: string;
@@ -102,6 +103,8 @@ export function BuilderClient({
   domainsEnabled: boolean;
   /** Upcoming events, for "Next up". */
   recentEvents: SuggestionEvent[];
+  /** Set when the owner has just come back from paying for a domain: the Domain tab opens with the outcome. */
+  domainReturn?: DomainOrderStatus | null;
 }) {
   const supabase = createClient();
 
@@ -162,6 +165,30 @@ export function BuilderClient({
       new CustomEvent("builder-dirty", { detail: { dirty } }),
     );
   }, [dirty]);
+
+  // Back from Stripe after buying a domain: open the Domain tab on the outcome, and drop the `?domain=…` from the
+  // address so a reload doesn't repeat the message. (The server already finished the purchase before rendering.)
+  useEffect(() => {
+    if (!domainReturn) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    window.dispatchEvent(new CustomEvent("open-app-settings", { detail: { tab: "domain" } }));
+    switch (domainReturn) {
+      case "registered":
+        toast.success("Your domain is registered and being connected to your site.");
+        break;
+      case "paid":
+        toast.success("Payment received. Your domain is being set up; give it a minute, then tap Refresh in the Domain tab.");
+        break;
+      case "failed":
+        toast.error("Your payment went through but the domain could not be registered. You will be refunded; email support if you don't hear from us.", { duration: 15000 });
+        break;
+      case "cancelled":
+        toast("Checkout closed. Nothing was charged.");
+        break;
+      default:
+        toast("Payment not confirmed yet. If you did pay, reopen the Domain tab in a minute.");
+    }
+  }, [domainReturn]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
