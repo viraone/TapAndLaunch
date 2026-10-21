@@ -16,23 +16,10 @@ const TZ = "America/Los_Angeles";
  */
 const SEEDED: SeededTodo[] = [
   {
-    key: "buy-domain-live",
-    section: "Before Alfredo buys his domain",
-    title: "Switch on domain buying in production (NameSilo key in Vercel)",
-    detail: "Until this is done the Domain tab only offers connecting a domain bought elsewhere, and auto-DNS stays off.",
-    steps: [
-      { title: "Copy the NameSilo key: on this Mac, open ~/Developer/beezer/.env.local and copy the value after NAMESILO_API_KEY= (64 characters).", detail: "Don't paste it into Claude or chat." },
-      { title: "vercel.com → tap-and-launch project → Settings → Environment Variables → Add: key NAMESILO_API_KEY, paste the value, tick Sensitive, environment Production → Save." },
-      { title: "Deployments → the latest one → ⋯ → Redeploy (leave 'Use existing Build Cache' ticked).", detail: "Done when the new deployment says Ready." },
-      { title: "Check: open tapandlaunch.com/domains and search a name. It should list .com/.net/.org with prices (and the builder's Domain tab shows 'Get your own address').", detail: "If the page says 'Domain search isn't available right now', the key did not reach production." },
-      { title: "Make sure the NameSilo account balance covers the next domain ($17.29 for a .com): namesilo.com → Account Funds." },
-    ],
-  },
-  {
     key: "alfredo-free-account",
     section: "Before Alfredo buys his domain",
     title: "Alfredo Griffin's account is free: once he has signed up, make his organization complimentary",
-    detail: "He signs up himself at tapandlaunch.com (emceeorukusaki@gmail.com). His 30-day trial covers him until then, but do this before it ends.",
+    detail: "He signs up himself at tapandlaunch.com (emceeorukusaki@gmail.com) and buys his domain at tapandlaunch.com/domains ($17.29, his card). His 30-day trial covers him until then, but do this before it ends. The NameSilo key is already in Vercel (Oct 18).",
     steps: [
       { title: "Ask Alfredo to sign up and create his organization at tapandlaunch.com/signup (he does this alone, start to finish)." },
       { title: "Then tell Claude \"make Alfredo's account free\", or run: bash docs/private/make-org-free.sh emceeorukusaki@gmail.com", detail: "Done when the script prints status: complimentary. His Settings → Plan page then shows no trial countdown." },
