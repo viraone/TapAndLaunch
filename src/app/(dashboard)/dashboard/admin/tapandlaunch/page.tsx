@@ -29,6 +29,16 @@ const SEEDED: SeededTodo[] = [
     ],
   },
   {
+    key: "alfredo-free-account",
+    section: "Before Alfredo buys his domain",
+    title: "Alfredo Griffin's account is free: once he has signed up, make his organization complimentary",
+    detail: "He signs up himself at tapandlaunch.com (emceeorukusaki@gmail.com). His 30-day trial covers him until then, but do this before it ends.",
+    steps: [
+      { title: "Ask Alfredo to sign up and create his organization at tapandlaunch.com/signup (he does this alone, start to finish)." },
+      { title: "Then tell Claude \"make Alfredo's account free\", or run: bash docs/private/make-org-free.sh emceeorukusaki@gmail.com", detail: "Done when the script prints status: complimentary. His Settings → Plan page then shows no trial countdown." },
+    ],
+  },
+  {
     key: "stripe-connect-live",
     section: "Before real customers pay you (Stripe)",
     title: "Live store payments: connect a store in live mode and make one real purchase and refund",
