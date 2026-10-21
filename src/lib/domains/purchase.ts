@@ -148,7 +148,7 @@ export async function fulfillDomainOrder(admin: Admin, orderId: string): Promise
     .eq("status", "pending")
     .select("*")
     .maybeSingle();
-  if (!claimed) return (await admin.from("domain_orders").select("*").eq("id", orderId).maybeSingle()).data;
+  if (!claimed) return rereadOrder(admin, orderId);
 
   const registration = await registerDomain(order.domain, order.years);
   if (!registration.ok) {
@@ -160,7 +160,7 @@ export async function fulfillDomainOrder(admin: Admin, orderId: string): Promise
   const expires = new Date();
   expires.setFullYear(expires.getFullYear() + order.years);
   await admin.from("domain_orders").update({ status: "registered", expires_at: expires.toISOString().slice(0, 10), error: null }).eq("id", orderId);
-  if (!order.app_id) return (await admin.from("domain_orders").select("*").eq("id", orderId).maybeSingle()).data;
+  if (!order.app_id) return rereadOrder(admin, orderId);
 
   // Attached with the service-role client: the purchase itself was the authorization.
   const note = attachNote(await attachDomain(admin, order.app_id, order.domain));
@@ -199,5 +199,15 @@ export async function connectDomainOrder(db: SupabaseClient<Database>, admin: Ad
 /** A checkout that was closed or expired: the row says so, and nothing was charged. Paid orders are left alone. */
 export async function cancelDomainOrder(admin: Admin, orderId: string): Promise<DomainOrderRow | null> {
   await admin.from("domain_orders").update({ status: "cancelled" }).eq("id", orderId).eq("status", "pending");
-  return (await admin.from("domain_orders").select("*").eq("id", orderId).maybeSingle()).data;
+  return rereadOrder(admin, orderId);
+}
+
+/**
+ * The order as it stands now. Next memoizes identical GET requests within one page render, and the first read of the
+ * order happened at the top of the same render, so a plain repeat of that query would hand back the row as it was
+ * before anything was written (the return page then said "Payment not confirmed yet" about a registered domain).
+ * Asking for the count too makes it a different request.
+ */
+async function rereadOrder(admin: Admin, orderId: string): Promise<DomainOrderRow | null> {
+  return (await admin.from("domain_orders").select("*", { count: "exact" }).eq("id", orderId).maybeSingle()).data;
 }

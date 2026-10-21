@@ -44,7 +44,9 @@ export default async function BuilderPage({ params, searchParams }: { params: Pa
         console.error("domain purchase fulfilment failed:", error instanceof Error ? error.message : error);
         domainReturn = "pending";
       }
-      const { data: fresh } = await supabase.from("apps").select("*").eq("id", appId).maybeSingle();
+      // Not the same query as the read above: Next memoizes identical GETs within a render and would hand back the
+      // app as it was before the domain was attached (the tab then offered "Connect it" for a connected domain).
+      const { data: fresh } = await supabase.from("apps").select("*", { count: "exact" }).eq("id", appId).maybeSingle();
       if (fresh) app = fresh;
     }
   }
