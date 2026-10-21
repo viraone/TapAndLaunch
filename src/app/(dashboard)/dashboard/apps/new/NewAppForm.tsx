@@ -344,7 +344,7 @@ const DARK = "inline-flex h-12 items-center justify-center gap-2 rounded-full px
 function TemplateGallery({ mapsEnabled, onSelect }: { mapsEnabled: boolean; onSelect: (t: StarterTemplate) => void }) {
   const [shelf, setShelf] = useState<Shelf>("all");
   const [query, setQuery] = useState("");
-  const available = STARTER_TEMPLATES.filter((t) => mapsEnabled || !templateNeedsMaps(t.id));
+  const available = STARTER_TEMPLATES.filter((t) => !t.hidden && (mapsEnabled || !templateNeedsMaps(t.id)));
   const order = [...WEBSITE_CATEGORIES, ...APP_CATEGORIES].map((c) => c.id as string);
   const q = query.trim().toLowerCase();
   const cards = available

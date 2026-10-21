@@ -4,9 +4,9 @@ import { LOOKS, LOOK_IDS } from "@/lib/pwa/look";
 import { FONT_PAIRS } from "@/lib/pwa/theme-style";
 
 describe("website designs", () => {
-  it("are fifteen, each with a unique id, and the five pure looks carry the look's id and settings", () => {
-    expect(WEBSITE_DESIGNS).toHaveLength(15);
-    expect(new Set(WEBSITE_DESIGNS.map((d) => d.id)).size).toBe(15);
+  it("are thirty, each with a unique id, and the five pure looks carry the look's id and settings", () => {
+    expect(WEBSITE_DESIGNS).toHaveLength(30);
+    expect(new Set(WEBSITE_DESIGNS.map((d) => d.id)).size).toBe(30);
     for (const look of LOOK_IDS) {
       const d = WEBSITE_DESIGNS.find((x) => x.id === look);
       expect(d?.look).toBe(look);
@@ -16,16 +16,22 @@ describe("website designs", () => {
     }
   });
 
-  it("are all different: no two share a look and banner layout, a palette, or a font within a look", () => {
+  it("are all different: no two share a look with the same banner layout and paint, a palette, or a font within a look", () => {
     const seen = (key: (d: (typeof WEBSITE_DESIGNS)[number]) => string) => {
       const keys = WEBSITE_DESIGNS.map(key);
       expect(new Set(keys).size, keys.join(" | ")).toBe(keys.length);
     };
-    seen((d) => `${d.look}/${d.hero.layout}`);
+    seen((d) => `${d.look}/${d.hero.layout}/${d.hero.background}`);
     seen((d) => d.palette.primary.toLowerCase());
     seen((d) => `${d.look}/${d.theme.font_pair}`);
-    // And every look is used three times, so a topic's grid is not three of one thing and twelve of another.
-    for (const look of LOOK_IDS) expect(WEBSITE_DESIGNS.filter((d) => d.look === look)).toHaveLength(3);
+    // No two designs read the same at a glance either: the type (font, size, buttons) and the page colour together.
+    seen((d) => `${d.theme.font_pair}/${d.theme.heading_size}/${d.theme.button_shape}/${(d.theme.background_color ?? "").toLowerCase()}`);
+    // And every look is used six times, so a topic's grid is not six of one thing and twenty-four of another.
+    for (const look of LOOK_IDS) expect(WEBSITE_DESIGNS.filter((d) => d.look === look)).toHaveLength(6);
+    // Every banner layout and every paint appear across the set, and all four openings.
+    expect(new Set(WEBSITE_DESIGNS.map((d) => d.hero.layout)).size).toBe(4);
+    expect(new Set(WEBSITE_DESIGNS.map((d) => d.hero.background)).size).toBe(4);
+    expect(new Set(WEBSITE_DESIGNS.map((d) => d.opening)).size).toBe(4);
   });
 
   it("only use settings the site really has", () => {
@@ -38,8 +44,11 @@ describe("website designs", () => {
       expect(["solid", "gradient", "mesh", "grain"]).toContain(d.hero.background);
       expect(d.theme.background_color).toMatch(/^#[0-9a-f]{6}$/i);
       expect(d.palette.primary).toMatch(/^#[0-9a-f]{6}$/i);
+      if (d.palette.accent) expect(d.palette.accent).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(d.feel.length, d.id).toBeGreaterThan(20);
       // A dark design says so, and a light one on the dark look does not inherit darkness.
       if (d.look === "cinematic") expect(d.theme.color_scheme).toBe("dark");
+      else expect(d.theme.color_scheme ?? "light").toBe("light");
     }
   });
 

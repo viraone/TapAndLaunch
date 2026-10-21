@@ -5,7 +5,7 @@ import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, WEBSITE_STYLE
 import { LOOK_IDS } from "@/lib/pwa/look";
 import { WEBSITE_DESIGNS } from "./designs";
 
-const TOPIC_IDS = ["photography", "design", "education", "consulting", "art", "health", "marketing", "technology", "construction", "apparel", "music", "realestate", "beauty", "travel", "weddings"];
+const TOPIC_IDS = ["entertainment", "photography", "design", "education", "consulting", "art", "health", "marketing", "technology", "construction", "apparel", "music", "realestate", "beauty", "travel", "weddings"];
 
 describe("starter templates", () => {
   it("offers a template for everything, ending with a blank one", () => {
@@ -147,6 +147,7 @@ describe("starter templates", () => {
       return { home: on(0), contact: on(2), events: s.events?.length ?? 0, products: s.products?.length ?? 0 };
     };
     const expected: Record<string, ReturnType<typeof extras>> = {
+      entertainment: { home: ["gallery", "video", "event_calendar", "faq"], contact: ["hours", "map"], events: 3, products: 0 },
       photography: { home: ["gallery", "video"], contact: [], events: 0, products: 0 },
       weddings: { home: ["gallery", "video"], contact: [], events: 0, products: 0 },
       art: { home: ["gallery"], contact: [], events: 0, products: 0 },
@@ -279,11 +280,11 @@ describe("website designs (every website starter in each design)", () => {
     expect(parseWebsiteDesign("photography--noir")?.design.look).toBe("cinematic");
     expect(parseWebsiteDesign("photography--cinematic")?.own).toBe(true);
     expect(parseWebsiteDesign("photography--noir")?.own).toBe(false);
-    expect(isTemplateId("photography--neon")).toBe(false);
+    expect(isTemplateId("photography--nope")).toBe(false);
     expect(isTemplateId("business--editorial")).toBe(false);
     expect(isTemplateId("portfolio--bold")).toBe(true);
     expect(buildStarter("portfolio--bold", "X").theme.look).toBe("bold");
     expect(parseWebsiteDesign("business")).toBeUndefined();
-    expect(starterTemplateFor("photography--neon")).toBeUndefined();
+    expect(starterTemplateFor("photography--nope")).toBeUndefined();
   });
 });

@@ -58,6 +58,8 @@ export interface StarterTemplate {
   aboutHint?: string;
   /** Placeholder for the "What's it called?" box. */
   nameHint?: string;
+  /** Not offered in the picker any more (its id still builds, so sites made from it and old links keep working). */
+  hidden?: boolean;
 }
 
 /**
@@ -145,6 +147,63 @@ const SAMPLE_EVENT = "This is a sample. Edit it or delete it under Manage, Event
 const SAMPLE_PRODUCT = "(Sample product: edit it under Manage, Products.)";
 
 export const WEBSITE_TOPICS: WebsiteTopic[] = [
+  {
+    id: "entertainment",
+    style: "bold",
+    name: "Entertainment",
+    tagline: "A loud, full-width site for a comedy club or venue: upcoming shows people can book, the room on video, and how to find you.",
+    icon: "mic",
+    color: "#b91c1c",
+    nameHint: "The Laugh Cellar",
+    aboutHint: "We're a 90-seat comedy club in Seattle with stand-up five nights a week",
+    eyebrow: "Comedy club",
+    headline: "Big laughs, small room.",
+    subtext: "Stand-up five nights a week: touring headliners, local favourites and an open mic that launches careers.",
+    stats: [
+      { value: "5", label: "Nights a week" },
+      { value: "90", label: "Seats, all close" },
+      { value: "300+", label: "Comics a year" },
+    ],
+    aboutHeading: "The room",
+    aboutBody: "Say what kind of shows you run, who plays here, how a night goes (doors, showtime, drinks, age limit) and why the room feels the way it does.",
+    storyBody: "The longer story: how the club started, the comics who got their first laughs on your stage, what a night looks like from the box office to the last call, and how to rent the room for a private show.",
+    quote: "A good room makes every comic ten percent funnier.",
+    reviews: [
+      { quote: "Saw a headliner from the second row for the price of a movie. We're regulars now.", name: "Dana R." },
+      { quote: "The open mic is run right: a real host, a real crowd, and a bar that pays attention.", name: "Marcus T., comic" },
+    ],
+    newsletterTitle: "This week's lineup",
+    newsletterIntro: "Who's on this week, presales before they go public, and the odd free-ticket drop. One email a week.",
+    contactHeading: "Book the room, or get on the bill",
+    contactBody: "Private events, work parties and comics looking for a spot: tell us what you have in mind.",
+    contactTitle: "Get in touch",
+    galleryTitle: "On stage",
+    video: true,
+    homeCalendarTitle: "Upcoming shows",
+    sampleEvents: [
+      { title: "Friday headliner, early show", description: `Doors 7, show 8. 21+, two-item minimum. ${SAMPLE_EVENT}`, dayOffset: 2, time: "20:00", minutes: 90, capacity: 90 },
+      { title: "Saturday late show", description: `The room at its rowdiest. 10pm, 21+. ${SAMPLE_EVENT}`, dayOffset: 3, time: "22:00", minutes: 90, capacity: 90 },
+      { title: "Open mic night", description: `Sign up at the door from 6:30, five minutes each, everyone welcome. ${SAMPLE_EVENT}`, dayOffset: 5, time: "19:30", minutes: 150, capacity: 60 },
+    ],
+    faq: {
+      title: "Before you come",
+      items: [
+        { question: "Is there an age limit?", answer: "Most shows are 21+. All-ages shows say so on the ticket." },
+        { question: "Is there a drink minimum?", answer: "Two items per person at ticketed shows; the open mic has none." },
+        { question: "Where do we park?", answer: "Street parking is free after 6pm, and there's a garage one block north." },
+      ],
+    },
+    hours: {
+      title: "Box office",
+      rows: [
+        { label: "Wed to Sat", value: "6pm until the last show" },
+        { label: "Sun to Tue", value: "Closed (private events by arrangement)" },
+      ],
+      address: "",
+      phone: "",
+    },
+    mapTitle: "Find the club",
+  },
   {
     id: "photography",
     style: "cinematic",
@@ -811,8 +870,10 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     asksAbout: true,
     nameHint: "Jordan Lee",
     aboutHint: "I'm a career coach helping people land their next role",
+    // Replaced on the picker by the Entertainment topic (2026-10-20); kept so existing sites and `portfolio--*` ids build.
+    hidden: true,
   },
-  // One card per topic, after the general Personal website. Same core shape; the copy, colour and extras differ.
+  // One card per topic. Same core shape; the copy, colour and extras differ.
   ...WEBSITE_TOPICS.map(
     (t): StarterTemplate => ({
       id: t.id,

@@ -2,16 +2,16 @@ import { LOOKS, type HeroBackground, type HeroLayout, type LookId } from "@/lib/
 import type { HeroBlockConfig, ThemeConfig } from "@/types/database";
 
 /**
- * The designs a website starter comes in: fifteen complete recipes, the way a Squarespace topic lists a shelf of
+ * The designs a website starter comes in: thirty complete recipes, the way a Squarespace topic lists a shelf of
  * templates. A design is not a coat of paint on one layout; it sets everything the site-wide controls can set
  * (the look, the fonts, the heading size, the button shape, light or dark, the page colour, its own palette), how
  * the banner is laid out and painted, and what the first screen after the banner is. Every field is something the
  * published site really renders, so the card in the picker is the site and nothing more.
  *
  * Five of them are the pure looks (lib/pwa/look.ts) and carry the look's id, so a starter's bare template id still
- * builds its own look. The other ten each pair a look with a different banner, type and palette; a test keeps any
- * two designs from sharing a look and banner, a palette, or a font within a look, because fifteen cards that look
- * alike are worse than five.
+ * builds its own look. The other twenty-five each pair a look with a different banner, type and palette, six designs
+ * to a look; a test keeps any two designs from sharing a look with the same banner layout and paint, a palette, or a
+ * font within a look, because thirty cards that look alike are worse than five.
  */
 export interface WebsiteDesign {
   id: string;
@@ -147,6 +147,158 @@ export const WEBSITE_DESIGNS: WebsiteDesign[] = [
     theme: { font_pair: "space", heading_size: "compact", button_shape: "square", background_color: "#ffffff" },
     palette: { primary: "#27272a" },
     hero: { layout: "centered", background: "solid" },
+    opening: "quote",
+  },
+
+  // ── Fifteen more (2026-10-20), so every look comes six ways: three more banners, type and palettes on each.
+  {
+    id: "marquee",
+    name: "Marquee",
+    feel: "Poster type on a blush page, a short gradient banner, your story first. A show bill.",
+    look: "classic",
+    theme: { font_pair: "bebas", heading_size: "large", button_shape: "round", background_color: "#fff1f2" },
+    palette: { primary: "#e11d48", accent: "#111111" },
+    hero: { layout: "minimal", background: "gradient" },
+    opening: "about",
+  },
+  {
+    id: "harbor",
+    name: "Harbor",
+    feel: "Sea-glass page, a serif headline over a soft mesh, the work in a grid right under it.",
+    look: "classic",
+    theme: { font_pair: "playfair", heading_size: "normal", button_shape: "rounded", background_color: "#f0f9ff" },
+    palette: { primary: "#0e7490" },
+    hero: { layout: "full", background: "mesh" },
+    opening: "gallery",
+  },
+  {
+    id: "lemon",
+    name: "Lemon",
+    feel: "Butter-yellow page, mustard panel beside small bold type, square buttons, the quote first. Cheerful.",
+    look: "classic",
+    theme: { font_pair: "montserrat", heading_size: "compact", button_shape: "square", background_color: "#fefce8" },
+    palette: { primary: "#ca8a04" },
+    hero: { layout: "split", background: "solid" },
+    opening: "quote",
+  },
+  {
+    id: "ink",
+    name: "Ink",
+    feel: "Off-white paper, a heavy sans headline beside a grainy ink-blue panel, the work in a row. Printed.",
+    look: "editorial",
+    theme: { font_pair: "montserrat", heading_size: "large", button_shape: "square", background_color: "#f7f7f5" },
+    palette: { primary: "#1e293b", accent: "#f59e0b" },
+    hero: { layout: "split", background: "grain" },
+    opening: "gallery",
+  },
+  {
+    id: "rose",
+    name: "Rose",
+    feel: "Round friendly type centred over a rose gradient, blush paper, the numbers in a line. Warm.",
+    look: "editorial",
+    theme: { font_pair: "poppins", heading_size: "normal", button_shape: "round", background_color: "#fff1f2" },
+    palette: { primary: "#be185d" },
+    hero: { layout: "centered", background: "gradient" },
+    opening: "stats",
+  },
+  {
+    id: "sage",
+    name: "Sage",
+    feel: "Pale green paper, a small clean headline on a soft mesh, your story first. Calm.",
+    look: "editorial",
+    theme: { font_pair: "inter", heading_size: "compact", button_shape: "rounded", background_color: "#f1f5f0" },
+    palette: { primary: "#15803d" },
+    hero: { layout: "minimal", background: "mesh" },
+    opening: "about",
+  },
+  {
+    id: "neon",
+    name: "Neon",
+    feel: "Near-black page, poster type beside a cyan-to-pink gradient, square corners, the dates up front. A night out.",
+    look: "cinematic",
+    theme: { font_pair: "bebas", heading_size: "large", button_shape: "square", color_scheme: "dark", background_color: "#09090b" },
+    palette: { primary: "#22d3ee", accent: "#f0abfc" },
+    hero: { layout: "split", background: "gradient" },
+    opening: "stats",
+  },
+  {
+    id: "ember",
+    name: "Ember",
+    feel: "Deep brown-black, a bold sans over a grainy orange banner, pill buttons, the work first. Warm dark.",
+    look: "cinematic",
+    theme: { font_pair: "montserrat", heading_size: "large", button_shape: "round", color_scheme: "dark", background_color: "#1c0a00" },
+    palette: { primary: "#f97316", accent: "#fdba74" },
+    hero: { layout: "full", background: "grain" },
+    opening: "gallery",
+  },
+  {
+    id: "midnight",
+    name: "Midnight",
+    feel: "Navy dark, a bookish serif centred on a flat blue banner, your story first. Quiet and late.",
+    look: "cinematic",
+    theme: { font_pair: "lora", heading_size: "normal", button_shape: "rounded", color_scheme: "dark", background_color: "#0b1220" },
+    palette: { primary: "#60a5fa", accent: "#bfdbfe" },
+    hero: { layout: "centered", background: "solid" },
+    opening: "about",
+  },
+  {
+    id: "ticket",
+    name: "Ticket",
+    feel: "Cream page, a quirky grotesk centred on a flat amber banner, giant numbers on the black band. A ticket stub.",
+    look: "bold",
+    theme: { font_pair: "space", heading_size: "large", button_shape: "square", background_color: "#fffbeb" },
+    palette: { primary: "#b45309", accent: "#111111" },
+    hero: { layout: "centered", background: "solid" },
+    opening: "stats",
+  },
+  {
+    id: "signal",
+    name: "Signal",
+    feel: "White page, round friendly type over a green gradient banner, rounded corners, the quote first. Upbeat.",
+    look: "bold",
+    theme: { font_pair: "poppins", heading_size: "large", button_shape: "rounded", background_color: "#ffffff" },
+    palette: { primary: "#16a34a" },
+    hero: { layout: "full", background: "gradient" },
+    opening: "quote",
+  },
+  {
+    id: "chalk",
+    name: "Chalk",
+    feel: "Stone-grey page, a small serif headline on a flat charcoal strip, red buttons, the work first. Blackboard.",
+    look: "bold",
+    theme: { font_pair: "dm", heading_size: "compact", button_shape: "square", background_color: "#f5f5f4" },
+    palette: { primary: "#44403c", accent: "#dc2626" },
+    hero: { layout: "minimal", background: "solid" },
+    opening: "gallery",
+  },
+  {
+    id: "lagoon",
+    name: "Lagoon",
+    feel: "Ice-blue page, big round type on a short teal mesh banner, pill buttons, the numbers first. Fresh.",
+    look: "split",
+    theme: { font_pair: "poppins", heading_size: "large", button_shape: "round", background_color: "#ecfeff" },
+    palette: { primary: "#0891b2" },
+    hero: { layout: "minimal", background: "mesh" },
+    opening: "stats",
+  },
+  {
+    id: "clay",
+    name: "Clay",
+    feel: "Terracotta panel beside a bookish serif on peach paper, grainy, your story first. Earthy.",
+    look: "split",
+    theme: { font_pair: "lora", heading_size: "normal", button_shape: "rounded", background_color: "#fdf2e9" },
+    palette: { primary: "#9a3412" },
+    hero: { layout: "split", background: "grain" },
+    opening: "about",
+  },
+  {
+    id: "slate",
+    name: "Slate",
+    feel: "Cool grey page, poster type centred on a slate gradient, amber buttons, square corners, the quote first.",
+    look: "split",
+    theme: { font_pair: "bebas", heading_size: "large", button_shape: "square", background_color: "#f8fafc" },
+    palette: { primary: "#334155", accent: "#f59e0b" },
+    hero: { layout: "centered", background: "gradient" },
     opening: "quote",
   },
 ];
