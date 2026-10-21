@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { priceLabel } from "@/lib/domains/buy";
 import type { Database, DomainOrderStatus } from "@/types/database";
@@ -28,7 +29,7 @@ export function DomainsList({ orders, apps, canEdit, domainReturn }: { orders: O
     window.history.replaceState(null, "", window.location.pathname);
     switch (domainReturn) {
       case "registered":
-        toast.success("Your domain is registered. Connect it to a site below.");
+        toast.success(apps.length === 0 ? "Your domain is registered. Next, build the site it will open." : "Your domain is registered. Connect it to a site below.");
         break;
       case "paid":
         toast.success("Payment received. Your domain is being set up; give it a minute, then reload.");
@@ -42,7 +43,7 @@ export function DomainsList({ orders, apps, canEdit, domainReturn }: { orders: O
       default:
         toast("Payment not confirmed yet. If you did pay, reload in a minute.");
     }
-  }, [domainReturn]);
+  }, [domainReturn, apps.length]);
 
   async function connect(order: OrderRow) {
     const appId = choice[order.id];
@@ -129,19 +130,26 @@ export function DomainsList({ orders, apps, canEdit, domainReturn }: { orders: O
                       {busy === o.id ? "Connecting…" : "Connect"}
                     </button>
                   </>
+                ) : canEdit && apps.length === 0 ? (
+                  // The next step, unmissable: a domain with no site yet goes straight to the picker, and the site it
+                  // makes gets this domain on creation (NewAppForm's `domainOrder`).
+                  <div className="w-full rounded-2xl bg-neutral-950 px-6 py-5 text-white sm:w-auto sm:max-w-md">
+                    <p className="text-base font-medium tracking-tight">Next: build the site this address will open.</p>
+                    <p className="mt-1 text-sm text-neutral-400">Pick a starting point and a design; {o.domain} is connected to it the moment it&rsquo;s created.</p>
+                    <Link
+                      href={`/dashboard/apps/new?domain=${o.id}`}
+                      className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-neutral-950 transition hover:bg-neutral-200"
+                    >
+                      Build the site for {o.domain} <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
                 ) : canEdit ? (
                   <p className="text-sm text-neutral-600">
-                    {apps.length === 0 ? (
-                      <>
-                        No site yet.{" "}
-                        <Link href="/dashboard/apps/new" className="font-medium text-neutral-950 underline-offset-4 hover:underline">
-                          Build one
-                        </Link>{" "}
-                        and connect this domain to it.
-                      </>
-                    ) : (
-                      "Every site already has a domain. Remove one in its App settings to connect this instead."
-                    )}
+                    Every site already has a domain.{" "}
+                    <Link href={`/dashboard/apps/new?domain=${o.id}`} className="font-medium text-neutral-950 underline-offset-4 hover:underline">
+                      Build a new site for {o.domain}
+                    </Link>
+                    , or remove a domain in a site&rsquo;s App settings to connect this one there instead.
                   </p>
                 ) : (
                   <p className="text-sm text-neutral-600">Not connected to a site yet.</p>

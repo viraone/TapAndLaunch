@@ -184,14 +184,20 @@ async function deleteFromProject(domain: string): Promise<{ ok: boolean; error?:
   return { ok: true };
 }
 
-/** Takes the domain off the project, and its www/root twin with it (unless `companion: false`, when another app owns the twin). */
+/**
+ * Takes the domain off the project, and its www/root twin with it (unless `companion: false`, when another app owns
+ * the twin). The twin goes first: it is a redirect to the main domain, and Vercel refuses to remove a domain while
+ * a redirect to it still exists ("Cannot remove … until existing redirects … are removed", seen 2026-10-20).
+ */
 export async function removeDomain(domain: string, options: CompanionOptions = {}): Promise<{ ok: boolean; error?: string }> {
   if (!isConfigured()) {
     return { ok: false, error: "Custom domains are not configured on this server" };
   }
 
-  const main = await deleteFromProject(domain);
-  if (!main.ok) return main;
   const companion = options.companion === false ? null : companionDomain(domain);
-  return companion ? deleteFromProject(companion) : main;
+  if (companion) {
+    const twin = await deleteFromProject(companion);
+    if (!twin.ok) return twin;
+  }
+  return deleteFromProject(domain);
 }

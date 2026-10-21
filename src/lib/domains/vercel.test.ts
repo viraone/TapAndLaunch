@@ -153,7 +153,8 @@ describe("Vercel domains with a www twin", () => {
       "DELETE /v9/projects/prj_test/domains/www.brand.com": { status: 404, body: { error: { code: "not_found", message: "gone" } } },
     });
     expect(await removeDomain("brand.com")).toEqual({ ok: true });
-    expect(summary(calls)).toEqual(["DELETE /v9/projects/prj_test/domains/brand.com", "DELETE /v9/projects/prj_test/domains/www.brand.com"]);
+    // The www redirect first: Vercel refuses to remove a domain that a redirect still points at.
+    expect(summary(calls)).toEqual(["DELETE /v9/projects/prj_test/domains/www.brand.com", "DELETE /v9/projects/prj_test/domains/brand.com"]);
   });
 
   it("does not remove a twin another app owns", async () => {

@@ -8,12 +8,16 @@ import { createAppFromStarter } from "@/lib/apps/create";
 import { isAiConfigured } from "@/lib/ai/generate";
 import { rewriteStarterCopy } from "@/lib/ai/rewrite";
 import { AI_DAILY_LIMIT } from "@/lib/ai/limits";
+import { connectDomainOrder } from "@/lib/domains/purchase";
 
 /** Rewriting a website's words with Claude takes 10 to 20 seconds. */
 export const maxDuration = 60;
 
 const CreateAppSchema = z.object({
   organization_id: z.string().uuid(),
+  /** A domain bought here and waiting for a site (Dashboard > Domains > "Build the site for …"): connected to the new
+   * app as soon as it exists, so the person never has to find a Connect button. */
+  domain_order_id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(120),
   slug: z
     .string()
@@ -88,5 +92,16 @@ export async function POST(request: Request) {
 
   const result = await createAppFromStarter(supabase, user, { organizationId, name, slug, starter });
   if ("error" in result) return Response.json({ error: result.error }, { status: result.status });
+
+  // The domain this site was started for: attach it now. A failure here never undoes the new app; the Domain tab and
+  // Dashboard > Domains still offer Connect, and the answer carries the reason.
+  if (parsed.data.domain_order_id) {
+    const connected = await connectDomainOrder(supabase, createAdminClient(), parsed.data.domain_order_id, result.app.id).catch((e: unknown) => ({ error: e instanceof Error ? e.message : "Could not connect the domain" }));
+    if ("error" in connected) {
+      console.error("domain connect on create failed:", connected.error);
+      return Response.json({ app: result.app, domainError: connected.error }, { status: 201 });
+    }
+    return Response.json({ app: connected.app, domain: connected.order.domain }, { status: 201 });
+  }
   return Response.json({ app: result.app }, { status: 201 });
 }

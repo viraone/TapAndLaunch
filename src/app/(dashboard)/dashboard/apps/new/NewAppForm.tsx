@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2, Search } from "lucide-react";
+import { toast } from "sonner";
 import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter, templateNeedsMaps, websiteDesigns, type StarterTemplate } from "@/lib/apps/templates";
 import { WEBSITE_GOALS, type GoalId } from "@/lib/apps/goals";
 import { fontsHref } from "@/lib/pwa/theme-style";
@@ -50,7 +51,20 @@ const DESIGN_COUNT = websiteDesigns("portfolio").length;
  * phone-first template skips straight from the pick to the name. */
 type Step = "pick" | "goals" | "designs" | "about" | "name";
 
-export function NewAppForm({ organizationId, rootDomain, mapsEnabled, initialTemplateId }: { organizationId: string; rootDomain: string; mapsEnabled: boolean; initialTemplateId?: string }) {
+export function NewAppForm({
+  organizationId,
+  rootDomain,
+  mapsEnabled,
+  initialTemplateId,
+  domainOrder = null,
+}: {
+  organizationId: string;
+  rootDomain: string;
+  mapsEnabled: boolean;
+  initialTemplateId?: string;
+  /** A domain bought here that this site is for: connected to it on creation (Dashboard > Domains > "Build the site for …"). */
+  domainOrder?: { id: string; domain: string } | null;
+}) {
   const router = useRouter();
   // A trade page (/for/photographers) links here with its topic chosen, so the person starts on that topic's goals.
   const initialTopic = (initialTemplateId && STARTER_TEMPLATES.find((t) => t.id === initialTemplateId && websiteDesigns(t.id).length > 1)) || null;
@@ -133,6 +147,7 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled, initialTem
           ...(selected.asksAbout && about.trim() ? { about: about.trim() } : {}),
           ...(selected.asksAbout && photo.trim() ? { hero_image: photo.trim() } : {}),
           ...(topic && goals.length ? { goals } : {}),
+          ...(domainOrder ? { domain_order_id: domainOrder.id } : {}),
         }),
       });
     } catch {
@@ -140,13 +155,18 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled, initialTem
       return;
     }
 
-    const body: { error?: string; app?: { id: string } } | null = await res.json().catch(() => null);
+    const body: { error?: string; app?: { id: string }; domain?: string; domainError?: string } | null = await res.json().catch(() => null);
 
     if (!res.ok || !body?.app) {
       fail(res.status === 401 ? "Your session has ended. Log in again, then create your app." : (typeof body?.error === "string" && body.error.trim() && res.status < 500 ? body.error : SERVER_ERROR));
       return;
     }
 
+    // The site was made for a domain bought here: say whether it got it (the builder's Domain tab shows the rest).
+    if (domainOrder) {
+      if (body.domainError) toast.warning(`Your site is ready, but ${domainOrder.domain} could not be connected yet: ${body.domainError}. Open App settings › Domain to try again.`, { duration: 12000 });
+      else toast.success(`${domainOrder.domain} is connected to your new site. It starts working in a few minutes.`, { duration: 8000 });
+    }
     // The guard stays on from here: this page is about to be replaced.
     router.push(`/dashboard/apps/${body.app.id}/builder`);
   }
@@ -240,6 +260,11 @@ export function NewAppForm({ organizationId, rootDomain, mapsEnabled, initialTem
             </div>
           </div>
 
+          {domainOrder && (
+            <p className="mt-6 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+              This site gets <span className="font-semibold">{domainOrder.domain}</span> the moment it&rsquo;s created. Nothing else to set up.
+            </p>
+          )}
           <label htmlFor="app-name" className="mt-7 block text-sm font-semibold">
             What&apos;s it called?
           </label>
