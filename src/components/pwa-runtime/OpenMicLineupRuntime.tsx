@@ -171,7 +171,7 @@ function LineupBoard({ feed, today, weekday, highlighted }: { feed: LineupFeed; 
         <div className="mb-8 grid gap-4 md:grid-cols-2 md:gap-6" aria-live="polite">
           {highlighted > 0 && (
             <div className="rounded-2xl border-l-4 border-primary bg-white/[0.04] px-5 py-4 ring-1 ring-white/10 md:px-7 md:py-6">
-              <p className="text-sm font-bold uppercase tracking-[0.3em] text-primary md:text-lg">Now</p>
+              <p className="text-sm font-bold uppercase tracking-[0.3em] text-primary md:text-lg">Performing now</p>
               <p className="mt-1 truncate text-3xl font-black leading-tight md:text-5xl 2xl:text-6xl">{feed.lineup[highlighted - 1]!.name}</p>
             </div>
           )}
