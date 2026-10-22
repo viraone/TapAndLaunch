@@ -4,7 +4,7 @@ import { useMemo, useSyncExternalStore } from "react";
 import { Loader2 } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import type { LineupFeed } from "@/lib/openmic/selection";
-import { formatShowDate, isLineupTime, isShowDay, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
+import { LINEUP_FROM_MINUTES, formatShowDate, formatWeekTime, isLineupTime, isShowDay, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
@@ -128,7 +128,7 @@ function LineupPage({
 
       <main className="flex flex-1 flex-col px-6 py-8 md:px-12 md:py-10">
         {!lineupTime ? (
-          <Notice title={`The lineup goes up ${today ? "today" : dateLabel.split(",")[0]} at 6 AM`} body="Check back then to see who's on." />
+          <Notice title={`The lineup goes up ${formatWeekTime(window_.lineupFromWeekday ?? window_.showWeekday, window_.lineupFromMinutes ?? LINEUP_FROM_MINUTES)}`} body="Check back then to see who's on." />
         ) : !feed && !failed ? (
           <div className="flex flex-1 items-center justify-center" role="status" aria-label="Loading the lineup">
             <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
