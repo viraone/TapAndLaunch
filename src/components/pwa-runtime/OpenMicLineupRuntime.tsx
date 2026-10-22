@@ -93,9 +93,6 @@ function LineupPage({
           )}
           <div className="min-w-0">
             <h1 className="truncate text-2xl font-black tracking-tight md:text-4xl">{config.show_name ?? config.title ?? "Lineup"}</h1>
-            <p className="mt-1 truncate text-base text-muted-foreground md:text-xl">
-              {[config.show_time, config.venue].filter(Boolean).join(" · ")}
-            </p>
           </div>
         </div>
         <div className="shrink-0 text-right">
