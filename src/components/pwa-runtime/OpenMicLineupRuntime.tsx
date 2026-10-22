@@ -146,6 +146,22 @@ function LineupBoard({ feed, today, weekday, highlighted }: { feed: LineupFeed; 
   const columns = rows.length > 8 ? [rows.slice(0, half), rows.slice(half)] : [rows];
   return (
     <section aria-label="Lineup" className="flex flex-1 flex-col">
+      {/* The one line a bar reads from across the room: who is on now and who is on deck. The host's highlight is
+          the comic on deck, so the one before them is on stage. Shown only once the hosts have highlighted someone. */}
+      {highlighted >= 0 && (
+        <div className="mb-8 grid gap-4 md:grid-cols-2" aria-live="polite">
+          {highlighted > 0 && (
+            <div className="rounded-2xl border border-foreground/15 px-5 py-4 md:px-7 md:py-5">
+              <p className="text-sm font-bold uppercase tracking-[0.25em] text-muted-foreground md:text-lg">Now</p>
+              <p className="mt-1 truncate text-3xl font-black leading-tight md:text-5xl">{feed.lineup[highlighted - 1]!.name}</p>
+            </div>
+          )}
+          <div className="rounded-2xl bg-primary px-5 py-4 text-primary-foreground md:px-7 md:py-5">
+            <p className="text-sm font-bold uppercase tracking-[0.25em] opacity-80 md:text-lg">On deck</p>
+            <p className="mt-1 truncate text-3xl font-black leading-tight md:text-5xl">{feed.lineup[highlighted]!.name}</p>
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <h2 className="text-lg font-bold uppercase tracking-[0.2em] text-primary md:text-2xl">{today ? "Tonight's lineup" : `${weekday}'s lineup`}</h2>
         <p className="text-base font-semibold tabular-nums text-muted-foreground md:text-xl">
@@ -166,8 +182,8 @@ function LineupBoard({ feed, today, weekday, highlighted }: { feed: LineupFeed; 
                 >
                   <span className={`w-6 shrink-0 text-right text-base font-bold tabular-nums md:w-10 md:text-2xl ${on ? "opacity-80" : "text-muted-foreground"}`}>{i + 1}</span>
                   <span className={`min-w-0 flex-1 break-words text-xl leading-tight md:text-3xl 2xl:text-[2.25rem] ${on ? "font-black" : "font-bold"}`}>{entry.name}</span>
-                  <span className={`w-12 shrink-0 text-right text-base tabular-nums md:w-20 md:text-2xl 2xl:text-3xl ${on ? "opacity-80" : "text-muted-foreground"}`}>{entry.set_length}</span>
-                  <span className={`w-16 shrink-0 text-right text-base font-semibold tabular-nums md:w-28 md:text-2xl 2xl:text-3xl ${on ? "" : "text-primary"}`}>{entry.start_time}</span>
+                  <span className={`w-12 shrink-0 whitespace-nowrap text-right text-base tabular-nums md:w-24 md:text-2xl 2xl:w-28 2xl:text-3xl ${on ? "opacity-80" : "text-muted-foreground"}`}>{entry.set_length}</span>
+                  <span className={`w-16 shrink-0 whitespace-nowrap text-right text-base font-semibold tabular-nums md:w-32 md:text-2xl 2xl:w-36 2xl:text-3xl ${on ? "" : "text-primary"}`}>{entry.start_time}</span>
                 </li>
               );
             })}
