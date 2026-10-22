@@ -12,6 +12,10 @@ export interface WeeklyWindow {
   closesMinutes: number;
   /** The weekday the show itself is on (Friday for Read The Room). */
   showWeekday: number;
+  /** When the lineup may be shown, if not show day 6:00 AM (e.g. Thursday 11:30 PM, once the host has finished
+   * selecting). Must fall inside the closed window; it runs until requests reopen. */
+  lineupFromWeekday?: number;
+  lineupFromMinutes?: number;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -100,12 +104,16 @@ export function isShowDay(w: WeeklyWindow, now: Date = new Date()): boolean {
 /** The lineup is shown from this time on show day (6:00 AM, like the old site). */
 export const LINEUP_FROM_MINUTES = 6 * 60;
 
-/** Show day, from 6:00 AM until requests reopen: the lineup (and each comic's
+/** From show day 6:00 AM (or the window's own `lineupFrom`) until requests reopen: the lineup (and each comic's
  * own status) may be shown. Before that, closed means closed. */
 export function isLineupTime(w: WeeklyWindow, now: Date = new Date()): boolean {
   if (isWindowOpen(w, now)) return false;
   const t = localTime(now, w.timeZone);
-  return t.weekday === w.showWeekday && t.minutes >= LINEUP_FROM_MINUTES;
+  const at = weekMinute(t.weekday, t.minutes);
+  const from = weekMinute(w.lineupFromWeekday ?? w.showWeekday, w.lineupFromMinutes ?? LINEUP_FROM_MINUTES);
+  const opens = weekMinute(w.opensWeekday, w.opensMinutes);
+  // Inside [from, opens), wrapping around the week.
+  return (at - from + WEEK) % WEEK < (opens - from + WEEK) % WEEK;
 }
 
 /** "after tonight's show" on show day, "after tomorrow's show" the night before. */

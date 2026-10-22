@@ -157,6 +157,8 @@ export function windowOf(config: OpenMicSignupBlockConfig): WeeklyWindow {
     closesWeekday: config.closes_weekday ?? 4,
     closesMinutes: config.closes_minutes ?? 22 * 60,
     showWeekday: config.opens_weekday ?? 5,
+    lineupFromWeekday: config.lineup_from_weekday,
+    lineupFromMinutes: config.lineup_from_minutes,
   };
 }
 

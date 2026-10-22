@@ -482,6 +482,10 @@ export interface OpenMicSignupBlockConfig {
   opens_minutes?: number;
   closes_weekday?: number;
   closes_minutes?: number;
+  /** When the lineup may be shown, if not show day 6:00 AM: a weekday and minutes inside the closed window
+   * (e.g. 4 and 1410 for Thursday 11:30 PM). Runs until requests reopen. */
+  lineup_from_weekday?: number;
+  lineup_from_minutes?: number;
 }
 
 // `Relationships`/`Views`/`Functions` below are required by supabase-js's

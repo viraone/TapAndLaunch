@@ -63,6 +63,16 @@ describe("Read The Room request window", () => {
     expect(isLineupTime(RTR, pdt("2026-10-04T10:00"))).toBe(false); // an ordinary open day
   });
 
+  it("can show the lineup earlier, from a time of the window's own (Thursday 11:30 PM)", () => {
+    const early: WeeklyWindow = { ...RTR, lineupFromWeekday: 4, lineupFromMinutes: 23 * 60 + 30 };
+    expect(isLineupTime(early, pdt("2026-10-01T22:30"))).toBe(false); // closed, but not yet
+    expect(isLineupTime(early, pdt("2026-10-01T23:30"))).toBe(true);
+    expect(isLineupTime(early, pdt("2026-10-02T00:00"))).toBe(true); // through the night
+    expect(isLineupTime(early, pdt("2026-10-02T21:39"))).toBe(true);
+    expect(isLineupTime(early, pdt("2026-10-02T21:40"))).toBe(false); // requests are open again
+    expect(isLineupTime(early, pdt("2026-10-04T10:00"))).toBe(false);
+  });
+
   it("formats the open/close times", () => {
     expect(formatWeekTime(RTR.opensWeekday, RTR.opensMinutes)).toBe("Fri 9:40 PM");
     expect(formatWeekTime(RTR.closesWeekday, RTR.closesMinutes)).toBe("Thu 10:00 PM");
