@@ -460,8 +460,9 @@ export interface ClassFinderBlockConfig {
  * `opens_*` and close `closes_*`, in `time_zone`. */
 export interface OpenMicSignupBlockConfig {
   /** "profile": the comic's account and Sign Out (Profile tab); "hosts": the hosts' chat and inbox (Hosts tab);
-   * "messages": a comedian's private line to the hosts (Message the Hosts tab). */
-  view?: "signup" | "profile" | "hosts" | "messages";
+   * "messages": a comedian's private line to the hosts (Message the Hosts tab); "lineup": the show-night lineup as a
+   * full-screen website page for a laptop or TV at the venue (needs `lineup_url`). */
+  view?: "signup" | "profile" | "hosts" | "messages" | "lineup";
   title?: string;
   show_name?: string;
   venue?: string;

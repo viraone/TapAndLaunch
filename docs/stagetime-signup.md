@@ -27,6 +27,17 @@ _Last checked: 2026-10-03._ The weekly open-mic sign-up for the Read The Room sh
 The block's settings (in the app's page JSON) include `supabase_url`, `anon_key` (public), `time_zone`, open/close weekday and
 minute, and `lineup_url`. **The show-day lineup stays off until `lineup_url` is set on the live block.**
 
+**Lineup page for the venue** (block view `"lineup"`, `src/components/pwa-runtime/OpenMicLineupRuntime.tsx`, branch
+`rickshaw-lineup`, 2026-10-21): `/lineup` is a full-screen website page, not the phone column. It covers the app's header
+and tab bar and fills a laptop or TV at the Rickshaw: the show, the date and the clock across the top, then the lineup
+from the sheet (names, set lengths, start times; two columns on a wide screen, numbered) in type that reads across the
+room, with the comic whose start time has passed marked "On stage". Shown on show day from 6 AM until requests reopen;
+the rest of the week it names the next show. Refreshes from the sheet every minute (the function caches 30 seconds).
+Not in the tab bar; opened by its address. `docs/stagetime-lineup-page.sql` adds the page to the live app with its own
+`lineup_url`; the Sign-Up block's `lineup_url` is still unset, so what comics see is unchanged. Rows the host doesn't want
+shown (a test row, say) have to be deleted from the sheet. Local preview: `http://stagetimepnw.localhost:3100/lineup?preview=1`
+(as if it were Friday 7:30 PM, mid-show; compiled out of production).
+
 The **Profile** tab (stage name, Instagram, email, and the Sign Out button) is the same block type with `"view": "profile"`
 in its settings (`src/components/pwa-runtime/OpenMicProfileRuntime.tsx`). The Sign-Up page's "Signed in as" row has no
 Sign Out button. `docs/stagetime-profile-tab.sql` added the Profile page and its tab to the live app on 2026-10-18; the

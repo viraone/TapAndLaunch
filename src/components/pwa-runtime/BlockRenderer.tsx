@@ -45,6 +45,7 @@ import { OpenMicSignupRuntime } from "@/components/pwa-runtime/OpenMicSignupRunt
 import { OpenMicProfileRuntime } from "@/components/pwa-runtime/OpenMicProfileRuntime";
 import { OpenMicHostsRuntime } from "@/components/pwa-runtime/OpenMicHostsRuntime";
 import { OpenMicMessagesRuntime } from "@/components/pwa-runtime/OpenMicMessagesRuntime";
+import { OpenMicLineupRuntime } from "@/components/pwa-runtime/OpenMicLineupRuntime";
 import { ClassFinderRuntime } from "@/components/pwa-runtime/ClassFinderRuntime";
 import type { RuntimeListing } from "@/lib/pwa/listings";
 
@@ -143,6 +144,9 @@ function BlockBody({
     case "food_directory":
       return <FoodDirectoryBlockView config={block.config as FoodDirectoryBlockConfig} live={live} />;
     case "open_mic_signup":
+      if ((block.config as OpenMicSignupBlockConfig).view === "lineup") {
+        return live ? <OpenMicLineupRuntime config={block.config as OpenMicSignupBlockConfig} /> : <OpenMicLineupBlockView />;
+      }
       if ((block.config as OpenMicSignupBlockConfig).view === "messages") {
         return live ? <OpenMicMessagesRuntime config={block.config as OpenMicSignupBlockConfig} /> : <OpenMicMessagesBlockView />;
       }
@@ -458,6 +462,14 @@ function OpenMicMessagesBlockView() {
       <p className="mt-2 rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
         A signed-in comedian writes privately to the show&apos;s hosts here; the hosts answer from their Hosts tab.
       </p>
+    </div>
+  );
+}
+
+function OpenMicLineupBlockView() {
+  return (
+    <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+      Lineup for the venue screen: the show-night lineup from the host&apos;s sheet, full screen, on the live page.
     </div>
   );
 }

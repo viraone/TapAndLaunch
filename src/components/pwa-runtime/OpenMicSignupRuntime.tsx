@@ -931,7 +931,7 @@ function friendlyAuthError(message: string | undefined): string {
 }
 
 /** Re-renders every 30 s so the open/closed state flips on time. */
-function useNow(): Date {
+export function useNow(): Date {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30_000);
@@ -941,7 +941,7 @@ function useNow(): Date {
 }
 
 /** The lineup feed, refreshed every minute while the screen is showing. */
-function useLineup(url: string | undefined, client: SupabaseClient, userId: string | undefined, enabled: boolean) {
+export function useLineup(url: string | undefined, client: SupabaseClient, userId: string | undefined, enabled: boolean) {
   const [feed, setFeed] = useState<LineupFeed | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
