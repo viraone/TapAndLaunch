@@ -8,6 +8,7 @@ import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type Li
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
+import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { HostInbox, HostInboxView } from "./OpenMicHostInbox";
 
 /**
@@ -996,7 +997,23 @@ function ShowDayScreen({
   const lineupTime = isLineupTime(window, now);
   const { feed, failed } = useLineup(config.lineup_url, client, userId, lineupTime);
   const state = showDayState({ signedIn, requested, feed, failed, lineupTime });
-  return <ShowDay state={state} feed={feed} failed={failed} config={config} dateLabel={dateLabel} today={isShowDay(window, now)} lineupTime={lineupTime} dismissKey={`openmic-in-dismissed:${userId ?? "anon"}:${dateLabel}`} />;
+  // The hosts' spotlight (Remote tab): when it lands on this comic's own row, the page says so, buzzes the phone
+  // and, where the browser already allows it, shows a system notification.
+  const { spotlight } = useSpotlight(lineupTime && state === "selected" ? client : null);
+  const mineAt = feed?.lineup.findIndex((e) => e.mine) ?? -1;
+  const upNext = state === "selected" && mineAt >= 0 && spotlightIndex(spotlight, feed!.lineup, ymd(showDateFor(window, now))) === mineAt;
+  useEffect(() => {
+    if (!upNext) return;
+    try {
+      navigator.vibrate?.([250, 120, 250]);
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        new Notification("You're up next!", { body: `${config.show_name ?? "The show"}: head to the stage area.`, tag: "openmic-up-next" });
+      }
+    } catch {
+      // A browser without vibration or notifications: the card on the page is enough.
+    }
+  }, [upNext, config.show_name]);
+  return <ShowDay state={state} feed={feed} failed={failed} config={config} dateLabel={dateLabel} today={isShowDay(window, now)} lineupTime={lineupTime} upNext={upNext} dismissKey={`openmic-in-dismissed:${userId ?? "anon"}:${dateLabel}`} />;
 }
 
 /** Show day (Thu 10 PM to Fri 9:40 PM): the comic's own status, then the lineup. */
@@ -1008,6 +1025,7 @@ export function ShowDay({
   dateLabel,
   today,
   lineupTime,
+  upNext,
   dismissKey,
 }: {
   state: ShowDayState;
@@ -1017,6 +1035,8 @@ export function ShowDay({
   dateLabel: string;
   today: boolean;
   lineupTime: boolean;
+  /** The hosts have highlighted this comic on the lineup screen: they're up next. */
+  upNext?: boolean;
   /** Where the "You're in!" card remembers it was dismissed (per person, per show day). */
   dismissKey: string;
 }) {
@@ -1038,6 +1058,14 @@ export function ShowDay({
 
   return (
     <div className="space-y-4">
+      {upNext && (
+        <div role="alert" className="rounded-2xl bg-primary p-6 text-center text-primary-foreground shadow-[0_0_0_4px_var(--primary)]">
+          <p className="text-[13px] font-bold uppercase tracking-[0.2em] opacity-80">Heads up</p>
+          <h2 className="mt-1 text-3xl font-black">You&apos;re up next!</h2>
+          <p className="mt-2 text-base font-medium opacity-90">Head to the stage area.</p>
+        </div>
+      )}
+
       {state === "closed-night" && (
         <div className="rounded-2xl border bg-muted/60 p-6">
           <h2 className="text-xl font-bold">{CLOSED_NIGHT_COPY.title}</h2>

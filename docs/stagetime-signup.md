@@ -38,6 +38,17 @@ Not in the tab bar; opened by its address. `docs/stagetime-lineup-page.sql` adds
 shown (a test row, say) have to be deleted from the sheet. Local preview: `http://stagetimepnw.localhost:3100/lineup?preview=1`
 (as if it were Friday 7:30 PM, mid-show; compiled out of production).
 
+**Remote tab** (block view `"remote"`, `src/components/pwa-runtime/OpenMicRemoteRuntime.tsx`, hosts only, 2026-10-21):
+the remote control for the lineup screen. Next / Back / tap a comic moves the **lineup spotlight**, one row in
+rickshaw-open-mic (`lineup_spotlight`, slotted-killer migration `20261021000000`: anyone can read it, only
+`host_chat_members` can update it, realtime on; `src/lib/openmic/spotlight.ts`). The board at /lineup shows the
+highlighted comic as a solid row with no words. The comic's own phone (the show-day screen, `mine` row from the
+feed, which needs the `lineup-feed` function at slotted-killer commit 2a70d4f or later) shows a "You're up next!"
+card, buzzes, and posts a system notification if that browser already allows them; there is no push to a closed
+app. The spotlight is kept per show date, so last week's never shows. `docs/stagetime-remote-tab.sql` adds the
+page, the tab (`show_if: "openmic-hosts"`, after Profile) and sets `lineup_url` on the Sign-Up block, which turns
+the comics' show-day screen on. Local preview of the comic's card: `/signup?preview=up-next`.
+
 The **Profile** tab (stage name, Instagram, email, and the Sign Out button) is the same block type with `"view": "profile"`
 in its settings (`src/components/pwa-runtime/OpenMicProfileRuntime.tsx`). The Sign-Up page's "Signed in as" row has no
 Sign Out button. `docs/stagetime-profile-tab.sql` added the Profile page and its tab to the live app on 2026-10-18; the

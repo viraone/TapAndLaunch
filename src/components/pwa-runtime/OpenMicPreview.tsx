@@ -16,6 +16,7 @@ import { ClosedSignedOut, PINNED_PAGE, PINNED_SCROLL, ShowDay, SignedInBar, Sign
 
 const KINDS = [
   { id: "selected", label: "Selected" },
+  { id: "up-next", label: "Up next" },
   { id: "not-selected", label: "Not selected" },
   { id: "no-request", label: "Didn't request" },
   { id: "pending", label: "Not posted yet" },
@@ -74,13 +75,13 @@ export default function OpenMicPreview({ kind, config }: { kind: string; config:
       : {
           ...real,
           // Like the real feed: only the asking comic's own row is marked (Lori, by name here).
-          lineup: valid === "selected" ? real.lineup.map((e) => (e.name === "Lori Peck" ? { ...e, mine: true } : e)) : real.lineup,
-          me: { selected: valid === "selected", set_length: "", start_time: "" },
+          lineup: valid === "selected" || valid === "up-next" ? real.lineup.map((e) => (e.name === "Lori Peck" ? { ...e, mine: true } : e)) : real.lineup,
+          me: { selected: valid === "selected" || valid === "up-next", set_length: "", start_time: "" },
         }
     : null;
 
   const state: ShowDayState =
-    valid === "selected"
+    valid === "selected" || valid === "up-next"
       ? "selected"
       : valid === "not-selected"
         ? "not-selected"
@@ -102,7 +103,7 @@ export default function OpenMicPreview({ kind, config }: { kind: string; config:
   }
 
   // Same pinned layout as the real page for the screens that show the lineup.
-  const pinned = valid === "selected" || valid === "not-selected" || valid === "no-request" || valid === "pending";
+  const pinned = valid === "selected" || valid === "up-next" || valid === "not-selected" || valid === "no-request" || valid === "pending";
 
   const banner = (
     <div className="mb-6 rounded-2xl border-2 border-dashed border-sky-400/60 bg-sky-400/10 p-4 text-sm">
@@ -159,6 +160,7 @@ export default function OpenMicPreview({ kind, config }: { kind: string; config:
                 dateLabel={formatShowDate(showDateFor(window_, now))}
                 today={isShowDay(window_, now)}
                 lineupTime={lineupTime}
+                upNext={valid === "up-next"}
                 dismissKey={`${DISMISS_KEY}:${kind}`}
               />
             )}

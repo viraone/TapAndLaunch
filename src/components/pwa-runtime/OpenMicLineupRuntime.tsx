@@ -3,16 +3,18 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { Loader2 } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
-import type { LineupEntry, LineupFeed } from "@/lib/openmic/selection";
+import type { LineupFeed } from "@/lib/openmic/selection";
 import { formatShowDate, isLineupTime, isShowDay, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
+import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
  * The show-night lineup for a screen at the venue (block view "lineup", its own page, e.g. /lineup). A full-screen
  * website page, not the phone column: it covers the app's header and tab bar, fills a laptop or TV, and lists
  * the lineup from the host's sheet (via `lineup_url`) in type that reads from across the room. On show day from
- * 6 AM until requests reopen it shows the list and marks who is on stage right now; the rest of the week it just
- * names the next show. Refreshes from the sheet every minute.
+ * 6 AM until requests reopen it shows the list, with the comic the hosts have highlighted from the Remote tab
+ * (the lineup spotlight) in a solid row; the rest of the week it just names the next show. Refreshes from the
+ * sheet every minute and follows the highlight over realtime.
  */
 
 // Local development only: /lineup?preview=1 shows the page as if it were Friday 7:30 PM, mid-show.
@@ -35,32 +37,6 @@ function previewNow(w: WeeklyWindow): Date {
     }
   }
   return new Date();
-}
-
-/** "7:05 PM" as minutes after midnight, or null when the sheet has something else there. */
-export function minutesOf(startTime: string): number | null {
-  const m = startTime.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!m) return null;
-  const h = Number(m[1]) % 12 + (m[3].toUpperCase() === "PM" ? 12 : 0);
-  return h * 60 + Number(m[2]);
-}
-
-/** Which comic is on stage right now: the last one whose start time has passed, by the venue clock. Nobody
- * before the first start time; the last comic stays "on" until the lineup goes away. */
-export function onStageIndex(lineup: LineupEntry[], localMinutes: number): number {
-  let on = -1;
-  lineup.forEach((entry, i) => {
-    const at = minutesOf(entry.start_time);
-    if (at !== null && at <= localMinutes) on = i;
-  });
-  return on;
-}
-
-function localMinutes(now: Date, timeZone: string): number {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "numeric", hour12: false }).formatToParts(now).map((p) => [p.type, p.value])
-  );
-  return (Number(parts.hour) % 24) * 60 + Number(parts.minute);
 }
 
 function clockLabel(now: Date, timeZone: string): string {
@@ -101,8 +77,11 @@ function LineupPage({
   preview: boolean;
 }) {
   const { feed, failed } = useLineup(config.lineup_url, client, undefined, lineupTime);
-  const dateLabel = formatShowDate(showDateFor(window_, now));
+  const { spotlight } = useSpotlight(client);
+  const showDate = showDateFor(window_, now);
+  const dateLabel = formatShowDate(showDate);
   const today = isShowDay(window_, now);
+  const highlighted = feed ? spotlightIndex(spotlight, feed.lineup, ymd(showDate)) : -1;
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-background text-foreground">
@@ -146,7 +125,7 @@ function LineupPage({
         ) : !feed.posted || feed.lineup.length === 0 ? (
           <Notice title="We're putting the lineup together" body="Check back soon." />
         ) : (
-          <LineupBoard feed={feed} today={today} weekday={dateLabel.split(",")[0]} onStage={today ? onStageIndex(feed.lineup, localMinutes(now, window_.timeZone)) : -1} />
+          <LineupBoard feed={feed} today={today} weekday={dateLabel.split(",")[0]} highlighted={highlighted} />
         )}
       </main>
     </div>
@@ -162,8 +141,9 @@ function Notice({ title, body }: { title: string; body: string }) {
   );
 }
 
-/** The lineup in one column on a phone, two on a laptop or TV (read down the first, then the second), in big type. */
-function LineupBoard({ feed, today, weekday, onStage }: { feed: LineupFeed; today: boolean; weekday: string; onStage: number }) {
+/** The lineup in one column on a phone, two on a laptop or TV (read down the first, then the second), in big type.
+ * The highlighted row (the hosts' spotlight) is solid in the show's colour, with no words: the comics know. */
+function LineupBoard({ feed, today, weekday, highlighted }: { feed: LineupFeed; today: boolean; weekday: string; highlighted: number }) {
   const rows = feed.lineup.map((entry, i) => ({ entry, i }));
   const half = Math.ceil(rows.length / 2);
   const columns = rows.length > 8 ? [rows.slice(0, half), rows.slice(half)] : [rows];
@@ -180,24 +160,17 @@ function LineupBoard({ feed, today, weekday, onStage }: { feed: LineupFeed; toda
         {columns.map((column, c) => (
           <ol key={c} className="min-w-0 divide-y divide-foreground/10 border-t border-foreground/10">
             {column.map(({ entry, i }) => {
-              const on = i === onStage;
+              const on = i === highlighted;
               return (
                 <li
                   key={`${entry.name}-${i}`}
                   aria-current={on ? "true" : undefined}
-                  className={`flex items-center gap-3 py-3 md:gap-6 md:py-4 ${on ? "-mx-4 rounded-xl bg-primary/15 px-4" : ""}`}
+                  className={`flex items-center gap-3 py-3 md:gap-6 md:py-4 ${on ? "-mx-4 rounded-2xl bg-primary px-4 text-primary-foreground shadow-[0_0_0_4px_var(--primary)] md:-mx-6 md:px-6" : ""}`}
                 >
-                  <span className="w-6 shrink-0 text-right text-base font-bold tabular-nums text-muted-foreground md:w-10 md:text-2xl">{i + 1}</span>
-                  <span className={`min-w-0 flex-1 break-words text-xl leading-tight md:text-3xl 2xl:text-[2.25rem] ${on ? "font-black" : "font-bold"}`}>
-                    {entry.name}
-                    {on && (
-                      <span className="ml-3 inline-block whitespace-nowrap rounded-full bg-primary px-2.5 py-1 align-middle text-xs font-bold uppercase leading-none tracking-wide text-primary-foreground md:text-sm">
-                        On stage
-                      </span>
-                    )}
-                  </span>
-                  <span className="w-12 shrink-0 text-right text-base tabular-nums text-muted-foreground md:w-20 md:text-2xl 2xl:text-3xl">{entry.set_length}</span>
-                  <span className="w-16 shrink-0 text-right text-base font-semibold tabular-nums text-primary md:w-28 md:text-2xl 2xl:text-3xl">{entry.start_time}</span>
+                  <span className={`w-6 shrink-0 text-right text-base font-bold tabular-nums md:w-10 md:text-2xl ${on ? "opacity-80" : "text-muted-foreground"}`}>{i + 1}</span>
+                  <span className={`min-w-0 flex-1 break-words text-xl leading-tight md:text-3xl 2xl:text-[2.25rem] ${on ? "font-black" : "font-bold"}`}>{entry.name}</span>
+                  <span className={`w-12 shrink-0 text-right text-base tabular-nums md:w-20 md:text-2xl 2xl:text-3xl ${on ? "opacity-80" : "text-muted-foreground"}`}>{entry.set_length}</span>
+                  <span className={`w-16 shrink-0 text-right text-base font-semibold tabular-nums md:w-28 md:text-2xl 2xl:text-3xl ${on ? "" : "text-primary"}`}>{entry.start_time}</span>
                 </li>
               );
             })}
