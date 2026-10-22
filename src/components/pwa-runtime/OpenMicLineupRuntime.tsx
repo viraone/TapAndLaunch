@@ -141,9 +141,6 @@ function LineupPage({
           <LineupBoard feed={feed} today={today} weekday={dateLabel.split(",")[0]} highlighted={highlighted} />
         )}
       </main>
-      <footer className="px-6 pb-5 pt-2 text-center text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground/70 md:px-12 md:text-sm">
-        Want a spot next week? Sign up at stagetimepnw.tapandlaunch.com
-      </footer>
     </div>
   );
 }
