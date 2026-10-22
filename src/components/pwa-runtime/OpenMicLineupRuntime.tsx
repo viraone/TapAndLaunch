@@ -39,6 +39,10 @@ function previewNow(w: WeeklyWindow): Date {
   return new Date();
 }
 
+/** The on-deck colour: amber with black type, the most visible pairing on a dark screen in a dim room. */
+const ON_DECK = "bg-[#fbbf24] text-black";
+const ON_DECK_GLOW = "shadow-[0_0_0_3px_#fbbf24,0_0_48px_12px_rgba(251,191,36,0.35)]";
+
 function clockLabel(now: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" }).format(now);
 }
@@ -156,8 +160,10 @@ function LineupBoard({ feed, today, weekday, highlighted }: { feed: LineupFeed; 
               <p className="mt-1 truncate text-3xl font-black leading-tight md:text-5xl">{feed.lineup[highlighted - 1]!.name}</p>
             </div>
           )}
-          <div className="rounded-2xl bg-primary px-5 py-4 text-primary-foreground md:px-7 md:py-5">
-            <p className="text-sm font-bold uppercase tracking-[0.25em] opacity-80 md:text-lg">On deck</p>
+          {/* Amber on black: the brightest thing on a bar TV, and not the show's red, so "on deck" reads as its own
+              signal. The glow makes the card look lit rather than painted. */}
+          <div className={`rounded-2xl px-5 py-4 md:px-7 md:py-5 ${ON_DECK} ${ON_DECK_GLOW}`}>
+            <p className="text-sm font-bold uppercase tracking-[0.25em] text-black/70 md:text-lg">On deck</p>
             <p className="mt-1 truncate text-3xl font-black leading-tight md:text-5xl">{feed.lineup[highlighted]!.name}</p>
           </div>
         </div>
@@ -178,11 +184,11 @@ function LineupBoard({ feed, today, weekday, highlighted }: { feed: LineupFeed; 
                 <li
                   key={`${entry.name}-${i}`}
                   aria-current={on ? "true" : undefined}
-                  className={`flex items-center gap-3 py-3 md:gap-6 md:py-4 ${on ? "-mx-4 rounded-2xl bg-primary px-4 text-primary-foreground shadow-[0_0_0_4px_var(--primary)] md:-mx-6 md:px-6" : ""}`}
+                  className={`flex items-center gap-3 py-3 md:gap-6 md:py-4 ${on ? `-mx-4 rounded-2xl px-4 md:-mx-6 md:px-6 ${ON_DECK} ${ON_DECK_GLOW}` : ""}`}
                 >
-                  <span className={`w-6 shrink-0 text-right text-base font-bold tabular-nums md:w-10 md:text-2xl ${on ? "opacity-80" : "text-muted-foreground"}`}>{i + 1}</span>
+                  <span className={`w-6 shrink-0 text-right text-base font-bold tabular-nums md:w-10 md:text-2xl ${on ? "text-black/70" : "text-muted-foreground"}`}>{i + 1}</span>
                   <span className={`min-w-0 flex-1 break-words text-xl leading-tight md:text-3xl 2xl:text-[2.25rem] ${on ? "font-black" : "font-bold"}`}>{entry.name}</span>
-                  <span className={`w-12 shrink-0 whitespace-nowrap text-right text-base tabular-nums md:w-24 md:text-2xl 2xl:w-28 2xl:text-3xl ${on ? "opacity-80" : "text-muted-foreground"}`}>{entry.set_length}</span>
+                  <span className={`w-12 shrink-0 whitespace-nowrap text-right text-base tabular-nums md:w-24 md:text-2xl 2xl:w-28 2xl:text-3xl ${on ? "text-black/70" : "text-muted-foreground"}`}>{entry.set_length}</span>
                   <span className={`w-16 shrink-0 whitespace-nowrap text-right text-base font-semibold tabular-nums md:w-32 md:text-2xl 2xl:w-36 2xl:text-3xl ${on ? "" : "text-primary"}`}>{entry.start_time}</span>
                 </li>
               );
