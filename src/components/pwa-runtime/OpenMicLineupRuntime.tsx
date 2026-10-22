@@ -88,19 +88,31 @@ function LineupPage({
   const highlighted = feed ? spotlightIndex(spotlight, feed.lineup, ymd(showDate)) : -1;
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-background text-foreground">
-      <header className="flex items-center justify-between gap-6 border-b border-foreground/10 px-6 py-5 md:px-12">
+    <div
+      className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-background text-foreground"
+      // A soft wash of the show's red behind the header, so the black has depth on a big screen.
+      style={{ backgroundImage: "radial-gradient(1100px 420px at 12% -12%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 65%)" }}
+    >
+      <header className="relative flex items-center justify-between gap-6 px-6 py-5 md:px-12 md:py-6 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-primary after:via-primary/40 after:to-transparent">
         <div className="flex min-w-0 items-center gap-4">
           {config.logo_url && (
             // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
-            <img src={config.logo_url} alt={config.venue ?? ""} className="h-14 w-14 shrink-0 rounded-2xl bg-white object-cover ring-1 ring-white/10 md:h-20 md:w-20" />
+            <img src={config.logo_url} alt={config.venue ?? ""} className="h-14 w-14 shrink-0 rounded-2xl bg-white object-cover shadow-[0_0_32px_rgba(255,255,255,0.12)] ring-1 ring-white/15 md:h-24 md:w-24" />
           )}
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-black tracking-tight md:text-4xl">{config.show_name ?? config.title ?? "Lineup"}</h1>
+            <h1 className="truncate text-2xl font-black tracking-tight md:text-5xl">{config.show_name ?? config.title ?? "Lineup"}</h1>
           </div>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-primary md:text-sm">{today ? "Tonight" : "Next show"}</p>
+          <p className="flex items-center justify-end gap-2 text-[12px] font-bold uppercase tracking-[0.25em] text-primary md:text-sm">
+            {today && lineupTime && (
+              <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+              </span>
+            )}
+            {today ? "Tonight" : "Next show"}
+          </p>
           <p className="mt-1 whitespace-nowrap text-xl font-black tracking-tight md:text-3xl">{dateLabel}</p>
           <p className="mt-1 hidden text-base tabular-nums text-muted-foreground md:block" aria-label="Current time">
             {clockLabel(now, window_.timeZone)}
@@ -129,6 +141,9 @@ function LineupPage({
           <LineupBoard feed={feed} today={today} weekday={dateLabel.split(",")[0]} highlighted={highlighted} />
         )}
       </main>
+      <footer className="px-6 pb-5 pt-2 text-center text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground/70 md:px-12 md:text-sm">
+        Want a spot next week? Sign up at stagetimepnw.tapandlaunch.com
+      </footer>
     </div>
   );
 }
@@ -153,18 +168,18 @@ function LineupBoard({ feed, today, weekday, highlighted }: { feed: LineupFeed; 
       {/* The one line a bar reads from across the room: who is on now and who is on deck. The host's highlight is
           the comic on deck, so the one before them is on stage. Shown only once the hosts have highlighted someone. */}
       {highlighted >= 0 && (
-        <div className="mb-8 grid gap-4 md:grid-cols-2" aria-live="polite">
+        <div className="mb-8 grid gap-4 md:grid-cols-2 md:gap-6" aria-live="polite">
           {highlighted > 0 && (
-            <div className="rounded-2xl border border-foreground/15 px-5 py-4 md:px-7 md:py-5">
-              <p className="text-sm font-bold uppercase tracking-[0.25em] text-muted-foreground md:text-lg">Now</p>
-              <p className="mt-1 truncate text-3xl font-black leading-tight md:text-5xl">{feed.lineup[highlighted - 1]!.name}</p>
+            <div className="rounded-2xl border-l-4 border-primary bg-white/[0.04] px-5 py-4 ring-1 ring-white/10 md:px-7 md:py-6">
+              <p className="text-sm font-bold uppercase tracking-[0.3em] text-primary md:text-lg">Now</p>
+              <p className="mt-1 truncate text-3xl font-black leading-tight md:text-5xl 2xl:text-6xl">{feed.lineup[highlighted - 1]!.name}</p>
             </div>
           )}
           {/* Amber on black: the brightest thing on a bar TV, and not the show's red, so "on deck" reads as its own
               signal. The glow makes the card look lit rather than painted. */}
-          <div className={`rounded-2xl px-5 py-4 md:px-7 md:py-5 ${ON_DECK} ${ON_DECK_GLOW}`}>
-            <p className="text-sm font-bold uppercase tracking-[0.25em] text-black/70 md:text-lg">On deck</p>
-            <p className="mt-1 truncate text-3xl font-black leading-tight md:text-5xl">{feed.lineup[highlighted]!.name}</p>
+          <div className={`rounded-2xl px-5 py-4 transition-all duration-500 md:px-7 md:py-6 ${ON_DECK} ${ON_DECK_GLOW}`}>
+            <p className="text-sm font-bold uppercase tracking-[0.3em] text-black/70 md:text-lg">On deck</p>
+            <p className="mt-1 truncate text-3xl font-black leading-tight md:text-5xl 2xl:text-6xl">{feed.lineup[highlighted]!.name}</p>
           </div>
         </div>
       )}
@@ -175,19 +190,19 @@ function LineupBoard({ feed, today, weekday, highlighted }: { feed: LineupFeed; 
           {feed.lineup[0]?.start_time ? ` · first up ${feed.lineup[0].start_time}` : ""}
         </p>
       </div>
-      <div className={`mt-6 grid gap-x-12 gap-y-0 ${columns.length === 2 ? "lg:grid-cols-2" : ""}`}>
+      <div className={`mt-5 grid gap-5 md:gap-6 ${columns.length === 2 ? "lg:grid-cols-2" : ""}`}>
         {columns.map((column, c) => (
-          <ol key={c} className="min-w-0 divide-y divide-foreground/10 border-t border-foreground/10">
+          <ol key={c} className="min-w-0 divide-y divide-white/10 rounded-2xl bg-white/[0.03] px-4 ring-1 ring-white/10 md:px-6">
             {column.map(({ entry, i }) => {
               const on = i === highlighted;
               return (
                 <li
                   key={`${entry.name}-${i}`}
                   aria-current={on ? "true" : undefined}
-                  className={`flex items-center gap-3 py-3 md:gap-6 md:py-4 ${on ? `-mx-4 rounded-2xl px-4 md:-mx-6 md:px-6 ${ON_DECK} ${ON_DECK_GLOW}` : ""}`}
+                  className={`flex items-center gap-3 py-3 transition-all duration-500 md:gap-6 md:py-4 ${on ? `-mx-4 rounded-2xl px-4 md:-mx-6 md:px-6 ${ON_DECK} ${ON_DECK_GLOW}` : ""}`}
                 >
                   <span className={`w-6 shrink-0 text-right text-base font-bold tabular-nums md:w-10 md:text-2xl ${on ? "text-black/70" : "text-muted-foreground"}`}>{i + 1}</span>
-                  <span className={`min-w-0 flex-1 break-words text-xl leading-tight md:text-3xl 2xl:text-[2.25rem] ${on ? "font-black" : "font-bold"}`}>{entry.name}</span>
+                  <span className={`min-w-0 flex-1 break-words text-xl leading-tight tracking-tight md:text-3xl 2xl:text-[2.25rem] ${on ? "font-black" : "font-extrabold"}`}>{entry.name}</span>
                   <span className={`w-12 shrink-0 whitespace-nowrap text-right text-base tabular-nums md:w-24 md:text-2xl 2xl:w-28 2xl:text-3xl ${on ? "text-black/70" : "text-muted-foreground"}`}>{entry.set_length}</span>
                   <span className={`w-16 shrink-0 whitespace-nowrap text-right text-base font-semibold tabular-nums md:w-32 md:text-2xl 2xl:w-36 2xl:text-3xl ${on ? "" : "text-primary"}`}>{entry.start_time}</span>
                 </li>
