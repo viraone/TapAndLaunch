@@ -2,7 +2,7 @@ import "server-only";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
-import { getStripe } from "@/lib/stripe/server";
+import { getStripe, isStripeConfigured } from "@/lib/stripe/server";
 import { PLAN, PRICE_LOOKUP_KEYS, billingFromSubscription } from "./plans";
 
 type Admin = SupabaseClient<Database>;
@@ -87,10 +87,46 @@ export async function createPortalUrl(customerId: string, origin: string): Promi
   return session.url;
 }
 
-/** Saves a subscription's state on the organization's billing row. */
+/**
+ * Saves a subscription's state on the organization's billing row. A free (complimentary) account is never touched:
+ * the `status <> 'complimentary'` is in the update itself, so it holds even when a Stripe event lands in the same
+ * moment as `makeOrganizationFree` (which ends the organization's subscription, and Stripe then reports it canceled).
+ */
 export async function applySubscription(admin: Admin, organizationId: string, sub: Stripe.Subscription): Promise<{ error: string | null }> {
-  const { error } = await admin.from("org_billing").update(billingFromSubscription(sub)).eq("organization_id", organizationId);
+  const { error } = await admin.from("org_billing").update(billingFromSubscription(sub)).eq("organization_id", organizationId).neq("status", "complimentary");
   return { error: error?.message ?? null };
+}
+
+export type MakeFreeResult = { ok: true; cancelledSubscription: boolean } | { ok: false; error: string };
+
+/**
+ * Gives an organization a free account for good: any Stripe subscription it has is cancelled at once (no proration,
+ * no final invoice; a trial has nothing to bill and a paid period is not refunded here), then its billing row is set
+ * to `complimentary`. Stripe first, row second: if Stripe refuses, nothing changes and the reason comes back, so
+ * the row can never say "free" while a subscription is still billing. A subscription Stripe no longer knows is
+ * treated as already cancelled.
+ */
+export async function makeOrganizationFree(admin: Admin, organizationId: string): Promise<MakeFreeResult> {
+  const { data: row, error: readError } = await admin.from("org_billing").select("stripe_subscription_id").eq("organization_id", organizationId).maybeSingle();
+  if (readError) return { ok: false, error: readError.message };
+
+  let cancelledSubscription = false;
+  if (row?.stripe_subscription_id) {
+    if (!isStripeConfigured()) return { ok: false, error: "Stripe isn't configured on this server, so its subscription can't be cancelled from here. Cancel it in the Stripe dashboard." };
+    try {
+      await getStripe().subscriptions.cancel(row.stripe_subscription_id, { prorate: false, invoice_now: false });
+      cancelledSubscription = true;
+    } catch (e) {
+      if ((e as { code?: string }).code !== "resource_missing") return { ok: false, error: e instanceof Error ? e.message : "Stripe refused to cancel the subscription" };
+    }
+  }
+
+  const { error } = await admin.from("org_billing").upsert(
+    { organization_id: organizationId, status: "complimentary", stripe_subscription_id: null, plan_interval: null, current_period_end: null, cancel_at_period_end: false },
+    { onConflict: "organization_id" }
+  );
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, cancelledSubscription };
 }
 
 /**

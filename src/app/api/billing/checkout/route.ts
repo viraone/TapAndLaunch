@@ -31,6 +31,9 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: billing } = await admin.from("org_billing").select("status, trial_ends_at").eq("organization_id", organizationId).maybeSingle();
   if (billing?.status === "active") return Response.json({ error: "This organization already has a plan" }, { status: 409 });
+  // A free account has nothing to pay for, and Stripe's events never change it (applySubscription), so a plan bought
+  // here would bill without ever showing.
+  if (billing?.status === "complimentary") return Response.json({ error: "This organization has a free account" }, { status: 409 });
 
   try {
     const url = await createSubscriptionCheckout({

@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPlatformAdmin } from "@/lib/platform/admin";
 import { MapsToggle } from "./MapsToggle";
+import { FreeAccountButton } from "./FreeAccountButton";
+import { billingState, planChip } from "@/lib/billing/plans";
 import { ModerationActions } from "./Moderation";
 import { appLiveUrl } from "@/lib/apps/share";
 import { getRootDomain } from "@/lib/tenant";
@@ -17,8 +19,9 @@ export default async function AdminPage() {
   if (!(await isPlatformAdmin(supabase))) notFound();
 
   const admin = createAdminClient();
-  const [{ data: orgs }, { data: memberships }, { data: apps }, usersResult, { data: codeApps }, { data: reports }] = await Promise.all([
+  const [{ data: orgs }, { data: billing }, { data: memberships }, { data: apps }, usersResult, { data: codeApps }, { data: reports }] = await Promise.all([
     admin.from("organizations").select("id, name, slug, maps_enabled, created_at").order("created_at", { ascending: false }),
+    admin.from("org_billing").select("organization_id, status, trial_ends_at, plan_interval, current_period_end, cancel_at_period_end, stripe_subscription_id"),
     admin.from("memberships").select("organization_id, user_id, role"),
     admin.from("apps").select("organization_id, status").is("deleted_at", null),
     admin.auth.admin.listUsers({ perPage: 1000 }),
@@ -38,6 +41,14 @@ export default async function AdminPage() {
   const appCounts = (orgId: string) => {
     const mine = (apps ?? []).filter((a) => a.organization_id === orgId);
     return { total: mine.length, live: mine.filter((a) => a.status === "published").length };
+  };
+  const billingBy = new Map((billing ?? []).map((b) => [b.organization_id, b]));
+  const planOf = (orgId: string) => {
+    const b = billingBy.get(orgId) ?? null;
+    const state = billingState(b, new Date());
+    // "Standard plan" alone doesn't say whether it is paid yet: say the interval too.
+    const label = state.kind === "active" && b?.plan_interval ? `${planChip(state)} · ${b.plan_interval === "year" ? "yearly" : "monthly"}` : planChip(state);
+    return { label, free: state.kind === "complimentary", hasSubscription: !!b?.stripe_subscription_id };
   };
   const rows = orgs ?? [];
   const withMaps = rows.filter((o) => o.maps_enabled).length;
@@ -80,6 +91,7 @@ export default async function AdminPage() {
           <ul className="divide-y divide-neutral-100">
             {rows.map((o) => {
               const c = appCounts(o.id);
+              const plan = planOf(o.id);
               return (
                 <li key={o.id} className="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 py-4">
                   <div className="min-w-0 flex-1 basis-56">
@@ -91,6 +103,10 @@ export default async function AdminPage() {
                     {c.live > 0 && <span className="text-emerald-600"> · {c.live} live</span>}
                   </p>
                   <p className="w-28 text-sm text-neutral-500">{fmt.format(new Date(o.created_at))}</p>
+                  <div className="flex w-56 items-center justify-between gap-3">
+                    <span className={`text-sm ${plan.free ? "font-medium text-emerald-700" : "text-neutral-700"}`}>{plan.label}</span>
+                    {!plan.free && <FreeAccountButton organizationId={o.id} name={o.name} hasSubscription={plan.hasSubscription} />}
+                  </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-neutral-700">Google Maps</span>
                     <MapsToggle organizationId={o.id} enabled={o.maps_enabled} name={o.name} />
