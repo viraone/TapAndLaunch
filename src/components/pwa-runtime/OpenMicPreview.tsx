@@ -72,12 +72,15 @@ export default function OpenMicPreview({ kind, config }: { kind: string; config:
   const feed: LineupFeed | null = real
     ? valid === "pending"
       ? { ...real, posted: false, lineup: [], me: { selected: false, set_length: "", start_time: "" } }
-      : {
-          ...real,
-          // Like the real feed: only the asking comic's own row is marked (Lori, by name here).
-          lineup: valid === "selected" || valid === "up-next" ? real.lineup.map((e) => (e.name === "Lori Peck" ? { ...e, mine: true } : e)) : real.lineup,
-          me: { selected: valid === "selected" || valid === "up-next", set_length: "", start_time: "" },
-        }
+      : (() => {
+          const selected = valid === "selected" || valid === "up-next";
+          // Like the real feed: only the asking comic's own row is marked. Lori by name when the sheet has her;
+          // otherwise the last row stands in, so the card's "You're on" tiles and the YOU row can be seen.
+          const mineAt = selected ? Math.max(real.lineup.findIndex((e) => e.name === "Lori Peck"), real.lineup.length - 1) : -1;
+          const lineup = real.lineup.map((e, i) => (i === mineAt ? { ...e, mine: true } : e));
+          const me = mineAt >= 0 ? lineup[mineAt]! : null;
+          return { ...real, lineup, me: { selected, set_length: me?.set_length ?? "", start_time: me?.start_time ?? "" } };
+        })()
     : null;
 
   const state: ShowDayState =

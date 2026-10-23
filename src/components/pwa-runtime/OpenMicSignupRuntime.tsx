@@ -1057,6 +1057,8 @@ export function ShowDay({
   const notSelected = notSelectedCopy(today);
   const weekday = dateLabel.split(",")[0];
   const mine = feed?.me;
+  // 1-based place in the running order, for the card; 0 when the comic's row isn't in the list.
+  const spot = (feed?.lineup.findIndex((e) => e.mine) ?? -1) + 1;
 
   return (
     <div className="space-y-4">
@@ -1076,26 +1078,44 @@ export function ShowDay({
       )}
 
       {state === "selected" && mine && !dismissed && (
-        <div className="relative rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
+        // The night's good news, dressed for it: an emerald glow behind the check, the spot and set length in two
+        // tiles under the headline, so a comic never has to find their own row to know when they're on.
+        <div className="relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-[radial-gradient(120%_90%_at_50%_0%,rgba(16,185,129,0.22),transparent_62%)] p-6 pb-5 text-center shadow-[0_24px_60px_-32px_rgba(16,185,129,0.7)]">
           <button
             type="button"
             onClick={dismiss}
             aria-label="Dismiss"
             title="Dismiss"
-            className="group absolute right-1 top-1 grid h-12 w-12 place-items-center"
+            className="group absolute right-1 top-1 z-10 grid h-12 w-12 place-items-center"
           >
             <span className="grid h-9 w-9 place-items-center rounded-full bg-foreground/15 text-foreground/80 transition group-hover:bg-foreground/25 group-active:bg-foreground/30">
               <X className="h-5 w-5" strokeWidth={2.75} />
             </span>
           </button>
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white">
-            <Check className="h-7 w-7" strokeWidth={3} />
+          <div className="relative mx-auto h-16 w-16">
+            <span aria-hidden className="absolute -inset-3 rounded-full bg-emerald-400/25 blur-xl" />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-b from-emerald-400 to-emerald-600 text-white shadow-[0_10px_28px_rgba(16,185,129,0.45)] ring-4 ring-emerald-500/20">
+              <Check className="h-8 w-8" strokeWidth={3} />
+            </div>
           </div>
-          <h2 className="mt-4 text-2xl font-extrabold">You&apos;re in!</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h2 className="mt-4 text-[32px] font-black leading-none tracking-tight">You&apos;re in!</h2>
+          <p className="mt-2 text-[15px] text-muted-foreground">
             {config.show_name ?? "The show"}
-            {config.venue ? ` at ${config.venue}` : ""} · {dateLabel}
+            {config.venue ? ` at ${config.venue}` : ""}
+            {spot > 0 && feed ? ` · spot ${spot} of ${feed.lineup.length}` : ""}
           </p>
+          {(mine.start_time || mine.set_length) && (
+            <div className="mt-5 grid grid-cols-2 gap-1.5 rounded-2xl bg-background/50 p-1.5 ring-1 ring-white/10">
+              <div className="rounded-xl bg-muted px-3 py-2.5">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">You&apos;re on</p>
+                <p className="mt-0.5 text-[22px] font-black tabular-nums leading-tight text-primary">{mine.start_time || "—"}</p>
+              </div>
+              <div className="rounded-xl bg-muted px-3 py-2.5">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Your set</p>
+                <p className="mt-0.5 text-[22px] font-black tabular-nums leading-tight text-foreground">{mine.set_length || "—"}</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1139,34 +1159,42 @@ export function ShowDay({
               the gap if Safari paints the sticky header late; the list has no overflow-hidden mask
               (rows round their own corners) because that mask can escape the scroller's clip. */}
           <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))] px-4 pb-3 pt-3.5 before:absolute before:inset-x-0 before:bottom-full before:h-2 before:bg-inherit">
-            <h2 className="text-[16px] font-bold uppercase tracking-wide text-primary">
-              {today ? "Tonight's lineup" : `${weekday}'s lineup`}
-            </h2>
-            <span className="rounded-full bg-primary/20 px-3 py-1 text-[14px] font-semibold tabular-nums text-primary">
+            <div className="min-w-0">
+              <h2 className="text-[15px] font-black uppercase tracking-[0.14em] text-primary">
+                {today ? "Tonight's lineup" : `${weekday}'s lineup`}
+              </h2>
+              {feed.lineup[0]?.start_time && <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">First up {feed.lineup[0].start_time}</p>}
+            </div>
+            <span className="shrink-0 rounded-full bg-primary/20 px-3 py-1 text-[13px] font-bold tabular-nums text-primary ring-1 ring-primary/30">
               {feed.lineup.length} {feed.lineup.length === 1 ? "comic" : "comics"}
             </span>
           </div>
-          <ol className="rounded-xl bg-muted">
+          {/* Each row is its own small card with its place in the order; the comic's own row carries the colour,
+              a left bar and a soft glow. Rows slide in one after another (openmic-row, globals.css). */}
+          <ol className="mt-2 space-y-1.5">
             {feed.lineup.map((entry, i) => (
               <li
                 key={`${entry.name}-${i}`}
                 aria-current={entry.mine ? "true" : undefined}
+                style={{ animationDelay: `${Math.min(i, 14) * 35}ms` }}
                 className={
-                  "relative flex min-h-11 items-center gap-3 px-4 py-2.5 first:rounded-t-xl last:rounded-b-xl after:absolute after:bottom-0 after:left-4 after:right-0 after:h-px after:bg-foreground/10 last:after:hidden" +
-                  // The comic's own row is tinted; it scrolls like every other row.
-                  (entry.mine ? " bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))]" : "")
+                  "openmic-row relative flex min-h-14 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-3 ring-1 " +
+                  (entry.mine
+                    ? "bg-[color-mix(in_oklab,var(--primary)_24%,var(--muted))] ring-primary/50 shadow-[0_14px_36px_-18px_var(--primary)] before:absolute before:bottom-3 before:left-0 before:top-3 before:w-1 before:rounded-r-full before:bg-primary"
+                    : "bg-muted ring-white/[0.06]")
                 }
               >
-                <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (entry.mine ? "font-semibold" : "font-medium")}>
+                <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (entry.mine ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
+                <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (entry.mine ? "font-bold" : "font-medium")}>
                   {entry.name}
                   {entry.mine && (
-                    <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[12px] font-bold uppercase leading-none tracking-wide text-primary-foreground">
+                    <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[11px] font-black uppercase leading-none tracking-wide text-primary-foreground">
                       You
                     </span>
                   )}
                 </span>
-                <span className="w-[4.5rem] shrink-0 text-right text-[19px] tabular-nums text-muted-foreground">{entry.set_length}</span>
-                <span className="w-[5.25rem] shrink-0 text-right text-[17px] font-medium tabular-nums text-primary">{entry.start_time}</span>
+                <span className="shrink-0 rounded-full bg-background/60 px-2.5 py-1 text-[13px] font-semibold tabular-nums text-muted-foreground ring-1 ring-white/10">{entry.set_length}</span>
+                <span className="w-[4.75rem] shrink-0 text-right text-[17px] font-bold tabular-nums text-primary">{entry.start_time}</span>
               </li>
             ))}
           </ol>
