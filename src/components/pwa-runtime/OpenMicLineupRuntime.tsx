@@ -154,12 +154,9 @@ function Notice({ title, body }: { title: string; body: string }) {
   );
 }
 
-/** The lineup in one column on a phone, two on a laptop or TV (read down the first, then the second), in big type.
- * The highlighted row (the hosts' spotlight) is solid in the show's colour, with no words: the comics know. */
+/** The lineup in one column straight through, 1 to the end, on every screen (a TV reads top to bottom, no second
+ * column to find), in big type. The highlighted row (the hosts' spotlight) is solid amber, with no words: the comics know. */
 function LineupBoard({ feed, today, weekday, highlighted }: { feed: LineupFeed; today: boolean; weekday: string; highlighted: number }) {
-  const rows = feed.lineup.map((entry, i) => ({ entry, i }));
-  const half = Math.ceil(rows.length / 2);
-  const columns = rows.length > 8 ? [rows.slice(0, half), rows.slice(half)] : [rows];
   return (
     <section aria-label="Lineup" className="flex flex-1 flex-col">
       {/* The one line a bar reads from across the room: who is on now and who is on deck. The host's highlight is
@@ -187,27 +184,23 @@ function LineupBoard({ feed, today, weekday, highlighted }: { feed: LineupFeed; 
           {feed.lineup[0]?.start_time ? ` · first up ${feed.lineup[0].start_time}` : ""}
         </p>
       </div>
-      <div className={`mt-5 grid gap-5 md:gap-6 ${columns.length === 2 ? "lg:grid-cols-2" : ""}`}>
-        {columns.map((column, c) => (
-          <ol key={c} className="min-w-0 divide-y divide-white/10 rounded-2xl bg-white/[0.03] px-4 ring-1 ring-white/10 md:px-6">
-            {column.map(({ entry, i }) => {
-              const on = i === highlighted;
-              return (
-                <li
-                  key={`${entry.name}-${i}`}
-                  aria-current={on ? "true" : undefined}
-                  className={`flex items-center gap-3 py-3 transition-all duration-500 md:gap-6 md:py-4 ${on ? `-mx-4 rounded-2xl px-4 md:-mx-6 md:px-6 ${ON_DECK} ${ON_DECK_GLOW}` : ""}`}
-                >
-                  <span className={`w-6 shrink-0 text-right text-base font-bold tabular-nums md:w-10 md:text-2xl ${on ? "text-black/70" : "text-muted-foreground"}`}>{i + 1}</span>
-                  <span className={`min-w-0 flex-1 break-words text-xl leading-tight tracking-tight md:text-3xl 2xl:text-[2.25rem] ${on ? "font-black" : "font-extrabold"}`}>{entry.name}</span>
-                  <span className={`w-12 shrink-0 whitespace-nowrap text-right text-base tabular-nums md:w-24 md:text-2xl 2xl:w-28 2xl:text-3xl ${on ? "text-black/70" : "text-muted-foreground"}`}>{entry.set_length}</span>
-                  <span className={`w-16 shrink-0 whitespace-nowrap text-right text-base font-semibold tabular-nums md:w-32 md:text-2xl 2xl:w-36 2xl:text-3xl ${on ? "" : "text-primary"}`}>{entry.start_time}</span>
-                </li>
-              );
-            })}
-          </ol>
-        ))}
-      </div>
+      <ol className="mt-5 min-w-0 divide-y divide-white/10 rounded-2xl bg-white/[0.03] px-4 ring-1 ring-white/10 md:px-6">
+        {feed.lineup.map((entry, i) => {
+          const on = i === highlighted;
+          return (
+            <li
+              key={`${entry.name}-${i}`}
+              aria-current={on ? "true" : undefined}
+              className={`flex items-center gap-3 py-3 transition-all duration-500 md:gap-6 md:py-4 ${on ? `-mx-4 rounded-2xl px-4 md:-mx-6 md:px-6 ${ON_DECK} ${ON_DECK_GLOW}` : ""}`}
+            >
+              <span className={`w-6 shrink-0 text-right text-base font-bold tabular-nums md:w-10 md:text-2xl ${on ? "text-black/70" : "text-muted-foreground"}`}>{i + 1}</span>
+              <span className={`min-w-0 flex-1 break-words text-xl leading-tight tracking-tight md:text-3xl 2xl:text-[2.25rem] ${on ? "font-black" : "font-extrabold"}`}>{entry.name}</span>
+              <span className={`w-12 shrink-0 whitespace-nowrap text-right text-base tabular-nums md:w-24 md:text-2xl 2xl:w-28 2xl:text-3xl ${on ? "text-black/70" : "text-muted-foreground"}`}>{entry.set_length}</span>
+              <span className={`w-16 shrink-0 whitespace-nowrap text-right text-base font-semibold tabular-nums md:w-32 md:text-2xl 2xl:w-36 2xl:text-3xl ${on ? "" : "text-primary"}`}>{entry.start_time}</span>
+            </li>
+          );
+        })}
+      </ol>
     </section>
   );
 }
