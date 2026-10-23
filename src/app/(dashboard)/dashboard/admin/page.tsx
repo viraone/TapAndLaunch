@@ -105,7 +105,9 @@ export default async function AdminPage() {
                   <p className="w-28 text-sm text-neutral-500">{fmt.format(new Date(o.created_at))}</p>
                   <div className="flex w-56 items-center justify-between gap-3">
                     <span className={`text-sm ${plan.free ? "font-medium text-emerald-700" : "text-neutral-700"}`}>{plan.label}</span>
-                    {!plan.free && <FreeAccountButton organizationId={o.id} name={o.name} hasSubscription={plan.hasSubscription} />}
+                    {/* A free account that still carries a Stripe subscription (made free by hand before the button
+                     * existed) needs the cancel just as much: same route, said plainly. */}
+                    {(!plan.free || plan.hasSubscription) && <FreeAccountButton organizationId={o.id} name={o.name} hasSubscription={plan.hasSubscription} alreadyFree={plan.free} />}
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-neutral-700">Google Maps</span>
