@@ -17,12 +17,12 @@ const TZ = "America/Los_Angeles";
 const SEEDED: SeededTodo[] = [
   {
     key: "alfredo-free-account",
-    section: "Before Alfredo buys his domain",
-    title: "Alfredo Griffin's account is free: once he has signed up, make his organization complimentary",
-    detail: "He signs up himself at tapandlaunch.com (emceeorukusaki@gmail.com) and buys his domain at tapandlaunch.com/domains ($17.29, his card). His 30-day trial covers him until then, but do this before it ends. The NameSilo key is already in Vercel (Oct 18).",
+    section: "Alfredo (first real customer)",
+    title: "Alfredo Griffin is free, but his yearly-plan subscription must be cancelled so Stripe never bills him",
+    detail: "He signed up Oct 22 (Costume Comedy International) and bought the yearly plan himself although his account was meant to be free. Nothing has been charged; the first charge would be $100 on Nov 21.",
     steps: [
-      { title: "Ask Alfredo to sign up and create his organization at tapandlaunch.com/signup (he does this alone, start to finish)." },
-      { title: "Then tell Claude \"make Alfredo's account free\", or run: bash docs/private/make-org-free.sh emceeorukusaki@gmail.com", detail: "Done when the script prints status: complimentary. His Settings → Plan page then shows no trial countdown." },
+      { title: "Admin → Customers → the row 'Costume Comedy International' → Make free → OK.", detail: "This cancels his Stripe subscription at once (nothing refunded, nothing was charged) and keeps his account free. Done when the row says 'Free access'." },
+      { title: "Ask Alfredo how he ended up on the plan page, and whether he tried tapandlaunch.com/domains and where he stopped.", detail: "He hasn't bought a domain yet (no order exists)." },
     ],
   },
   {
