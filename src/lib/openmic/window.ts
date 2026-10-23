@@ -16,6 +16,9 @@ export interface WeeklyWindow {
    * selecting). Must fall inside the closed window; it runs until requests reopen. */
   lineupFromWeekday?: number;
   lineupFromMinutes?: number;
+  /** One-off: requests stay closed until this moment even if the weekly window says open (e.g. reopen Saturday
+   * noon instead of Friday 9:40 PM after one show). Expires by itself; the week after, the weekly times apply. */
+  closedUntil?: Date;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -58,7 +61,22 @@ function weekMinute(weekday: number, minutes: number): number {
   return weekday * 1440 + minutes;
 }
 
-export function isWindowOpen(w: WeeklyWindow, now: Date = new Date()): boolean {
+/** Is `now` inside the one-off hold (see `closedUntil`)? The hold covers the closed stretch that ends just before
+ * `closedUntil` and the open time that would normally follow it: from the last weekly close before `closedUntil`
+ * until `closedUntil`. Earlier weeks (and the weeks after) are untouched. */
+export function isHeldClosed(w: WeeklyWindow, now: Date = new Date()): boolean {
+  if (!(w.closedUntil instanceof Date) || Number.isNaN(w.closedUntil.getTime()) || now >= w.closedUntil) return false;
+  const t = localTime(now, w.timeZone);
+  const at = weekMinute(t.weekday, t.minutes);
+  const closes = weekMinute(w.closesWeekday, w.closesMinutes);
+  // Minutes until the next weekly close (a whole week when we're at the close itself).
+  const untilClose = (closes - at + WEEK) % WEEK || WEEK;
+  const nextClose = now.getTime() + untilClose * 60_000;
+  return nextClose > w.closedUntil.getTime();
+}
+
+/** The weekly window alone, ignoring a one-off hold. */
+function isWeeklyOpen(w: WeeklyWindow, now: Date): boolean {
   const t = localTime(now, w.timeZone);
   const at = weekMinute(t.weekday, t.minutes);
   const opens = weekMinute(w.opensWeekday, w.opensMinutes);
@@ -68,13 +86,17 @@ export function isWindowOpen(w: WeeklyWindow, now: Date = new Date()): boolean {
   return (at - opens + WEEK) % WEEK < (closes - opens + WEEK) % WEEK;
 }
 
+export function isWindowOpen(w: WeeklyWindow, now: Date = new Date()): boolean {
+  return isWeeklyOpen(w, now) && !isHeldClosed(w, now);
+}
+
 /** Calendar date (local to the show) of the show that requests are for right
  * now: while open, the first show day after the window closes; while closed,
  * the show that's coming up (tonight, on show day). */
 export function showDateFor(w: WeeklyWindow, now: Date = new Date()): { year: number; month: number; day: number } {
   const t = localTime(now, w.timeZone);
   let days: number;
-  if (isWindowOpen(w, now)) {
+  if (isWeeklyOpen(w, now)) {
     const at = weekMinute(t.weekday, t.minutes);
     const closes = weekMinute(w.closesWeekday, w.closesMinutes);
     const daysToClose = Math.floor((t.minutes + ((closes - at + WEEK) % WEEK)) / 1440);
@@ -116,8 +138,17 @@ export function isLineupTime(w: WeeklyWindow, now: Date = new Date()): boolean {
   return (at - from + WEEK) % WEEK < (opens - from + WEEK) % WEEK;
 }
 
-/** "after tonight's show" on show day, "after tomorrow's show" the night before. */
+/** "after tonight's show" on show day, "after tomorrow's show" the night before; during a one-off hold, the
+ * moment requests reopen ("Saturday at 12:00 PM"). */
 export function reopenLabel(w: WeeklyWindow, now: Date = new Date()): string {
+  if (isHeldClosed(w, now) && w.closedUntil) {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-US", { timeZone: w.timeZone, weekday: "long", hour: "numeric", minute: "2-digit" })
+        .formatToParts(w.closedUntil)
+        .map((p) => [p.type, p.value])
+    );
+    return `${parts.weekday} at ${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
+  }
   return isShowDay(w, now) ? "after tonight's show" : "after tomorrow's show";
 }
 

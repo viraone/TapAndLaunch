@@ -78,3 +78,31 @@ describe("Read The Room request window", () => {
     expect(formatWeekTime(RTR.closesWeekday, RTR.closesMinutes)).toBe("Thu 10:00 PM");
   });
 });
+
+describe("one-off hold (closed_until)", () => {
+  // The week of Oct 23, 2026: requests reopen Saturday noon instead of Friday 9:40 PM.
+  const HELD: WeeklyWindow = { ...RTR, closedUntil: pdt("2026-10-24T12:00") };
+
+  it("keeps the normal window before the hold", () => {
+    expect(isWindowOpen(HELD, pdt("2026-10-21T12:00"))).toBe(true);
+    expect(isWindowOpen(HELD, pdt("2026-10-22T22:00"))).toBe(false);
+    expect(isLineupTime(HELD, pdt("2026-10-23T19:00"))).toBe(true);
+    expect(reopenLabel(HELD, pdt("2026-10-23T12:00"))).toBe("Saturday at 12:00 PM");
+  });
+
+  it("stays closed after the show until the hold ends, for the next show", () => {
+    const sat = pdt("2026-10-23T21:40");
+    expect(isWindowOpen(HELD, sat)).toBe(false);
+    expect(isLineupTime(HELD, sat)).toBe(false);
+    expect(formatShowDate(showDateFor(HELD, sat))).toBe("Friday, Oct 30");
+    expect(reopenLabel(HELD, sat)).toBe("Saturday at 12:00 PM");
+    expect(isWindowOpen(HELD, pdt("2026-10-24T11:59"))).toBe(false);
+    expect(isWindowOpen(HELD, pdt("2026-10-24T12:00"))).toBe(true);
+    expect(formatShowDate(showDateFor(HELD, pdt("2026-10-24T12:00")))).toBe("Friday, Oct 30");
+  });
+
+  it("is forgotten the week after", () => {
+    expect(isWindowOpen(HELD, pdt("2026-10-30T21:40"))).toBe(true);
+    expect(reopenLabel(HELD, pdt("2026-10-30T12:00"))).toBe("after tonight's show");
+  });
+});

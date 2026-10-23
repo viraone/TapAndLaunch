@@ -25,7 +25,10 @@ _Last checked: 2026-10-03._ The weekly open-mic sign-up for the Read The Room sh
 | Edge functions and their migrations | The separate StageTime repo (`slotted-killer`), not this one |
 
 The block's settings (in the app's page JSON) include `supabase_url`, `anon_key` (public), `time_zone`, open/close weekday and
-minute, and `lineup_url`. **The show-day lineup stays off until `lineup_url` is set on the live block.**
+minute, and `lineup_url`. A one-off `closed_until` (ISO 8601 with offset) keeps requests closed past the weekly
+reopening until that moment, e.g. reopen Saturday noon after one show; it expires by itself. The database side has the same
+weekday rule in `is_signup_window_open` (rickshaw-open-mic), so a one-off hold needs a dated clause there too
+(`docs/private/stagetime-reopen-sat-oct24-db.sql` is the pattern). **The show-day lineup stays off until `lineup_url` is set on the live block.**
 
 **Lineup page for the venue** (block view `"lineup"`, `src/components/pwa-runtime/OpenMicLineupRuntime.tsx`, branch
 `rickshaw-lineup`, 2026-10-21): `/lineup` is a full-screen website page, not the phone column. It covers the app's header
