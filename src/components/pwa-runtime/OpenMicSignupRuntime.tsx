@@ -1102,7 +1102,7 @@ export function ShowDay({
           <p className="mt-2 text-[15px] text-muted-foreground">
             {config.show_name ?? "The show"}
             {config.venue ? ` at ${config.venue}` : ""}
-            {spot > 0 && feed ? ` · spot ${spot} of ${feed.lineup.length}` : ""}
+            {spot > 0 ? ` · spot ${spot}` : ""}
           </p>
           {(mine.start_time || mine.set_length) && (
             <div className="mt-5 grid grid-cols-2 gap-1.5 rounded-2xl bg-background/50 p-1.5 ring-1 ring-white/10">
@@ -1158,16 +1158,13 @@ export function ShowDay({
               the edge of a row show above it on iOS Safari. The 8px strip above it (before:) covers
               the gap if Safari paints the sticky header late; the list has no overflow-hidden mask
               (rows round their own corners) because that mask can escape the scroller's clip. */}
-          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))] px-4 pb-3 pt-3.5 before:absolute before:inset-x-0 before:bottom-full before:h-2 before:bg-inherit">
+          <div className="sticky top-0 z-10 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))] px-4 pb-3 pt-3.5 before:absolute before:inset-x-0 before:bottom-full before:h-2 before:bg-inherit">
             <div className="min-w-0">
               <h2 className="text-[15px] font-black uppercase tracking-[0.14em] text-primary">
                 {today ? "Tonight's lineup" : `${weekday}'s lineup`}
               </h2>
               {feed.lineup[0]?.start_time && <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">First up {feed.lineup[0].start_time}</p>}
             </div>
-            <span className="shrink-0 rounded-full bg-primary/20 px-3 py-1 text-[13px] font-bold tabular-nums text-primary ring-1 ring-primary/30">
-              {feed.lineup.length} {feed.lineup.length === 1 ? "comic" : "comics"}
-            </span>
           </div>
           {/* Each row is its own small card with its place in the order; the comic's own row carries the colour,
               a left bar and a soft glow. Rows slide in one after another (openmic-row, globals.css). */}
