@@ -160,7 +160,6 @@ export default function OpenMicPreview({ kind, config }: { kind: string; config:
                 feed={feed}
                 failed={failed}
                 config={config}
-                dateLabel={formatShowDate(showDateFor(window_, now))}
                 today={isShowDay(window_, now)}
                 lineupTime={lineupTime}
                 upNext={valid === "up-next"}

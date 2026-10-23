@@ -1016,7 +1016,7 @@ function ShowDayScreen({
       // A browser without vibration or notifications: the card on the page is enough.
     }
   }, [upNext, config.show_name]);
-  return <ShowDay state={state} feed={feed} failed={failed} config={config} dateLabel={dateLabel} today={isShowDay(window, now)} lineupTime={lineupTime} upNext={upNext} dismissKey={`openmic-in-dismissed:${userId ?? "anon"}:${dateLabel}`} />;
+  return <ShowDay state={state} feed={feed} failed={failed} config={config} today={isShowDay(window, now)} lineupTime={lineupTime} upNext={upNext} dismissKey={`openmic-in-dismissed:${userId ?? "anon"}:${dateLabel}`} />;
 }
 
 /** Show day (Thu 10 PM to Fri 9:40 PM): the comic's own status, then the lineup. */
@@ -1025,7 +1025,6 @@ export function ShowDay({
   feed,
   failed,
   config,
-  dateLabel,
   today,
   lineupTime,
   upNext,
@@ -1035,7 +1034,6 @@ export function ShowDay({
   feed: LineupFeed | null;
   failed: boolean;
   config: OpenMicSignupBlockConfig;
-  dateLabel: string;
   today: boolean;
   lineupTime: boolean;
   /** The hosts have highlighted this comic on the lineup screen: they're up next. */
@@ -1056,7 +1054,6 @@ export function ShowDay({
     );
   }
   const notSelected = notSelectedCopy(today);
-  const weekday = dateLabel.split(",")[0];
   const mine = feed?.me;
   // 1-based place in the running order, for the card; 0 when the comic's row isn't in the list.
   const spot = (feed?.lineup.findIndex((e) => e.mine) ?? -1) + 1;
@@ -1162,7 +1159,7 @@ export function ShowDay({
           <div className="sticky top-0 z-10 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))] px-4 pb-3 pt-3.5 before:absolute before:inset-x-0 before:bottom-full before:h-2 before:bg-inherit">
             <div className="min-w-0">
               <h2 className="text-[15px] font-black uppercase tracking-[0.14em] text-primary">
-                {today ? "Tonight's lineup" : `${weekday}'s lineup`}
+                {today ? "Tonight's lineup" : "Lineup"}
               </h2>
               {feed.lineup[0]?.start_time && <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">First up {feed.lineup[0].start_time}</p>}
             </div>
