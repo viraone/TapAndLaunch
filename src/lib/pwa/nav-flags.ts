@@ -7,6 +7,11 @@
 const EVENT = "tl-nav-flag";
 const PREFIX = "tl-nav-flag:";
 
+/** The localStorage key a switch lives under (for a script that reads it before the page draws). */
+export function navFlagStorageKey(key: string): string {
+  return PREFIX + key;
+}
+
 /** Each switch is mirrored in a cookie of this name ("1" while on), so the server can see it too: a home-page
  * redirect (theme.home_redirect_unless) is skipped for a browser whose switch is on, e.g. StageTime's hosts. */
 export function navFlagCookieName(key: string): string {

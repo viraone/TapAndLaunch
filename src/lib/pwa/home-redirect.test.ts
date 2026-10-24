@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { homeRedirectTarget } from "./home-redirect";
+import { homeRedirectScript, homeRedirectTarget } from "./home-redirect";
 
 const halloween = "https://stagetimepnw.com/halloween";
 
@@ -32,5 +32,12 @@ describe("homeRedirectTarget", () => {
     expect(homeRedirectTarget(theme, new Date(), (key) => key === "openmic-hosts")).toBeNull();
     expect(homeRedirectTarget(theme, new Date(), () => false)).toBe(halloween);
     expect(homeRedirectTarget(theme, new Date(), (key) => key === "openmic-comic")).toBe(halloween);
+  });
+
+  it("the in-page script leaves a browser with the switch on alone and sends the rest away", () => {
+    const script = homeRedirectScript(halloween, "openmic-hosts");
+    expect(script).toContain('localStorage.getItem("tl-nav-flag:openmic-hosts")==="1"');
+    expect(script).toContain('location.replace("https://stagetimepnw.com/halloween")');
+    expect(homeRedirectScript(halloween, undefined)).toBe('location.replace("https://stagetimepnw.com/halloween");');
   });
 });

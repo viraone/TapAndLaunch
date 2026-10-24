@@ -4,7 +4,7 @@ import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { getCodeAppsDomain, hostRoot } from "@/lib/tenant";
 import { appOrigin } from "@/lib/stripe/checkout";
 import { getBlocksForPage, getPublishedApp, resolvePage } from "@/lib/pwa/data";
-import { homeRedirectTarget } from "@/lib/pwa/home-redirect";
+import { homeRedirectScript, homeRedirectTarget } from "@/lib/pwa/home-redirect";
 import { navFlagCookieName } from "@/lib/pwa/nav-flags";
 import { getActiveProducts, getUpcomingEvents } from "@/lib/pwa/commerce";
 import { getActiveListings } from "@/lib/pwa/listings";
@@ -58,13 +58,15 @@ export default async function PublishedAppPage({ params, searchParams }: { param
   const page = resolvePage(published, path);
   if (!page) notFound();
   // The owner can send home-page visitors somewhere else for a while (theme.home_redirect, with an optional end
-  // time: StageTime -> the Halloween costume contest sign-up on stagetimepnw.com until the lineup switches on). A
-  // 307, so the app is back the moment it ends; the builder's "Try it" preview still shows the page itself, and
-  // /lineup, /remote, /profile are untouched.
-  // A browser whose tab switch named in home_redirect_unless is on (the hosts) still gets the page.
+  // time: StageTime -> the Halloween costume contest sign-up on stagetimepnw.com until the lineup switches on). The
+  // page carries one line of script that leaves at once, before anything draws, unless the browser's tab switch named
+  // in home_redirect_unless is on (the hosts' phones, including their Home Screen app). A browser whose cookie
+  // already says the switch is on gets the page with no script at all. The app is back the moment the key or end
+  // time passes; the builder's "Try it" preview always shows the page, and /lineup, /remote, /profile are untouched.
   const jar = await cookies();
-  const homeRedirect = homeRedirectTarget(published.app.theme, new Date(), (key) => jar.get(navFlagCookieName(key))?.value === "1");
-  if (page.is_home && !published.preview && homeRedirect) redirect(homeRedirect);
+  const homeRedirect = page.is_home && !published.preview
+    ? homeRedirectTarget(published.app.theme, new Date(), (key) => jar.get(navFlagCookieName(key))?.value === "1")
+    : null;
   // The home page has one address, "/": its path ("/home") forwards there, so search engines never see it twice.
   // The query string goes along (StageTime's "/signup?signout" test link, when Sign-Up is the home page).
   if (page.is_home && path?.length) {
@@ -103,6 +105,7 @@ export default async function PublishedAppPage({ params, searchParams }: { param
 
   return (
     <main className="flex-1">
+      {homeRedirect && <script dangerouslySetInnerHTML={{ __html: homeRedirectScript(homeRedirect, published.app.theme?.home_redirect_unless) }} />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdText(pageJsonLd(published.app, page, blocks, origin)) }} />
       {mainHeadingAt < 0 && <h1 className="sr-only">{pageTitle(published.app, page)}</h1>}
       {blocks.length === 0 ? (
