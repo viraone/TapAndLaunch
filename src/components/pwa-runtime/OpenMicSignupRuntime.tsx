@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { Bell, Check, ChevronRight, CircleCheck, Loader2, Mail, Mic, X } from "lucide-react";
@@ -10,6 +10,7 @@ import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, 
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { HostInbox, HostInboxView } from "./OpenMicHostInbox";
+import { OpenMicPushOptIn } from "./OpenMicPushOptIn";
 
 /**
  * StageTime PNW's weekly showcase sign-up. Accounts and the request list live
@@ -378,7 +379,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
               onProfileSaved={setUser}
             />
           ) : showDayOn ? (
-            <ShowDayScreen client={client} userId={user.id} signedIn requested={false} config={config} dateLabel={showDate} window={window_} now={now} />
+            <ShowDayScreen client={client} userId={user.id} stageName={profile.stage_name} signedIn requested={false} config={config} dateLabel={showDate} window={window_} now={now} />
           ) : (
             <ClosedCard name={profile.stage_name} reopenText={reopenLabel(window_, now)} />
           )
@@ -387,7 +388,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
         {phase === "host" && user && <HostInbox client={client} user={user} timeZone={window_.timeZone} />}
 
         {phase === "requested" && request && (showDayOn ? (
-          <ShowDayScreen client={client} userId={user?.id} signedIn requested config={config} dateLabel={showDate} window={window_} now={now} />
+          <ShowDayScreen client={client} userId={user?.id} stageName={profile.stage_name} signedIn requested config={config} dateLabel={showDate} window={window_} now={now} />
         ) : (
           <RequestedCard requestId={request.id} showDate={showDate} config={config} />
         ))}
@@ -980,6 +981,7 @@ export function useLineup(url: string | undefined, client: SupabaseClient, userI
 function ShowDayScreen({
   client,
   userId,
+  stageName,
   signedIn,
   requested,
   config,
@@ -989,6 +991,8 @@ function ShowDayScreen({
 }: {
   client: SupabaseClient;
   userId: string | undefined;
+  /** From the profile; the push subscription is stored under it until the lineup row gives the exact name. */
+  stageName: string;
   signedIn: boolean;
   requested: boolean;
   config: OpenMicSignupBlockConfig;
@@ -1000,8 +1004,8 @@ function ShowDayScreen({
   const lineupTime = isLineupTime(window, now);
   const { feed, failed } = useLineup(config.lineup_url, client, userId, lineupTime);
   const state = showDayState({ signedIn, requested, feed, failed, lineupTime });
-  // The hosts' spotlight (Remote tab): when it lands on this comic's own row, the page says so, buzzes the phone
-  // and, where the browser already allows it, shows a system notification.
+  // The hosts' spotlight (Remote tab): when it lands on this comic's own row, the page says so and buzzes the phone.
+  // The system notification comes as a push from the server (OpenMicPushOptIn), which also reaches a closed app.
   const { spotlight } = useSpotlight(lineupTime && state === "selected" ? client : null);
   const mineAt = feed?.lineup.findIndex((e) => e.mine) ?? -1;
   const upNext = state === "selected" && mineAt >= 0 && spotlightIndex(spotlight, feed!.lineup, ymd(showDateFor(window, now))) === mineAt;
@@ -1009,14 +1013,26 @@ function ShowDayScreen({
     if (!upNext) return;
     try {
       navigator.vibrate?.([250, 120, 250]);
-      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-        new Notification("You're up next!", { body: `${config.show_name ?? "The show"}: head to the stage area.`, tag: "openmic-up-next" });
-      }
     } catch {
-      // A browser without vibration or notifications: the card on the page is enough.
+      // A browser without vibration: the card on the page is enough.
     }
-  }, [upNext, config.show_name]);
-  return <ShowDay state={state} feed={feed} failed={failed} config={config} today={isShowDay(window, now)} lineupTime={lineupTime} upNext={upNext} dismissKey={`openmic-in-dismissed:${userId ?? "anon"}:${dateLabel}`} />;
+  }, [upNext]);
+  // Offered to a comic who is on (or may still be put on) tonight's lineup; the stored name follows the lineup row.
+  const pushName = mineAt >= 0 ? feed!.lineup[mineAt]!.name : stageName;
+  const optIn = lineupTime && (state === "selected" || state === "selections-pending") ? <OpenMicPushOptIn client={client} name={pushName} /> : undefined;
+  return (
+    <ShowDay
+      state={state}
+      feed={feed}
+      failed={failed}
+      config={config}
+      today={isShowDay(window, now)}
+      lineupTime={lineupTime}
+      upNext={upNext}
+      optIn={optIn}
+      dismissKey={`openmic-in-dismissed:${userId ?? "anon"}:${dateLabel}`}
+    />
+  );
 }
 
 /** Show day (Thu 10 PM to Fri 9:40 PM): the comic's own status, then the lineup. */
@@ -1028,6 +1044,7 @@ export function ShowDay({
   today,
   lineupTime,
   upNext,
+  optIn,
   dismissKey,
 }: {
   state: ShowDayState;
@@ -1038,6 +1055,8 @@ export function ShowDay({
   lineupTime: boolean;
   /** The hosts have highlighted this comic on the lineup screen: they're up next. */
   upNext?: boolean;
+  /** The "Get buzzed when you're up next" card (OpenMicPushOptIn), under the night's status card. */
+  optIn?: ReactNode;
   /** Where the "You're in!" card remembers it was dismissed (per person, per show day). */
   dismissKey: string;
 }) {
@@ -1148,6 +1167,8 @@ export function ShowDay({
           <p className="mt-2 text-base leading-relaxed text-muted-foreground">Try again in a minute.</p>
         </div>
       )}
+
+      {optIn}
 
       {lineupTime && config.show_lineup !== false && feed?.posted && feed.lineup.length > 0 && (
         <section aria-label="Lineup">

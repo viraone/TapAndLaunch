@@ -8,6 +8,7 @@ import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, showDateFor } from "@/lib/openmic/window";
 import { setSpotlight, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
+import { upNextStatus } from "@/lib/openmic/push";
 import { useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
@@ -86,6 +87,8 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
   const { spotlight } = useSpotlight(client);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** What happened on the highlighted comic's phone after the last move. */
+  const [told, setTold] = useState<string | null>(null);
 
   const lineup = feed?.lineup ?? [];
   const current = spotlightIndex(spotlight, lineup, showYmd);
@@ -96,7 +99,27 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
     setError(null);
     const problem = await setSpotlight(client, showYmd, lineup, index);
     setSaving(false);
-    if (problem) setError("That didn't save. Check the connection and try again.");
+    if (problem) return setError("That didn't save. Check the connection and try again.");
+    const entry = index >= 0 ? lineup[index] : undefined;
+    setTold(null);
+    if (entry) void tell(entry.name);
+  }
+
+  // The board and open phones follow the spotlight by themselves; a closed phone needs a push, sent by the server
+  // once it has checked this is a host. The line under the buttons says whether a phone was reached.
+  async function tell(name: string) {
+    try {
+      const { data } = await client.auth.getSession();
+      const res = await fetch("/openmic/up-next", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: data.session?.access_token, name }),
+      });
+      const result = res.ok ? ((await res.json()) as { sent: number; matched: number }) : null;
+      setTold(upNextStatus(name, result));
+    } catch {
+      setTold(upNextStatus(name, null));
+    }
   }
 
   return (
@@ -148,6 +171,11 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
             Clear the highlight
           </button>
           {error && <p className="mt-2 text-sm font-semibold text-red-400">{error}</p>}
+          {!error && told && (
+            <p className="mt-2 text-sm font-medium text-muted-foreground" aria-live="polite">
+              {told}
+            </p>
+          )}
         </div>
       </div>
 

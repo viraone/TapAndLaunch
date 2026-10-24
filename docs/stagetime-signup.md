@@ -52,6 +52,20 @@ app. The spotlight is kept per show date, so last week's never shows. `docs/stag
 page, the tab (`show_if: "openmic-hosts"`, after Profile) and sets `lineup_url` on the Sign-Up block, which turns
 the comics' show-day screen on. Local preview of the comic's card: `/signup?preview=up-next`.
 
+**Up-next push to a closed phone** (2026-10-23): the page-side card above only reaches a phone with the app open, so
+the Remote tab also has the server push. A comic turns it on once from the "Get buzzed when you're up next" card
+(`OpenMicPushOptIn.tsx`, on the show-day screen while they're on or may still be put on the lineup, and on the
+Profile tab); on iPhone that needs the app on the Home Screen first, and the card says so. The phone's subscription
+goes to `POST /openmic/push/subscribe` with the comic's own token from the show's project and their stage name, into
+`openmic_push_subscriptions` (TapAndLaunch DB, migration 0048; service role only, nothing to do with `app_members`).
+After `setSpotlight` succeeds the Remote tab calls `POST /openmic/up-next` with the host's token and the lineup row's
+name; the server checks `is_host_chat_member` against the show's project (`src/lib/openmic/push-server.ts`), then
+pushes "You're up next!" (tap opens `/`) to every phone whose `name_key` (lower-cased, spaces collapsed) matches,
+dropping subscriptions the push service says are gone. A phone that is on re-sends its subscription whenever its
+name changes, so on show day it is stored under the exact lineup-row name (`feed.lineup[mine].name`). The host sees
+"Buzzed X's phone." / "X hasn't turned on notifications on a phone." under the buttons. Pure parts and tests:
+`src/lib/openmic/push.ts`. Needs the VAPID env vars (already on Vercel). Not yet seen end to end on a real phone.
+
 The **Profile** tab (stage name, Instagram, email, and the Sign Out button) is the same block type with `"view": "profile"`
 in its settings (`src/components/pwa-runtime/OpenMicProfileRuntime.tsx`). The Sign-Up page's "Signed in as" row has no
 Sign Out button. `docs/stagetime-profile-tab.sql` added the Profile page and its tab to the live app on 2026-10-18; the

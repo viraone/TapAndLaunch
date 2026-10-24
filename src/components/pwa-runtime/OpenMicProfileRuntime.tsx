@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { Loader2, UserRound } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { initialsOf, profileOf, useOpenMicClient } from "./OpenMicSignupRuntime";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
+import { OpenMicPushOptIn } from "./OpenMicPushOptIn";
 
 /**
  * StageTime's Profile tab: who is signed in (stage name, Instagram, email) and the Sign Out
@@ -72,6 +73,7 @@ function OpenMicProfileLive({ config }: { config: OpenMicSignupBlockConfig }) {
   return (
     <ProfileScreen
       comic={{ stage_name: p.stage_name, instagram: p.instagram, email: user.email ?? "" }}
+      optIn={<OpenMicPushOptIn client={client} name={p.stage_name} />}
       onSignOut={() => void client.auth.signOut()}
     />
   );
@@ -84,7 +86,7 @@ interface Comic {
 }
 
 /** The screen itself, iOS Settings style: a large avatar and name, an inset grouped list, and Sign Out in its own row. */
-function ProfileScreen({ comic, onSignOut }: { comic: Comic | null; onSignOut?: () => void }) {
+function ProfileScreen({ comic, optIn, onSignOut }: { comic: Comic | null; optIn?: ReactNode; onSignOut?: () => void }) {
   return (
     <div className="mx-auto w-full max-w-md px-4 pb-12 pt-8">
       <h1 className="text-3xl font-black tracking-tight">Profile</h1>
@@ -106,6 +108,8 @@ function ProfileScreen({ comic, onSignOut }: { comic: Comic | null; onSignOut?: 
             <Row label="Instagram" value={comic.instagram} />
             <Row label="Email" value={comic.email} />
           </dl>
+
+          {optIn && <div className="mt-6">{optIn}</div>}
 
           <button
             type="button"

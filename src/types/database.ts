@@ -847,6 +847,33 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["push_subscriptions"]["Row"]>;
         Relationships: [];
       };
+      openmic_push_subscriptions: {
+        Row: {
+          id: string;
+          app_id: string;
+          user_id: string;
+          email: string;
+          name: string;
+          name_key: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["openmic_push_subscriptions"]["Row"]> & {
+          app_id: string;
+          user_id: string;
+          email: string;
+          name: string;
+          name_key: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["openmic_push_subscriptions"]["Row"]>;
+        Relationships: [];
+      };
       products: {
         Row: {
           id: string;

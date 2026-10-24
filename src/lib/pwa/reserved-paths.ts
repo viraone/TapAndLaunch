@@ -14,6 +14,7 @@ export const RESERVED_PAGE_PATHS = new Set([
   "manifest.webmanifest",
   "members",
   "newsletter",
+  "openmic",
   "orders",
   "robots.txt",
   "share-image",
