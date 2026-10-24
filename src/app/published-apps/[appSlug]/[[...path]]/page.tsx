@@ -12,6 +12,7 @@ import { BlockRenderer } from "@/components/pwa-runtime/BlockRenderer";
 import { GatedPlaceholder } from "@/components/pwa-runtime/GatedPlaceholder";
 import { recordAnalyticsEvent } from "@/lib/pwa/analytics";
 import { CodeAppFrame } from "@/components/pwa-runtime/CodeAppFrame";
+import { HomeRedirectNotice } from "@/components/pwa-runtime/HomeRedirectNotice";
 import { getCurrentMember, memberSatisfiesTier } from "@/lib/pwa/get-current-member";
 import { pageTitle } from "@/lib/pwa/page-title";
 import { canonicalOrigin, firstHeadedBlockIndex, pageJsonLd, publishedPageMetadata } from "@/lib/pwa/seo";
@@ -105,7 +106,12 @@ export default async function PublishedAppPage({ params, searchParams }: { param
 
   return (
     <main className="flex-1">
-      {homeRedirect && <script dangerouslySetInnerHTML={{ __html: homeRedirectScript(homeRedirect, published.app.theme?.home_redirect_unless) }} />}
+      {homeRedirect && (
+        <script dangerouslySetInnerHTML={{ __html: homeRedirectScript(homeRedirect, published.app.theme?.home_redirect_unless, !!published.app.theme?.home_redirect_notice) }} />
+      )}
+      {homeRedirect && published.app.theme?.home_redirect_notice && (
+        <HomeRedirectNotice target={homeRedirect} unlessFlag={published.app.theme.home_redirect_unless} notice={published.app.theme.home_redirect_notice} />
+      )}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdText(pageJsonLd(published.app, page, blocks, origin)) }} />
       {mainHeadingAt < 0 && <h1 className="sr-only">{pageTitle(published.app, page)}</h1>}
       {blocks.length === 0 ? (

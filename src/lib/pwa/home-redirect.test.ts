@@ -40,4 +40,12 @@ describe("homeRedirectTarget", () => {
     expect(script).toContain('location.replace("https://stagetimepnw.com/halloween")');
     expect(homeRedirectScript(halloween, undefined)).toBe('location.replace("https://stagetimepnw.com/halloween");');
   });
+
+  it("with a notice, the script hides the page for the notice instead of leaving", () => {
+    const script = homeRedirectScript(halloween, "openmic-hosts", true);
+    expect(script).toContain('localStorage.getItem("tl-nav-flag:openmic-hosts")==="1"');
+    expect(script).toContain('s.id="tl-home-redirect"');
+    expect(script).toContain("body{visibility:hidden}");
+    expect(script).not.toContain("location.replace");
+  });
 });

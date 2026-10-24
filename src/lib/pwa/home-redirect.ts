@@ -27,8 +27,12 @@ export function homeRedirectTarget(
  * (`home_redirect_unless`) is on in localStorage stays, everyone else goes to `target` at once. This is what lets
  * a host's Home Screen app (its own storage, no address bar, switch set long ago) keep working with nothing to do;
  * the cookie check on the server only saves hosts the script. */
-export function homeRedirectScript(target: string, unlessFlag: string | undefined): string {
-  const go = `location.replace(${JSON.stringify(target)})`;
+export function homeRedirectScript(target: string, unlessFlag: string | undefined, withNotice = false): string {
+  // With a notice, the page is hidden by a <style> added to <head> (nothing React hydrates, so no mismatch) and
+  // HomeRedirectNotice takes over; it removes that style again for a host.
+  const go = withNotice
+    ? `var s=document.createElement("style");s.id="tl-home-redirect";s.textContent="body{visibility:hidden}.tl-home-redirect-notice{visibility:visible}";document.head.appendChild(s)`
+    : `location.replace(${JSON.stringify(target)})`;
   if (!unlessFlag) return `${go};`;
   const key = JSON.stringify(navFlagStorageKey(unlessFlag));
   return `(function(){try{if(localStorage.getItem(${key})==="1")return}catch(e){}${go}})();`;

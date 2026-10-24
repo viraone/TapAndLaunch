@@ -152,6 +152,16 @@ export interface ThemeConfig {
   /** A tab switch name (see `bottom_nav[].show_if`): a browser with that switch on is not redirected. StageTime:
    * "openmic-hosts", so the hosts' phones keep the app's home page while the comics go to the Halloween page. */
   home_redirect_unless?: string;
+  /** Shown on the home page first, then the browser goes on to `home_redirect` after `seconds` (10) or the button
+   * (components/pwa-runtime/HomeRedirectNotice.tsx). Unset, the browser leaves at once. */
+  home_redirect_notice?: HomeRedirectNotice;
+}
+
+export interface HomeRedirectNotice {
+  title?: string;
+  text?: string;
+  button?: string;
+  seconds?: number;
 }
 
 export interface ManifestConfig {
