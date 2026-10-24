@@ -7,6 +7,22 @@
 const EVENT = "tl-nav-flag";
 const PREFIX = "tl-nav-flag:";
 
+/** Each switch is mirrored in a cookie of this name ("1" while on), so the server can see it too: a home-page
+ * redirect (theme.home_redirect_unless) is skipped for a browser whose switch is on, e.g. StageTime's hosts. */
+export function navFlagCookieName(key: string): string {
+  return `tl_nav_${key}`;
+}
+
+function writeFlagCookie(key: string, on: boolean): void {
+  try {
+    if (typeof document === "undefined") return;
+    const base = `${navFlagCookieName(key)}=${on ? "1" : ""}; path=/; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+    document.cookie = on ? `${base}; max-age=${365 * 86400}` : `${base}; max-age=0`;
+  } catch {
+    // No cookies: the server just can't tell, and treats the browser like any other.
+  }
+}
+
 export function readNavFlag(key: string): boolean {
   try {
     return window.localStorage.getItem(PREFIX + key) === "1";
@@ -16,6 +32,9 @@ export function readNavFlag(key: string): boolean {
 }
 
 export function setNavFlag(key: string, on: boolean): void {
+  // The cookie is brought in line every time, even when the switch itself hasn't moved: a phone that turned the
+  // switch on before cookies existed gets its cookie on the next screen that checks who is signed in.
+  writeFlagCookie(key, on);
   try {
     if (on === readNavFlag(key)) return;
     if (on) window.localStorage.setItem(PREFIX + key, "1");

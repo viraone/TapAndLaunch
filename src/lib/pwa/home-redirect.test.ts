@@ -26,4 +26,11 @@ describe("homeRedirectTarget", () => {
   it("an unreadable end time means no redirect, so a typo never locks the app away", () => {
     expect(homeRedirectTarget({ home_redirect: halloween, home_redirect_until: "next thursday" })).toBeNull();
   });
+
+  it("a browser with the named tab switch on (a host's phone) is never redirected", () => {
+    const theme = { home_redirect: halloween, home_redirect_unless: "openmic-hosts" };
+    expect(homeRedirectTarget(theme, new Date(), (key) => key === "openmic-hosts")).toBeNull();
+    expect(homeRedirectTarget(theme, new Date(), () => false)).toBe(halloween);
+    expect(homeRedirectTarget(theme, new Date(), (key) => key === "openmic-comic")).toBe(halloween);
+  });
 });

@@ -149,6 +149,9 @@ export interface ThemeConfig {
    * (ISO 8601 with offset) ends it by itself at that moment (lib/pwa/home-redirect.ts). */
   home_redirect?: string;
   home_redirect_until?: string;
+  /** A tab switch name (see `bottom_nav[].show_if`): a browser with that switch on is not redirected. StageTime:
+   * "openmic-hosts", so the hosts' phones keep the app's home page while the comics go to the Halloween page. */
+  home_redirect_unless?: string;
 }
 
 export interface ManifestConfig {
