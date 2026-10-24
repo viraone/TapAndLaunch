@@ -105,4 +105,18 @@ describe("one-off hold (closed_until)", () => {
     expect(isWindowOpen(HELD, pdt("2026-10-30T21:40"))).toBe(true);
     expect(reopenLabel(HELD, pdt("2026-10-30T12:00"))).toBe("after tonight's show");
   });
+
+  it("Oct 30, 2026 (the costume contest): requests reopen at 10:00 PM sharp, not 9:40 PM", () => {
+    const TEN: WeeklyWindow = { ...RTR, lineupFromWeekday: 4, lineupFromMinutes: 23 * 60, closedUntil: pdt("2026-10-30T22:00") };
+    expect(isLineupTime(TEN, pdt("2026-10-30T19:00"))).toBe(true);
+    expect(isWindowOpen(TEN, pdt("2026-10-30T21:40"))).toBe(false);
+    expect(isLineupTime(TEN, pdt("2026-10-30T21:50"))).toBe(false);
+    expect(reopenLabel(TEN, pdt("2026-10-30T21:50"))).toBe("Friday at 10:00 PM");
+    expect(isWindowOpen(TEN, pdt("2026-10-30T21:59"))).toBe(false);
+    expect(isWindowOpen(TEN, pdt("2026-10-30T22:00"))).toBe(true);
+    expect(formatShowDate(showDateFor(TEN, pdt("2026-10-30T22:00")))).toBe("Friday, Nov 6");
+    // Nov 6 is after the clocks go back: 9:40 PM PST is -08:00.
+    expect(isWindowOpen(TEN, new Date("2026-11-06T21:40:00-08:00"))).toBe(true);
+    expect(isWindowOpen(TEN, new Date("2026-11-06T21:39:00-08:00"))).toBe(false);
+  });
 });
