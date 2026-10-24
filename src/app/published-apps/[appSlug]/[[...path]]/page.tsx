@@ -55,6 +55,11 @@ export default async function PublishedAppPage({ params, searchParams }: { param
 
   const page = resolvePage(published, path);
   if (!page) notFound();
+  // The owner can send home-page visitors somewhere else for a while (theme.home_redirect: StageTime -> the
+  // Halloween costume contest sign-up on stagetimepnw.com). A 307, so the app is back as soon as the key is removed;
+  // the builder's "Try it" preview still shows the page itself, and /lineup, /remote, /profile are untouched.
+  const homeRedirect = published.app.theme?.home_redirect;
+  if (page.is_home && !published.preview && homeRedirect && /^https?:\/\//.test(homeRedirect)) redirect(homeRedirect);
   // The home page has one address, "/": its path ("/home") forwards there, so search engines never see it twice.
   // The query string goes along (StageTime's "/signup?signout" test link, when Sign-Up is the home page).
   if (page.is_home && path?.length) {

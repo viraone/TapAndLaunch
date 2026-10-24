@@ -143,6 +143,10 @@ export interface ThemeConfig {
   announcement?: { enabled?: boolean; text?: string; url?: string };
   /** Shows a small "this site uses cookies" notice once, until the visitor dismisses it. */
   cookie_notice?: boolean;
+  /** Set, visitors to the home page ("/") are sent to this http(s) address instead, with a temporary redirect, so the
+   * app is back the moment the key is removed. The other pages are untouched. StageTime used it the week of the
+   * Halloween costume contest (Oct 2026) to send everyone to stagetimepnw.com/halloween. */
+  home_redirect?: string;
 }
 
 export interface ManifestConfig {
