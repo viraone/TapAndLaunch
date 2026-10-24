@@ -30,7 +30,7 @@ reopening until that moment, e.g. reopen Saturday noon after one show; it expire
 weekday rule in `is_signup_window_open` (rickshaw-open-mic), so a one-off hold needs a dated clause there too
 (`docs/private/stagetime-reopen-sat-oct24-db.sql` is the pattern). **The show-day lineup stays off until `lineup_url` is set on the live block.**
 
-The app's theme can carry `home_redirect` (an http(s) address): visitors to the home page ("/") get a 307 there, while /lineup, /remote, /profile and the rest keep working. StageTime used it from Oct 23, 2026 to send everyone to stagetimepnw.com/halloween for the costume-contest week (docs/private/stagetime-halloween-redirect.sql turns it on and off; removing the key brings the app back with no deploy). The Home Screen app opens "/" too, so hosts go to /remote directly while it is on.
+The app's theme can carry `home_redirect` (an http(s) address): visitors to the home page ("/") get a 307 there, while /lineup, /remote, /profile and the rest keep working. StageTime used it from Oct 23, 2026 to send everyone to stagetimepnw.com/halloween for the costume-contest week (docs/private/stagetime-halloween-redirect.sql turns it on and off; removing the key brings the app back with no deploy; `home_redirect_until`, an ISO time with offset, ends it by itself: set to Thu Oct 29, 2026 11:00 PM so comics get the show-day screen and lineup back for the Halloween show). The Home Screen app opens "/" too, so hosts go to /remote directly while it is on.
 
 **Lineup page for the venue** (block view `"lineup"`, `src/components/pwa-runtime/OpenMicLineupRuntime.tsx`, branch
 `rickshaw-lineup`, 2026-10-21): `/lineup` is a full-screen website page, not the phone column. It covers the app's header

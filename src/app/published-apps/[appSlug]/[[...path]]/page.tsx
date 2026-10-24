@@ -4,6 +4,7 @@ import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { getCodeAppsDomain, hostRoot } from "@/lib/tenant";
 import { appOrigin } from "@/lib/stripe/checkout";
 import { getBlocksForPage, getPublishedApp, resolvePage } from "@/lib/pwa/data";
+import { homeRedirectTarget } from "@/lib/pwa/home-redirect";
 import { getActiveProducts, getUpcomingEvents } from "@/lib/pwa/commerce";
 import { getActiveListings } from "@/lib/pwa/listings";
 import { BlockRenderer } from "@/components/pwa-runtime/BlockRenderer";
@@ -55,11 +56,12 @@ export default async function PublishedAppPage({ params, searchParams }: { param
 
   const page = resolvePage(published, path);
   if (!page) notFound();
-  // The owner can send home-page visitors somewhere else for a while (theme.home_redirect: StageTime -> the
-  // Halloween costume contest sign-up on stagetimepnw.com). A 307, so the app is back as soon as the key is removed;
-  // the builder's "Try it" preview still shows the page itself, and /lineup, /remote, /profile are untouched.
-  const homeRedirect = published.app.theme?.home_redirect;
-  if (page.is_home && !published.preview && homeRedirect && /^https?:\/\//.test(homeRedirect)) redirect(homeRedirect);
+  // The owner can send home-page visitors somewhere else for a while (theme.home_redirect, with an optional end
+  // time: StageTime -> the Halloween costume contest sign-up on stagetimepnw.com until the lineup switches on). A
+  // 307, so the app is back the moment it ends; the builder's "Try it" preview still shows the page itself, and
+  // /lineup, /remote, /profile are untouched.
+  const homeRedirect = homeRedirectTarget(published.app.theme);
+  if (page.is_home && !published.preview && homeRedirect) redirect(homeRedirect);
   // The home page has one address, "/": its path ("/home") forwards there, so search engines never see it twice.
   // The query string goes along (StageTime's "/signup?signout" test link, when Sign-Up is the home page).
   if (page.is_home && path?.length) {
