@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpRight, ChevronDown, Lock } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Folder, FolderOpen, Lock } from "lucide-react";
 import type { FilesBlockConfig } from "@/types/database";
 import { EditableText } from "@/components/pwa-runtime/Editable";
 
@@ -74,6 +74,9 @@ export function FilesBlockView({ config, live }: { config: FilesBlockConfig; liv
             aria-expanded={open}
             className="flex min-h-16 w-full items-center gap-3 px-5 py-4 text-left"
           >
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary" aria-hidden="true">
+              {open ? <FolderOpen className="h-5 w-5" /> : <Folder className="h-5 w-5" />}
+            </span>
             <span className="min-w-0 flex-1">
               <EditableText as="span" path={["title"]} value={config.title} placeholder="Files" className="block text-lg font-extrabold tracking-tight @lg:text-2xl" />
               <EditableText as="span" path={["intro"]} value={config.intro} placeholder="A line under the title" className="mt-0.5 block text-sm text-muted-foreground" />
