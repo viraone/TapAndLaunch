@@ -72,22 +72,24 @@ describe("website designs", () => {
     }
   });
 
-  it("tint every new page away from grey and keep page colours apart", () => {
+  it("keep every new page a subtle tint, not a neon, and keep page colours apart", () => {
     for (let i = 30; i < WEBSITE_DESIGNS.length; i++) {
       const bg = WEBSITE_DESIGNS[i].theme.background_color!;
       for (let j = 0; j < WEBSITE_DESIGNS.length; j++) {
         if (i === j) continue;
-        expect(okDist(bg, WEBSITE_DESIGNS[j].theme.background_color!), `${i} vs ${j}`).toBeGreaterThanOrEqual(0.02);
+        expect(okDist(bg, WEBSITE_DESIGNS[j].theme.background_color!), `${i} vs ${j}`).toBeGreaterThanOrEqual(0.012);
       }
       const L = oklab(bg)[0];
       const C = okChroma(bg);
       if (WEBSITE_DESIGNS[i].look === "cinematic") {
         expect(L, `dark page ${i}`).toBeLessThanOrEqual(0.30);
         expect(C, `dark page ${i}`).toBeGreaterThanOrEqual(0.01);
+        expect(C, `dark page ${i}`).toBeLessThanOrEqual(0.06);
       } else {
-        expect(L, `light page ${i}`).toBeGreaterThanOrEqual(0.90);
+        expect(L, `light page ${i}`).toBeGreaterThanOrEqual(0.93);
         expect(L, `light page ${i}`).toBeLessThanOrEqual(0.985);
         expect(C, `light page ${i}`).toBeGreaterThanOrEqual(0.012);
+        expect(C, `light page ${i}`).toBeLessThanOrEqual(0.04);
       }
     }
   });
