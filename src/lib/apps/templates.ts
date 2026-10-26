@@ -207,7 +207,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
   {
     id: "comedians",
     style: "split",
-    name: "Stand-up comedians",
+    name: "Performers",
     tagline: "A site for a stand-up comedian: your clips, your upcoming shows, and how bookers reach you.",
     icon: "mic",
     color: "#0369a1",
