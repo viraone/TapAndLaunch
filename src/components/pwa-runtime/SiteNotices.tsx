@@ -50,7 +50,8 @@ export function AnnouncementBar({ theme, preview = false }: { theme: ThemeConfig
   const href = a.url?.trim();
   const body = <span className="text-sm font-semibold">{a.text}</span>;
   return (
-    <div className="flex items-center justify-center gap-3 bg-primary px-4 py-2.5 text-center text-primary-foreground">
+    // Extra room on top on phones: Safari draws a dark fade under the clock and battery that would cover the first line.
+    <div className="flex items-center justify-center gap-3 bg-primary px-4 pb-2.5 pt-5 text-center text-primary-foreground lg:pt-2.5">
       {href && !preview ? (
         <a href={/^https?:\/\//i.test(href) ? href : `/${href.replace(/^\/+/, "")}`} className="underline-offset-2 hover:underline">
           {body}
