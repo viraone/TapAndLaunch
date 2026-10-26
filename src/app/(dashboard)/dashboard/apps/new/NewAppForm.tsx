@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, buildStarter, templateNeedsMaps, websiteDesigns, type StarterTemplate } from "@/lib/apps/templates";
+import { WEBSITE_DESIGNS } from "@/lib/apps/designs";
 import { WEBSITE_GOALS, type GoalId } from "@/lib/apps/goals";
 import { fontsHref } from "@/lib/pwa/theme-style";
 import { addressFor, randomAddress } from "@/lib/apps/slug";
@@ -22,11 +23,10 @@ const ICONS = TEMPLATE_ICONS;
 const WEBSITE_CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => c.id === "website");
 const APP_CATEGORIES = TEMPLATE_CATEGORIES.filter((c) => c.id !== "website");
 
-// The website mockups are set in each site's real fonts, so the picker loads the pairs the website starters use
-// (a handful of Google Fonts stylesheets; React hoists the links into <head>).
-const PICKER_FONTS = Array.from(
-  new Set(STARTER_TEMPLATES.filter((t) => t.category === "website").flatMap((t) => websiteDesigns(t.id).map((d) => fontsHref(buildStarter(d.templateId, "x").theme))).filter((h): h is string => !!h))
-);
+// The website mockups are set in each site's real fonts, so the picker loads the pairs the website designs use
+// (a handful of Google Fonts stylesheets; React hoists the links into <head>). Derive them straight from each
+// design's font pair rather than building a whole starter to read its theme.
+const PICKER_FONTS = Array.from(new Set(WEBSITE_DESIGNS.map((d) => fontsHref(d.theme)).filter((h): h is string => !!h)));
 
 // Name placeholders for the older templates; the website templates carry their own (`nameHint`/`aboutHint`).
 const NAME_HINTS: Record<string, string> = {
@@ -513,7 +513,7 @@ function DesignGrid({ topic, goals, onBack, onSelect }: { topic: StarterTemplate
   const grid = (list: typeof designs) => (
     <div className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
       {list.map((d) => (
-        <button key={d.id} type="button" onClick={() => onSelect({ ...topic, id: d.templateId, name: `${topic.name} · ${d.name}` })} className={CARD}>
+        <button key={d.id} type="button" onClick={() => onSelect({ ...topic, id: d.templateId, name: `${topic.name} · ${d.name}` })} className={`${CARD} [content-visibility:auto] [contain-intrinsic-size:auto_480px]`}>
           <Preview template={topic} templateId={d.templateId} goals={goals} action="Start with this" />
           <div className="mt-3.5 flex items-baseline justify-between gap-3">
             <h4 className="min-w-0 truncate text-[17px] font-medium tracking-tight text-neutral-950">{d.name}</h4>
