@@ -1,0 +1,203 @@
+/* The crawl-map SVG and the keyframe animations, which Tailwind has no utilities for. Everything else on the page
+ * is Tailwind. */
+
+/* Layout: one column below 900px, two from 900px, three from 1201px — the reference's grid, which Tailwind has no
+ * grid-template-area utility for. */
+.sc-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "stages"
+    "crawl"
+    "checked"
+    "log"
+    "score";
+  gap: 16px;
+  align-items: start;
+}
+.sc-grid > * {
+  min-width: 0;
+}
+.sc-area-stages {
+  grid-area: stages;
+}
+.sc-area-crawl {
+  grid-area: crawl;
+}
+.sc-area-checked {
+  grid-area: checked;
+}
+.sc-area-log {
+  grid-area: log;
+}
+.sc-area-score {
+  grid-area: score;
+}
+
+@media (min-width: 900px) {
+  .sc-grid {
+    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-areas:
+      "stages crawl"
+      "stages checked"
+      "stages log"
+      "stages score";
+  }
+}
+
+@media (min-width: 1201px) {
+  .sc-grid {
+    grid-template-columns: 300px minmax(320px, 1fr) 340px;
+    grid-template-areas:
+      "stages crawl checked"
+      "stages log score";
+  }
+}
+
+/* --- Crawl map SVG --- */
+
+.sc-guide-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 1;
+}
+.sc-guide-label {
+  font-size: 10px;
+  fill: rgba(232, 236, 243, 0.4);
+}
+
+.sc-pulse-ring {
+  fill: none;
+  stroke: #60a5fa;
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.sc-pulse-ring:nth-child(1) {
+  animation: sc-home-pulse 3.2s ease-out infinite;
+}
+.sc-pulse-ring:nth-child(2) {
+  animation: sc-home-pulse 3.2s ease-out 1.07s infinite;
+}
+.sc-pulse-ring:nth-child(3) {
+  animation: sc-home-pulse 3.2s ease-out 2.13s infinite;
+}
+
+.sc-edge .sc-edge-stroke {
+  fill: none;
+  stroke-width: 1.25;
+  opacity: 0.55;
+  transition: opacity 0.2s, stroke-width 0.2s;
+}
+.sc-edge.dim .sc-edge-stroke {
+  opacity: 0.12;
+}
+.sc-edge.lit .sc-edge-stroke {
+  opacity: 0.95;
+  stroke-width: 1.8;
+}
+
+.sc-node {
+  cursor: pointer;
+  outline: none;
+  --nc: #60a5fa;
+}
+.sc-node .sc-glow {
+  fill: var(--nc);
+  opacity: 0.35;
+  filter: blur(6px);
+  transition: fill 0.2s;
+}
+.sc-node .sc-disc {
+  fill: var(--nc);
+  transition: fill 0.2s;
+}
+.sc-node .sc-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 1.2;
+}
+.sc-node .sc-core {
+  fill: #f6f8ff;
+  opacity: 0.9;
+}
+.sc-node.selected .sc-disc {
+  stroke: #f8fafc;
+  stroke-width: 2.2;
+}
+.sc-node.selected .sc-glow {
+  opacity: 0.7;
+  filter: blur(9px);
+}
+.sc-node.selected .sc-ring {
+  stroke: #f8fafc;
+  stroke-width: 1.6;
+}
+.sc-node:focus-visible .sc-disc {
+  stroke: #f8fafc;
+  stroke-width: 2.2;
+}
+
+.sc-node-body {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.sc-node {
+  animation: sc-node-enter 450ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sc-node-body {
+  animation: sc-node-pop 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes sc-home-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  70% {
+    opacity: 0.1;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+@keyframes sc-node-enter {
+  from {
+    transform: translate(var(--dx, 0px), var(--dy, 0px));
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes sc-node-pop {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes sc-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Reduced motion turns off the pulse, blink and entrance animations (the gauge counts up instantly in JS too). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
