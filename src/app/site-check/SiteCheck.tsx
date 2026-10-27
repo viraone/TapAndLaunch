@@ -31,6 +31,16 @@ export function SiteCheck({ initialUrl }: { initialUrl: string }) {
   // Leaving the page ends the run: aborting the fetch aborts the request, which stops the server too.
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  // A shared link (/site-check?q=…) starts its check at once, like the domains page does. The start waits one tick so that
+  // React's development double-mount cancels the first timer instead of aborting a request the server has already counted.
+  useEffect(() => {
+    const addr = initialUrl.trim();
+    if (!addr) return;
+    const timer = setTimeout(() => void run(addr), 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only for the address the page loaded with
+  }, []);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const addr = url.trim();
