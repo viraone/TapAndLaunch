@@ -894,6 +894,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["openmic_push_subscriptions"]["Row"]>;
         Relationships: [];
       };
+      site_checks: {
+        Row: {
+          id: string;
+          host: string;
+          site: string;
+          score: number | null;
+          grade: string | null;
+          page_count: number;
+          report: Record<string, unknown>;
+          fix_count: number;
+          unreadable_reason: string | null;
+          visitor_hash: string;
+          email: string | null;
+          duration_ms: number;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["site_checks"]["Row"]> & {
+          host: string;
+          site: string;
+          report: Record<string, unknown>;
+          visitor_hash: string;
+          duration_ms: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["site_checks"]["Row"]>;
+        Relationships: [];
+      };
       products: {
         Row: {
           id: string;
