@@ -27,7 +27,7 @@
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "seositetuneup": "file:../seo-audit",
+    "seositetuneup": "git+file:///Users/viradeth/Developer/seo-audit#4482713",
     "shadcn": "^4.21.0",
     "sonner": "^2.0.8",
     "stripe": "^23.0.0",
