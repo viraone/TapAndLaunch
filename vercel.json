@@ -1,0 +1,4 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "git config --global url.\"https://${GH_ENGINE_TOKEN}@github.com/\".insteadOf \"https://github.com/\" && npm ci"
+}
