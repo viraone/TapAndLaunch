@@ -88,6 +88,8 @@ function sseResponse(stream: ReadableStream<Uint8Array>): Response {
 function runStream(request: Request, site: string, host: string): Response {
   const startedAt = Date.now();
   const abort = new AbortController();
+  // A visitor leaving the page ends the run: the stream's cancel() covers most servers, and the request's own signal covers the rest.
+  request.signal.addEventListener("abort", () => abort.abort(), { once: true });
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -128,7 +130,10 @@ function runStream(request: Request, site: string, host: string): Response {
         }
 
         // Save the report so a re-check of the same site within the hour replays it, and the report page can render it.
+        // Never save a run the visitor abandoned: the engine stops at its next checkpoint, and a report cut short must not be
+        // replayed to the next visitor as the finished result.
         let id: string | null = null;
+        if (abort.signal.aborted) return;
         try {
           const admin = createAdminClient();
           const { data, error } = await admin
