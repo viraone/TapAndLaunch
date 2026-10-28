@@ -48,7 +48,7 @@ export function AnnouncementBar({ theme, preview = false }: { theme: ThemeConfig
   const closed = !preview && storedClosed;
   if (!a?.enabled || !a.text?.trim() || closed) return null;
   const href = a.url?.trim();
-  const body = <span className="text-sm font-bold">{a.text}</span>;
+  const body = <span className={`font-bold ${a.size === "large" ? "text-lg leading-snug lg:text-xl" : "text-sm"}`}>{a.text}</span>;
   const ink = a.text_color === "light" ? "text-white" : a.text_color === "dark" ? "text-neutral-950" : "text-primary-foreground";
   return (
     // Extra room on top on phones: Safari draws a dark fade under the clock and battery that would cover the first line.

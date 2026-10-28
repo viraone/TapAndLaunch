@@ -48,6 +48,7 @@ const ThemeSchema = z.object({
       text: z.string().max(140).optional(),
       url: z.string().max(500).optional(),
       text_color: z.enum(["light", "dark"]).optional(),
+      size: z.enum(["large"]).optional(),
     })
     .optional(),
   cookie_notice: z.boolean().optional(),

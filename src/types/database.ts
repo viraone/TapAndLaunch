@@ -140,8 +140,8 @@ export interface ThemeConfig {
    * when this is unset; set, it wins. */
   accent_color?: string;
   /** A line across the top of every page, with an optional link; the visitor can close it. `text_color` forces white
-   * ("light") or near-black ("dark") letters; unset picks whichever reads better on the primary colour. */
-  announcement?: { enabled?: boolean; text?: string; url?: string; text_color?: "light" | "dark" };
+   * ("light") or near-black ("dark") letters; unset picks whichever reads better on the primary colour. `size: "large"` makes the text bigger. */
+  announcement?: { enabled?: boolean; text?: string; url?: string; text_color?: "light" | "dark"; size?: "large" };
   /** Shows a small "this site uses cookies" notice once, until the visitor dismisses it. */
   cookie_notice?: boolean;
   /** Set, visitors to the home page ("/") are sent to this http(s) address instead, with a temporary redirect, so the
