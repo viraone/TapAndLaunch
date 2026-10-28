@@ -53,8 +53,16 @@ export function HeroBlockEditor({ config, organizationId, pages = [], onChange }
   return (
     <div className="space-y-3">
       <ImageUploadField id="hero-image" label="Photo" organizationId={organizationId} value={config.image_url ?? ""} onChange={(image_url) => onChange({ ...config, image_url })} />
-      <div className="grid grid-cols-2 gap-2">
-        <Field id="hero-layout" label="Layout">
+      {/* Labels share row 1 and the pickers share row 2, so a label that wraps ("Without a photo, show" in the
+          320px panel) cannot push its picker below the other one. */}
+      <div className="grid grid-cols-2 items-start gap-x-2 gap-y-1">
+        <Label htmlFor="hero-layout" className="col-start-1 row-start-1 leading-tight">
+          Layout
+        </Label>
+        <Label htmlFor="hero-background" className="col-start-2 row-start-1 leading-tight">
+          Without a photo, show
+        </Label>
+        <div className="col-start-1 row-start-2">
           <Select value={config.layout ?? ""} items={{ "": "Your site's look", ...HERO_LAYOUTS }} onValueChange={(v) => onChange({ ...config, layout: (v || undefined) as HeroBlockConfig["layout"] })}>
             <SelectTrigger id="hero-layout" className="w-full">
               <SelectValue />
@@ -68,8 +76,8 @@ export function HeroBlockEditor({ config, organizationId, pages = [], onChange }
               ))}
             </SelectContent>
           </Select>
-        </Field>
-        <Field id="hero-background" label="Without a photo, show">
+        </div>
+        <div className="col-start-2 row-start-2">
           <Select value={config.background ?? ""} items={{ "": "Your site's look", ...HERO_BACKGROUNDS }} onValueChange={(v) => onChange({ ...config, background: (v || undefined) as HeroBlockConfig["background"] })}>
             <SelectTrigger id="hero-background" className="w-full">
               <SelectValue />
@@ -83,7 +91,7 @@ export function HeroBlockEditor({ config, organizationId, pages = [], onChange }
               ))}
             </SelectContent>
           </Select>
-        </Field>
+        </div>
       </div>
       <Field id="hero-eyebrow" label="Small label above (optional)">
         <Input id="hero-eyebrow" {...linked("eyebrow")} value={config.eyebrow ?? ""} maxLength={40} onChange={(e) => onChange({ ...config, eyebrow: e.target.value })} />
