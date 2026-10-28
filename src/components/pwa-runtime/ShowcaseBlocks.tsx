@@ -108,8 +108,8 @@ export function HeroBlockView({ config, live }: { config: HeroBlockConfig; live:
       <div className={`absolute inset-0 -z-10 bg-gradient-to-t ${dim}`} />
       {replace}
       {/* The tall box (words at the bottom) is room for the photo to show; without one it would be empty colour, so the
-          banner hugs its words instead. */}
-      <div className={`flex flex-col justify-end px-5 pb-8 text-white @lg:px-14 @lg:pb-14 ${config.image_url ? "min-h-[24rem] pt-28 @lg:min-h-[34rem]" : "pt-10 @lg:pt-16"}`}>
+          banner hugs its words instead, with less room on top when there is no headline or label above the words. */}
+      <div className={`flex flex-col justify-end px-5 pb-8 text-white @lg:px-14 @lg:pb-14 ${config.image_url ? "min-h-[24rem] pt-28 @lg:min-h-[34rem]" : !config.headline?.trim() && !config.eyebrow?.trim() ? "pt-5 @lg:pt-8" : "pt-10 @lg:pt-16"}`}>
         <EditableText as="span" path={["eyebrow"]} value={config.eyebrow} placeholder="Small label" className="mb-3 inline-flex w-fit rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] backdrop-blur" />
         <EditableText as="h2" path={["headline"]} value={config.headline} placeholder="Your headline" className={`text-balance font-extrabold leading-[1.02] tracking-tight @lg:max-w-3xl ${look === "bold" ? "text-[2.8rem] uppercase leading-[0.95] tracking-wide @lg:text-8xl" : "text-[2.1rem] @lg:text-6xl"}`} />
         <EditableText as="div" path={["subtext"]} value={config.subtext} placeholder="A line under the headline" rich className="mt-3 max-w-sm text-[15px] leading-relaxed text-white/85 @lg:mt-5 @lg:max-w-xl @lg:text-lg" />
