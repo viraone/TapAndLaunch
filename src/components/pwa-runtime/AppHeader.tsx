@@ -1,6 +1,5 @@
-import Link from "next/link";
 import type { ThemeConfig } from "@/types/database";
-import { TabIcon } from "./BottomNav";
+import { HeaderCornerLink } from "./HeaderCornerLink";
 
 /** Does this theme ask for a header bar? Any one of the three is enough. */
 export function hasAppHeader(theme: ThemeConfig): boolean {
@@ -32,17 +31,7 @@ export function AppHeader({ theme }: { theme: ThemeConfig }) {
           {tagline && <p className="mt-0.5 line-clamp-2 text-[15px] font-medium leading-snug text-muted-foreground">{tagline}</p>}
         </div>
       )}
-      {action && (
-        // The corner link: a 44pt round target in the app's own muted tone, an icon only, with the label for screen readers.
-        <Link
-          href={`/${action.page_path.replace(/^\//, "")}`}
-          aria-label={action.label}
-          title={action.label}
-          className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted text-foreground ring-1 ring-border/70 transition active:scale-95 active:bg-foreground/10"
-        >
-          <TabIcon name={action.icon} />
-        </Link>
-      )}
+      {action && <HeaderCornerLink href={`/${action.page_path.replace(/^\//, "")}`} label={action.label} icon={action.icon} />}
     </header>
   );
 }

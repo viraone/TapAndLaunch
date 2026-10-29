@@ -8,9 +8,12 @@ import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type Li
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
+import { setSignedInName } from "@/lib/openmic/signed-in-name";
 import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { HostInbox, HostInboxView } from "./OpenMicHostInbox";
 import { OpenMicPushOptIn } from "./OpenMicPushOptIn";
+
+export { initialsOf } from "@/lib/openmic/signed-in-name";
 
 /**
  * StageTime PNW's weekly showcase sign-up. Accounts and the request list live
@@ -105,50 +108,6 @@ export function SignupHeader({
   );
 }
 
-/** Up to two initials from a stage name or email, for the avatar circle. */
-export function initialsOf(name: string): string {
-  return (
-    name
-      .split(/[\s@.]+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0]!.toUpperCase())
-      .join("") || "?"
-  );
-}
-
-/**
- * "Signed in as …": a slim one-line row (small tinted avatar with the initials, a grey caption, the name in
- * semibold) so it never competes with the card under it. Sign Out lives on the Profile tab; the button here
- * shows only where onSignOut is passed.
- */
-export function SignedInBar({ name, onSignOut }: { name: string; onSignOut?: () => void }) {
-  const initials = initialsOf(name);
-  return (
-    <div className="mt-4 flex min-h-12 items-center gap-3 rounded-xl bg-muted px-3 py-2">
-      <span
-        aria-hidden
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-b from-primary/40 to-primary/15 text-[13px] font-semibold text-primary"
-      >
-        {initials}
-      </span>
-      <p className="flex min-w-0 items-baseline gap-1.5 leading-tight">
-        <span className="whitespace-nowrap text-[14px] text-muted-foreground">Signed in as</span>
-        <span className="truncate text-[16px] font-semibold text-foreground">{name}</span>
-      </p>
-      {onSignOut && (
-        <button
-          type="button"
-          onClick={onSignOut}
-          className="ml-auto flex h-9 shrink-0 items-center rounded-full bg-primary/15 px-3 text-[14px] font-semibold text-primary active:bg-primary/25"
-        >
-          Sign Out
-        </button>
-      )}
-    </div>
-  );
-}
-
 /** The request window from the block's settings. */
 export function windowOf(config: OpenMicSignupBlockConfig): WeeklyWindow {
   return {
@@ -189,7 +148,6 @@ function HostPreview({ config, empty }: { config: OpenMicSignupBlockConfig; empt
   return (
     <div className="mx-auto w-full max-w-md px-4 pb-12 pt-8">
       <SignupHeader config={config} showDate={formatShowDate(showDateFor(window_, now))} open={false} hidePill reopenText="" closesAt="" />
-      <SignedInBar name="Viradeth" />
       <div className="mt-6">
         <HostInboxView
           timeZone={window_.timeZone}
@@ -240,12 +198,18 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   const [user, setUser] = useState<User | null>(null);
   const [request, setRequest] = useState<RequestRow | null>(null);
   const [email, setEmail] = useState("");
-  // A signed-in host's name from the hosts list (the "Signed in as" row), since hosts never fill in a stage name.
+  // A signed-in host's name from the hosts list (the header's corner avatar), since hosts never fill in a stage name.
   const [hostName, setHostName] = useState("");
   // While sign-ups are closed, the email box stays tucked behind a small link.
   const [showSignIn, setShowSignIn] = useState(false);
 
   const profile = profileOf(user);
+
+  // Who is signed in lives in the app header's corner (initials circle + first name), not in a row of its own.
+  const signedInName = hostName || profile.stage_name || user?.email || "";
+  useEffect(() => {
+    if (user && signedInName) setSignedInName({ id: user.id, name: signedInName });
+  }, [user, signedInName]);
 
   const load = useCallback(
     async (u: User | null) => {
@@ -337,7 +301,6 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
       <div className={pinned ? "shrink-0" : undefined}>
       <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
 
-      {user && phase !== "loading" && phase !== "code" && <SignedInBar name={hostName || profile.stage_name || user.email || ""} />}
       </div>
 
       <div className={pinned ? PINNED_SCROLL : "mt-6"}>

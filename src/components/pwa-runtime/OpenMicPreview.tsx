@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import type { LineupFeed, ShowDayState } from "@/lib/openmic/selection";
 import { formatShowDate, formatWeekTime, isShowDay, reopenLabel, showDateFor } from "@/lib/openmic/window";
-import { ClosedSignedOut, PINNED_PAGE, PINNED_SCROLL, ShowDay, SignedInBar, SignupHeader, windowOf } from "./OpenMicSignupRuntime";
+import { ClosedSignedOut, PINNED_PAGE, PINNED_SCROLL, ShowDay, SignupHeader, windowOf } from "./OpenMicSignupRuntime";
 
 /**
  * Local development only (see the PREVIEW_ENABLED switch in OpenMicSignupRuntime):
@@ -148,7 +148,6 @@ export default function OpenMicPreview({ kind, config }: { kind: string; config:
             reopenText={reopenLabel(window_, now)}
             closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)}
           />
-          {signedIn && <SignedInBar name="Lori Peck" />}
           </div>
           <div className={pinned ? PINNED_SCROLL : "mt-6"}>
             {pinned && banner}
