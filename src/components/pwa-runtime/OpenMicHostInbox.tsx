@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { Bell, ChevronRight, CircleCheck, Loader2 } from "lucide-react";
+import { Bell, ChevronRight, CircleCheck, Loader2, X } from "lucide-react";
 import { joinNames } from "./OpenMicChatThread";
 import { markHostChatSeen, readHostChatSeen } from "@/lib/openmic/host-chat";
 
@@ -34,6 +34,10 @@ export function HostInbox({ client, user, timeZone }: { client: SupabaseClient; 
   const [threads, setThreads] = useState<InboxThread[] | null>(null);
   const [chat, setChat] = useState<InboxChat | null>(null);
   const [failed, setFailed] = useState(false);
+  // The X on the card puts it away on this phone, for as long as nothing changes: a new message (or reading one)
+  // brings it back. Remembered per host, so a reload doesn't bring it back either.
+  const dismissKey = `openmic-inbox-dismissed:${user.id}`;
+  const [dismissedAt, setDismissedAt] = useState<string | null>(() => readDismissed(dismissKey));
 
   const load = useCallback(async () => {
     const [threadsRes, chatRes] = await Promise.all([client.rpc("comedian_threads"), loadChat(client, user.id)]);
@@ -62,7 +66,46 @@ export function HostInbox({ client, user, timeZone }: { client: SupabaseClient; 
     };
   }, [client, load]);
 
-  return <HostInboxView threads={threads} chat={chat} failed={failed} timeZone={timeZone} />;
+  // What the card would say right now; the dismissal is tied to it, so any change brings the card back.
+  const state = threads === null || chat === null ? null : inboxState(threads, chat);
+  if (state !== null && dismissedAt === state) return null;
+  return (
+    <HostInboxView
+      threads={threads}
+      chat={chat}
+      failed={failed}
+      timeZone={timeZone}
+      onDismiss={
+        state === null
+          ? undefined
+          : () => {
+              setDismissedAt(state);
+              writeDismissed(dismissKey, state);
+            }
+      }
+    />
+  );
+}
+
+/** A short signature of what the card shows: who has unread messages, and how many, plus the chat count. */
+function inboxState(threads: InboxThread[], chat: InboxChat): string {
+  return threads.map((t) => `${t.comedian_id}:${t.unread}`).join(",") + `|${chat.count}`;
+}
+
+// Per-phone convenience only: if storage is blocked the card just stays.
+function readDismissed(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function writeDismissed(key: string, state: string) {
+  try {
+    window.localStorage.setItem(key, state);
+  } catch {
+    // ignore
+  }
 }
 
 /** Hosts-chat messages from other hosts newer than what this phone has seen; null if the lookup failed. */
@@ -94,11 +137,14 @@ export function HostInboxView({
   chat,
   failed = false,
   timeZone,
+  onDismiss,
 }: {
   threads: InboxThread[] | null;
   chat: InboxChat | null;
   failed?: boolean;
   timeZone: string;
+  /** The X in the corner: puts the card away (HostInbox decides for how long). Absent while still checking. */
+  onDismiss?: () => void;
 }) {
   const [now] = useState(() => Date.now());
   const loading = threads === null || chat === null;
@@ -116,6 +162,18 @@ export function HostInboxView({
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-label="Checking" /> : `${total} new`}
         </span>
+        {onDismiss && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label="Dismiss"
+            className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground active:bg-foreground/10"
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground/10">
+              <X className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+            </span>
+          </button>
+        )}
       </div>
 
       {failed && loading ? (

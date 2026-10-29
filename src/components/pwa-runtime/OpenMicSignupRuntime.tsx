@@ -202,6 +202,7 @@ function HostPreview({ config, empty }: { config: OpenMicSignupBlockConfig; empt
                 ]
           }
           chat={empty ? { count: 0, names: [] } : { count: 3, names: ["Nick", "Noah"] }}
+          onDismiss={() => {}}
         />
         {client && <HostLineup client={client} config={config} today={false} />}
       </div>
