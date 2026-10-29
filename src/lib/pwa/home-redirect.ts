@@ -33,7 +33,19 @@ export function homeRedirectScript(target: string, unlessFlag: string | undefine
   const go = withNotice
     ? `var s=document.createElement("style");s.id="tl-home-redirect";s.textContent="body{visibility:hidden}.tl-home-redirect-notice{visibility:visible}";document.head.appendChild(s)`
     : `location.replace(${JSON.stringify(target)})`;
-  if (!unlessFlag) return `${go};`;
+  // An installed copy (a Home Screen app, display-mode standalone) is never sent away: it has its own storage, so a
+  // host who just added it would have no switch yet and no way back in. It shows the app itself instead.
+  const installed = `try{if(navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)return}catch(e){}`;
+  if (!unlessFlag) return `(function(){${installed}${go}})();`;
   const key = JSON.stringify(navFlagStorageKey(unlessFlag));
-  return `(function(){try{if(localStorage.getItem(${key})==="1")return}catch(e){}${go}})();`;
+  return `(function(){${installed}try{if(localStorage.getItem(${key})==="1")return}catch(e){}${go}})();`;
+}
+
+/** Is this page running as an installed copy (a Home Screen app)? The same test the pre-draw script makes. */
+export function isInstalledApp(): boolean {
+  try {
+    return (navigator as Navigator & { standalone?: boolean }).standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+  } catch {
+    return false;
+  }
 }

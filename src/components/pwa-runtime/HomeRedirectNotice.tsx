@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { isInstalledApp } from "@/lib/pwa/home-redirect";
 import { readNavFlag, subscribeNavFlags } from "@/lib/pwa/nav-flags";
 import type { HomeRedirectNotice as Notice } from "@/types/database";
 
@@ -16,10 +17,11 @@ const DEFAULT_SECONDS = 10;
  * on the way to stagetimepnw.com/halloween.
  */
 export function HomeRedirectNotice({ target, unlessFlag, notice }: { target: string; unlessFlag?: string; notice: Notice }) {
-  // null on the server and before hydration (nothing drawn yet), then the browser's own switch.
+  // null on the server and before hydration (nothing drawn yet), then the browser's own switch. An installed copy
+  // (Home Screen app) keeps its page like a host does, for the same reason as in lib/pwa/home-redirect.ts.
   const host = useSyncExternalStore(
     subscribeNavFlags,
-    () => !!unlessFlag && readNavFlag(unlessFlag),
+    () => isInstalledApp() || (!!unlessFlag && readNavFlag(unlessFlag)),
     () => null
   );
   const seconds = Math.max(1, Math.round(notice.seconds ?? DEFAULT_SECONDS));

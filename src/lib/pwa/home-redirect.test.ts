@@ -38,7 +38,15 @@ describe("homeRedirectTarget", () => {
     const script = homeRedirectScript(halloween, "openmic-hosts");
     expect(script).toContain('localStorage.getItem("tl-nav-flag:openmic-hosts")==="1"');
     expect(script).toContain('location.replace("https://stagetimepnw.com/halloween")');
-    expect(homeRedirectScript(halloween, undefined)).toBe('location.replace("https://stagetimepnw.com/halloween");');
+    expect(homeRedirectScript(halloween, undefined)).toContain('location.replace("https://stagetimepnw.com/halloween")');
+    expect(homeRedirectScript(halloween, undefined)).not.toContain("localStorage");
+  });
+
+  it("an installed copy (Home Screen app) is never sent away, switch or not", () => {
+    for (const script of [homeRedirectScript(halloween, "openmic-hosts"), homeRedirectScript(halloween, undefined), homeRedirectScript(halloween, "openmic-hosts", true)]) {
+      expect(script).toContain('navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)return');
+      expect(script.indexOf("display-mode")).toBeLessThan(script.indexOf("location.replace") === -1 ? script.indexOf("tl-home-redirect") : script.indexOf("location.replace"));
+    }
   });
 
   it("with a notice, the script hides the page for the notice instead of leaving", () => {
