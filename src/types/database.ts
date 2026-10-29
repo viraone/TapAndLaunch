@@ -517,6 +517,9 @@ export interface OpenMicSignupBlockConfig {
   /** One-off: requests stay closed until this moment (ISO 8601 with offset, e.g. "2026-10-24T12:00:00-07:00") even
    * once the weekly window says open. Expires by itself. */
   closed_until?: string;
+  /** One-off wording for the closed screens while `closed_until` holds (signed out, signed in without a request,
+   * and the not-selected card), replacing the usual "reopens after the show" line: StageTime's Halloween week. */
+  closed_note?: string;
 }
 
 // `Relationships`/`Views`/`Functions` below are required by supabase-js's

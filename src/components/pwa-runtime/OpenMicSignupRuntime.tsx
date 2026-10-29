@@ -348,7 +348,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
         )}
 
         {phase === "email" && !open && !showSignIn && (
-          <ClosedSignedOut today={isShowDay(window_, now)} onSignIn={() => setShowSignIn(true)} />
+          <ClosedSignedOut reopenText={reopenLabel(window_, now)} note={config.closed_note} onSignIn={() => setShowSignIn(true)} />
         )}
 
         {phase === "email" && (open || showSignIn) && (
@@ -385,7 +385,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
           ) : showDayOn ? (
             <ShowDayScreen client={client} userId={user.id} stageName={profile.stage_name} signedIn requested={false} config={config} dateLabel={showDate} window={window_} now={now} />
           ) : (
-            <ClosedCard name={profile.stage_name} reopenText={reopenLabel(window_, now)} />
+            <ClosedCard name={profile.stage_name} reopenText={reopenLabel(window_, now)} note={config.closed_note} />
           )
         )}
 
@@ -409,13 +409,11 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
 
 /** Signed out while sign-ups are closed: say so plainly. Sign-in is only for
  * people who already requested, so it's a small link, not a form. */
-export function ClosedSignedOut({ today, onSignIn }: { today: boolean; onSignIn: () => void }) {
+export function ClosedSignedOut({ reopenText, note, onSignIn }: { reopenText: string; note?: string; onSignIn: () => void }) {
   return (
     <div className="rounded-2xl border bg-muted/60 p-6">
-      <h2 className="text-2xl font-extrabold leading-tight">Sign ups for this Friday are closed</h2>
-      <p className="mt-3 text-xl font-semibold leading-snug text-foreground">
-        They will reopen {today ? "after tonight's show" : "after tomorrow's show"}.
-      </p>
+      <h2 className="text-2xl font-extrabold leading-tight">{note ? "Sign ups are closed right now" : "Sign ups for this Friday are closed"}</h2>
+      <p className="mt-3 text-xl font-semibold leading-snug text-foreground">{note ?? `They will reopen ${reopenText}.`}</p>
       <p className="mt-5 text-xl font-bold leading-snug text-foreground">Did you already request a spot for this week?</p>
       <button
         type="button"
@@ -869,12 +867,12 @@ function RequestedCard({
 }
 
 /** Signed in, no request, requests closed, lineup off: when they open again, in the pill's words. */
-function ClosedCard({ name, reopenText }: { name: string; reopenText: string }) {
+function ClosedCard({ name, reopenText, note }: { name: string; reopenText: string; note?: string }) {
   return (
     <div className="rounded-2xl border bg-muted/60 p-6 text-center">
       <h2 className="text-lg font-bold">Requests are closed for this week</h2>
       <p className="mt-2 text-[15px] text-foreground/85">
-        {name ? `${name.split(/\s+/)[0]}, requests` : "Requests"} open again {reopenText}.
+        {note ?? `${name ? `${name.split(/\s+/)[0]}, requests` : "Requests"} open again ${reopenText}.`}
       </p>
     </div>
   );
@@ -1082,6 +1080,8 @@ export function ShowDay({
     );
   }
   const notSelected = notSelectedCopy(today);
+  // This week's own closed wording (closed_note), in place of the usual "requests open right after the show".
+  const note = config.closed_note;
   const mine = feed?.me;
   // 1-based place in the running order, for the card; 0 when the comic's row isn't in the list.
   const spot = (feed?.lineup.findIndex((e) => e.mine) ?? -1) + 1;
@@ -1148,7 +1148,9 @@ export function ShowDay({
       {state === "not-selected" && (
         <div className="rounded-2xl border bg-muted/60 p-6">
           <h2 className="text-xl font-bold">{notSelected.title}</h2>
-          <p className="mt-2 text-base leading-relaxed text-foreground/85">{notSelected.body}</p>
+          <p className="mt-2 text-base leading-relaxed text-foreground/85">
+            {note ? `${notSelected.body.split(" Requests open ")[0]} ${note}` : notSelected.body}
+          </p>
         </div>
       )}
 
@@ -1164,9 +1166,7 @@ export function ShowDay({
       {state === "no-request" && (
         <div className="rounded-2xl border bg-muted/60 p-6">
           <h2 className="text-xl font-bold">Requests are closed for this week</h2>
-          <p className="mt-2 text-base leading-relaxed text-muted-foreground">
-            Requests open {reopenPhrase(today)}.
-          </p>
+          <p className="mt-2 text-base leading-relaxed text-muted-foreground">{note ?? `Requests open ${reopenPhrase(today)}.`}</p>
         </div>
       )}
 

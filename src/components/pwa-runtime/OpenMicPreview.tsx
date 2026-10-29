@@ -153,7 +153,7 @@ export default function OpenMicPreview({ kind, config }: { kind: string; config:
           <div className={pinned ? PINNED_SCROLL : "mt-6"}>
             {pinned && banner}
             {valid === "signed-out" ? (
-              <ClosedSignedOut today={isShowDay(window_, now)} onSignIn={() => undefined} />
+              <ClosedSignedOut reopenText={isShowDay(window_, now) ? "after tonight's show" : "after tomorrow's show"} note={config.closed_note} onSignIn={() => undefined} />
             ) : (
               <ShowDay
                 state={state}
