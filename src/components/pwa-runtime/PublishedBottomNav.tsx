@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { BottomNav, type BottomNavItem } from "@/components/pwa-runtime/BottomNav";
 import { readNavFlag, subscribeNavFlags } from "@/lib/pwa/nav-flags";
@@ -48,6 +48,13 @@ export function PublishedBottomNav({
   const visible = items
     .filter((i) => !i.show_if || onFlags.includes(i.show_if))
     .map((i) => (i.label_if && onFlags.includes(i.label_if.flag) ? { ...i, label: i.label_if.label, icon: i.label_if.icon ?? i.icon } : i));
+
+  // Warm every tab's route as soon as the bar is on screen (the tabs are buttons, not links, so nothing prefetches
+  // them by itself): the layout and loading shell are then in hand before the tap, and the switch is immediate.
+  const paths = visible.map((i) => (i.page_path === homePagePath ? "/" : `/${i.page_path}`)).join("|");
+  useEffect(() => {
+    for (const path of paths.split("|")) if (path && path !== pathname) router.prefetch(path);
+  }, [paths, pathname, router]);
 
   return (
     <BottomNav
