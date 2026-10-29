@@ -2,7 +2,7 @@ import { z } from "zod";
 import { getPublishedApp } from "@/lib/pwa/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { comicFromToken, isHostToken, showProjectFor } from "@/lib/openmic/push-server";
-import { isPublishedSheetUrl, mayReadVotes, parseTallyCsv } from "@/lib/openmic/votes";
+import { isPublishedSheetUrl, mayReadVotes, parseTallyCsv, type VoteResults } from "@/lib/openmic/votes";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 
 const BodySchema = z.object({
@@ -44,16 +44,44 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
     return Response.json({ error: "Not for you" }, { status: 403 });
   }
 
-  try {
-    // A throwaway query value keeps an edge cache from handing back an old copy.
-    const url = new URL(config.votes_csv_url);
-    url.searchParams.set("t", String(Date.now()));
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return Response.json({ error: "The sheet didn't answer" }, { status: 502 });
-    const results = parseTallyCsv(await res.text());
-    if (!results) return Response.json({ error: "The sheet isn't in the expected shape" }, { status: 502 });
-    return Response.json({ results, fetched_at: new Date().toISOString() });
-  } catch {
-    return Response.json({ error: "The sheet didn't answer" }, { status: 502 });
+  const fresh = await readTally(config.votes_csv_url);
+  if (fresh) {
+    lastGood.set(appSlug, { results: fresh, at: new Date() });
+    return Response.json({ results: fresh, fetched_at: new Date().toISOString() });
   }
+  // Google's published copy answers oddly now and then (a 429, an HTML page, a timeout). On a show night the hosts
+  // need a number more than a fresh one, so the last good tally from the past few minutes stands in, marked stale.
+  const kept = lastGood.get(appSlug);
+  if (kept && Date.now() - kept.at.getTime() < STALE_MS) {
+    return Response.json({ results: kept.results, fetched_at: kept.at.toISOString(), stale: true });
+  }
+  return Response.json({ error: "The sheet didn't answer" }, { status: 502 });
+}
+
+/** The last tally that parsed, per app, so a hiccup at Google doesn't blank the hosts' screen. */
+const lastGood = new Map<string, { results: VoteResults; at: Date }>();
+const STALE_MS = 10 * 60_000;
+const ATTEMPTS = 2;
+
+/** The published CSV, parsed; null when Google didn't answer with a tally after a couple of tries. */
+async function readTally(csvUrl: string): Promise<VoteResults | null> {
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    try {
+      // A throwaway query value keeps an edge cache from handing back an old copy.
+      const url = new URL(csvUrl);
+      url.searchParams.set("t", String(Date.now()));
+      const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+      if (!res.ok) {
+        console.error(`vote-results: the sheet answered ${res.status} (try ${attempt})`);
+        continue;
+      }
+      const text = await res.text();
+      const results = parseTallyCsv(text);
+      if (results) return results;
+      console.error(`vote-results: the sheet isn't in the expected shape (try ${attempt}): ${text.slice(0, 120).replace(/\s+/g, " ")}`);
+    } catch (error) {
+      console.error(`vote-results: the sheet didn't answer (try ${attempt}): ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  return null;
 }
