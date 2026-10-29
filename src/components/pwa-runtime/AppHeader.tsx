@@ -1,8 +1,10 @@
+import Link from "next/link";
 import type { ThemeConfig } from "@/types/database";
+import { TabIcon } from "./BottomNav";
 
 /** Does this theme ask for a header bar? Any one of the three is enough. */
 export function hasAppHeader(theme: ThemeConfig): boolean {
-  return !!(theme.header_title?.trim() || theme.header_tagline?.trim() || theme.header_logo_url?.trim());
+  return !!(theme.header_title?.trim() || theme.header_tagline?.trim() || theme.header_logo_url?.trim() || theme.header_action?.page_path);
 }
 
 /**
@@ -16,6 +18,7 @@ export function AppHeader({ theme }: { theme: ThemeConfig }) {
   const title = theme.header_title?.trim();
   const tagline = theme.header_tagline?.trim();
   const logo = theme.header_logo_url?.trim();
+  const action = theme.header_action?.page_path ? theme.header_action : undefined;
 
   return (
     <header className="flex items-center gap-4 border-b border-border/70 bg-background px-4 py-4">
@@ -28,6 +31,17 @@ export function AppHeader({ theme }: { theme: ThemeConfig }) {
           {title && <p className="truncate text-2xl font-extrabold leading-tight tracking-tight">{title}</p>}
           {tagline && <p className="mt-0.5 line-clamp-2 text-[15px] font-medium leading-snug text-muted-foreground">{tagline}</p>}
         </div>
+      )}
+      {action && (
+        // The corner link: a 44pt round target in the app's own muted tone, an icon only, with the label for screen readers.
+        <Link
+          href={`/${action.page_path.replace(/^\//, "")}`}
+          aria-label={action.label}
+          title={action.label}
+          className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted text-foreground ring-1 ring-border/70 transition active:scale-95 active:bg-foreground/10"
+        >
+          <TabIcon name={action.icon} />
+        </Link>
       )}
     </header>
   );

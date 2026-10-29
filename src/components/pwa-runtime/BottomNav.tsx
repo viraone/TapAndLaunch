@@ -53,7 +53,8 @@ const TAB_ICON_ALIASES: Record<string, string> = {
   messages: "chat",
 };
 
-function TabIcon({ name }: { name: string }) {
+/** A tab-bar icon by name (also used by the app header's corner link). */
+export function TabIcon({ name }: { name: string }) {
   const key = name.toLowerCase();
   const paths = TAB_ICON_PATHS[TAB_ICON_ALIASES[key] ?? key];
   if (!paths) {
