@@ -13,7 +13,7 @@ import { useOpenMicClient } from "./OpenMicSignupRuntime";
 const REFRESH_MS = 15_000;
 
 /**
- * StageTime's Votes tab (block view "votes"), for the show's hosts only: the costume contest's winner and ranked
+ * StageTime's Tally tab (block view "votes"), for the show's hosts only: the costume contest's winner and ranked
  * tally. The count is done in the host's Google Sheet (first vote per ballot ID, unknown IDs ignored); this page
  * shows the sheet's published "Tally" tab, refreshed every few seconds. The server route decides who may read it.
  */
@@ -61,10 +61,10 @@ export function OpenMicVotesRuntime({ config }: { config: OpenMicSignupBlockConf
   if (!user || !member) {
     return (
       <div className="mx-auto w-full max-w-md px-4 pb-12 pt-8">
-        <h1 className="text-3xl font-black tracking-tight">Votes</h1>
+        <h1 className="text-3xl font-black tracking-tight">Tally</h1>
         <div className="mt-6 rounded-2xl border bg-muted/60 p-6 text-center">
           <Lock className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />
-          <h2 className="mt-3 text-xl font-bold">{user ? "The votes are for the hosts" : "Sign in to see the votes"}</h2>
+          <h2 className="mt-3 text-xl font-bold">{user ? "The tally is for the hosts" : "Sign in to see the tally"}</h2>
           {!user && (
             <Link href="/" className="mt-4 inline-flex h-12 items-center justify-center rounded-xl bg-primary/15 px-5 text-base font-bold text-primary">
               Go to Sign-Up
@@ -112,11 +112,11 @@ function Votes({ client }: { client: NonNullable<ReturnType<typeof useOpenMicCli
 
   return (
     <div className="mx-auto w-full max-w-md px-4 pb-12 pt-8">
-      <h1 className="text-3xl font-black tracking-tight">Votes</h1>
+      <h1 className="text-3xl font-black tracking-tight">Tally</h1>
       <p className="mt-1 text-base text-muted-foreground">Best costume. Each ballot counts once, its first vote.</p>
 
       {status.kind === "loading" && (
-        <div className="flex justify-center py-12" role="status" aria-label="Loading the votes">
+        <div className="flex justify-center py-12" role="status" aria-label="Loading the tally">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
@@ -124,7 +124,7 @@ function Votes({ client }: { client: NonNullable<ReturnType<typeof useOpenMicCli
         <p className="mt-6 rounded-2xl border bg-muted/60 p-6 text-center text-base text-muted-foreground">This page is only for the person running the contest.</p>
       )}
       {status.kind === "failed" && !shown && (
-        <p className="mt-6 rounded-2xl border bg-muted/60 p-6 text-center text-base text-muted-foreground">We couldn&apos;t load the votes. Trying again in a few seconds.</p>
+        <p className="mt-6 rounded-2xl border bg-muted/60 p-6 text-center text-base text-muted-foreground">We couldn&apos;t load the tally. Trying again in a few seconds.</p>
       )}
       {shown && <Tally results={shown.results} at={shown.at} stale={status.kind === "failed"} />}
     </div>

@@ -1,4 +1,4 @@
--- StageTime: the Votes tab (hosts only) that shows the costume contest tally.
+-- StageTime: the Tally tab (hosts only) that shows the costume contest tally.
 -- Run once in the TapAndLaunch project's SQL editor, AFTER the code with the "votes" block view is on prod.
 -- Replace both placeholders first:
 --   <PUBLISHED_TALLY_CSV_URL>  the Google Sheet's Tally tab, File > Share > Publish to web > Tally > CSV
@@ -6,7 +6,7 @@
 --
 --   * Page /votes with an open_mic_signup block, view "votes". The page reads the CSV on the server, so the link
 --     is never sent to the browser by the route, and only a signed-in host (and only <READER_EMAIL>) gets numbers.
---   * A "Votes" tab at the end of the bar, shown only to the hosts (show_if "openmic-hosts", like Remote).
+--   * A "Tally" tab at the end of the bar, shown only to the hosts (show_if "openmic-hosts", like Remote).
 -- Take it down after the contest: delete the page and the tab (see the end of this file) and, in the sheet,
 -- File > Share > Publish to web > Stop publishing.
 begin;
@@ -17,7 +17,7 @@ signup as (
 ),
 pg as (
   insert into pages (app_id, name, path, position, is_home)
-  select id, 'Votes', 'votes', 8, false from app
+  select id, 'Tally', 'votes', 8, false from app
   returning id
 )
 insert into blocks (page_id, type, position, config)
@@ -34,7 +34,7 @@ from pg, signup;
 
 update apps
 set theme = jsonb_set(theme, '{bottom_nav}',
-  (theme->'bottom_nav') || '[{"icon": "pumpkin", "label": "Votes", "page_path": "votes", "show_if": "openmic-hosts"}]'::jsonb)
+  (theme->'bottom_nav') || '[{"icon": "pumpkin", "label": "Tally", "page_path": "votes", "show_if": "openmic-hosts"}]'::jsonb)
 where slug = 'stagetimepnw';
 commit;
 
