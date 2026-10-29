@@ -47,6 +47,7 @@ import { OpenMicHostsRuntime } from "@/components/pwa-runtime/OpenMicHostsRuntim
 import { OpenMicMessagesRuntime } from "@/components/pwa-runtime/OpenMicMessagesRuntime";
 import { OpenMicLineupRuntime } from "@/components/pwa-runtime/OpenMicLineupRuntime";
 import { OpenMicRemoteRuntime } from "@/components/pwa-runtime/OpenMicRemoteRuntime";
+import { OpenMicVotesRuntime } from "@/components/pwa-runtime/OpenMicVotesRuntime";
 import { ClassFinderRuntime } from "@/components/pwa-runtime/ClassFinderRuntime";
 import type { RuntimeListing } from "@/lib/pwa/listings";
 
@@ -147,6 +148,9 @@ function BlockBody({
     case "open_mic_signup":
       if ((block.config as OpenMicSignupBlockConfig).view === "remote") {
         return live ? <OpenMicRemoteRuntime config={block.config as OpenMicSignupBlockConfig} /> : <OpenMicRemoteBlockView />;
+      }
+      if ((block.config as OpenMicSignupBlockConfig).view === "votes") {
+        return live ? <OpenMicVotesRuntime config={block.config as OpenMicSignupBlockConfig} /> : <OpenMicVotesBlockView />;
       }
       if ((block.config as OpenMicSignupBlockConfig).view === "lineup") {
         return live ? <OpenMicLineupRuntime config={block.config as OpenMicSignupBlockConfig} /> : <OpenMicLineupBlockView />;
@@ -474,6 +478,14 @@ function OpenMicRemoteBlockView() {
   return (
     <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
       Remote for the lineup screen (hosts only): Next / Back and the lineup, on the live page.
+    </div>
+  );
+}
+
+function OpenMicVotesBlockView() {
+  return (
+    <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+      Costume contest votes (hosts only): the winner and the ranked tally from the host&apos;s sheet, on the live page.
     </div>
   );
 }

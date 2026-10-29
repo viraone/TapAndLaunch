@@ -482,8 +482,13 @@ export interface OpenMicSignupBlockConfig {
   /** "profile": the comic's account and Sign Out (Profile tab); "hosts": the hosts' chat and inbox (Hosts tab);
    * "messages": a comedian's private line to the hosts (Message the Hosts tab); "lineup": the show-night lineup as a
    * full-screen website page for a laptop or TV at the venue (needs `lineup_url`); "remote": the hosts' remote
-   * control for that screen (Remote tab, needs `lineup_url`). */
-  view?: "signup" | "profile" | "hosts" | "messages" | "lineup" | "remote";
+   * control for that screen (Remote tab, needs `lineup_url`); "votes": the costume contest's vote tally for the hosts
+   * (Votes tab, needs `votes_csv_url`). */
+  view?: "signup" | "profile" | "hosts" | "messages" | "lineup" | "remote" | "votes";
+  /** The Google Sheet "Tally" tab published to the web as CSV (https://docs.google.com/spreadsheets/d/e/.../pub?...output=csv). */
+  votes_csv_url?: string;
+  /** Who may read the vote tally; any host when empty. */
+  results_emails?: string[];
   title?: string;
   show_name?: string;
   venue?: string;
