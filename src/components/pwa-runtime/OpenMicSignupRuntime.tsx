@@ -1187,7 +1187,8 @@ export function ShowDay({
 }
 
 /** The lineup as an inset grouped list (the comics' show-day screen and the hosts' Home): place in the order, name,
- * set length and start time; the asking comic's own row (entry.mine) carries the colour. */
+ * set length and start time; the asking comic's own row (entry.mine) carries the colour and one clean outline (no bar or glow: stacked edges
+ * looked doubled on a phone). */
 export function LineupList({ feed, today }: { feed: LineupFeed; today: boolean }) {
   return (
     <section aria-label="Lineup">
@@ -1215,7 +1216,7 @@ export function LineupList({ feed, today }: { feed: LineupFeed; today: boolean }
             className={
               "openmic-row relative flex min-h-14 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-3 ring-1 " +
               (entry.mine
-                ? "bg-[color-mix(in_oklab,var(--primary)_24%,var(--muted))] ring-primary/50 shadow-[0_14px_36px_-18px_var(--primary)] before:absolute before:bottom-3 before:left-0 before:top-3 before:w-1 before:rounded-r-full before:bg-primary"
+                ? "bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))] ring-primary"
                 : "bg-muted ring-white/[0.06]")
             }
           >
