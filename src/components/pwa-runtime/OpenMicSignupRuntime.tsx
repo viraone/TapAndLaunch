@@ -183,6 +183,8 @@ export function OpenMicSignupRuntime({ config }: { config: OpenMicSignupBlockCon
 function HostPreview({ config, empty }: { config: OpenMicSignupBlockConfig; empty: boolean }) {
   const window_ = windowOf(config);
   const now = useNow();
+  // The real lineup from the sheet, as on the hosts' Home during lineup time.
+  const client = useOpenMicClient(config);
   const ago = (minutes: number) => new Date(now.getTime() - minutes * 60_000).toISOString();
   return (
     <div className="mx-auto w-full max-w-md px-4 pb-12 pt-8">
@@ -201,6 +203,7 @@ function HostPreview({ config, empty }: { config: OpenMicSignupBlockConfig; empt
           }
           chat={empty ? { count: 0, names: [] } : { count: 3, names: ["Nick", "Noah"] }}
         />
+        {client && <HostLineup client={client} config={config} today={false} />}
       </div>
     </div>
   );
@@ -385,7 +388,12 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
           )
         )}
 
-        {phase === "host" && user && <HostInbox client={client} user={user} timeZone={window_.timeZone} />}
+        {phase === "host" && user && (
+          <>
+            <HostInbox client={client} user={user} timeZone={window_.timeZone} />
+            {showDayOn && isLineupTime(window_, now) && <HostLineup client={client} config={config} today={isShowDay(window_, now)} />}
+          </>
+        )}
 
         {phase === "requested" && request && (showDayOn ? (
           <ShowDayScreen client={client} userId={user?.id} stageName={profile.stage_name} signedIn requested config={config} dateLabel={showDate} window={window_} now={now} />
@@ -1171,51 +1179,93 @@ export function ShowDay({
       {optIn}
 
       {lineupTime && config.show_lineup !== false && feed?.posted && feed.lineup.length > 0 && (
-        <section aria-label="Lineup">
-          {/* Like an iOS inset grouped list: the section header sits outside the card and stays
-              pinned while the rows slide under it. Solid, not translucent: a blurred header let
-              the edge of a row show above it on iOS Safari. The 8px strip above it (before:) covers
-              the gap if Safari paints the sticky header late; the list has no overflow-hidden mask
-              (rows round their own corners) because that mask can escape the scroller's clip. */}
-          <div className="sticky top-0 z-10 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))] px-4 pb-3 pt-3.5 before:absolute before:inset-x-0 before:bottom-full before:h-2 before:bg-inherit">
-            <div className="min-w-0">
-              <h2 className="text-[15px] font-black uppercase tracking-[0.14em] text-primary">
-                {today ? "Tonight's lineup" : "Lineup"}
-              </h2>
-              {feed.lineup[0]?.start_time && <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">First up {feed.lineup[0].start_time}</p>}
-            </div>
-          </div>
-          {/* Each row is its own small card with its place in the order; the comic's own row carries the colour,
-              a left bar and a soft glow. Rows slide in one after another (openmic-row, globals.css). */}
-          <ol className="mt-2 space-y-1.5">
-            {feed.lineup.map((entry, i) => (
-              <li
-                key={`${entry.name}-${i}`}
-                aria-current={entry.mine ? "true" : undefined}
-                style={{ animationDelay: `${Math.min(i, 14) * 35}ms` }}
-                className={
-                  "openmic-row relative flex min-h-14 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-3 ring-1 " +
-                  (entry.mine
-                    ? "bg-[color-mix(in_oklab,var(--primary)_24%,var(--muted))] ring-primary/50 shadow-[0_14px_36px_-18px_var(--primary)] before:absolute before:bottom-3 before:left-0 before:top-3 before:w-1 before:rounded-r-full before:bg-primary"
-                    : "bg-muted ring-white/[0.06]")
-                }
-              >
-                <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (entry.mine ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
-                <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (entry.mine ? "font-bold" : "font-medium")}>
-                  {entry.name}
-                  {entry.mine && (
-                    <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[11px] font-black uppercase leading-none tracking-wide text-primary-foreground">
-                      You
-                    </span>
-                  )}
-                </span>
-                <span className="shrink-0 rounded-full bg-background/60 px-2.5 py-1 text-[13px] font-semibold tabular-nums text-muted-foreground ring-1 ring-white/10">{entry.set_length}</span>
-                <span className="w-[4.75rem] shrink-0 text-right text-[17px] font-bold tabular-nums text-primary">{entry.start_time}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
+        <LineupList feed={feed} today={today} />
       )}
+    </div>
+  );
+}
+
+/** The lineup as an inset grouped list (the comics' show-day screen and the hosts' Home): place in the order, name,
+ * set length and start time; the asking comic's own row (entry.mine) carries the colour. */
+export function LineupList({ feed, today }: { feed: LineupFeed; today: boolean }) {
+  return (
+    <section aria-label="Lineup">
+      {/* Like an iOS inset grouped list: the section header sits outside the card and stays
+          pinned while the rows slide under it. Solid, not translucent: a blurred header let
+          the edge of a row show above it on iOS Safari. The 8px strip above it (before:) covers
+          the gap if Safari paints the sticky header late; the list has no overflow-hidden mask
+          (rows round their own corners) because that mask can escape the scroller's clip. */}
+      <div className="sticky top-0 z-10 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))] px-4 pb-3 pt-3.5 before:absolute before:inset-x-0 before:bottom-full before:h-2 before:bg-inherit">
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-black uppercase tracking-[0.14em] text-primary">
+            {today ? "Tonight's lineup" : "Lineup"}
+          </h2>
+          {feed.lineup[0]?.start_time && <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">First up {feed.lineup[0].start_time}</p>}
+        </div>
+      </div>
+      {/* Each row is its own small card with its place in the order; the comic's own row carries the colour,
+          a left bar and a soft glow. Rows slide in one after another (openmic-row, globals.css). */}
+      <ol className="mt-2 space-y-1.5">
+        {feed.lineup.map((entry, i) => (
+          <li
+            key={`${entry.name}-${i}`}
+            aria-current={entry.mine ? "true" : undefined}
+            style={{ animationDelay: `${Math.min(i, 14) * 35}ms` }}
+            className={
+              "openmic-row relative flex min-h-14 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-3 ring-1 " +
+              (entry.mine
+                ? "bg-[color-mix(in_oklab,var(--primary)_24%,var(--muted))] ring-primary/50 shadow-[0_14px_36px_-18px_var(--primary)] before:absolute before:bottom-3 before:left-0 before:top-3 before:w-1 before:rounded-r-full before:bg-primary"
+                : "bg-muted ring-white/[0.06]")
+            }
+          >
+            <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (entry.mine ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
+            <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (entry.mine ? "font-bold" : "font-medium")}>
+              {entry.name}
+              {entry.mine && (
+                <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[11px] font-black uppercase leading-none tracking-wide text-primary-foreground">
+                  You
+                </span>
+              )}
+            </span>
+            <span className="shrink-0 rounded-full bg-background/60 px-2.5 py-1 text-[13px] font-semibold tabular-nums text-muted-foreground ring-1 ring-white/10">{entry.set_length}</span>
+            <span className="w-[4.75rem] shrink-0 text-right text-[17px] font-bold tabular-nums text-primary">{entry.start_time}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/** The hosts' Home, from the time the lineup goes up until requests reopen: the same list the comics see, under
+ * the inbox, so a host needn't open the Remote just to read the order. No row is "mine" for a host. */
+function HostLineup({ client, config, today }: { client: SupabaseClient; config: OpenMicSignupBlockConfig; today: boolean }) {
+  const { feed, failed } = useLineup(config.lineup_url, client, undefined, true);
+  if (!feed && !failed) {
+    return (
+      <div className="flex justify-center py-8" role="status" aria-label="Loading the lineup">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (!feed) {
+    return (
+      <div className="mt-4 rounded-2xl border bg-muted/60 p-6">
+        <h2 className="text-xl font-bold">We couldn&apos;t load the lineup</h2>
+        <p className="mt-2 text-base leading-relaxed text-muted-foreground">Try again in a minute.</p>
+      </div>
+    );
+  }
+  if (!feed.posted || feed.lineup.length === 0) {
+    return (
+      <div className="mt-4 rounded-2xl border bg-muted/60 p-6">
+        <h2 className="text-xl font-bold">No lineup in the sheet yet</h2>
+        <p className="mt-2 text-base leading-relaxed text-muted-foreground">Fill in the set lengths and times and it shows up here.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-4">
+      <LineupList feed={feed} today={today} />
     </div>
   );
 }
