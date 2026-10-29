@@ -4,6 +4,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { BottomNav, type BottomNavItem } from "@/components/pwa-runtime/BottomNav";
 import { readNavFlag, subscribeNavFlags } from "@/lib/pwa/nav-flags";
+import { tabsToShow } from "@/lib/pwa/bottom-nav";
 
 /** How long a tab's in-app page switch may take before the plain page load takes over. */
 const STALL_MS = 2000;
@@ -37,17 +38,15 @@ export function PublishedBottomNav({
   };
 
   // Tabs marked show_if appear only once this browser's switch for them is on, and a tab with label_if is renamed
-  // while its switch is on (lib/pwa/nav-flags.ts). The snapshot is a string so it compares by value; the server
-  // render leaves the flagged tabs out and keeps the plain labels.
+  // while its switch is on (lib/pwa/nav-flags.ts, lib/pwa/bottom-nav.ts; a bar left with one tab shows nothing).
+  // The snapshot is a string so it compares by value; the server render leaves the flagged tabs out.
   const flagged = [...new Set(items.flatMap((i) => [i.show_if, i.label_if?.flag]).filter((f): f is string => !!f))];
   const onFlags = useSyncExternalStore(
     subscribeNavFlags,
     () => flagged.filter(readNavFlag).join("|"),
     () => ""
   ).split("|");
-  const visible = items
-    .filter((i) => !i.show_if || onFlags.includes(i.show_if))
-    .map((i) => (i.label_if && onFlags.includes(i.label_if.flag) ? { ...i, label: i.label_if.label, icon: i.label_if.icon ?? i.icon } : i));
+  const visible = tabsToShow(items, onFlags);
 
   // Warm every tab's route as soon as the bar is on screen (the tabs are buttons, not links, so nothing prefetches
   // them by itself): the layout and loading shell are then in hand before the tap, and the switch is immediate.
