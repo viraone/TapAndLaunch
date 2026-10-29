@@ -133,8 +133,8 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
   return (
     <div className="mx-auto w-full max-w-md px-3 pb-10 pt-3">
       {/* The remote itself: one dark slab like a TV remote app, the pad in the middle. */}
-      <div className="rounded-[2rem] bg-[#262626] px-4 pb-5 pt-3 text-white shadow-[0_24px_60px_-24px_rgba(0,0,0,0.9)] ring-1 ring-white/10">
-        <div className="mx-auto h-1.5 w-20 rounded-full bg-white/15" aria-hidden="true" />
+      <div className="rounded-[2rem] bg-[linear-gradient(180deg,#2c2c2c_0%,#232323_55%,#1d1d1d_100%)] px-4 pb-5 pt-3 text-white shadow-[0_34px_80px_-30px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,255,255,0.07)] ring-1 ring-white/[0.08]">
+        <div className="mx-auto h-1.5 w-20 rounded-full bg-white/[0.13] shadow-[inset_0_1px_1px_rgba(0,0,0,0.5)]" aria-hidden="true" />
         <div className="mt-4 flex items-center justify-between">
           <span className="w-10" aria-hidden="true" />
           <p className="flex items-center gap-2 text-[17px] font-semibold text-sky-400">
@@ -146,7 +146,7 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
             onClick={() => setListOpen((v) => !v)}
             aria-expanded={listOpen}
             aria-label={listOpen ? "Hide the lineup" : "Show the lineup"}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 active:bg-white/10"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition active:scale-95 active:bg-white/10"
           >
             <MoreVertical className="h-6 w-6" aria-hidden="true" />
           </button>
@@ -158,49 +158,49 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
             type="button"
             onClick={() => setListOpen((v) => !v)}
             aria-label="Lineup list"
-            className="flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-full bg-white/10 active:bg-white/20"
+            className={ROUND_KEY}
           >
             <Menu className="h-7 w-7" aria-hidden="true" />
           </button>
           <div className="min-w-0 flex-1 text-center">
-            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/50">Highlighted now</p>
-            <p className="mt-0.5 truncate text-2xl font-black leading-tight">{onName}</p>
-            <p className="min-h-5 text-sm text-white/55">
+            <p className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.22em] text-white/45">Highlighted now</p>
+            <p className="mt-0.5 line-clamp-2 break-words text-[22px] font-black leading-tight tracking-tight [text-shadow:0_2px_12px_rgba(0,0,0,0.6)]">{onName}</p>
+            <p className="min-h-5 text-sm font-medium tabular-nums text-white/50">
               {current >= 0 ? `${current + 1} of ${lineup.length}${lineup[current]!.start_time ? ` · ${lineup[current]!.start_time}` : ""}` : lineup.length > 0 ? `${lineup.length} on the lineup` : ""}
             </p>
           </div>
-          <div className="flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-full bg-white/10" aria-hidden="true">
+          <div className={`${ROUND_KEY_LOOK} h-[4.5rem] w-[4.5rem] shrink-0`} aria-hidden="true">
             {saving ? <Loader2 className="h-7 w-7 animate-spin" /> : <SlidersHorizontal className="h-7 w-7 text-white/70" />}
           </div>
         </div>
 
         {/* The pad: Left/Up = back one, Right/Down = next, the centre buzzes the highlighted comic again. */}
         <div className="relative mx-auto mt-6 aspect-square w-full max-w-[21rem]">
-          <div className="absolute inset-0 overflow-hidden rounded-full bg-[#1a1a1a] ring-1 ring-white/10">
+          <div className="absolute inset-0 overflow-hidden rounded-full bg-[radial-gradient(circle_at_50%_38%,#262626_0%,#1b1b1b_55%,#121212_100%)] shadow-[inset_0_3px_14px_rgba(0,0,0,0.85),inset_0_-1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.07]">
             <PadButton side="top" onClick={back} disabled={!canBack} label="Back one">
-              <ChevronUp className={PAD_ICON} strokeWidth={2.25} aria-hidden="true" />
+              <ChevronUp className={PAD_ICON} strokeWidth={2} aria-hidden="true" />
             </PadButton>
             <PadButton side="bottom" onClick={next} disabled={!canNext} label="Next">
-              <ChevronDown className={PAD_ICON} strokeWidth={2.25} aria-hidden="true" />
+              <ChevronDown className={PAD_ICON} strokeWidth={2} aria-hidden="true" />
             </PadButton>
             <PadButton side="left" onClick={back} disabled={!canBack} label="Back one">
-              <ChevronLeft className={PAD_ICON} strokeWidth={2.25} aria-hidden="true" />
+              <ChevronLeft className={PAD_ICON} strokeWidth={2} aria-hidden="true" />
             </PadButton>
             <PadButton side="right" onClick={next} disabled={!canNext} label="Next">
-              <ChevronRight className={PAD_ICON} strokeWidth={2.25} aria-hidden="true" />
+              <ChevronRight className={PAD_ICON} strokeWidth={2} aria-hidden="true" />
             </PadButton>
             {/* The thin gaps between the four keys. */}
-            <div className="pointer-events-none absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 rotate-45 bg-[#262626]" aria-hidden="true" />
-            <div className="pointer-events-none absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 -rotate-45 bg-[#262626]" aria-hidden="true" />
+            <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 rotate-45 bg-[#2a2a2a]" aria-hidden="true" />
+            <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 -rotate-45 bg-[#2a2a2a]" aria-hidden="true" />
           </div>
           <button
             type="button"
             onClick={() => current >= 0 && void tell(lineup[current]!.name)}
             disabled={saving || current < 0}
             aria-label={current >= 0 ? `Buzz ${onName}'s phone again` : "Nobody highlighted"}
-            className="absolute left-1/2 top-1/2 flex h-[44%] w-[44%] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#3a3a3a] text-center ring-[6px] ring-[#262626] active:bg-[#4a4a4a] disabled:active:bg-[#3a3a3a]"
+            className="absolute left-1/2 top-1/2 flex h-[44%] w-[44%] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[radial-gradient(circle_at_50%_30%,#474747_0%,#353535_55%,#2a2a2a_100%)] text-center shadow-[0_0_0_6px_#232323,0_0_0_7px_rgba(255,255,255,0.07),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-2px_6px_rgba(0,0,0,0.5),0_14px_30px_-12px_rgba(0,0,0,0.9)] transition active:scale-[0.97] active:bg-[radial-gradient(circle_at_50%_30%,#505050_0%,#3c3c3c_55%,#2f2f2f_100%)] disabled:active:scale-100"
           >
-            <span className="px-3 text-[13px] font-bold uppercase tracking-[0.2em] text-white/60">{current >= 0 ? "Buzz" : ""}</span>
+            <span className="px-3 text-[13px] font-bold uppercase tracking-[0.32em] text-white/65 [text-shadow:0_1px_0_rgba(0,0,0,0.6)]">{current >= 0 ? "Buzz" : ""}</span>
           </button>
         </div>
 
@@ -211,7 +211,7 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
             onClick={back}
             disabled={!canBack}
             aria-label="Back one"
-            className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-white/10 active:bg-white/20 disabled:opacity-40"
+            className={`${ROUND_KEY} disabled:opacity-40`}
           >
             <Undo2 className="h-7 w-7" aria-hidden="true" />
           </button>
@@ -220,16 +220,16 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
             onClick={() => void move(-1)}
             disabled={saving || current < 0}
             aria-label="Clear the highlight"
-            className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-[#ff5a1f] text-white shadow-[0_10px_30px_-10px_#ff5a1f] active:bg-[#ff7a45] disabled:opacity-40 disabled:shadow-none"
+            className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-[radial-gradient(circle_at_50%_28%,#ff7a45_0%,#ff5a1f_55%,#e94c15_100%)] text-white shadow-[0_14px_34px_-10px_rgba(255,90,31,0.75),inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-2px_6px_rgba(0,0,0,0.25)] transition active:scale-95 disabled:opacity-40 disabled:shadow-none"
           >
             <Home className="h-8 w-8" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="mx-auto mt-5 h-1 w-6 rounded-full bg-white/20" aria-hidden="true" />
+        <div className="mx-auto mt-5 h-1 w-6 rounded-full bg-white/[0.18]" aria-hidden="true" />
 
         {/* The tray under the pad: the lineup, with the highlighted comic's row lit. */}
-        <div className="mt-3 rounded-2xl bg-[#1f1f1f] ring-1 ring-white/10">
+        <div className="mt-3 rounded-2xl bg-[linear-gradient(180deg,#242424,#1b1b1b)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.08]">
           <div className="flex items-center justify-between px-4 py-3">
             <p className="text-[15px] font-semibold">{listOpen ? "Lineup" : formatShowDate(showDate)}</p>
             <p className="text-sm text-white/55" aria-live="polite">
@@ -274,7 +274,10 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
   );
 }
 
-const PAD_ICON = "h-9 w-9";
+const PAD_ICON = "h-9 w-9 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]";
+/** The round keys beside the name and under the pad: a soft bevel, lit from the top, pressed in on tap. */
+const ROUND_KEY_LOOK = "flex items-center justify-center rounded-full bg-[linear-gradient(180deg,#3a3a3a,#2a2a2a)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_18px_-10px_rgba(0,0,0,0.9)] ring-1 ring-white/[0.06]";
+const ROUND_KEY = `${ROUND_KEY_LOOK} h-[4.5rem] w-[4.5rem] shrink-0 transition active:scale-95 active:bg-[linear-gradient(180deg,#2a2a2a,#222)]`;
 
 /** One of the four keys of the pad: a quarter of the circle, cut with a clip-path, the arrow near the rim. */
 function PadButton({ side, onClick, disabled, label, children }: { side: "top" | "bottom" | "left" | "right"; onClick: () => void; disabled: boolean; label: string; children: ReactNode }) {
@@ -297,7 +300,7 @@ function PadButton({ side, onClick, disabled, label, children }: { side: "top" |
       disabled={disabled}
       aria-label={label}
       style={{ clipPath: clip }}
-      className={`absolute inset-0 flex text-white/85 active:bg-white/10 disabled:text-white/25 ${place}`}
+      className={`absolute inset-0 flex text-white/80 transition-colors active:bg-white/[0.07] active:text-white disabled:text-white/20 ${place}`}
     >
       {children}
     </button>
