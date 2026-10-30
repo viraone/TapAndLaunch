@@ -420,7 +420,7 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
               }}
             >
               <p className="text-balance text-[17px] leading-snug text-muted-foreground">
-                Type the email your teacher has. We&apos;ll email you a code.
+                Type in your email
               </p>
               <input
                 type="email"
