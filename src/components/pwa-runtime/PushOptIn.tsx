@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function urlBase64ToUint8Array(base64Url: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64Url.length % 4)) % 4);
@@ -32,8 +32,11 @@ type Status = "unsupported" | "default" | "denied" | "subscribed" | "granted-not
  * so permission alone isn't enough to know whether to offer "enable" or
  * "disable".
  */
-export function PushOptIn() {
+export function PushOptIn({ memberId }: { memberId?: string } = {}) {
   const [status, setStatus] = useState<Status>("unsupported");
+  // Set once this component has re-linked an existing subscription to the member, so the four-second chat renders
+  // don't re-post it.
+  const relinked = useRef(false);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
@@ -58,9 +61,20 @@ export function PushOptIn() {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       setStatus(subscription ? "subscribed" : "granted-not-subscribed");
+      // A subscription made before signing in is not linked to a member yet. With a memberId, post it once more: the
+      // subscribe route upserts on the endpoint and attaches the signed-in member, so class-chat notifications can
+      // reach this phone. Without the prop (the member bar) nothing changes.
+      if (subscription && memberId && !relinked.current) {
+        relinked.current = true;
+        void fetch("/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(subscription.toJSON()),
+        }).catch((error) => console.error("Push subscription link failed:", error));
+      }
     }
     void checkStatus();
-  }, []);
+  }, [memberId]);
 
   async function handleEnable() {
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;

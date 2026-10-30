@@ -29,6 +29,7 @@ import type {
   ShareBlockConfig,
   MapBlockConfig,
   AudioBlockConfig,
+  GroupChatBlockConfig,
 } from "@/types/database";
 import { GalleryBlockView, HeroBlockView, HoursBlockView, PriceListBlockView, ReviewsBlockView, StatsBlockView } from "@/components/pwa-runtime/ShowcaseBlocks";
 import { FilesBlockView } from "@/components/pwa-runtime/FilesBlock";
@@ -49,6 +50,8 @@ import { OpenMicLineupRuntime } from "@/components/pwa-runtime/OpenMicLineupRunt
 import { OpenMicRemoteRuntime } from "@/components/pwa-runtime/OpenMicRemoteRuntime";
 import { OpenMicVotesRuntime } from "@/components/pwa-runtime/OpenMicVotesRuntime";
 import { ClassFinderRuntime } from "@/components/pwa-runtime/ClassFinderRuntime";
+import { GroupChatRuntime } from "@/components/pwa-runtime/GroupChatRuntime";
+import { GroupChatBlockView } from "@/components/pwa-runtime/GroupChatBlockView";
 import type { RuntimeListing } from "@/lib/pwa/listings";
 
 /**
@@ -205,6 +208,12 @@ function BlockBody({
       return <MapBlockView config={block.config as MapBlockConfig} live={live} />;
     case "audio":
       return <AudioBlockView config={block.config as AudioBlockConfig} live={live} />;
+    case "group_chat":
+      return live ? (
+        <GroupChatRuntime config={block.config as GroupChatBlockConfig} />
+      ) : (
+        <GroupChatBlockView config={block.config as GroupChatBlockConfig} />
+      );
     default:
       return <UnknownBlockView type={block.type} />;
   }

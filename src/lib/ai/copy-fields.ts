@@ -35,6 +35,7 @@ export const COPY_KEYS: Record<string, string[]> = {
   canva_embed: ["button_label"],
   class_finder: ["title", "subtitle", "area_label"],
   open_mic_signup: ["title"],
+  group_chat: ["title", "intro"],
 };
 
 /** How long each kind of field may be, by its last key. Matches the inspector's own limits. */

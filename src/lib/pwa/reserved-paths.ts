@@ -11,6 +11,9 @@ export const RESERVED_PAGE_PATHS = new Set([
   "fitness",
   "food",
   "gas",
+  // The group chat's poll/send route lives at /group-chat/messages. The chat's own page keeps the usual /group-chat
+  // address through the catch-all page; this only stops a second builder page being created on top of the API.
+  "group-chat",
   "manifest.webmanifest",
   "members",
   "newsletter",

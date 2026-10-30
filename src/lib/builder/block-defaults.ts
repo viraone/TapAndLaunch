@@ -98,6 +98,8 @@ export function defaultConfigFor(type: BlockType): BlockConfig {
       return { title: "Find us", address: "" };
     case "audio":
       return { src: "", title: "", note: "" };
+    case "group_chat":
+      return { title: "Group chat", intro: "Only people on the list can see this." };
     case "open_mic_signup":
       return {
         title: "Open Mic Sign-Up",
@@ -144,6 +146,7 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   share: "Share this page",
   map: "Map",
   audio: "Audio",
+  group_chat: "Group chat",
 };
 
 export const BLOCK_TYPES: BlockType[] = [
@@ -169,6 +172,7 @@ export const BLOCK_TYPES: BlockType[] = [
   "food_directory",
   "open_mic_signup",
   "class_finder",
+  "group_chat",
   "hero",
   "price_list",
   "hours",

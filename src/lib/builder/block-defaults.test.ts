@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { BLOCK_TYPES, BLOCK_TYPE_LABELS, defaultConfigFor } from "@/lib/builder/block-defaults";
 
 describe("block defaults", () => {
-  it("lists exactly twenty-eight distinct block types, the showcase blocks last", () => {
-    expect(BLOCK_TYPES).toHaveLength(28);
+  it("lists exactly twenty-nine distinct block types, the showcase blocks last", () => {
+    expect(BLOCK_TYPES).toHaveLength(29);
     expect(new Set(BLOCK_TYPES).size).toBe(BLOCK_TYPES.length);
     expect(BLOCK_TYPES.slice(-6)).toEqual(["hero", "price_list", "hours", "reviews", "stats", "gallery"]);
   });
@@ -57,5 +57,11 @@ describe("block defaults", () => {
 
   it("labels listing_directory as 'Listing directory'", () => {
     expect(BLOCK_TYPE_LABELS.listing_directory).toBe("Listing directory");
+  });
+
+  it("defaults group_chat to public words only — the allowlist never enters block config", () => {
+    const config = defaultConfigFor("group_chat");
+    expect(config).toEqual({ title: "Group chat", intro: "Only people on the list can see this." });
+    expect(JSON.stringify(config)).not.toContain("@");
   });
 });

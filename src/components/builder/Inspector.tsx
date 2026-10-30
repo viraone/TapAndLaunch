@@ -11,6 +11,7 @@ import { GasDirectoryBlockEditor } from "@/components/builder/blocks/GasDirector
 import { FoodDirectoryBlockEditor } from "@/components/builder/blocks/FoodDirectoryBlockEditor";
 import { OpenMicSignupBlockEditor } from "@/components/builder/blocks/OpenMicSignupBlockEditor";
 import { ClassFinderBlockEditor } from "@/components/builder/blocks/ClassFinderBlockEditor";
+import { GroupChatBlockEditor } from "@/components/builder/blocks/GroupChatBlockEditor";
 import { GalleryBlockEditor, HeroBlockEditor, HoursBlockEditor, PriceListBlockEditor, ReviewsBlockEditor, StatsBlockEditor } from "@/components/builder/blocks/ShowcaseEditors";
 import { FilesBlockEditor } from "@/components/builder/blocks/FilesBlockEditor";
 import { ButtonBlockEditor, FaqBlockEditor, QuoteBlockEditor } from "@/components/builder/blocks/ExtraEditors";
@@ -193,6 +194,9 @@ export function Inspector({
       )}
       {block.type === "class_finder" && (
         <ClassFinderBlockEditor config={block.config} onChange={onChange} />
+      )}
+      {block.type === "group_chat" && (
+        <GroupChatBlockEditor config={block.config} onChange={onChange} />
       )}
       {block.type === "hero" && <HeroBlockEditor config={block.config} organizationId={organizationId} pages={pages} onChange={onChange} />}
       {block.type === "price_list" && <PriceListBlockEditor config={block.config} onChange={onChange} />}

@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local, gitignored working folders ESLint would otherwise crawl: agent worktrees, the phone/dev build output,
+    // and the Supabase CLI's temp folder.
+    ".claude/**",
+    ".next-phone/**",
+    ".next-test/**",
+    "supabase/.temp/**",
   ]),
 ]);
 

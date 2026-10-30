@@ -27,6 +27,7 @@ import {
   Share2,
   MapPin,
   Music2,
+  MessagesSquare,
   type LucideIcon,
 } from "lucide-react";
 import type { BlockType } from "@/types/database";
@@ -61,6 +62,7 @@ export const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   share: Share2,
   map: MapPin,
   audio: Music2,
+  group_chat: MessagesSquare,
 };
 
 /** Each block gets its own accent so the library reads as a set of tools,
@@ -94,6 +96,7 @@ export const BLOCK_ACCENTS: Record<BlockType, string> = {
   share: "from-blue-300 to-cyan-500 text-blue-950",
   map: "from-green-300 to-emerald-500 text-emerald-950",
   audio: "from-violet-300 to-fuchsia-500 text-white",
+  group_chat: "from-violet-400 to-fuchsia-500 text-white",
 };
 
 export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
@@ -125,12 +128,13 @@ export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
   share: "Share and copy-link buttons for this page",
   map: "A map of an address, with directions",
   audio: "An uploaded recording with a player",
+  group_chat: "A private chat for people on your list",
 };
 
 export const BLOCK_GROUPS: Array<{ label: string; types: BlockType[] }> = [
   { label: "Make it look good", types: ["hero", "stats", "gallery", "reviews"] },
   { label: "Words, pictures and prices", types: ["text", "image", "image_text", "video", "audio", "button", "quote", "faq", "files", "price_list", "hours"] },
-  { label: "Hear from people", types: ["contact_form", "newsletter", "zoom_meeting", "canva_embed"] },
+  { label: "Hear from people", types: ["contact_form", "newsletter", "zoom_meeting", "canva_embed", "group_chat"] },
   { label: "Sell and book", types: ["product_list", "event_calendar"] },
   { label: "Live, updated for you", types: ["listing_directory", "gas_directory", "food_directory", "open_mic_signup", "class_finder"] },
   { label: "Get found and shared", types: ["map", "share"] },

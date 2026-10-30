@@ -43,7 +43,8 @@ export type BlockType =
   | "newsletter"
   | "share"
   | "map"
-  | "audio";
+  | "audio"
+  | "group_chat";
 export type AnalyticsEventType =
   | "view"
   | "install"
@@ -206,7 +207,8 @@ export type BlockConfig =
   | NewsletterBlockConfig
   | ShareBlockConfig
   | MapBlockConfig
-  | AudioBlockConfig;
+  | AudioBlockConfig
+  | GroupChatBlockConfig;
 
 /** A full-width photo with a headline and an optional button that opens another page of the app. */
 export interface HeroBlockConfig {
@@ -323,6 +325,15 @@ export interface AudioBlockConfig {
   src?: string;
   title?: string;
   note?: string;
+}
+
+/** A private chat for the people on the app's own list (`group_chat_members`, migration 0050). The list itself is
+ * never part of this config — the public page only holds the words above the chat. `time_zone` is the IANA zone the
+ * message day separators and times are shown in. */
+export interface GroupChatBlockConfig {
+  title?: string;
+  intro?: string;
+  time_zone?: string;
 }
 
 export interface TextBlockConfig {
@@ -876,6 +887,46 @@ export interface Database {
           auth: string;
         };
         Update: Partial<Database["public"]["Tables"]["push_subscriptions"]["Row"]>;
+        Relationships: [];
+      };
+      /** The chat's allowlist (migration 0050). Service-role routes only; never sent to a visitor except the viewer's
+       * own display name and role. */
+      group_chat_members: {
+        Row: {
+          id: string;
+          app_id: string;
+          /** Stored lower-case and trimmed; matched against the signed-in member's email the same way. */
+          email: string;
+          display_name: string;
+          role: "student" | "teacher";
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["group_chat_members"]["Row"]> & {
+          app_id: string;
+          email: string;
+          display_name: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["group_chat_members"]["Row"]>;
+        Relationships: [];
+      };
+      /** One group-chat message. `author_name`/`author_role` are snapshots taken when it was sent. */
+      group_chat_messages: {
+        Row: {
+          id: number;
+          app_id: string;
+          author_member_id: string | null;
+          author_name: string;
+          author_role: "student" | "teacher";
+          body: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["group_chat_messages"]["Row"]> & {
+          app_id: string;
+          author_name: string;
+          author_role: "student" | "teacher";
+          body: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["group_chat_messages"]["Row"]>;
         Relationships: [];
       };
       openmic_push_subscriptions: {

@@ -27,6 +27,7 @@ import type {
   ShareBlockConfig,
   MapBlockConfig,
   AudioBlockConfig,
+  GroupChatBlockConfig,
 } from "@/types/database";
 
 /**
@@ -67,4 +68,5 @@ export type BuilderBlock =
   | { id: string; type: "newsletter"; config: NewsletterBlockConfig; minTier: string | null }
   | { id: string; type: "share"; config: ShareBlockConfig; minTier: string | null }
   | { id: string; type: "map"; config: MapBlockConfig; minTier: string | null }
-  | { id: string; type: "audio"; config: AudioBlockConfig; minTier: string | null };
+  | { id: string; type: "audio"; config: AudioBlockConfig; minTier: string | null }
+  | { id: string; type: "group_chat"; config: GroupChatBlockConfig; minTier: string | null };
