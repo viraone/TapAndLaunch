@@ -929,6 +929,30 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["group_chat_messages"]["Row"]>;
         Relationships: [];
       };
+      /** One emailed sign-in code for the group chat (migration 0051). Only the hash is stored; service-role routes
+       * only, like the rest of the chat. */
+      group_chat_login_codes: {
+        Row: {
+          id: string;
+          app_id: string;
+          /** Lower-case and trimmed, matching the allowlist's own normalisation. */
+          email: string;
+          /** SHA-256 of the code and MEMBER_SESSION_SECRET, never the plain code. */
+          code_hash: string;
+          expires_at: string;
+          attempts: number;
+          used_at: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["group_chat_login_codes"]["Row"]> & {
+          app_id: string;
+          email: string;
+          code_hash: string;
+          expires_at: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["group_chat_login_codes"]["Row"]>;
+        Relationships: [];
+      };
       openmic_push_subscriptions: {
         Row: {
           id: string;

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowUp, Loader2 } from "lucide-react";
 import type { GroupChatBlockConfig } from "@/types/database";
@@ -27,6 +26,7 @@ interface Viewer {
 }
 
 type Status = "loading" | "sign_in" | "not_on_list" | "error" | "ok";
+type SignInStep = "email" | "code";
 
 function mergeMessages(prev: GroupChatMessage[], incoming: GroupChatMessage[]): GroupChatMessage[] {
   const byId = new Map(prev.map((message) => [message.id, message]));
@@ -84,6 +84,12 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [pollError, setPollError] = useState("");
+  // Passwordless sign-in: the email step, then the six-digit code step.
+  const [signInStep, setSignInStep] = useState<SignInStep>("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState("");
   const lastId = useRef(0);
   const inFlight = useRef(false);
   const scroller = useRef<HTMLDivElement>(null);
@@ -262,6 +268,12 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
     };
   }, [status]);
 
+  const resetSignIn = () => {
+    setSignInStep("email");
+    setCode("");
+    setAuthError("");
+  };
+
   const signOut = async () => {
     try {
       await fetch(`${apiBase}/members/session`, { method: "DELETE" });
@@ -269,7 +281,87 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
       // The screen still goes back to the sign-in card; the cookie will be checked again on the next load.
     }
     clearChat();
+    resetSignIn();
     setStatus("sign_in");
+  };
+
+  /** Ask the server to email a code, then show the code step. The address stays put so a resend is one tap. */
+  const requestCode = async () => {
+    const address = email.trim();
+    if (!address || authBusy) return;
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      const res = await fetch(`${apiBase}/group-chat/code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: address }),
+      });
+      const data = (await res.json().catch(() => null)) as { state?: string; message?: string } | null;
+      if (res.status === 403) {
+        setAuthError(data?.message ?? "That email isn't on the class list. Ask your teacher.");
+        return;
+      }
+      if (res.status === 429) {
+        setAuthError(data?.message ?? "Too many codes sent. Try again in a little while.");
+        return;
+      }
+      if (!res.ok || data?.state !== "sent") {
+        setAuthError(data?.message ?? "We couldn't send the email. Try again.");
+        return;
+      }
+      setCode("");
+      setSignInStep("code");
+    } catch {
+      setAuthError("We couldn't send the email. Check your connection and try again.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  /** Check the typed code. On success the server has set the ordinary member session cookie, so re-fetch the chat. */
+  const verifyCode = async () => {
+    const address = email.trim();
+    const entered = code.trim();
+    if (authBusy) return;
+    if (!/^\d{6}$/.test(entered)) {
+      setAuthError("Type the 6-digit code from the email.");
+      return;
+    }
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      const res = await fetch(`${apiBase}/group-chat/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: address, code: entered }),
+      });
+      const data = (await res.json().catch(() => null)) as { state?: string; message?: string } | null;
+      if (res.ok && data?.state === "ok") {
+        setSignInStep("email");
+        setCode("");
+        setStatus("loading");
+        // Coming back to the tab may have started a recheck before this sign-in; let it settle so `load` is not
+        // skipped, then ask again with the new cookie.
+        while (inFlight.current) await new Promise((resolve) => window.setTimeout(resolve, 50));
+        await load("initial");
+        return;
+      }
+      if (res.status === 403) {
+        clearChat();
+        setStatus("not_on_list");
+        return;
+      }
+      if (data?.state === "expired") setAuthError(data.message ?? "That code has expired. Send a new one.");
+      else if (data?.state === "too_many_attempts") setAuthError(data.message ?? "Too many tries. Send a new code.");
+      else if (data?.state === "bad_code") setAuthError(data.message ?? "That code isn't right. Check the email and try again.");
+      else if (res.status === 429) setAuthError(data?.message ?? "Too many tries. Send a new code.");
+      else setAuthError(data?.message ?? "Couldn't sign you in. Try again.");
+    } catch {
+      setAuthError("Couldn't sign you in. Check your connection and try again.");
+    } finally {
+      setAuthBusy(false);
+    }
   };
 
   const send = async () => {
@@ -319,30 +411,104 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
       <section className="px-4 py-6">
         <div className="mx-auto w-full max-w-md rounded-3xl border border-border bg-muted/40 p-6 text-center">
           <h2 className="text-xl font-semibold">Class chat</h2>
-          {status === "sign_in" && (
-            <>
-              <p className="mt-2 text-balance text-[17px] leading-snug text-muted-foreground">Sign in with the email your teacher has.</p>
-              <Link
-                href={`${apiBase}/members/login?next=${encodeURIComponent(returnTo)}`}
-                className="mt-5 flex h-12 w-full items-center justify-center rounded-xl bg-primary text-[17px] font-semibold text-primary-foreground active:opacity-80"
-              >
-                Sign in
-              </Link>
-              <p className="mt-4 text-[15px] text-muted-foreground">
-                First time?{" "}
-                <Link href={`${apiBase}/members/signup?next=${encodeURIComponent(returnTo)}`} className="font-medium text-primary underline">
-                  Create an account
-                </Link>
+          {status === "sign_in" && signInStep === "email" && (
+            <form
+              className="mt-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void requestCode();
+              }}
+            >
+              <p className="text-balance text-[17px] leading-snug text-muted-foreground">
+                Type the email your teacher has. We&apos;ll email you a code.
               </p>
-            </>
+              <input
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                required
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setAuthError("");
+                }}
+                placeholder="you@example.com"
+                aria-label="Your email"
+                className="mt-5 h-12 w-full rounded-xl border border-border bg-background px-4 text-[17px] outline-none focus:border-muted-foreground"
+              />
+              <button
+                type="submit"
+                disabled={authBusy || !email.trim()}
+                className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-primary text-[17px] font-semibold text-primary-foreground active:opacity-80 disabled:opacity-40"
+              >
+                {authBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Email me a code"}
+              </button>
+              {authError && <p className="mt-3 text-[15px] text-destructive">{authError}</p>}
+            </form>
+          )}
+          {status === "sign_in" && signInStep === "code" && (
+            <form
+              className="mt-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void verifyCode();
+              }}
+            >
+              <p className="text-balance text-[17px] leading-snug text-muted-foreground">Check your email for a 6-digit code.</p>
+              <p className="mt-1 break-all text-[13px] text-muted-foreground">Sent to {email.trim()}</p>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                pattern="[0-9]*"
+                required
+                value={code}
+                onChange={(e) => {
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                  setAuthError("");
+                }}
+                placeholder="123456"
+                aria-label="6-digit code"
+                className="mt-5 h-14 w-full rounded-xl border border-border bg-background text-center text-[28px] font-semibold tracking-[0.3em] outline-none focus:border-muted-foreground"
+              />
+              <button
+                type="submit"
+                disabled={authBusy || code.length !== 6}
+                className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-primary text-[17px] font-semibold text-primary-foreground active:opacity-80 disabled:opacity-40"
+              >
+                {authBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Sign in"}
+              </button>
+              {authError && <p className="mt-3 text-[15px] text-destructive">{authError}</p>}
+              <div className="mt-4 flex items-center justify-center gap-4 text-[15px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSignInStep("email");
+                    setCode("");
+                    setAuthError("");
+                  }}
+                  className="text-muted-foreground underline"
+                >
+                  Use a different email
+                </button>
+                <button type="button" onClick={() => void requestCode()} disabled={authBusy} className="text-muted-foreground underline disabled:opacity-40">
+                  Send a new code
+                </button>
+              </div>
+            </form>
           )}
           {status === "not_on_list" && (
             <>
               <p className="mt-2 text-balance text-[17px] leading-snug text-muted-foreground">
-                You&apos;re signed in, but this chat is only for the class list — ask your teacher to add you.
+                That email isn&apos;t on the class list. Ask your teacher.
               </p>
-              <button type="button" onClick={signOut} className="mt-5 text-[15px] underline">
-                Sign out
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                className="mt-5 flex h-12 w-full items-center justify-center rounded-xl bg-primary text-[17px] font-semibold text-primary-foreground active:opacity-80"
+              >
+                Use a different email
               </button>
             </>
           )}
