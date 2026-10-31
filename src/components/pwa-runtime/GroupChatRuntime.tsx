@@ -109,6 +109,8 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
   const column = useRef<HTMLElement>(null);
   const safeArea = useRef<HTMLSpanElement>(null);
   const [columnHeight, setColumnHeight] = useState<number | null>(null);
+  // Room added under the column while the keyboard is up, so the page is tall enough to scroll the header off.
+  const [keyboardPad, setKeyboardPad] = useState(0);
 
   // The @word being typed right before the caret, if any. It must start the text or follow whitespace, and only the
   // "@" plus letters counts, so an ordinary email never opens the picker.
@@ -275,6 +277,12 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
       const visualTop = visual?.offsetTop ?? 0;
       tallest = Math.max(tallest, viewportHeight);
       const keyboardUp = tallest - viewportHeight > KEYBOARD_MIN && document.activeElement === textarea.current;
+      // An iPhone lays the keyboard over the page without making the page any shorter, so a page that fitted the
+      // screen has nowhere to scroll to. Space the keyboard's own height under the column (a margin, so the page
+      // grows) and the header stack can go up behind the keyboard. The app on the home screen, which shrinks the
+      // page instead, needs none: the two heights are the same there.
+      const pad = keyboardUp ? Math.max(0, Math.round(window.innerHeight - viewportHeight)) : 0;
+      setKeyboardPad((prev) => (prev === pad ? prev : pad));
 
       // With the keyboard up, the header stack above the chat would eat most of what is left of the screen, leaving
       // the chat no height at all (the messages vanished and the composer sat under the heading). Scroll that stack
@@ -653,7 +661,7 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
     <section
       ref={column}
       className="mx-auto flex h-[calc(100dvh-12rem)] w-full max-w-md flex-col px-4 pt-5"
-      style={columnHeight === null ? undefined : { height: columnHeight }}
+      style={columnHeight === null ? undefined : { height: columnHeight, marginBottom: keyboardPad || undefined }}
     >
       {/* Measures `env(safe-area-inset-bottom)`: the strip the phone's home indicator lives in. */}
       <span
