@@ -38,6 +38,10 @@ function mergeMessages(prev: GroupChatMessage[], incoming: GroupChatMessage[]): 
 /** Air between the composer and the app's bottom tab bar, and between it and the screen's edge when there is no bar. */
 const BAR_GAP = 8;
 const EDGE_GAP = 16;
+/** The visible page losing this much is the keyboard, not Safari's address bar folding away (about 50 to 100). */
+const KEYBOARD_MIN = 150;
+/** The composer and a few lines of chat: a wrong measurement must leave a usable chat, never a blank one. */
+const MIN_COLUMN = 180;
 
 /**
  * The top of `el` in the page's own coordinates. `getBoundingClientRect().top` would answer for wherever the page is
@@ -214,11 +218,12 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [status, load]);
 
-  // Stay at the newest message unless the reader has scrolled up to read older ones.
+  // Stay at the newest message unless the reader has scrolled up to read older ones; a column that just got shorter
+  // (the keyboard came up) would otherwise be left showing older messages.
   useEffect(() => {
     const el = scroller.current;
     if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
-  }, [messages]);
+  }, [messages, columnHeight]);
 
   // Tapping anywhere but the picker or the textarea closes the names. A row keeps the textarea focused through
   // preventDefault, so its own tap is never mistaken for an outside one.
@@ -245,6 +250,11 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
     let frame = 0;
     let stopped = false;
     let measuredBar: HTMLElement | null = null;
+    // The tallest the visible page has been on this screen: a much shorter one, while the composer has focus, is the
+    // keyboard. A turned phone starts the comparison again.
+    let tallest = 0;
+    // True while the page is scrolled to give the keyboard's half-height screen to the chat.
+    let scrolledForKeyboard = false;
     const resized = new ResizeObserver(() => schedule());
 
     // The app's own column: the bars and header above the chat are its children, so it sees them come and go.
@@ -257,15 +267,45 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
       // A local copy, so the check holds inside this closure.
       const node = column.current;
       if (!node) return;
-      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-      const bar = findBottomBar(viewportHeight);
+      const visual = window.visualViewport;
+      const viewportHeight = visual?.height ?? window.innerHeight;
+      // Where the visible page starts within the browser's own layout. Safari keeps the page its full size behind the
+      // keyboard and shows less of it (`offsetTop` says how far down); an app on the home screen shrinks the whole page
+      // instead. Both read the same way from here.
+      const visualTop = visual?.offsetTop ?? 0;
+      tallest = Math.max(tallest, viewportHeight);
+      const keyboardUp = tallest - viewportHeight > KEYBOARD_MIN && document.activeElement === textarea.current;
+
+      // With the keyboard up, the header stack above the chat would eat most of what is left of the screen, leaving
+      // the chat no height at all (the messages vanished and the composer sat under the heading). Scroll that stack
+      // out of the way so the chat gets the whole visible page, and scroll back when the keyboard goes.
+      // A page can only scroll as far as it is tall, and the chat column is most of its height: so the column is
+      // sized for the top of the visible page straight away, and the scroll is nudged again on each measure until
+      // the taller page lets it land (the column growing is itself what brings the next measure).
+      if (keyboardUp) {
+        const target = Math.max(0, pageTop(node) - visualTop);
+        if (!scrolledForKeyboard || window.scrollY < target - 1) {
+          scrolledForKeyboard = true;
+          window.scrollTo({ top: target });
+        }
+      } else if (scrolledForKeyboard) {
+        scrolledForKeyboard = false;
+        window.scrollTo({ top: 0 });
+      }
+      // How far the column's top sits below the top of the visible page. `pageTop` (not the live rect) keeps the
+      // answer the same while messages scroll inside their own area; the page's own scroll comes off it.
+      const topInView = keyboardUp ? 0 : Math.max(0, pageTop(node) - window.scrollY - visualTop);
+
+      // A bar that sits below the visible page (under the keyboard) needs no room.
+      const found = findBottomBar(viewportHeight);
+      const bar = found && found.getBoundingClientRect().top - visualTop < viewportHeight ? found : null;
       const safeBottom = safeArea.current?.offsetHeight ?? 0;
       // A floating bar is fixed over the page, so its own top edge (which already includes the phone's bottom inset)
       // is where the composer must stop. The compact bar is laid out at the end of the page, so its height is the room
       // it needs. With no bar at all, keep clear of the phone's home-indicator inset and leave a little air.
       const reserve = bar
         ? isFixedToScreen(bar)
-          ? Math.max(0, viewportHeight - bar.getBoundingClientRect().top)
+          ? Math.max(0, viewportHeight - (bar.getBoundingClientRect().top - visualTop))
           : bar.getBoundingClientRect().height + safeBottom
         : safeBottom;
       // The published layout already pads the page bottom for the floating bar (`pb-[calc(env(safe-area-inset-bottom)
@@ -273,8 +313,7 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
       // inside it, so the chat column does not make the page taller than the screen.
       const layoutPad = parseFloat(getComputedStyle(shell).paddingBottom) || 0;
       const gap = bar ? Math.max(BAR_GAP, layoutPad - reserve) : EDGE_GAP;
-      // `pageTop` (not the live rect) keeps the answer the same while messages scroll inside their own area.
-      const next = Math.max(0, Math.round(viewportHeight - pageTop(node) - reserve - gap));
+      const next = Math.max(MIN_COLUMN, Math.round(viewportHeight - topInView - reserve - gap));
       setColumnHeight((prev) => (prev === next ? prev : next));
       if (bar !== measuredBar) {
         if (measuredBar) resized.unobserve(measuredBar);
@@ -299,8 +338,16 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
     });
     changed.observe(shell, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style", "hidden"] });
 
+    // A turned phone has a new tallest page to compare against.
+    const turned = () => {
+      tallest = 0;
+      schedule();
+    };
     window.addEventListener("resize", schedule);
+    window.addEventListener("orientationchange", turned);
     window.visualViewport?.addEventListener("resize", schedule);
+    // The visible page panning behind the keyboard moves where the chat must start.
+    window.visualViewport?.addEventListener("scroll", schedule);
     void document.fonts?.ready.then(schedule).catch(() => {});
 
     measure();
@@ -311,7 +358,9 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
       resized.disconnect();
       changed.disconnect();
       window.removeEventListener("resize", schedule);
+      window.removeEventListener("orientationchange", turned);
       window.visualViewport?.removeEventListener("resize", schedule);
+      window.visualViewport?.removeEventListener("scroll", schedule);
     };
   }, [status]);
 
