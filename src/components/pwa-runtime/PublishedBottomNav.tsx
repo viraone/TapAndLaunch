@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { BottomNav, type BottomNavItem } from "@/components/pwa-runtime/BottomNav";
 import { readNavFlag, subscribeNavFlags } from "@/lib/pwa/nav-flags";
@@ -22,7 +22,12 @@ export function PublishedBottomNav({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const activePath = pathname.replace(/^\//, "") || homePagePath;
+  // The tapped tab lights up at once, before its page has arrived: on a phone with a weak signal the switch can take
+  // a second or two, and a bar that only answers once the page is in feels stuck. The switch runs as a transition,
+  // so React says when it is still in flight; while it is, the tapped tab is the active one.
+  const [switching, startSwitch] = useTransition();
+  const [tapped, setTapped] = useState<string | null>(null);
+  const activePath = (switching && tapped) || pathname.replace(/^\//, "") || homePagePath;
 
   // A tab normally switches pages inside the app. If that has not happened after a couple of seconds (seen on a phone:
   // tapping Home on StageTime's Hosts chat left the chat on screen), load the page the plain way, so a tap on a tab
@@ -30,7 +35,8 @@ export function PublishedBottomNav({
   const latestTap = useRef(0);
   const goTo = (pagePath: string) => {
     const target = pagePath === homePagePath ? "/" : `/${pagePath}`;
-    router.push(target);
+    setTapped(pagePath);
+    startSwitch(() => router.push(target));
     const tap = ++latestTap.current;
     window.setTimeout(() => {
       if (latestTap.current === tap && window.location.pathname !== target) window.location.assign(target);
