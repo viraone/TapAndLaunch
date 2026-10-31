@@ -73,7 +73,9 @@ export function GroupChatMessageList({
               <p className={`mb-0.5 mt-2 px-1 text-[13px] text-muted-foreground ${m.mine ? "text-right" : ""}`}>
                 {m.mine ? (
                   <>
-                    {teacher && <span className="mr-1.5 font-semibold text-primary">Teacher</span>}
+                    {/* My own rows carry my name like everyone else's; "Signed in as" above already shows the role. */}
+                    {m.author_name}
+                    {" · "}
                     {time(m.created_at)}
                   </>
                 ) : (
