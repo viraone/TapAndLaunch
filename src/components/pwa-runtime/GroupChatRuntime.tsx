@@ -697,12 +697,18 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
           const el = e.currentTarget;
           stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
         }}
-        className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2"
+        className="mt-3 flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-2"
       >
         {messages.length === 0 ? (
           <p className="text-balance px-6 py-16 text-center text-[17px] text-muted-foreground">No messages yet. Say hello.</p>
         ) : (
-          <GroupChatMessageList messages={messages} timeZone={timeZone} people={people} viewerName={viewer.display_name} />
+          <>
+            {/* Takes up any spare room, so a short conversation sits down by the composer the way a phone's own chat
+                does instead of leaving the middle of the screen empty; once the messages overflow it is gone and the
+                list scrolls as usual. */}
+            <div className="flex-1" aria-hidden="true" />
+            <GroupChatMessageList messages={messages} timeZone={timeZone} people={people} viewerName={viewer.display_name} />
+          </>
         )}
       </div>
 
