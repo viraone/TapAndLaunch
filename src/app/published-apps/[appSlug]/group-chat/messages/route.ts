@@ -3,7 +3,8 @@ import { after } from "next/server";
 import { getPublishedApp } from "@/lib/pwa/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentMember } from "@/lib/pwa/get-current-member";
-import { chatViewer, findChatMember, type ChatRole } from "@/lib/chat/access";
+import { chatPeople, chatViewer, findChatMember, type ChatRole } from "@/lib/chat/access";
+import { findMentions } from "@/lib/chat/mentions";
 import { notifyGroupChat } from "@/lib/chat/push";
 
 /** Latest 200 on a first load; every poll asks only for what came after the newest id it has. */
@@ -73,7 +74,8 @@ export async function GET(request: Request, context: { params: Promise<{ appSlug
     mine: row.author_member_id !== null && row.author_member_id === member.id,
   }));
 
-  return Response.json({ state: "ok", viewer: chatViewer(member.id, allowlist), messages }, { headers: NO_STORE });
+  const people = await chatPeople(admin, published.app.id);
+  return Response.json({ state: "ok", viewer: chatViewer(member.id, allowlist), people, messages }, { headers: NO_STORE });
 }
 
 export async function POST(request: Request, context: { params: Promise<{ appSlug: string }> }) {
@@ -119,7 +121,16 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
   };
 
   // After the response has gone out: push never delays the sender, and a failed notification never loses a message.
-  after(() => notifyGroupChat(published.app.id, published.app.name, member.id, allowlist.display_name, allowlist.role, parsed.data.body, page));
+  // The mention check reads only display names and roles, the same list the GET response gives the composer's picker.
+  after(async () => {
+    try {
+      const people = await chatPeople(admin, published.app.id);
+      const mentioned = findMentions(parsed.data.body, people);
+      await notifyGroupChat(published.app.id, published.app.name, member.id, allowlist.display_name, allowlist.role, parsed.data.body, mentioned, page);
+    } catch (error) {
+      console.error("Group chat push failed:", error);
+    }
+  });
 
   return Response.json(message, { status: 201, headers: NO_STORE });
 }

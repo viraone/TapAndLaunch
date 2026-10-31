@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
+import type { ChatPerson } from "@/lib/chat/mentions";
 
 /**
  * The group chat's access rules, server-side only. A viewer is allowed when the email on their signed-in
@@ -47,11 +48,24 @@ export function chatViewer(memberId: string, allowlist: ChatAllowlistMember): Gr
   return { member_id: memberId, display_name: allowlist.display_name, role: allowlist.role };
 }
 
+/** Everyone on the app's chat list, reduced to what the browser may see: a display name and a role, never a row id or
+ * an email. The GET route hands this to the composer's @ picker; the POST route uses it to work out who was mentioned. */
+export async function chatPeople(admin: Admin, appId: string): Promise<ChatPerson[]> {
+  const { data } = await admin
+    .from("group_chat_members")
+    .select("display_name, role")
+    .eq("app_id", appId)
+    .order("display_name", { ascending: true });
+  return (data ?? []).map((row) => ({ name: row.display_name, role: row.role }));
+}
+
 export interface ChatPushTarget {
   id: string;
   endpoint: string;
   p256dh: string;
   auth: string;
+  /** The target's name on the chat list, used to decide who was mentioned in a message. */
+  displayName: string;
 }
 
 /**
@@ -60,20 +74,28 @@ export interface ChatPushTarget {
  * the two tables were typed into at different times, so a stored capital letter must not silently drop someone.
  */
 export async function pushTargetsForGroupChat(admin: Admin, appId: string, excludeMemberId: string): Promise<ChatPushTarget[]> {
-  const { data: allowlist } = await admin.from("group_chat_members").select("email").eq("app_id", appId);
-  const emails = new Set((allowlist ?? []).map((row) => normalizeChatEmail(row.email)));
-  if (emails.size === 0) return [];
+  const { data: allowlist } = await admin.from("group_chat_members").select("email, display_name").eq("app_id", appId);
+  const namesByEmail = new Map((allowlist ?? []).map((row) => [normalizeChatEmail(row.email), row.display_name]));
+  if (namesByEmail.size === 0) return [];
 
   const { data: members } = await admin.from("app_members").select("id, email").eq("app_id", appId);
-  const memberIds = (members ?? [])
-    .filter((member) => member.id !== excludeMemberId && emails.has(normalizeChatEmail(member.email)))
-    .map((member) => member.id);
-  if (memberIds.length === 0) return [];
+  const namesByMemberId = new Map(
+    (members ?? [])
+      .filter((member) => member.id !== excludeMemberId && namesByEmail.has(normalizeChatEmail(member.email)))
+      .map((member) => [member.id, namesByEmail.get(normalizeChatEmail(member.email)) ?? ""])
+  );
+  if (namesByMemberId.size === 0) return [];
 
   const { data: subscriptions } = await admin
     .from("push_subscriptions")
-    .select("id, endpoint, p256dh, auth")
+    .select("id, member_id, endpoint, p256dh, auth")
     .eq("app_id", appId)
-    .in("member_id", memberIds);
-  return subscriptions ?? [];
+    .in("member_id", [...namesByMemberId.keys()]);
+  return (subscriptions ?? []).map((row) => ({
+    id: row.id,
+    endpoint: row.endpoint,
+    p256dh: row.p256dh,
+    auth: row.auth,
+    displayName: row.member_id ? (namesByMemberId.get(row.member_id) ?? "") : "",
+  }));
 }

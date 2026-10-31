@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { usePathname } from "next/navigation";
 import { ArrowUp, Loader2 } from "lucide-react";
 import type { GroupChatBlockConfig } from "@/types/database";
+import type { ChatPerson } from "@/lib/chat/mentions";
 import { PushOptIn } from "./PushOptIn";
 import { GroupChatMessageList, type GroupChatMessage } from "./GroupChatMessageList";
 
@@ -80,7 +81,11 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
   const [status, setStatus] = useState<Status>("loading");
   const [viewer, setViewer] = useState<Viewer | null>(null);
   const [messages, setMessages] = useState<GroupChatMessage[]>([]);
+  const [people, setPeople] = useState<ChatPerson[]>([]);
   const [text, setText] = useState("");
+  // Where the caret is in `text`, so typing an @ can show names for the word being finished.
+  const [caret, setCaret] = useState(0);
+  const [mentionDismissed, setMentionDismissed] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [pollError, setPollError] = useState("");
@@ -92,6 +97,8 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
   const [authError, setAuthError] = useState("");
   const lastId = useRef(0);
   const inFlight = useRef(false);
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  const picker = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   // The pinned column and its height, measured against the app's real chrome (the layout effect below).
@@ -99,8 +106,34 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
   const safeArea = useRef<HTMLSpanElement>(null);
   const [columnHeight, setColumnHeight] = useState<number | null>(null);
 
+  // The @word being typed right before the caret, if any. It must start the text or follow whitespace, and only the
+  // "@" plus letters counts, so an ordinary email never opens the picker.
+  const mentionToken = (() => {
+    if (caret === 0) return null;
+    const at = text.lastIndexOf("@", caret - 1);
+    if (at < 0) return null;
+    if (at > 0 && !/\s/.test(text[at - 1])) return null;
+    const query = text.slice(at + 1, caret);
+    if (!/^[A-Za-z]*$/.test(query)) return null;
+    return { start: at, end: caret, query };
+  })();
+
+  // Up to five classmates whose name has a word starting with what was typed; the viewer is never offered.
+  const mentionSuggestions =
+    mentionToken && !mentionDismissed
+      ? people
+          .filter((person) => person.name.toLowerCase() !== viewer?.display_name.toLowerCase())
+          .filter((person) => {
+            const query = mentionToken.query.toLowerCase();
+            return query === "" || person.name.toLowerCase().split(/\s+/).some((word) => word.startsWith(query));
+          })
+          .slice(0, 5)
+      : [];
+  const mentionOpen = mentionSuggestions.length > 0;
+
   const clearChat = useCallback(() => {
     setMessages([]);
+    setPeople([]);
     setViewer(null);
     lastId.current = 0;
   }, []);
@@ -127,7 +160,7 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
           else setPollError("Couldn't check for new messages.");
           return;
         }
-        const data = (await res.json()) as { state?: string; viewer?: Viewer; messages?: GroupChatMessage[] };
+        const data = (await res.json()) as { state?: string; viewer?: Viewer; people?: ChatPerson[]; messages?: GroupChatMessage[] };
         if (data.state !== "ok" || !data.viewer || !data.messages) {
           if (mode === "initial") setStatus("error");
           else setPollError("Couldn't check for new messages.");
@@ -135,6 +168,7 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
         }
         const incoming = data.messages;
         setViewer(data.viewer);
+        setPeople(data.people ?? []);
         setMessages((prev) => (mode === "initial" ? incoming : mergeMessages(prev, incoming)));
         for (const message of incoming) if (message.id > lastId.current) lastId.current = message.id;
         setPollError("");
@@ -185,6 +219,19 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
     const el = scroller.current;
     if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
   }, [messages]);
+
+  // Tapping anywhere but the picker or the textarea closes the names. A row keeps the textarea focused through
+  // preventDefault, so its own tap is never mistaken for an outside one.
+  useEffect(() => {
+    if (!mentionOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (target && (picker.current?.contains(target) || textarea.current?.contains(target))) return;
+      setMentionDismissed(true);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [mentionOpen]);
 
   // The chat fills the screen from under the app's header (and announcement and member bars) down to just above its
   // bottom tab bar. A fixed `100dvh` guess ignored everything above it, so on a phone the composer ended up under the
@@ -398,6 +445,24 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
     }
   };
 
+  /** Put "@Full Name " in place of the word being typed and leave the caret after the space. */
+  const chooseMention = (person: ChatPerson) => {
+    if (!mentionToken) return;
+    const insert = `@${person.name} `;
+    const nextCaret = mentionToken.start + insert.length;
+    setText(text.slice(0, mentionToken.start) + insert + text.slice(mentionToken.end));
+    setCaret(nextCaret);
+    setMentionDismissed(false);
+    // Keep a phone's keyboard up: focus straight away, then place the caret once React has written the new value.
+    textarea.current?.focus();
+    requestAnimationFrame(() => {
+      const el = textarea.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(nextCaret, nextCaret);
+    });
+  };
+
   if (status === "loading") {
     return (
       <div className="flex justify-center px-4 py-16">
@@ -580,11 +645,40 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
         {messages.length === 0 ? (
           <p className="text-balance px-6 py-16 text-center text-[17px] text-muted-foreground">No messages yet. Say hello.</p>
         ) : (
-          <GroupChatMessageList messages={messages} timeZone={timeZone} />
+          <GroupChatMessageList messages={messages} timeZone={timeZone} people={people} viewerName={viewer.display_name} />
         )}
       </div>
 
       {(sendError || pollError) && <p className="shrink-0 pb-1 text-center text-[13px] text-destructive">{sendError || pollError}</p>}
+
+      {mentionOpen && (
+        <div ref={picker} className="mb-2 shrink-0 overflow-hidden rounded-xl border border-border bg-background">
+          {mentionSuggestions.map((person) => (
+            <button
+              key={person.name}
+              type="button"
+              // Keep the textarea focused: a touch is handled on pointerdown (some phones never send the click after
+              // a canceled pointerdown), while a keyboard press still arrives as a click with detail 0.
+              onMouseDown={(e) => e.preventDefault()}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                chooseMention(person);
+              }}
+              onClick={(e) => {
+                if (e.detail === 0) chooseMention(person);
+              }}
+              className="flex min-h-11 w-full items-center justify-between gap-2 border-b border-border px-3 py-2 text-left text-[16px] last:border-b-0 active:bg-muted"
+            >
+              <span className="min-w-0 truncate">{person.name}</span>
+              {person.role === "teacher" && (
+                <span className="inline-flex shrink-0 items-center rounded-full bg-primary/15 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-primary">
+                  Teacher
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       <form
         className="flex shrink-0 items-end gap-2 border-t border-border py-3"
@@ -594,18 +688,31 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
         }}
       >
         <textarea
+          ref={textarea}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            setCaret(e.target.selectionStart ?? 0);
+            setMentionDismissed(false);
+          }}
+          onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
           onKeyDown={(e) => {
-            // Enter sends on a computer; on a phone the return key adds a line and the arrow sends.
+            if (mentionOpen && e.key === "Escape") {
+              e.preventDefault();
+              setMentionDismissed(true);
+              return;
+            }
+            // Enter sends on a computer; with the @ picker open it picks the top name instead. On a phone the return
+            // key adds a line and the arrow sends.
             if (e.key === "Enter" && !e.shiftKey && window.matchMedia("(hover: hover)").matches) {
               e.preventDefault();
-              void send();
+              if (mentionOpen) chooseMention(mentionSuggestions[0]);
+              else void send();
             }
           }}
           rows={1}
           maxLength={4000}
-          placeholder="Message"
+          placeholder="Message (type @ to tag someone)"
           aria-label="Message"
           className="max-h-32 min-h-11 flex-1 resize-none rounded-[22px] border border-border bg-muted px-4 py-2.5 text-[16px] leading-snug outline-none [field-sizing:content] focus:border-muted-foreground"
         />
