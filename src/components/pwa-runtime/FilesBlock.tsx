@@ -19,11 +19,13 @@ export function FilesBlockView({ config, live }: { config: FilesBlockConfig; liv
   const locked = !!config.disabled;
   // The builder always starts open so the rows can be edited; on the site a folded card starts closed.
   const [open, setOpen] = useState(!live || !folded);
-  if (items.length === 0) {
+  if (items.length === 0 && !(live && config.show_empty)) {
     if (live) return null;
     return <div className="mx-4 my-3 flex h-24 items-center justify-center rounded-2xl border border-dashed text-sm text-muted-foreground">No files yet</div>;
   }
-  const list = (
+  const list = items.length === 0 ? (
+    <p className="px-1 text-sm text-muted-foreground">Nothing here yet.</p>
+  ) : (
     <ul className="space-y-2">
       {items.map((item, i) => {
         const kind = fileKind(item.url);

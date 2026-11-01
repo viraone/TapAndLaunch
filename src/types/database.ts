@@ -268,6 +268,8 @@ export interface FilesBlockConfig {
   collapsed?: boolean;
   /** Rows are shown greyed out with a lock and can't be opened, until the owner switches it off. */
   disabled?: boolean;
+  /** Shows the block on the published site even with no files: a folder waiting for its files. */
+  show_empty?: boolean;
 }
 
 /** Another website shown inside the app in a tall iframe, with a link out for sites that refuse to be framed. */
