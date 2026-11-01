@@ -61,7 +61,8 @@ export async function generateViewport({ params }: { params: Params }): Promise<
   if (!published) return {};
 
   return {
-    themeColor: published.app.manifest.theme_color ?? published.app.theme.primary_color,
+    // The colour the owner picked in App settings > Theme wins; manifest.theme_color is only the creation-time default.
+    themeColor: published.app.theme.primary_color ?? published.app.manifest.theme_color,
   };
 }
 

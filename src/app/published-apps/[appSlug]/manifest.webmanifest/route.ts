@@ -14,7 +14,7 @@ export async function GET(_request: Request, context: { params: Promise<{ appSlu
     return new Response("Not found", { status: 404 });
   }
 
-  const { manifest, name } = published.app;
+  const { manifest, name, theme } = published.app;
 
   const body = {
     name: manifest.name ?? name,
@@ -24,7 +24,7 @@ export async function GET(_request: Request, context: { params: Promise<{ appSlu
     scope: "/",
     display: manifest.display ?? "standalone",
     background_color: manifest.background_color ?? "#ffffff",
-    theme_color: manifest.theme_color ?? "#ffffff",
+    theme_color: theme.primary_color ?? manifest.theme_color ?? "#ffffff",
     // No uploaded icon: the generated letter tile (app-icon/route.tsx), so
     // an install prompt never shows the browser's blank placeholder.
     icons: manifest.icon_url
