@@ -32,6 +32,7 @@ You are the architect and reviewer. A local Qwen3-Coder-Next worker (via the `qw
 ## Who gets what
 - **Qwen gateway** (free, local, about 20 s for a small task): routine work with a clear spec, an existing pattern to copy, and two files or fewer. It sees **only the files you list**, cannot run git, cannot delete a file, cannot reach the web, and writes to the working tree **before** you approve, so every call ends in a commit or an undo (`git checkout -- <file>`, `rm` for new files).
 - **DeepSeek** (`/pass-to-deepseek`): routine work bigger than two files, work that needs reading around the codebase, or a task Qwen failed twice.
+  Its **ask mode** (`~/.claude/skills/pass-to-deepseek/ask.sh <project> "<question>"`, read-only) answers "where is X / how does Y work" from the code: use it to gather facts for a spec or a review instead of grepping or reading source yourself.
 - **Claude**: the spec, the review, connectors, anything ambiguous or design-heavy.
 - After each delegated task, say in one line whether it passed first time, after a retry, or failed.
 - Full guide, written for seo-audit but the same gateway: `~/Developer/seo-audit/docs/qwen-gateway.md`.
