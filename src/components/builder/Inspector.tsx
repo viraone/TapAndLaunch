@@ -138,8 +138,9 @@ export function Inspector({
   }
 
   const Icon = BLOCK_ICONS[block.type];
+  // The fields inside use the shared Input/Textarea/Select, whose focus ring is a faint grey; inside this panel it is the indigo of the hot-field glow (globals.css), so a tapped field is unmistakable.
   return (
-    <div className="space-y-5 p-4">
+    <div className="space-y-5 p-4 [--ring:#6366f1] [--color-ring:#6366f1]">
       <div className="flex items-center gap-3 border-b border-white/[0.06] pb-4">
         <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br shadow-md ${BLOCK_ACCENTS[block.type]}`}>
           <Icon className="h-5 w-5" />
