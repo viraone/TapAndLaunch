@@ -1,8 +1,8 @@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const APPEARANCE: Record<string, string> = { plain: "Plain", tinted: "Tinted", accent: "A wash of your colour" };
-const SHOW_ON: Record<string, string> = { all: "Phones and computers", phone: "Phones only", desktop: "Computers only" };
+const APPEARANCE: Record<string, string> = { plain: "Plain", tinted: "Tinted", accent: "Colour wash" };
+const SHOW_ON: Record<string, string> = { all: "All screens", phone: "Phones only", desktop: "Computers only" };
 
 /** The looks every section has: a background, and which screens show it. Stored on the section's config. */
 export function SectionOptionsControl({ config, onChange }: { config: Record<string, unknown>; onChange: (next: Record<string, unknown>) => void }) {
