@@ -36,6 +36,7 @@ export type BlockType =
   | "stats"
   | "gallery"
   | "files"
+  | "web_page"
   | "button"
   | "quote"
   | "faq"
@@ -200,6 +201,7 @@ export type BlockConfig =
   | StatsBlockConfig
   | GalleryBlockConfig
   | FilesBlockConfig
+  | WebPageBlockConfig
   | ButtonBlockConfig
   | QuoteBlockConfig
   | FaqBlockConfig
@@ -266,6 +268,18 @@ export interface FilesBlockConfig {
   collapsed?: boolean;
   /** Rows are shown greyed out with a lock and can't be opened, until the owner switches it off. */
   disabled?: boolean;
+}
+
+/** Another website shown inside the app in a tall iframe, with a link out for sites that refuse to be framed. */
+export interface WebPageBlockConfig {
+  /** Must be empty or start with https://; an empty address shows a hint in the builder and nothing on the site. */
+  url: string;
+  /** For screen readers; not shown on the page. */
+  title?: string;
+  /** Passes geolocation through to the framed page. */
+  allow_location?: boolean;
+  /** How tall the iframe is: the phone screen, 40rem, or 24rem. */
+  height?: "screen" | "tall" | "short";
 }
 
 /** A button on its own, to a page of the app (`page`) or a web address (`url`); `url` wins when both are set. */

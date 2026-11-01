@@ -14,6 +14,7 @@ import { ClassFinderBlockEditor } from "@/components/builder/blocks/ClassFinderB
 import { GroupChatBlockEditor } from "@/components/builder/blocks/GroupChatBlockEditor";
 import { GalleryBlockEditor, HeroBlockEditor, HoursBlockEditor, PriceListBlockEditor, ReviewsBlockEditor, StatsBlockEditor } from "@/components/builder/blocks/ShowcaseEditors";
 import { FilesBlockEditor } from "@/components/builder/blocks/FilesBlockEditor";
+import { WebPageBlockEditor } from "@/components/builder/blocks/WebPageBlockEditor";
 import { ButtonBlockEditor, FaqBlockEditor, QuoteBlockEditor } from "@/components/builder/blocks/ExtraEditors";
 import { AudioBlockEditor, ImageTextBlockEditor, MapBlockEditor, NewsletterBlockEditor, ShareBlockEditor } from "@/components/builder/blocks/MoreEditors";
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
@@ -205,6 +206,7 @@ export function Inspector({
       {block.type === "stats" && <StatsBlockEditor config={block.config} onChange={onChange} />}
       {block.type === "gallery" && <GalleryBlockEditor config={block.config} organizationId={organizationId} onChange={onChange} />}
       {block.type === "files" && <FilesBlockEditor config={block.config} organizationId={organizationId} onChange={onChange} />}
+      {block.type === "web_page" && <WebPageBlockEditor config={block.config} organizationId={organizationId} onChange={onChange} />}
       {block.type === "button" && <ButtonBlockEditor config={block.config} pages={pages} onChange={onChange} />}
       {block.type === "quote" && <QuoteBlockEditor config={block.config} onChange={onChange} />}
       {block.type === "faq" && <FaqBlockEditor config={block.config} onChange={onChange} />}

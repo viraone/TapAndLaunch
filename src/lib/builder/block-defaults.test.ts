@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { BLOCK_TYPES, BLOCK_TYPE_LABELS, defaultConfigFor } from "@/lib/builder/block-defaults";
 
 describe("block defaults", () => {
-  it("lists exactly twenty-nine distinct block types, the showcase blocks last", () => {
-    expect(BLOCK_TYPES).toHaveLength(29);
+  it("lists exactly thirty distinct block types, the showcase blocks last", () => {
+    expect(BLOCK_TYPES).toHaveLength(30);
     expect(new Set(BLOCK_TYPES).size).toBe(BLOCK_TYPES.length);
     expect(BLOCK_TYPES.slice(-6)).toEqual(["hero", "price_list", "hours", "reviews", "stats", "gallery"]);
   });
@@ -63,5 +63,14 @@ describe("block defaults", () => {
     const config = defaultConfigFor("group_chat");
     expect(config).toEqual({ title: "Group chat", intro: "Only people on the list can see this." });
     expect(JSON.stringify(config)).not.toContain("@");
+  });
+
+  it("defaults web_page to an empty https address, the whole screen, and no location", () => {
+    expect(defaultConfigFor("web_page")).toEqual({
+      url: "",
+      title: "",
+      allow_location: false,
+      height: "screen",
+    });
   });
 });

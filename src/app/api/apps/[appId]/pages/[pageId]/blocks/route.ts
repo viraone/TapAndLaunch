@@ -3,16 +3,27 @@ import { createClient } from "@/lib/supabase/server";
 import { orgHasMaps } from "@/lib/platform/maps";
 import { MAPS_LOCKED_MESSAGE, isMapsBlock } from "@/lib/platform/maps-shared";
 import { BLOCK_TYPES } from "@/lib/builder/block-defaults";
+import { WebPageBlockConfigSchema } from "@/lib/builder/block-config";
 import { isAppEditor } from "@/lib/org";
 import type { BlockType } from "@/types/database";
 
-const BlockSchema = z.object({
-  // Every block type the builder knows: one list (`BLOCK_TYPES`), so a new block can never be left out here again.
-  type: z.enum(BLOCK_TYPES as [BlockType, ...BlockType[]]),
-  position: z.number().int().min(0),
-  config: z.record(z.string(), z.unknown()),
-  min_tier: z.string().nullable().optional(),
-});
+const BlockSchema = z
+  .object({
+    // Every block type the builder knows: one list (`BLOCK_TYPES`), so a new block can never be left out here again.
+    type: z.enum(BLOCK_TYPES as [BlockType, ...BlockType[]]),
+    position: z.number().int().min(0),
+    config: z.record(z.string(), z.unknown()),
+    min_tier: z.string().nullable().optional(),
+  })
+  .superRefine((block, ctx) => {
+    // Only web_page has a per-type rule so far: its address must be empty or https, never http or a script.
+    if (block.type !== "web_page") return;
+    const parsed = WebPageBlockConfigSchema.safeParse(block.config);
+    if (parsed.success) return;
+    for (const issue of parsed.error.issues) {
+      ctx.addIssue({ code: "custom", message: issue.message, path: ["config", ...issue.path] });
+    }
+  });
 
 const SaveBlocksSchema = z.object({
   blocks: z.array(BlockSchema),

@@ -27,6 +27,7 @@ export const COPY_KEYS: Record<string, string[]> = {
   share: ["title"],
   button: ["label"],
   files: ["title", "intro", "items.*.label", "items.*.note"],
+  web_page: ["title"],
   video: ["title", "caption"],
   zoom_meeting: ["title", "description"],
   listing_directory: ["title"],
