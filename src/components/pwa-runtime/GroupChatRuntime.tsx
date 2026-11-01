@@ -38,6 +38,8 @@ function mergeMessages(prev: GroupChatMessage[], incoming: GroupChatMessage[]): 
 /** Air between the composer and the app's bottom tab bar, and between it and the screen's edge when there is no bar. */
 const BAR_GAP = 8;
 const EDGE_GAP = 16;
+/** Room left between the composer and the top of the keyboard (the form's own padding adds to it). */
+const KEYBOARD_AIR = 4;
 /** The visible page losing this much is the keyboard, not Safari's address bar folding away (about 50 to 100). */
 const KEYBOARD_MIN = 150;
 /** The composer and a few lines of chat: a wrong measurement must leave a usable chat, never a blank one. */
@@ -321,7 +323,17 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
       // inside it, so the chat column does not make the page taller than the screen.
       const layoutPad = parseFloat(getComputedStyle(shell).paddingBottom) || 0;
       const gap = bar ? Math.max(BAR_GAP, layoutPad - reserve) : EDGE_GAP;
-      const next = Math.max(MIN_COLUMN, Math.round(viewportHeight - topInView - reserve - gap));
+      let next = Math.max(MIN_COLUMN, Math.round(viewportHeight - topInView - reserve - gap));
+      // With the keyboard up, the home-indicator strip and the tab bar are under it, so none of that room applies, and
+      // the page's scroll may not land exactly where it was asked to. Measure instead: stretch or shrink the column so
+      // its bottom (the composer's) sits just above the keyboard, or above a floating tab bar still in view (a phone
+      // that shrinks the page keeps it above the keyboard). Each pass lands closer; the next one changes nothing.
+      if (keyboardUp) {
+        const limit =
+          bar && isFixedToScreen(bar) ? bar.getBoundingClientRect().top - BAR_GAP : visualTop + viewportHeight - KEYBOARD_AIR;
+        const bottom = node.getBoundingClientRect().bottom;
+        next = Math.max(MIN_COLUMN, Math.round(node.offsetHeight + limit - bottom));
+      }
       setColumnHeight((prev) => (prev === next ? prev : next));
       if (bar !== measuredBar) {
         if (measuredBar) resized.unobserve(measuredBar);
