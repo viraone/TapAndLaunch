@@ -63,6 +63,22 @@ type AppRow = Database["public"]["Tables"]["apps"]["Row"];
 type PageRow = Database["public"]["Tables"]["pages"]["Row"];
 type BlockRow = Database["public"]["Tables"]["blocks"]["Row"];
 
+/** What the toolbar shows. Kept apart from saveState so a fast save can still be seen. */
+type SaveIndicator = "idle" | "unsaved" | "saving" | "justSaved" | "error";
+
+// A save is often over before the eye catches "Saving…", so hold it at least this long, then flash "Saved" for a
+// moment before settling back to the quiet tick.
+const MIN_SAVING_MS = 800;
+const SAVED_FLASH_MS = 2500;
+
+const INDICATOR_CLASSES: Record<SaveIndicator, string> = {
+  idle: "bg-transparent text-neutral-400 ring-transparent",
+  unsaved: "bg-amber-400/10 text-amber-200 ring-amber-400/30",
+  saving: "bg-sky-400/15 text-sky-100 ring-sky-400/40",
+  justSaved: "bg-emerald-400/15 text-emerald-200 ring-emerald-400/40",
+  error: "bg-red-500/15 text-red-200 ring-red-400/40",
+};
+
 function toBuilderBlock(row: BlockRow): BuilderBlock {
   // Safe by construction: `type` narrows `config` at the DB layer via the
   // same union this file uses, just not provably to TypeScript across the
@@ -605,6 +621,39 @@ export function BuilderClient({
   const saveState: "saved" | "saving" | "unsaved" | "error" =
     saveStatus !== "saved" ? saveStatus : dirty ? "unsaved" : "saved";
 
+  // The pill the owner actually sees. A changed saveState moves it straight away (React's "adjust state when a prop
+  // changes" pattern, applied while rendering); the timers below keep "Saving…" up for a minimum time and then let a
+  // green "Saved" flash take over, so a quick save is still noticeable. The saving itself is untouched.
+  const [indicator, setIndicator] = useState<SaveIndicator>("idle");
+  const [seenSaveState, setSeenSaveState] = useState(saveState);
+  const savingStartedAt = useRef<number | null>(null);
+  if (saveState !== seenSaveState) {
+    setSeenSaveState(saveState);
+    if (saveState === "saving") {
+      setIndicator("saving");
+    } else if (saveState === "unsaved" || saveState === "error") {
+      setIndicator(saveState);
+    } else if (indicator !== "saving") {
+      // "saved" without a "saving" pill to hold (e.g. undo back to the saved state): settle on the quiet tick.
+      setIndicator("idle");
+    }
+  }
+  useEffect(() => {
+    // A new save starts the clock for the minimum "Saving…" time.
+    if (saveState === "saving") savingStartedAt.current = Date.now();
+  }, [saveState]);
+  useEffect(() => {
+    if (saveState !== "saved" || indicator !== "saving" || savingStartedAt.current === null) return;
+    const holdFor = Math.max(0, MIN_SAVING_MS - (Date.now() - savingStartedAt.current));
+    const t = window.setTimeout(() => setIndicator("justSaved"), holdFor);
+    return () => window.clearTimeout(t);
+  }, [saveState, indicator]);
+  useEffect(() => {
+    if (indicator !== "justSaved") return;
+    const t = window.setTimeout(() => setIndicator("idle"), SAVED_FLASH_MS);
+    return () => window.clearTimeout(t);
+  }, [indicator]);
+
   // Closing the tab in the second or two before a save lands would lose the edit; the browser asks first.
   useEffect(() => {
     if (saveState === "saved") return;
@@ -955,27 +1004,42 @@ export function BuilderClient({
                 <Redo2 className="h-4 w-4" />
               </button>
             </div>
-            {/* Where the work stands. Changes save on their own, so when all is well this is only a small tick;
-                words appear only when something is happening or has gone wrong. */}
+            {/* Where the work stands, as a coloured pill: quiet when all is well, loud while saving or if a save
+                failed. Changes save on their own, so the words only appear when something is happening. */}
             <p
               role="status"
-              className="hidden items-center gap-1.5 text-sm text-neutral-200 md:inline-flex"
+              aria-live="polite"
+              className={`hidden items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ring-1 transition-colors duration-300 md:inline-flex ${INDICATOR_CLASSES[indicator]}`}
             >
-              {saveState === "saving" && (
+              {indicator === "unsaved" && (
                 <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…
+                  <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                  Unsaved changes
                 </>
               )}
-              {saveState === "saved" && (
-                <span title={live ? "Live · all changes saved" : "All changes saved"} className="inline-flex items-center gap-1.5">
+              {indicator === "saving" && (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving…
+                </>
+              )}
+              {indicator === "justSaved" && (
+                <>
+                  <Check className="h-4 w-4 text-emerald-300" />
+                  <span className="sr-only">{live ? "Live · all changes saved" : "All changes saved"}</span>
+                  <span aria-hidden="true">Saved</span>
+                </>
+              )}
+              {indicator === "idle" && (
+                <>
                   <Check className="h-3.5 w-3.5 text-emerald-400" />
                   <span className="sr-only">{live ? "Live · all changes saved" : "All changes saved"}</span>
-                </span>
+                  <span aria-hidden="true">Saved</span>
+                </>
               )}
-              {saveState === "unsaved" && "Unsaved changes…"}
-              {saveState === "error" && (
+              {indicator === "error" && (
                 <>
-                  <AlertCircle className="h-3.5 w-3.5 text-amber-400" />{" "}
+                  <AlertCircle className="h-4 w-4 text-red-300" />
                   Couldn&apos;t save.
                   <button
                     type="button"
