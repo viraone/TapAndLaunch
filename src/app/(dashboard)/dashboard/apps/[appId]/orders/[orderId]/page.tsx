@@ -1,10 +1,14 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { isAppEditor } from "@/lib/org";
 import { OrderStatusSelect } from "../OrderStatusSelect";
 import { OrderNotes } from "./OrderNotes";
 import { OrderTags } from "./OrderTags";
+import { RefundCard } from "./RefundCard";
 import { splitOrderLines } from "@/lib/orders/lines";
+import { formatMoney } from "@/lib/orders/money";
+import { partlyRefunded } from "@/lib/orders/refunds";
 import { LocalTime } from "@/components/dashboard/LocalTime";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,12 +23,6 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: "Cancelled",
   refunded: "Refunded",
 };
-
-function formatMoney(cents: number, currency: string): string {
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: currency.toUpperCase() }).format(
-    cents / 100
-  );
-}
 
 export default async function OrderDetailPage({ params }: { params: Params }) {
   const { appId, orderId } = await params;
@@ -50,6 +48,15 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
     .eq("order_id", order.id)
     .order("created_at", { ascending: false })
     .limit(200);
+
+  const { data: refunds } = await supabase
+    .from("order_refunds")
+    .select("*")
+    .eq("order_id", order.id)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  const canRefund = await isAppEditor(supabase, appId);
 
   const {
     products: lineItems,
@@ -90,6 +97,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
         </div>
         <div className="flex items-center gap-3">
           <Badge variant="secondary">{STATUS_LABELS[order.status]}</Badge>
+          {partlyRefunded(order) && <Badge variant="outline">Partly refunded</Badge>}
           <OrderStatusSelect
             appId={appId}
             orderId={order.id}
@@ -160,6 +168,18 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
               <dt>Total</dt>
               <dd>{formatMoney(order.total_cents, order.currency)}</dd>
             </div>
+            {order.refunded_cents > 0 && (
+              <>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Refunded</dt>
+                  <dd>−{formatMoney(order.refunded_cents, order.currency)}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Net</dt>
+                  <dd>{formatMoney(order.total_cents - order.refunded_cents, order.currency)}</dd>
+                </div>
+              </>
+            )}
           </dl>
         </CardContent>
       </Card>
@@ -218,7 +238,18 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
           )}
         </CardContent>
       </Card>
-      {/* Later phase: refund controls. */}
+
+      <RefundCard
+        appId={appId}
+        orderId={order.id}
+        currency={order.currency}
+        totalCents={order.total_cents}
+        refundedCents={order.refunded_cents}
+        status={order.status}
+        paymentMethod={order.payment_method}
+        canRefund={canRefund}
+        refunds={refunds ?? []}
+      />
     </main>
   );
 }

@@ -13,6 +13,8 @@ import {
   pageRange,
   parseOrderListParams,
 } from "@/lib/orders/query";
+import { formatMoney } from "@/lib/orders/money";
+import { partlyRefunded } from "@/lib/orders/refunds";
 import { MAX_TAG_LENGTH } from "@/lib/orders/tags";
 
 type Params = Promise<{ appId: string }>;
@@ -30,12 +32,6 @@ const STATUS_LABELS: Record<(typeof ORDER_STATUS_FILTERS)[number], string> = {
   cancelled: "Cancelled",
   refunded: "Refunded",
 };
-
-function formatMoney(cents: number, currency: string): string {
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: currency.toUpperCase() }).format(
-    cents / 100
-  );
-}
 
 export default async function OrdersPage({
   params,
@@ -209,6 +205,7 @@ export default async function OrdersPage({
                     )}
                   </div>
                   <div className="flex items-center gap-3">
+                    {partlyRefunded(order) && <Badge variant="outline">Partly refunded</Badge>}
                     <span className="font-semibold">{formatMoney(order.total_cents, order.currency)}</span>
                     <OrderStatusSelect appId={appId} orderId={order.id} status={order.status} paymentMethod={order.payment_method} />
                   </div>
@@ -223,6 +220,9 @@ export default async function OrdersPage({
                   {order.shipping_cents > 0 && <li>Shipping {formatMoney(order.shipping_cents, order.currency)}</li>}
                   {order.tax_cents > 0 && <li>Tax {formatMoney(order.tax_cents, order.currency)}</li>}
                   {order.discount_cents > 0 && <li>Discount −{formatMoney(order.discount_cents, order.currency)}</li>}
+                  {order.refunded_cents > 0 && (
+                    <li>Refunded {formatMoney(order.refunded_cents, order.currency)}</li>
+                  )}
                 </ul>
                 {order.shipping_address && (
                   <p className="mt-2 text-xs text-muted-foreground">
