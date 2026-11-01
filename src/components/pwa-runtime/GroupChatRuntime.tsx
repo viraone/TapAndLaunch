@@ -41,10 +41,12 @@ const EDGE_GAP = 16;
 /** Room left between the composer and the top of the keyboard (the form's own padding adds to it). */
 const KEYBOARD_AIR = 4;
 /**
- * The app on an iPhone's home screen gets the keyboard's up/down/Done pill floating over the page, about 41pt tall,
- * resting on the keyboard's top edge; the visible page does not count it. Room for the pill and a little air above it.
+ * The app on an iPhone's home screen gets the keyboard's up/down/Done pill floating over the page, and the visible
+ * page does not count it. Measured on an iPhone (2026-10-31): the page's reported bottom edge sits about 30pt below
+ * the keyboard's visible top (the home-indicator strip), the pill floats 8pt above the keyboard and is 41pt tall, so
+ * its top is about 80pt above that edge. This leaves the composer (whose form adds 12pt of padding) just above it.
  */
-const KEYBOARD_PILL_ROOM = 48;
+const KEYBOARD_PILL_ROOM = 78;
 
 /** Is this the app opened from an iPhone's home screen (where the keyboard's pill floats over the page)? */
 function isHomeScreenIOS(): boolean {
