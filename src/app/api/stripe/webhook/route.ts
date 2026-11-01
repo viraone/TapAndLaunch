@@ -44,13 +44,24 @@ export async function POST(request: Request) {
       if (error) return Response.json({ error: error.message }, { status: 500 });
       break;
     }
-    case "order_refunded": {
+    case "order_refund_synced": {
+      // Raise only: a refund the merchant started in Stripe can be partial, and a reservation
+      // made by createRefund must never be lowered by an older event arriving late.
       const { error } = await admin
         .from("orders")
-        .update({ status: "refunded" })
+        .update({ refunded_cents: action.amountRefundedCents })
         .eq("stripe_payment_intent_id", action.paymentIntentId)
-        .in("status", ["paid", "fulfilled"]);
+        .lt("refunded_cents", action.amountRefundedCents);
       if (error) return Response.json({ error: error.message }, { status: 500 });
+
+      if (action.fullyRefunded) {
+        const { error: statusError } = await admin
+          .from("orders")
+          .update({ status: "refunded" })
+          .eq("stripe_payment_intent_id", action.paymentIntentId)
+          .in("status", ["paid", "fulfilled"]);
+        if (statusError) return Response.json({ error: statusError.message }, { status: 500 });
+      }
       break;
     }
     case "account_updated": {

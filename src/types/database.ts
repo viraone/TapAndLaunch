@@ -58,6 +58,8 @@ export type AnalyticsEventType =
   | "booking_created";
 export type OrderStatus = "pending" | "paid" | "fulfilled" | "cancelled" | "refunded";
 export type PaymentMethod = "request" | "stripe";
+/** One refund attempt: pending while Stripe thinks, then succeeded or failed (migration 0054). */
+export type RefundStatus = "pending" | "succeeded" | "failed";
 /** How often a recurring product is charged; null means a one-time purchase. See migration 0046. */
 export type BillingInterval = "month" | "year";
 /** One shipping choice the shopper sees on Stripe's page (`store_settings.shipping_rates`). */
@@ -1055,6 +1057,8 @@ export interface Database {
           customer_email: string;
           status: OrderStatus;
           total_cents: number;
+          /** How much of `total_cents` has gone back to the shopper (migration 0054). */
+          refunded_cents: number;
           currency: string;
           /** 'request' = the merchant follows up by hand; 'stripe' = paid on Stripe's checkout page. */
           payment_method: PaymentMethod;
@@ -1118,6 +1122,29 @@ export interface Database {
           body: string;
         };
         Update: Partial<Database["public"]["Tables"]["order_notes"]["Row"]>;
+        Relationships: [];
+      };
+      /** Every refund attempt, written only by the service role (migration 0054). */
+      order_refunds: {
+        Row: {
+          id: string;
+          order_id: string;
+          idempotency_key: string;
+          stripe_refund_id: string | null;
+          amount_cents: number;
+          reason: string | null;
+          status: RefundStatus;
+          error_message: string | null;
+          created_by: string | null;
+          created_by_email: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["order_refunds"]["Row"]> & {
+          order_id: string;
+          idempotency_key: string;
+          amount_cents: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["order_refunds"]["Row"]>;
         Relationships: [];
       };
       /** Per-app shipping, tax and promo-code choices for the store (migration 0046). */

@@ -67,10 +67,33 @@ describe("actionFor", () => {
     expect(actionFor(event("checkout.session.async_payment_failed", { id: "cs_1", metadata: { order_id: "o1" } })).kind).toBe("order_cancelled");
   });
 
-  it("marks refunded only for a full refund", () => {
-    expect(actionFor(event("charge.refunded", { refunded: true, payment_intent: "pi_1" }))).toEqual({ kind: "order_refunded", paymentIntentId: "pi_1" });
-    expect(actionFor(event("charge.refunded", { refunded: false, payment_intent: "pi_1" }))).toEqual({ kind: "ignore" });
-    expect(actionFor(event("charge.refunded", { refunded: true, payment_intent: null }))).toEqual({ kind: "ignore" });
+  it("syncs a full refund", () => {
+    expect(actionFor(event("charge.refunded", { refunded: true, payment_intent: "pi_1", amount_refunded: 6150 }))).toEqual({
+      kind: "order_refund_synced",
+      paymentIntentId: "pi_1",
+      amountRefundedCents: 6150,
+      fullyRefunded: true,
+    });
+  });
+
+  it("syncs a partial refund too, without marking the order refunded", () => {
+    expect(actionFor(event("charge.refunded", { refunded: false, payment_intent: "pi_1", amount_refunded: 2500 }))).toEqual({
+      kind: "order_refund_synced",
+      paymentIntentId: "pi_1",
+      amountRefundedCents: 2500,
+      fullyRefunded: false,
+    });
+  });
+
+  it("accepts an expanded payment intent on a refund", () => {
+    expect(actionFor(event("charge.refunded", { refunded: false, payment_intent: { id: "pi_9" }, amount_refunded: 100 }))).toMatchObject({
+      kind: "order_refund_synced",
+      paymentIntentId: "pi_9",
+    });
+  });
+
+  it("ignores a refund that has no payment intent to match", () => {
+    expect(actionFor(event("charge.refunded", { refunded: true, payment_intent: null, amount_refunded: 6150 }))).toEqual({ kind: "ignore" });
   });
 
   it("tracks the merchant's Stripe account setup", () => {

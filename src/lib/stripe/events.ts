@@ -5,7 +5,12 @@ import type { ShippingAddress } from "@/types/database";
 export type StripeAction =
   | ({ kind: "order_paid"; orderId: string; sessionId: string } & PaidDetails)
   | { kind: "order_cancelled"; orderId: string; sessionId: string }
-  | { kind: "order_refunded"; paymentIntentId: string }
+  | {
+      kind: "order_refund_synced";
+      paymentIntentId: string;
+      amountRefundedCents: number;
+      fullyRefunded: boolean;
+    }
   | { kind: "account_updated"; accountId: string; chargesEnabled: boolean; detailsSubmitted: boolean }
   | { kind: "ignore" };
 
@@ -83,8 +88,15 @@ export function actionFor(event: Stripe.Event): StripeAction {
     case "charge.refunded": {
       const c = event.data.object;
       const paymentIntentId = idOf(c.payment_intent);
-      // `refunded` is true only when the whole charge was refunded; a partial refund keeps the order paid.
-      return c.refunded && paymentIntentId ? { kind: "order_refunded", paymentIntentId } : { kind: "ignore" };
+      // A partial refund arrives here too, so the order's running total stays in step with
+      // Stripe. `refunded` is true only once the whole charge has gone back.
+      if (!paymentIntentId) return { kind: "ignore" };
+      return {
+        kind: "order_refund_synced",
+        paymentIntentId,
+        amountRefundedCents: c.amount_refunded,
+        fullyRefunded: c.refunded,
+      };
     }
     case "account.updated": {
       const a = event.data.object;
