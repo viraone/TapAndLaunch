@@ -27,7 +27,7 @@
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "seositetuneup": "github:viraone/seositetuneup#9fcb383",
+    "seositetuneup": "github:viraone/seositetuneup#ed83b823b463ef01ffec3da8342a1f156d47cbb0",
     "shadcn": "^4.21.0",
     "sonner": "^2.0.8",
     "stripe": "^23.0.0",
