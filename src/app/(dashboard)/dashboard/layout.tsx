@@ -35,7 +35,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="relative z-20 border-b border-neutral-200 bg-white text-neutral-950">
+      <header className="relative z-20 border-b border-neutral-200 bg-white text-neutral-950 print:hidden">
         <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between px-4 sm:px-10">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             {/* Always-visible way home: every dashboard page, however deep

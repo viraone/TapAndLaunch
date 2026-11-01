@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { OrderStatusSelect } from "./OrderStatusSelect";
 import { LocalTime } from "@/components/dashboard/LocalTime";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,6 +13,7 @@ import {
   pageRange,
   parseOrderListParams,
 } from "@/lib/orders/query";
+import { MAX_TAG_LENGTH } from "@/lib/orders/tags";
 
 type Params = Promise<{ appId: string }>;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -43,7 +45,7 @@ export default async function OrdersPage({
   searchParams: SearchParams;
 }) {
   const { appId } = await params;
-  const { q, status, page } = parseOrderListParams(await searchParams);
+  const { q, status, tag, page } = parseOrderListParams(await searchParams);
   const { from, to } = pageRange(page);
 
   const supabase = await createClient();
@@ -57,6 +59,7 @@ export default async function OrdersPage({
     .eq("app_id", appId);
 
   if (status !== "all") query = query.eq("status", status);
+  if (tag) query = query.contains("tags", [tag]);
 
   const search = orderSearchFilter(q, SEARCH_COLUMNS);
   if (search) query = query.or(search);
@@ -74,6 +77,7 @@ export default async function OrdersPage({
       .select("id", { count: "exact", head: true })
       .eq("app_id", appId);
     if (status !== "all") countQuery = countQuery.eq("status", status);
+    if (tag) countQuery = countQuery.contains("tags", [tag]);
     if (search) countQuery = countQuery.or(search);
     count = (await countQuery).count;
   }
@@ -101,12 +105,13 @@ export default async function OrdersPage({
   const total = count ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / ORDERS_PAGE_SIZE));
   const listHref = `/dashboard/apps/${appId}/orders`;
-  const filtersActive = q !== "" || status !== "all";
+  const filtersActive = q !== "" || status !== "all" || tag !== "";
 
   function pageHref(target: number): string {
     const next = new URLSearchParams();
     if (q) next.set("q", q);
     if (status !== "all") next.set("status", status);
+    if (tag) next.set("tag", tag);
     if (target > 1) next.set("page", String(target));
     const query = next.toString();
     return query ? `${listHref}?${query}` : listHref;
@@ -146,6 +151,16 @@ export default async function OrdersPage({
             ))}
           </select>
         </label>
+        <label className="text-xs text-muted-foreground">
+          Tag
+          <Input
+            name="tag"
+            defaultValue={tag}
+            placeholder="e.g. vip"
+            maxLength={MAX_TAG_LENGTH}
+            className="mt-1 w-32"
+          />
+        </label>
         <Button type="submit">Search</Button>
         {filtersActive && (
           <Link href={listHref} className="pb-1.5 text-sm underline">
@@ -183,6 +198,15 @@ export default async function OrdersPage({
                   <div>
                     <p className="font-medium">{order.customer_name || "Awaiting payment details"}</p>
                     {order.customer_email && <p className="text-xs text-muted-foreground">{order.customer_email}</p>}
+                    {order.tags.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {order.tags.map((orderTag) => (
+                          <Badge key={orderTag} variant="secondary" className="h-4 px-1.5 text-[10px]">
+                            {orderTag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-semibold">{formatMoney(order.total_cents, order.currency)}</span>
@@ -211,9 +235,14 @@ export default async function OrdersPage({
                     {order.payment_method === "stripe" ? " · Card payment" : " · Order request"}
                     {order.stripe_subscription_id ? " · Subscription" : ""}
                   </p>
-                  <Link href={`${listHref}/${order.id}`} className="shrink-0 underline">
-                    View order
-                  </Link>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <Link href={`${listHref}/${order.id}`} className="underline">
+                      View order
+                    </Link>
+                    <Link href={`${listHref}/${order.id}/packing-slip`} className="underline">
+                      Packing slip
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}

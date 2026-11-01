@@ -26,14 +26,15 @@ describe("order list constants", () => {
 });
 
 describe("parseOrderListParams", () => {
-  it("falls back to an empty search, all statuses and page 1", () => {
-    expect(parseOrderListParams({})).toEqual({ q: "", status: "all", page: 1 });
+  it("falls back to an empty search, all statuses, no tag and page 1", () => {
+    expect(parseOrderListParams({})).toEqual({ q: "", status: "all", tag: "", page: 1 });
   });
 
   it("trims the search and caps it at 80 characters", () => {
     expect(parseOrderListParams({ q: "  Ada Lovelace  " })).toEqual({
       q: "Ada Lovelace",
       status: "all",
+      tag: "",
       page: 1,
     });
     expect(parseOrderListParams({ q: "x".repeat(81) }).q).toBe("x".repeat(80));
@@ -42,7 +43,7 @@ describe("parseOrderListParams", () => {
   it("takes the first value of every repeated parameter", () => {
     expect(
       parseOrderListParams({ q: ["first", "second"], status: ["paid", "pending"], page: ["3", "4"] })
-    ).toEqual({ q: "first", status: "paid", page: 3 });
+    ).toEqual({ q: "first", status: "paid", tag: "", page: 3 });
   });
 
   it("keeps a whitelisted status and rejects anything else", () => {
@@ -51,6 +52,14 @@ describe("parseOrderListParams", () => {
     expect(parseOrderListParams({ status: "shipped" }).status).toBe("all");
     expect(parseOrderListParams({ status: "PAID" }).status).toBe("all");
     expect(parseOrderListParams({ status: "" }).status).toBe("all");
+  });
+
+  it("normalizes the tag filter and falls back to no tag", () => {
+    expect(parseOrderListParams({ tag: "  VIP  " }).tag).toBe("vip");
+    expect(parseOrderListParams({ tag: "a, b" }).tag).toBe("a b");
+    expect(parseOrderListParams({ tag: ["First", "second"] }).tag).toBe("first");
+    expect(parseOrderListParams({ tag: "" }).tag).toBe("");
+    expect(parseOrderListParams({ tag: "x".repeat(25) }).tag).toBe("");
   });
 
   it("accepts only whole pages at or above 1", () => {

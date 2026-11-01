@@ -1069,6 +1069,8 @@ export interface Database {
           shipping_address: ShippingAddress | null;
           /** Set when the cart held a recurring product: Stripe runs the renewals. */
           stripe_subscription_id: string | null;
+          /** Free-form merchant labels, normalized by src/lib/orders/tags.ts (migration 0053). */
+          tags: string[];
           created_at: string;
           updated_at: string;
         };
@@ -1099,6 +1101,23 @@ export interface Database {
           quantity: number;
         };
         Update: Partial<Database["public"]["Tables"]["order_items"]["Row"]>;
+        Relationships: [];
+      };
+      /** Internal merchant notes on an order, append/delete only (migration 0053). */
+      order_notes: {
+        Row: {
+          id: string;
+          order_id: string;
+          author_id: string | null;
+          author_email: string | null;
+          body: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["order_notes"]["Row"]> & {
+          order_id: string;
+          body: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["order_notes"]["Row"]>;
         Relationships: [];
       };
       /** Per-app shipping, tax and promo-code choices for the store (migration 0046). */

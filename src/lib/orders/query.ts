@@ -1,3 +1,5 @@
+import { normalizeTag } from "./tags";
+
 export const ORDER_STATUS_FILTERS = [
   "all",
   "pending",
@@ -19,6 +21,7 @@ function first(value: string | string[] | undefined): string | undefined {
 export function parseOrderListParams(sp: Record<string, string | string[] | undefined>): {
   q: string;
   status: (typeof ORDER_STATUS_FILTERS)[number];
+  tag: string;
   page: number;
 } {
   const q = (first(sp.q) ?? "").trim().slice(0, MAX_SEARCH_LENGTH);
@@ -29,12 +32,14 @@ export function parseOrderListParams(sp: Record<string, string | string[] | unde
       ? (rawStatus as (typeof ORDER_STATUS_FILTERS)[number])
       : "all";
 
+  const tag = normalizeTag(first(sp.tag) ?? "") ?? "";
+
   const rawPage = first(sp.page);
   const parsedPage = rawPage === undefined ? Number.NaN : Number(rawPage);
   const page =
     Number.isInteger(parsedPage) && parsedPage >= 1 ? Math.min(parsedPage, MAX_PAGE) : 1;
 
-  return { q, status, page };
+  return { q, status, tag, page };
 }
 
 /** Escapes a search term for an ILIKE pattern and removes the characters that

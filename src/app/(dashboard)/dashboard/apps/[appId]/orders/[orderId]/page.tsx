@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { OrderStatusSelect } from "../OrderStatusSelect";
+import { OrderNotes } from "./OrderNotes";
+import { OrderTags } from "./OrderTags";
 import { splitOrderLines } from "@/lib/orders/lines";
 import { LocalTime } from "@/components/dashboard/LocalTime";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +44,13 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
     .select("*")
     .eq("order_id", order.id);
 
+  const { data: notes } = await supabase
+    .from("order_notes")
+    .select("*")
+    .eq("order_id", order.id)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
   const {
     products: lineItems,
     productsCents: subtotalCents,
@@ -63,9 +72,17 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
     <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Link href={`/dashboard/apps/${appId}/orders`} className="text-sm underline">
-            Back to orders
-          </Link>
+          <div className="flex flex-wrap gap-3 text-sm">
+            <Link href={`/dashboard/apps/${appId}/orders`} className="underline">
+              Back to orders
+            </Link>
+            <Link
+              href={`/dashboard/apps/${appId}/orders/${order.id}/packing-slip`}
+              className="underline"
+            >
+              Print packing slip
+            </Link>
+          </div>
           <h1 className="mt-2 text-xl font-semibold">Order {order.id}</h1>
           <p className="text-sm text-muted-foreground">
             Placed <LocalTime iso={order.created_at} />
@@ -81,7 +98,6 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
           />
         </div>
       </div>
-      {/* Later phase: a print-friendly view of this order. */}
 
       <Card>
         <CardHeader>
@@ -112,8 +128,8 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
           )}
         </CardContent>
       </Card>
-      {/* Later phase: order notes. */}
-      {/* Later phase: order tags. */}
+      <OrderNotes appId={appId} orderId={order.id} notes={notes ?? []} />
+      <OrderTags appId={appId} orderId={order.id} tags={order.tags} />
 
       <Card>
         <CardHeader>
