@@ -427,6 +427,43 @@ describe("createRefund", () => {
     expect(store.calls).not.toContain("markSucceeded");
   });
 
+  it.each([
+    ["a dropped connection", { type: "StripeConnectionError", message: "socket hang up" }],
+    ["a Stripe server error", { type: "StripeAPIError", message: "Internal error" }],
+    ["a 503 answer", { statusCode: 503, message: "Service unavailable" }],
+  ])("keeps the refund pending and the cents reserved after %s", async (_name, thrown) => {
+    const store = new FakeStore(baseOrder());
+    const createStripeRefund = vi.fn<RefundDeps["createStripeRefund"]>(async () => {
+      throw thrown;
+    });
+    const deps = makeDeps(store, { createStripeRefund });
+
+    const result = expectFailure(await createRefund(deps, input()));
+
+    expect(result.code).toBe("processing");
+    expect(result.message).toContain("cannot tell whether this refund went through");
+    expect(store.order?.refunded_cents).toBe(2500);
+    expect(store.refunds[0]?.status).toBe("pending");
+    expect(store.calls).not.toContain("release");
+    expect(store.calls).not.toContain("markFailed");
+
+    // Trying again with the same key must not send a second refund.
+    const again = expectFailure(await createRefund(deps, input()));
+    expect(again.code).toBe("processing");
+    expect(createStripeRefund).toHaveBeenCalledTimes(1);
+  });
+
+  it("still treats a card or request error as a definite failure", async () => {
+    const store = new FakeStore(baseOrder());
+    const createStripeRefund = vi.fn<RefundDeps["createStripeRefund"]>(async () => {
+      throw { type: "StripeInvalidRequestError", statusCode: 400, message: "Charge ch_1 has already been refunded." };
+    });
+    const deps = makeDeps(store, { createStripeRefund });
+
+    expect(expectFailure(await createRefund(deps, input())).code).toBe("stripe_error");
+    expect(store.order?.refunded_cents).toBe(0);
+  });
+
   it("says nothing it did not get from Stripe when the failure is not an Error", async () => {
     const store = new FakeStore(baseOrder());
     const createStripeRefund = vi.fn<RefundDeps["createStripeRefund"]>(async () => {

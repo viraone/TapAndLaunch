@@ -78,6 +78,8 @@ export type RefundResult =
     };
 
 const PROCESSING = "That refund is still being processed. Check Stripe before trying again.";
+const UNCLEAR =
+  "Stripe did not answer, so we cannot tell whether this refund went through. Check Stripe before trying again.";
 const FAILED_ATTEMPT = "That attempt already failed. Start a new refund.";
 const CHANGED = "This order changed while you were refunding it. Reload and try again.";
 const NO_ACCOUNT = "This shop has not finished connecting Stripe, so it cannot send refunds yet.";
@@ -166,6 +168,11 @@ export async function createRefund(
       metadata: { order_id: order.id, app_id: order.app_id, refund_row_id: row.id },
     });
   } catch (error) {
+    // A timeout or a Stripe server error does not tell us whether the money moved. Keep the
+    // ledger row pending and the cents reserved: handing them back could let the same money be
+    // refunded twice. The webhook still raises the order's total if the refund did go through.
+    if (stripeAnswerUnclear(error)) return { ok: false, code: "processing", message: UNCLEAR };
+
     const message = stripeFailureMessage(error);
     // The Stripe answer is the one the caller needs; a bookkeeping write that fails while
     // tidying up must not replace it. The webhook's raise-only sync still knows the true total.
@@ -212,6 +219,16 @@ function whyNotRefundable(order: RefundOrder): string | null {
   }
 
   return null;
+}
+
+function stripeAnswerUnclear(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const { type, statusCode } = error as { type?: unknown; statusCode?: unknown };
+  return (
+    type === "StripeConnectionError" ||
+    type === "StripeAPIError" ||
+    (typeof statusCode === "number" && statusCode >= 500)
+  );
 }
 
 /** Stripe's own sentence when it gave one, and nothing else from the error object. */
