@@ -40,6 +40,19 @@ const BAR_GAP = 8;
 const EDGE_GAP = 16;
 /** Room left between the composer and the top of the keyboard (the form's own padding adds to it). */
 const KEYBOARD_AIR = 4;
+/**
+ * The app on an iPhone's home screen gets the keyboard's up/down/Done pill floating over the page, about 41pt tall,
+ * resting on the keyboard's top edge; the visible page does not count it. Room for the pill and a little air above it.
+ */
+const KEYBOARD_PILL_ROOM = 48;
+
+/** Is this the app opened from an iPhone's home screen (where the keyboard's pill floats over the page)? */
+function isHomeScreenIOS(): boolean {
+  const nav = navigator as Navigator & { standalone?: boolean };
+  const standalone = nav.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  return standalone && ios;
+}
 /** The visible page losing this much is the keyboard, not Safari's address bar folding away (about 50 to 100). */
 const KEYBOARD_MIN = 150;
 /** The composer and a few lines of chat: a wrong measurement must leave a usable chat, never a blank one. */
@@ -329,8 +342,8 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
       // its bottom (the composer's) sits just above the keyboard, or above a floating tab bar still in view (a phone
       // that shrinks the page keeps it above the keyboard). Each pass lands closer; the next one changes nothing.
       if (keyboardUp) {
-        const limit =
-          bar && isFixedToScreen(bar) ? bar.getBoundingClientRect().top - BAR_GAP : visualTop + viewportHeight - KEYBOARD_AIR;
+        const air = isHomeScreenIOS() ? KEYBOARD_PILL_ROOM : KEYBOARD_AIR;
+        const limit = bar && isFixedToScreen(bar) ? bar.getBoundingClientRect().top - BAR_GAP : visualTop + viewportHeight - air;
         const bottom = node.getBoundingClientRect().bottom;
         next = Math.max(MIN_COLUMN, Math.round(node.offsetHeight + limit - bottom));
       }
