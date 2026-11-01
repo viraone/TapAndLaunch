@@ -61,9 +61,22 @@ export default async function OrdersPage({
   const search = orderSearchFilter(q, SEARCH_COLUMNS);
   if (search) query = query.or(search);
 
-  const { data: orders, count } = await query
+  const { data: orders, count: pageQueryCount } = await query
     .order("created_at", { ascending: false })
     .range(from, to);
+
+  // A page past the end makes PostgREST fail the range and return no count,
+  // so count again to show "No orders on this page" instead of "No orders yet".
+  let count = pageQueryCount;
+  if (count === null && page > 1) {
+    let countQuery = supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("app_id", appId);
+    if (status !== "all") countQuery = countQuery.eq("status", status);
+    if (search) countQuery = countQuery.or(search);
+    count = (await countQuery).count;
+  }
 
   // Two queries, not an embedded `orders.select("...,order_items(...)")` —
   // see the `Relationships: []` note in `types/database.ts`.

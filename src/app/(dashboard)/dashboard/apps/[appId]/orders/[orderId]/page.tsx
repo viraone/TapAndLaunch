@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { OrderStatusSelect } from "../OrderStatusSelect";
+import { splitOrderLines } from "@/lib/orders/lines";
 import { LocalTime } from "@/components/dashboard/LocalTime";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,11 +42,12 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
     .select("*")
     .eq("order_id", order.id);
 
-  const lineItems = items ?? [];
-  const subtotalCents = lineItems.reduce(
-    (sum, item) => sum + item.unit_price_cents * item.quantity,
-    0
-  );
+  const {
+    products: lineItems,
+    productsCents: subtotalCents,
+    shippingRowsCents,
+  } = splitOrderLines(items ?? []);
+  const shippingCents = order.shipping_cents + shippingRowsCents;
 
   const shipTo = [
     order.shipping_name,
@@ -125,7 +127,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Shipping</dt>
-              <dd>{formatMoney(order.shipping_cents, order.currency)}</dd>
+              <dd>{formatMoney(shippingCents, order.currency)}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Tax</dt>
