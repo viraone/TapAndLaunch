@@ -1,10 +1,14 @@
 import { z } from "zod";
+import type { Database, ThemeConfig } from "@/types/database";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAppAdmin } from "@/lib/org";
 import { confirmationMatches } from "@/lib/apps/deletion";
+import { mergeThemeUpdate } from "@/lib/apps/merge-theme";
 import { removeDomain } from "@/lib/domains/vercel";
 import { companionOptions } from "@/lib/domains/companion";
+
+type AppUpdate = Database["public"]["Tables"]["apps"]["Update"];
 
 const ThemeSchema = z.object({
   primary_color: z.string().optional(),
@@ -73,9 +77,11 @@ const UpdateAppSchema = z.object({
  * Partial update for an app's theme/manifest config (the builder's Settings
  * panel). Deliberately not a general-purpose PATCH: `name`/`slug`/`status`
  * have their own routes (`publish`) or aren't editable post-creation yet, so
- * this only ever touches `theme`/`manifest`, whole-object-replace per key —
- * not a deep merge — matching how the Settings dialog sends its full form
- * state on every save.
+ * this only ever touches `theme`/`manifest`, whole-object-replace per key.
+ * The Settings dialog sends its full form state on every save, so the theme
+ * is laid over the stored one: keys the schema does not accept, such as
+ * StageTime's `header_action` and `home_redirect`, are server-managed and
+ * would otherwise be deleted by a save that never knew about them.
  */
 export async function PATCH(request: Request, context: { params: Promise<{ appId: string }> }) {
   const { appId } = await context.params;
@@ -93,9 +99,31 @@ export async function PATCH(request: Request, context: { params: Promise<{ appId
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
+  let update: AppUpdate = parsed.data;
+  if (parsed.data.theme) {
+    const { data: current, error: readError } = await supabase
+      .from("apps")
+      .select("theme")
+      .eq("id", appId)
+      .single();
+
+    if (readError) {
+      return Response.json({ error: readError.message }, { status: 400 });
+    }
+
+    update = {
+      ...update,
+      theme: mergeThemeUpdate(
+        (current.theme ?? null) as unknown as Record<string, unknown> | null,
+        parsed.data.theme as unknown as Record<string, unknown>,
+        Object.keys(ThemeSchema.shape)
+      ) as ThemeConfig,
+    };
+  }
+
   const { data: app, error } = await supabase
     .from("apps")
-    .update(parsed.data)
+    .update(update)
     .eq("id", appId)
     .select("*")
     .single();
