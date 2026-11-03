@@ -9,7 +9,7 @@ One plan (constants in `src/lib/billing/plans.ts`):
 |---|---|
 | Name | Standard |
 | Price | **$10/month**, or **$100/year** (saves $20). Set in `PLAN` in `src/lib/billing/plans.ts` |
-| Trial | 30 days, no card, starts when an organization is created |
+| Trial | 90 days, no card, starts when an organization is created |
 | Included | Everything (no limits are enforced yet) |
 
 Prices are Stripe Prices found by **lookup key** (`tapandlaunch_standard_monthly` / `_yearly`) and created on first use
@@ -23,7 +23,7 @@ people already subscribed keep the price they signed up at.
 `cancel_at_period_end`. Org members can read it; **only server code writes it**, so an organization can never give itself
 a plan. (It is a separate table because org admins can update their own `organizations` row.)
 
-- A trigger starts a 30-day trial on every new organization.
+- A trigger starts a 90-day trial on every new organization (30 days before migration 0055; orgs made earlier keep their date).
 - Every organization that existed when 0025 ran is **`complimentary`** (free, never locked out). To make someone free:
   `update org_billing set status = 'complimentary' where organization_id = '...'`.
 

@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { TRIAL_DAYS } from "@/lib/billing/plans";
 
 /** The picture shown when the home page is shared in a message, Slack, X, LinkedIn and so on. */
 export function GET() {
@@ -37,7 +38,7 @@ export function GET() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ display: "flex", fontSize: 96, fontWeight: 700, lineHeight: 1.05, letterSpacing: -2 }}>Your app, one tap from launch.</div>
-          <div style={{ display: "flex", fontSize: 36, color: "#a3a3a3" }}>Build an app for your business. No code. Free for 30 days.</div>
+          <div style={{ display: "flex", fontSize: 36, color: "#a3a3a3" }}>{`Build an app for your business. No code. Free for ${TRIAL_DAYS} days.`}</div>
         </div>
       </div>
     ),

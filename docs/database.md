@@ -42,7 +42,7 @@ Applied in order from `supabase/migrations/`. Production has every one of these 
 | 0039 (files block) | Allows block type `files`: handouts, worksheets and other files visitors open or download (the files themselves go in the `app-assets` bucket) |
 | 0028 (ai generations) | `ai_generations`: a counter so each person gets 10 "Describe your app" designs a day; server-only, no policies |
 | 0027 (app soft delete) | `apps.deleted_at`/`deleted_by`; the read policy hides deleted apps; daily `pg_cron` job `purge-deleted-apps` (03:15 UTC) erases them after 30 days |
-| 0025 (org billing) | `org_billing`: each organization's trial/plan with TapAndLaunch; existing orgs `complimentary`; trigger starts a 30-day trial on new orgs |
+| 0025 (org billing) | `org_billing`: each organization's trial/plan with TapAndLaunch; existing orgs `complimentary`; trigger starts a trial on new orgs (30 days; 90 since 0055) |
 | 0024 (email unsubscribe) | `app_members.email_unsubscribed_at`: members who clicked Unsubscribe are skipped by the Email channel |
 | 0019 to 0022 (food) | Restaurant phone/website, popular dishes, menu page, menu items |
 

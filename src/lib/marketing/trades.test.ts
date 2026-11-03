@@ -16,7 +16,7 @@ describe("TRADE_PAGES", () => {
     for (const t of TRADE_PAGES) {
       expect(t.title.length, t.title).toBeLessThanOrEqual(60);
       expect(t.description.length, t.description).toBeLessThanOrEqual(160);
-      expect(t.description).toContain("Free for 30 days");
+      expect(t.description).toContain("Free for 90 days");
       expect(t.title + t.description + t.headline).not.toContain("!");
     }
     expect(TRADES_INDEX.title.length).toBeLessThanOrEqual(60);

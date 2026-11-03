@@ -40,7 +40,7 @@ describe("WHO_FOR", () => {
 describe("SITE_DESCRIPTION", () => {
   it("names the category, the business types and the size range", () => {
     expect(SITE_DESCRIPTION).toMatch(/^No-code app builder for restaurants, gyms, shops and event businesses with 1-50 employees\./);
-    expect(SITE_DESCRIPTION).toContain("Free for 30 days");
+    expect(SITE_DESCRIPTION).toContain("Free for 90 days");
     expect(SITE_DESCRIPTION).not.toContain("!");
   });
   it("is short enough to show in a search result without being cut", () => {

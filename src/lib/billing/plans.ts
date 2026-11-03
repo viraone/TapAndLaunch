@@ -10,8 +10,8 @@ export const PLAN = {
   yearlyCents: 10000,
 } as const;
 
-/** Must match the 30 in migration 0025 (the trigger that starts a new organization's trial). */
-export const TRIAL_DAYS = 30;
+/** Must match the 90 in migration 0055 (the trigger that starts a new organization's trial). */
+export const TRIAL_DAYS = 90;
 
 /** Stripe price lookup keys, so the same code works in sandbox and live with no price ids to copy around. */
 export const PRICE_LOOKUP_KEYS = { month: "tapandlaunch_standard_monthly", year: "tapandlaunch_standard_yearly" } as const;
