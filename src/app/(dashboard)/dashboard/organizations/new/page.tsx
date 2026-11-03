@@ -13,7 +13,7 @@ export default function NewOrganizationPage() {
           <CardTitle>New organization</CardTitle>
         </CardHeader>
         <CardContent>
-          <OnboardingForm />
+          <OnboardingForm next="/dashboard" />
         </CardContent>
       </Card>
     </main>

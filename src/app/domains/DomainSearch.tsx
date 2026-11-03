@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Search } from "lucide-react";
 import { toast } from "sonner";
-import { priceLabel } from "@/lib/domains/buy";
+import { domainsReturnPath, findOfferForBuy, priceLabel } from "@/lib/domains/buy";
 import { withNext } from "@/lib/auth/next-path";
 
 interface Offer {
@@ -19,7 +19,7 @@ interface Offer {
  * up (and back here afterwards), and a signed-in admin straight to Stripe; the dashboard's Domains page takes over
  * when they return.
  */
-export function DomainSearch({ initialQuery, signedIn, available }: { initialQuery: string; signedIn: boolean; available: boolean }) {
+export function DomainSearch({ initialQuery, initialBuy, signedIn, available }: { initialQuery: string; initialBuy?: string; signedIn: boolean; available: boolean }) {
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
   const [searched, setSearched] = useState(initialQuery.trim());
@@ -28,6 +28,36 @@ export function DomainSearch({ initialQuery, signedIn, available }: { initialQue
   const [searching, setSearching] = useState(!!initialQuery.trim() && available);
   const [problem, setProblem] = useState<string | null>(null);
   const [buying, setBuying] = useState<string | null>(null);
+  const [buyNotice, setBuyNotice] = useState<string | null>(null);
+  // Someone sent back from signing up or onboarding with the domain they chose (`buy=`). It is acted on once, and only
+  // for a signed-in visitor; refs keep that fact without causing a render, so a refresh cannot start a second checkout.
+  const pendingBuy = useRef<string | null>(signedIn ? initialBuy?.trim() || null : null);
+  const resumeHandled = useRef(false);
+
+  // The same buy call the button makes: checkout for a signed-in admin, or a return to the sign-up / onboarding step
+  // that keeps the chosen domain in the way back.
+  const startBuy = useCallback(
+    async (domain: string) => {
+      setBuying(domain);
+      try {
+        const res = await fetch("/api/domains/buy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ domain }) });
+        const body = await res.json().catch(() => ({}));
+        if (res.ok && body.url) {
+          window.location.assign(body.url);
+          return;
+        }
+        const back = domainsReturnPath(searched, domain);
+        if (body.signIn) router.push(withNext("/login", back));
+        else if (body.needsOnboarding) router.push(withNext("/onboarding", back));
+        else toast.error(body.error ?? "Couldn't start the purchase");
+      } catch {
+        toast.error("Couldn't reach the server. Check your connection and try again.");
+      } finally {
+        setBuying(null);
+      }
+    },
+    [router, searched]
+  );
 
   // One request per searched term: typing changes `query`, the form sets `searched` (and the address, so the result
   // can be shared or come back to after signing up).
@@ -43,7 +73,19 @@ export function DomainSearch({ initialQuery, signedIn, available }: { initialQue
           setProblem(body.error ?? "Search failed. Try again.");
         } else {
           setProblem(null);
-          setOffers(body.offers ?? []);
+          const results: Offer[] = body.offers ?? [];
+          setOffers(results);
+          // Back from signing up or onboarding with a chosen domain: take `buy` out of the address first (a refresh or
+          // a browser-back must not start another checkout), then resume the purchase the button would have started.
+          const wanted = pendingBuy.current;
+          if (signedIn && wanted && !resumeHandled.current) {
+            resumeHandled.current = true;
+            pendingBuy.current = null;
+            router.replace(domainsReturnPath(searched));
+            const offer = findOfferForBuy(results, wanted);
+            if (offer?.available) void startBuy(offer.domain);
+            else setBuyNotice(`${offer?.domain ?? wanted} is no longer available. Search for another name.`);
+          }
         }
       })
       .catch(() => {
@@ -55,39 +97,27 @@ export function DomainSearch({ initialQuery, signedIn, available }: { initialQue
     return () => {
       cancelled = true;
     };
-  }, [searched, available]);
+  }, [searched, available, signedIn, startBuy, router]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const term = query.trim();
     if (!term) return;
+    // A new search abandons any purchase that was waiting to resume.
+    pendingBuy.current = null;
+    resumeHandled.current = true;
+    setBuyNotice(null);
     window.history.replaceState(null, "", `/domains?q=${encodeURIComponent(term)}`);
     if (term !== searched) setSearching(true);
     setSearched(term);
   }
 
-  async function handleBuy(domain: string) {
-    const back = `/domains?q=${encodeURIComponent(searched)}`;
+  function handleBuy(domain: string) {
     if (!signedIn) {
-      router.push(withNext("/signup", back));
+      router.push(withNext("/signup", domainsReturnPath(searched, domain)));
       return;
     }
-    setBuying(domain);
-    try {
-      const res = await fetch("/api/domains/buy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ domain }) });
-      const body = await res.json().catch(() => ({}));
-      if (res.ok && body.url) {
-        window.location.assign(body.url);
-        return;
-      }
-      if (body.signIn) router.push(withNext("/login", back));
-      else if (body.needsOnboarding) router.push(withNext("/onboarding", back));
-      else toast.error(body.error ?? "Couldn't start the purchase");
-    } catch {
-      toast.error("Couldn't reach the server. Check your connection and try again.");
-    } finally {
-      setBuying(null);
-    }
+    void startBuy(domain);
   }
 
   return (
@@ -131,6 +161,12 @@ export function DomainSearch({ initialQuery, signedIn, available }: { initialQue
       {problem && (
         <p role="alert" className="mt-4 max-w-xl rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {problem}
+        </p>
+      )}
+
+      {buyNotice && (
+        <p role="status" className="mt-4 max-w-xl rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+          {buyNotice}
         </p>
       )}
 

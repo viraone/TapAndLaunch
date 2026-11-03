@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, MailCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,16 @@ import { PasswordInput } from "@/components/auth/PasswordInput";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/friendly-errors";
 import { safeNextPath, withNext } from "@/lib/auth/next-path";
+
+/** The login link carries the page that sent the visitor here (`?next=/domains?q=…`) across to logging in. */
+function LoginLink() {
+  const params = useSearchParams();
+  return (
+    <Link href={withNext("/login", safeNextPath(params.get("next"), "") || null)} className="font-medium text-neutral-950 underline-offset-4 hover:underline">
+      Log in
+    </Link>
+  );
+}
 
 export default function SignupPage() {
   const router = useRouter();
@@ -32,10 +42,16 @@ export default function SignupPage() {
     setError(null);
 
     try {
+      // A page that sent someone here (`?next=/domains?q=…`) gets them back after onboarding. The confirmation email's
+      // link cannot carry it (prod's template hardcodes /onboarding), so it is also saved on the account.
+      const nextFromUrl = safeNextPath(new URLSearchParams(window.location.search).get("next"), "");
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          ...(nextFromUrl ? { data: { signup_next: nextFromUrl } } : {}),
+        },
       });
 
       if (error) {
@@ -50,8 +66,7 @@ export default function SignupPage() {
       // session comes back immediately and we can go straight to onboarding.
       // The guard stays on from here: this page is about to be replaced.
       if (data.session) {
-        // A page that sent someone here (`?next=/domains?q=…`) gets them back after onboarding.
-        router.push(withNext("/onboarding", safeNextPath(new URLSearchParams(window.location.search).get("next"), "") || null));
+        router.push(withNext("/onboarding", nextFromUrl || null));
         router.refresh();
       } else {
         setCheckEmail(true);
@@ -85,9 +100,15 @@ export default function SignupPage() {
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-neutral-950 underline-offset-4 hover:underline">
-            Log in
-          </Link>
+          <Suspense
+            fallback={
+              <Link href="/login" className="font-medium text-neutral-950 underline-offset-4 hover:underline">
+                Log in
+              </Link>
+            }
+          >
+            <LoginLink />
+          </Suspense>
         </>
       }
     >

@@ -11,7 +11,7 @@ import { AUTH_BUTTON, AuthShell } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/friendly-errors";
-import { safeNextPath } from "@/lib/auth/next-path";
+import { safeNextPath, withNext } from "@/lib/auth/next-path";
 
 /** localStorage key for the "Remember me" email. Only the email is stored —
  * the password stays with the browser's own password manager (the inputs
@@ -43,6 +43,16 @@ function LinkNotice() {
     <p role="status" className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-900">
       We couldn&rsquo;t finish signing you in from that link. If you just confirmed your email, log in with your password to continue.
     </p>
+  );
+}
+
+/** The sign-up link keeps the page that sent the visitor here, so it survives switching to a new account. */
+function SignupLink() {
+  const params = useSearchParams();
+  return (
+    <Link href={withNext("/signup", safeNextPath(params.get("next"), "") || null)} className="font-medium text-neutral-950 underline-offset-4 hover:underline">
+      Create one
+    </Link>
   );
 }
 
@@ -101,9 +111,15 @@ export default function LoginPage() {
       footer={
         <>
           No account?{" "}
-          <Link href="/signup" className="font-medium text-neutral-950 underline-offset-4 hover:underline">
-            Create one
-          </Link>
+          <Suspense
+            fallback={
+              <Link href="/signup" className="font-medium text-neutral-950 underline-offset-4 hover:underline">
+                Create one
+              </Link>
+            }
+          >
+            <SignupLink />
+          </Suspense>
         </>
       }
     >

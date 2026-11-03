@@ -18,8 +18,8 @@ const POINTS = [
 ];
 
 /** The public domain search: like a registrar's front page, with the buying done by TapAndLaunch. */
-export default async function DomainsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams;
+export default async function DomainsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[]; buy?: string | string[] }> }) {
+  const { q, buy } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -40,7 +40,12 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
           </p>
         </section>
 
-        <DomainSearch initialQuery={q ?? ""} signedIn={!!user} available={canBuyDomains()} />
+        <DomainSearch
+          initialQuery={typeof q === "string" ? q : ""}
+          initialBuy={typeof buy === "string" ? buy : undefined}
+          signedIn={!!user}
+          available={canBuyDomains()}
+        />
 
         <section aria-labelledby="why" className="mt-24">
           <h2 id="why" className="sr-only">

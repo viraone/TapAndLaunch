@@ -45,6 +45,28 @@ export function isBuyableDomain(domain: string): boolean {
   return LABEL.test(label ?? "") && (BUYABLE_TLDS as readonly string[]).includes(tld ?? "");
 }
 
+/**
+ * The search page to come back to after signing up or onboarding, with the chosen domain carried as `buy=`. The path
+ * is encoded once here; `withNext` encodes the whole thing again when it goes inside a login or signup link.
+ */
+export function domainsReturnPath(query: string | null | undefined, buy?: string | null): string {
+  const search = (query ?? "").trim();
+  const domain = buy?.trim();
+  return `/domains?q=${encodeURIComponent(search)}${domain ? `&buy=${encodeURIComponent(domain)}` : ""}`;
+}
+
+/** A domain out of a URL, ready to compare with one from the search results: case and stray spaces do not matter. */
+export function normalizeDomainName(domain: string | null | undefined): string {
+  return (domain ?? "").trim().toLowerCase();
+}
+
+/** The offer a `buy=` refers to, when the fresh search still lists it. Taken offers are returned too; the caller decides. */
+export function findOfferForBuy<T extends { domain: string }>(offers: readonly T[], buy: string | null | undefined): T | undefined {
+  const wanted = normalizeDomainName(buy);
+  if (!wanted) return undefined;
+  return offers.find((offer) => normalizeDomainName(offer.domain) === wanted);
+}
+
 export function moneyLabel(cents: number, currency = "usd"): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
 }

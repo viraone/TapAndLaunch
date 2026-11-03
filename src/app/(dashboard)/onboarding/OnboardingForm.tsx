@@ -8,12 +8,12 @@ import { Label } from "@/components/ui/label";
 import { AUTH_BUTTON } from "@/components/auth/AuthShell";
 import { addressFor } from "@/lib/apps/slug";
 import { NETWORK_ERROR, SERVER_ERROR } from "@/lib/friendly-errors";
-import { safeNextPath } from "@/lib/auth/next-path";
 
 /** The longest an organization name may be (the server enforces the same limit). */
 const NAME_MAX_LENGTH = 120;
 
-export function OnboardingForm() {
+/** `next` is already checked as a same-site path by the page (query param or the path saved at sign-up). */
+export function OnboardingForm({ next }: { next: string }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export function OnboardingForm() {
 
     // The guard stays on from here: this page is about to be replaced. Someone who started on another page
     // (buying a domain, say) goes back to it; everyone else to the dashboard.
-    router.push(safeNextPath(new URLSearchParams(window.location.search).get("next"), "/dashboard"));
+    router.push(next);
     router.refresh();
   }
 
