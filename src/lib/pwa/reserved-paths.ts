@@ -7,6 +7,8 @@
 export const RESERVED_PAGE_PATHS = new Set([
   "app-code",
   "app-icon",
+  "apple-touch-icon-precomposed.png",
+  "apple-touch-icon.png",
   "bookings",
   "fitness",
   "food",

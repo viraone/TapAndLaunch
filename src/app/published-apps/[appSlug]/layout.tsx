@@ -16,6 +16,7 @@ import { lookOf } from "@/lib/pwa/look";
 import { getCurrentMember } from "@/lib/pwa/get-current-member";
 import { orgInGoodStanding } from "@/lib/billing/standing";
 import { readableOn } from "@/lib/pwa/color";
+import { appleTouchIconHref } from "@/lib/pwa/apple-touch-icon";
 import { fontsHref, themeAttributes, themeStyle } from "@/lib/pwa/theme-style";
 
 // `params` is typed manually (Promise<{...}>) rather than via the generated
@@ -47,11 +48,6 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return {
     title: manifest.name ?? published.app.name,
     description: manifest.description,
-    // Root-relative so it resolves the same from any page in the app, not
-    // just its home page.
-    manifest: "/manifest.webmanifest",
-    // Home Screen icon on iPhone, which ignores the manifest's icons.
-    icons: { apple: manifest.icon_url ?? "/app-icon?size=180" },
   };
 }
 
@@ -88,10 +84,22 @@ export default async function PublishedAppLayout({
     notFound();
   }
 
+  // Rendered by the layout rather than generateMetadata: Next streams metadata
+  // tags into <body> after the first HTML flush, and Safari can miss the
+  // apple-touch-icon there when it saves a Home Screen icon. Root-relative so
+  // both resolve the same from any page in the app, not just its home page.
+  const installLinks = (
+    <>
+      <link rel="apple-touch-icon" href={appleTouchIconHref(published.app.manifest.icon_url)} />
+      <link rel="manifest" href="/manifest.webmanifest" />
+    </>
+  );
+
   // Only when billing is enforced: an organization with an expired trial or canceled plan has its apps paused.
   if (!(await orgInGoodStanding(published.app.organization_id))) {
     return (
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-2 p-8 text-center">
+        {installLinks}
         <h1 className="text-xl font-semibold">{published.app.name} is taking a break</h1>
         <p className="text-sm text-muted-foreground">Please check back soon.</p>
       </div>
@@ -105,6 +113,7 @@ export default async function PublishedAppLayout({
   if (published.app.kind === "code") {
     return (
       <>
+        {installLinks}
         <ServiceWorkerRegister deploy={deployId()} />
         {children}
       </>
@@ -140,6 +149,7 @@ export default async function PublishedAppLayout({
       style={style}
       {...themeAttributes(theme)}
     >
+      {installLinks}
       {fonts && <link rel="stylesheet" href={fonts} />}
       {/* A dark app is dark edge to edge, including what shows past the
           column and when the page is pulled past its end on a phone. */}
