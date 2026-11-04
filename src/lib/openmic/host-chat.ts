@@ -1,5 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { setNavFlag } from "@/lib/pwa/nav-flags";
+import { setEmailNavFlag, setNavFlag } from "@/lib/pwa/nav-flags";
 import { readSignedInName, setSignedInName } from "./signed-in-name";
 
 /**
@@ -15,11 +15,14 @@ export const COMIC_NAV_FLAG = "openmic-comic";
 /** Flips the two tab switches for whoever is signed in, and says whether they are a host (false if unknown). */
 export async function syncChatTabs(client: SupabaseClient, user: User | null): Promise<boolean> {
   if (!user) {
+    setEmailNavFlag(null);
     setNavFlag(HOSTS_NAV_FLAG, false);
     setNavFlag(COMIC_NAV_FLAG, false);
     setSignedInName(null);
     return false;
   }
+  // A tab meant for one account (show_if "openmic-email:<address>") follows the signed-in address.
+  setEmailNavFlag(user.email ?? null);
   // The header's corner avatar: a name another screen already stored for this person (a host's display name) stays.
   if (readSignedInName()?.id !== user.id) {
     const stage = (user.user_metadata as Record<string, unknown> | undefined)?.stage_name;

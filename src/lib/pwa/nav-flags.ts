@@ -50,6 +50,43 @@ export function setNavFlag(key: string, on: boolean): void {
   window.dispatchEvent(new Event(EVENT));
 }
 
+const EMAIL_KEY = "tl-nav-email-flag";
+
+/** The switch for one signed-in person: a tab with `show_if: emailNavFlag("a@b.com")` shows for that account only. */
+export function emailNavFlag(email: string): string {
+  return "openmic-email:" + email.trim().toLowerCase();
+}
+
+/**
+ * Turns on the switch for the signed-in person's address and turns off the one for whoever was signed in before
+ * (null = signed out). Kept in this browser's storage only: unlike the other switches there is no cookie, so the
+ * address is never sent along with requests.
+ */
+export function setEmailNavFlag(email: string | null): void {
+  const next = email?.trim().toLowerCase() || null;
+  try {
+    const store = window.localStorage;
+    const prev = store.getItem(EMAIL_KEY);
+    let changed = false;
+    if (prev && prev !== next) {
+      store.removeItem(PREFIX + emailNavFlag(prev));
+      changed = true;
+    }
+    if (next) {
+      if (store.getItem(PREFIX + emailNavFlag(next)) !== "1") {
+        store.setItem(PREFIX + emailNavFlag(next), "1");
+        changed = true;
+      }
+      if (prev !== next) store.setItem(EMAIL_KEY, next);
+    } else if (prev) {
+      store.removeItem(EMAIL_KEY);
+    }
+    if (changed) window.dispatchEvent(new Event(EVENT));
+  } catch {
+    // No window (server) or storage blocked (private mode): the tab just stays hidden.
+  }
+}
+
 export function subscribeNavFlags(onChange: () => void): () => void {
   window.addEventListener(EVENT, onChange);
   window.addEventListener("storage", onChange);
