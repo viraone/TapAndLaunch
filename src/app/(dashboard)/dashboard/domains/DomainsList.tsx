@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { priceLabel } from "@/lib/domains/buy";
 import type { Database, DomainOrderStatus } from "@/types/database";
@@ -83,13 +83,13 @@ export function DomainsList({ orders, apps, canEdit, domainReturn }: { orders: O
           <li key={o.id} className="grid gap-4 py-6 sm:grid-cols-[1fr_auto] sm:items-center">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <p className="truncate text-xl font-medium tracking-tight">{o.domain}</p>
+                <p className="truncate text-2xl font-semibold tracking-tight text-neutral-950">{o.domain}</p>
                 <StatusBadge status={o.status} />
               </div>
               <p className="mt-1 text-sm text-neutral-600">
                 {o.status === "registered" && <>Bought {longDate(o.created_at)}{o.expires_at ? `, renews ${longDate(o.expires_at)}` : ""} at {priceLabel(o.price_cents, o.renew_cents, o.currency)}.</>}
                 {o.status === "paid" && <>Payment received; registering now. Reload in a minute.</>}
-                {o.status === "pending" && <>Checkout not finished. Nothing has been charged.</>}
+                {o.status === "pending" && <>This address is not yours yet. Checkout was not finished, so nothing has been charged.</>}
                 {o.status === "failed" && <>We took your payment but the registration failed. You will get a full refund.{o.error ? ` Reason: ${o.error}` : ""}</>}
               </p>
               {o.status === "registered" && o.error && !connectedTo && <p className="mt-1 text-sm text-amber-700">{o.error}</p>}
@@ -97,12 +97,17 @@ export function DomainsList({ orders, apps, canEdit, domainReturn }: { orders: O
             {o.status === "registered" && (
               <div className="flex flex-wrap items-center gap-3">
                 {connectedTo ? (
-                  <p className="text-sm text-neutral-700">
-                    Connected to{" "}
-                    <Link href={`/dashboard/apps/${connectedTo.id}/builder`} className="font-medium text-neutral-950 underline-offset-4 hover:underline">
-                      {connectedTo.name}
-                    </Link>
-                  </p>
+                  <div className="flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-3 ring-1 ring-emerald-200">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+                      <Check className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-emerald-800">Opens this site</p>
+                      <Link href={`/dashboard/apps/${connectedTo.id}/builder`} className="block truncate text-base font-semibold text-neutral-950 underline-offset-4 hover:underline">
+                        {connectedTo.name}
+                      </Link>
+                    </div>
+                  </div>
                 ) : canEdit && free.length > 0 ? (
                   <>
                     <label htmlFor={`site-${o.id}`} className="sr-only">
@@ -165,12 +170,12 @@ export function DomainsList({ orders, apps, canEdit, domainReturn }: { orders: O
 
 function StatusBadge({ status }: { status: DomainOrderStatus }) {
   const look: Record<DomainOrderStatus, { text: string; cls: string }> = {
-    registered: { text: "Yours", cls: "bg-emerald-50 text-emerald-800" },
-    paid: { text: "Setting up", cls: "bg-indigo-50 text-indigo-800" },
-    pending: { text: "Not paid", cls: "bg-neutral-100 text-neutral-700" },
-    failed: { text: "Failed", cls: "bg-red-50 text-red-700" },
+    registered: { text: "You own this", cls: "bg-emerald-600 text-white" },
+    paid: { text: "Setting up", cls: "bg-indigo-600 text-white" },
+    pending: { text: "Not bought", cls: "bg-amber-100 text-amber-900" },
+    failed: { text: "Failed", cls: "bg-red-600 text-white" },
     cancelled: { text: "Cancelled", cls: "bg-neutral-100 text-neutral-700" },
   };
   const { text, cls } = look[status];
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{text}</span>;
+  return <span className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${cls}`}>{text}</span>;
 }
