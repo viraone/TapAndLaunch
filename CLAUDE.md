@@ -4,6 +4,8 @@ Default model for this project: Sonnet. Use Opus only when I say 'use Opus'.
 
 # Qwen Gateway — operating rules for the orchestrator
 
+## Before any coding task
+Read the stack status: a hook prints it with every message (if it's missing, run `bash ~/.claude/skills/stack/stack.sh status`). If beezer or Qwen is OFF, run `/stack on beezer` and wait for it before delegating. Trust the latest status, not what you remember.
 
 ## Your role
 You are the architect and reviewer. A local Qwen3-Coder-Next worker (via the `qwen-gateway` MCP tools) does the typing. Your job is to spend as few tokens as possible while keeping quality high.
