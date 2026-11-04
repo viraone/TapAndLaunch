@@ -12,7 +12,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const DAYS = 7;
 
-/** Shown on the "New app" card so people can see templates are behind it. */
+/** Shown on the "Choose a template" card so people can see templates are behind it. */
 const FEATURED = ["fitness", "restaurant", "salon", "store", "community"].flatMap((id) => STARTER_TEMPLATES.filter((t) => t.id === id));
 
 export default async function DashboardPage() {
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
             href="/dashboard/apps/new"
             className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-neutral-950 px-6 text-sm font-semibold text-white transition hover:bg-neutral-800"
           >
-            <Plus className="h-4 w-4" /> New app
+            <Plus className="h-4 w-4" /> Choose a template
           </Link>
         </div>
       </section>
@@ -110,7 +110,7 @@ export default async function DashboardPage() {
                   </span>
                 </span>
               </div>
-              <p className="mt-3.5 text-[17px] font-medium tracking-tight text-neutral-950">New app</p>
+              <p className="mt-3.5 text-[17px] font-medium tracking-tight text-neutral-950">Choose a template</p>
               <p className="mt-1 text-sm text-neutral-500">Pick a template to start from</p>
             </Link>
           </div>

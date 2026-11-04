@@ -28,7 +28,7 @@ export default async function NewAppPage({ searchParams }: { searchParams: Promi
       <FlowProgressProvider>
       <section className="mx-auto grid w-full max-w-[1400px] gap-8 px-6 pb-10 pt-12 sm:px-10 sm:pt-16 lg:grid-cols-2 lg:items-end lg:gap-16">
         <div>
-          <p className="bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-xs font-semibold uppercase tracking-[0.2em] text-transparent">{firstRun ? "Welcome to TapAndLaunch" : "New app"}</p>
+          <p className="bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-xs font-semibold uppercase tracking-[0.2em] text-transparent">{firstRun ? "Welcome to TapAndLaunch" : "Choose a template"}</p>
           <h1 className="mt-3 text-5xl font-medium leading-[0.98] tracking-[-0.04em] text-neutral-950 sm:text-7xl">What are you building?</h1>
         </div>
         <div className="max-w-xl">
