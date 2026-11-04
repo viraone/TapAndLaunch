@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { Loader2, Lock, Send, Sparkles } from "lucide-react";
+import { Loader2, Lock, Send } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { PINNED_PAGE, PINNED_SCROLL, useOpenMicClient } from "./OpenMicSignupRuntime";
@@ -24,8 +24,6 @@ interface ChatMessage {
 const PREVIEW_ENABLED = process.env.NODE_ENV !== "production";
 const noopSubscribe = () => () => {};
 const readPreview = () => (PREVIEW_ENABLED ? new URLSearchParams(window.location.search).has("preview") : false);
-
-const EXAMPLES = ["Who's up after Jeff?", "Add Sam below Jeff", "Remove David"];
 
 const SAMPLE: ChatMessage[] = [
   { role: "user", content: "Who's up after Jeff?" },
@@ -177,26 +175,6 @@ function ChatScreen({
       </header>
 
       <div className={`${PINNED_SCROLL} flex flex-col gap-2.5`} aria-live="polite">
-        {messages.length === 0 && (
-          <div className="rounded-2xl border bg-muted/60 p-5">
-            <Sparkles className="h-7 w-7 text-primary" aria-hidden="true" />
-            <p className="mt-2 text-base font-bold">Ask who is on, or tell me a change to preview.</p>
-            <p className="mt-1 text-sm text-muted-foreground">Nothing changes the lineup yet.</p>
-            <div className="mt-4 flex flex-col gap-2">
-              {EXAMPLES.map((example) => (
-                <button
-                  key={example}
-                  type="button"
-                  onClick={() => onInput(example)}
-                  className="min-h-[44px] rounded-xl border bg-background px-3 text-left text-sm font-semibold transition [&:hover]:bg-foreground/10"
-                >
-                  {example}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {messages.map((message, index) => (
           <div
             key={index}
