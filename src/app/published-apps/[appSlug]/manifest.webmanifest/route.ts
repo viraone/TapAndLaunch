@@ -25,12 +25,15 @@ export async function GET(_request: Request, context: { params: Promise<{ appSlu
     display: manifest.display ?? "standalone",
     background_color: manifest.background_color ?? "#ffffff",
     theme_color: theme.primary_color ?? manifest.theme_color ?? "#ffffff",
-    // No uploaded icon: the generated letter tile (app-icon/route.tsx), so
+    // An uploaded icon is served from our own origin by the apple-touch-icon
+    // route, which proxies the stored file: iOS 27's "Open as Web App" install
+    // reads these icons and showed a letter tile for the cross-origin storage
+    // URL. No uploaded icon: the generated letter tile (app-icon/route.tsx), so
     // an install prompt never shows the browser's blank placeholder.
     icons: manifest.icon_url
       ? [
-          { src: manifest.icon_url, sizes: "192x192", type: "image/png" },
-          { src: manifest.icon_url, sizes: "512x512", type: "image/png" },
+          { src: "/apple-touch-icon.png", sizes: "192x192", type: "image/png" },
+          { src: "/apple-touch-icon.png", sizes: "512x512", type: "image/png" },
         ]
       : [
           { src: "/app-icon?size=192", sizes: "192x192", type: "image/png", purpose: "any" },
