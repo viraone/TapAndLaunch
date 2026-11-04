@@ -52,7 +52,7 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
         </div>
         <div className="flex flex-wrap items-end justify-between gap-6 lg:justify-end lg:gap-10">
           <p className="max-w-sm text-lg leading-relaxed text-neutral-700">
-            {orders?.length ? "The addresses you own here, and which site each one points at." : "Own your address. Search a name, pay the registrar's price, connect it to any site you build here."}
+            {orders?.length ? "These are the web addresses you bought here, like yourname.com. Each one shows which of your sites it opens." : "Own your address. Search a name, pay the registrar's price, connect it to any site you build here."}
           </p>
           <Link href="/domains" className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-neutral-950 px-6 text-sm font-semibold text-white transition hover:bg-neutral-800">
             Find a domain <ArrowRight className="h-4 w-4" />
