@@ -8,6 +8,7 @@ import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type Li
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
+import { isLineupPreviewer } from "@/lib/openmic/preview-emails";
 import { setSignedInName } from "@/lib/openmic/signed-in-name";
 import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { HostInbox, HostInboxView } from "./OpenMicHostInbox";
@@ -204,6 +205,8 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   const [showSignIn, setShowSignIn] = useState(false);
 
   const profile = profileOf(user);
+  // A short test list sees the comics' show-day lineup screen at any time, before Friday.
+  const previewer = !!config.lineup_url && isLineupPreviewer(config.lineup_preview_emails, user?.email);
 
   // Who is signed in lives in the app header's corner (initials circle + first name), not in a row of its own.
   const signedInName = hostName || profile.stage_name || user?.email || "";
@@ -276,17 +279,19 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
     };
   }, [client, load]);
 
-  // While requests are closed, the screen shows the lineup and each comic's own status.
-  const showDayOn = !open && !!config.lineup_url;
+  // While requests are closed, the screen shows the lineup and each comic's own status. A previewer sees it at any time.
+  const showDayOn = previewer || (!open && !!config.lineup_url);
+  // The previewer's header, pill and pinned layout read like show day even on an ordinary day.
+  const lineupTime = previewer || isLineupTime(window_, now);
   // A comic who has already requested doesn't need the deadline, and on show day (Fri 6 AM until
   // requests reopen) a signed-in comic's card already says what they need, so the Open/Closed pill
   // is left out. Also hidden while we find out who's signed in, so it doesn't flash for returning comics.
   const hidePill =
-    phase === "loading" || phase === "requested" || phase === "host" || (showDayOn && isLineupTime(window_, now) && !!user);
+    phase === "loading" || phase === "requested" || phase === "host" || (showDayOn && lineupTime && !!user);
 
   // Show day with the lineup showing: the header stays pinned and only the area below it
   // scrolls (the page itself doesn't scroll, so there's no scroll-inside-scroll).
-  const pinned = showDayOn && isLineupTime(window_, now) && !!user && (phase === "requested" || phase === "ready");
+  const pinned = showDayOn && lineupTime && !!user && (phase === "requested" || phase === "ready");
 
   if (!client) {
     return (
@@ -334,7 +339,9 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
         )}
 
         {phase === "ready" && user && (
-          open ? (
+          previewer ? (
+            <ShowDayScreen client={client} userId={user.id} stageName={profile.stage_name} signedIn requested={false} config={config} dateLabel={showDate} window={window_} now={now} forceLineup />
+          ) : open ? (
             <RequestForm
               client={client}
               user={user}
@@ -360,7 +367,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
         )}
 
         {phase === "requested" && request && (showDayOn ? (
-          <ShowDayScreen client={client} userId={user?.id} stageName={profile.stage_name} signedIn requested config={config} dateLabel={showDate} window={window_} now={now} />
+          <ShowDayScreen client={client} userId={user?.id} stageName={profile.stage_name} signedIn requested config={config} dateLabel={showDate} window={window_} now={now} forceLineup={previewer} />
         ) : (
           <RequestedCard requestId={request.id} showDate={showDate} config={config} />
         ))}
@@ -958,6 +965,7 @@ function ShowDayScreen({
   dateLabel,
   window,
   now,
+  forceLineup,
 }: {
   client: SupabaseClient;
   userId: string | undefined;
@@ -969,9 +977,11 @@ function ShowDayScreen({
   dateLabel: string;
   window: WeeklyWindow;
   now: Date;
+  /** A preview account sees the lineup even outside show day. */
+  forceLineup?: boolean;
 }) {
   // Thursday 10 PM to Friday 6 AM nothing about selections or the lineup is shown, so nothing is fetched.
-  const lineupTime = isLineupTime(window, now);
+  const lineupTime = forceLineup || isLineupTime(window, now);
   const { feed, failed } = useLineup(config.lineup_url, client, userId, lineupTime);
   const state = showDayState({ signedIn, requested, feed, failed, lineupTime });
   // The hosts' spotlight (Remote tab): when it lands on this comic's own row, the page says so and buzzes the phone.

@@ -521,6 +521,8 @@ export interface OpenMicSignupBlockConfig {
   votes_csv_url?: string;
   /** Who may read the vote tally; any host when empty. */
   results_emails?: string[];
+  /** Emails that see the show-day lineup screen at any time (testing before show day). */
+  lineup_preview_emails?: string[];
   title?: string;
   show_name?: string;
   venue?: string;

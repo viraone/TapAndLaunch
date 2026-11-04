@@ -26,7 +26,9 @@ _Last checked: 2026-10-03._ The weekly open-mic sign-up for the Read The Room sh
 
 The block's settings (in the app's page JSON) include `supabase_url`, `anon_key` (public), `time_zone`, open/close weekday and
 minute, and `lineup_url`. A one-off `closed_until` (ISO 8601 with offset) keeps requests closed past the weekly
-reopening until that moment, e.g. reopen Saturday noon after one show; it expires by itself. The database side has the same
+reopening until that moment, e.g. reopen Saturday noon after one show; it expires by itself. `lineup_preview_emails`
+(an array of emails) lets those signed-in test accounts see the show-day lineup screen at any time, before Friday;
+everyone else sees the usual screen. The database side has the same
 weekday rule in `is_signup_window_open` (rickshaw-open-mic), so a one-off hold needs a dated clause there too
 (`docs/private/stagetime-reopen-sat-oct24-db.sql` is the pattern). **The show-day lineup stays off until `lineup_url` is set on the live block.**
 
