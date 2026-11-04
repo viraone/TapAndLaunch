@@ -8,6 +8,7 @@ import {
   Mail,
   Info,
   Circle,
+  Sparkles,
   Tv,
   type LucideIcon,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const ICONS: Record<string, LucideIcon> = {
   mail: Mail,
   info: Info,
   remote: Tv,
+  ai: Sparkles,
 };
 
 /** The "tabs" bar's own icons (StageTime's outline set), keyed like ICONS;

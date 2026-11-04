@@ -107,6 +107,16 @@ has two parts: "Hosts chat" and "Comedians" (an inbox from `comedian_threads()`,
 `{"test_to": "you@example.com"}` sends a sample. Photos: private bucket `comedian-chat`, a folder per comedian. The
 thread screen is shared code: `OpenMicChatThread.tsx`.
 
+**AI tab** (block view `"ai"`, `src/components/pwa-runtime/OpenMicAiRuntime.tsx`, hosts only, 2026-11-03): the lineup
+helper, a chat about the show-night lineup that also understands lineup edit commands. The route
+`src/app/published-apps/[appSlug]/openmic/ai/route.ts` reads `lineup_url` on the server (names, set lengths and times
+only, never emails or the viewer's own row) and asks DeepSeek with `DEEPSEEK_API_KEY`; `DEEPSEEK_MODEL` is optional
+(default `deepseek-flash`). Without the key the tab says "The AI isn't connected yet." It allows 20 messages a minute
+per host. It is **preview only until the in-app lineup ships**: every change it understands comes back as "Would …"
+plus the same line pointing at the sheet, and nothing is written to the sheet, the database or the lineup.
+`docs/private/stagetime-ai-tab.sql` swaps the Tally tab for AI in the bar (same position) and deletes the Votes page.
+Local preview: `/ai?preview=1` (compiled out of production).
+
 A page opened from the tab bar used to stay invisible until a refresh (the fade-in observer only looked once); fixed
 2026-10-18 in `src/components/pwa-runtime/Look.tsx` with a MutationObserver.
 

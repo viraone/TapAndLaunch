@@ -51,6 +51,7 @@ import { OpenMicMessagesRuntime } from "@/components/pwa-runtime/OpenMicMessages
 import { OpenMicLineupRuntime } from "@/components/pwa-runtime/OpenMicLineupRuntime";
 import { OpenMicRemoteRuntime } from "@/components/pwa-runtime/OpenMicRemoteRuntime";
 import { OpenMicVotesRuntime } from "@/components/pwa-runtime/OpenMicVotesRuntime";
+import { OpenMicAiRuntime } from "@/components/pwa-runtime/OpenMicAiRuntime";
 import { ClassFinderRuntime } from "@/components/pwa-runtime/ClassFinderRuntime";
 import { GroupChatRuntime } from "@/components/pwa-runtime/GroupChatRuntime";
 import { GroupChatBlockView } from "@/components/pwa-runtime/GroupChatBlockView";
@@ -156,6 +157,9 @@ function BlockBody({
       }
       if ((block.config as OpenMicSignupBlockConfig).view === "votes") {
         return live ? <OpenMicVotesRuntime config={block.config as OpenMicSignupBlockConfig} /> : <OpenMicVotesBlockView />;
+      }
+      if ((block.config as OpenMicSignupBlockConfig).view === "ai") {
+        return live ? <OpenMicAiRuntime config={block.config as OpenMicSignupBlockConfig} /> : <OpenMicAiBlockView />;
       }
       if ((block.config as OpenMicSignupBlockConfig).view === "lineup") {
         return live ? <OpenMicLineupRuntime config={block.config as OpenMicSignupBlockConfig} /> : <OpenMicLineupBlockView />;
@@ -499,6 +503,14 @@ function OpenMicVotesBlockView() {
   return (
     <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
       Costume contest votes (hosts only): the winner and the ranked tally from the host&apos;s sheet, on the live page.
+    </div>
+  );
+}
+
+function OpenMicAiBlockView() {
+  return (
+    <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+      Lineup helper (hosts only): a chat about the lineup, with previews of lineup changes, on the live page.
     </div>
   );
 }
