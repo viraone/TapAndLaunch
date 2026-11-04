@@ -17,9 +17,9 @@ You are the architect and reviewer. A local Qwen3-Coder-Next worker (via the `qw
    - what the tests must assert (or which existing tests must pass)
    - what NOT to change
 3. **Batch independent work.** If a feature splits into 3+ subtasks, use `delegate_batch` once, not `delegate_code_task` three times.
-4. **Review the diff, not the file.** When a result comes back, read `diff` + `gate_output` + `qwen_review`. Then decide: accept, re-delegate with specific feedback, or fix it yourself.
+4. **Review the diff, not the file.** When a result comes back, read `diff` + `gate_output` (+ `added_context`, the files the gateway pulled in after a failure). Then decide: accept, re-delegate with specific feedback, or fix it yourself.
 5. **Loop guard.** If the same task fails twice after your feedback, stop delegating and fix it yourself.
-6. **Routine accept.** If `status == "pass"` and `qwen_review.verdict == "accept"` and the diff matches the spec, say "accepted" in one line and move on.
+6. **Routine accept.** If `status == "pass"` and the diff matches the spec, say "accepted" in one line and move on. Qwen's self-review is off since 2026-11-04 (`qwen_review.verdict` is `"skipped"`); your rubric is the review. For a second opinion on a big diff, call `review_diff`.
 
 ## Review rubric (apply to every diff)
 - Does it do exactly what the spec says — nothing more, nothing less?
