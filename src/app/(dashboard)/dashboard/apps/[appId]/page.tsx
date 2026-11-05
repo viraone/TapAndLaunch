@@ -9,6 +9,7 @@ import { getChecklists } from "@/lib/apps/signals";
 import { BUSINESS_TOOLS } from "@/lib/apps/business-tools";
 import { tileGradient, tileInitial } from "@/lib/apps/tile";
 import { CopyButton } from "@/components/dashboard/CopyButton";
+import { SchedulingPortal } from "./SchedulingPortal";
 
 type Params = Promise<{ appId: string }>;
 
@@ -52,7 +53,7 @@ export default async function AppHomePage({ params }: { params: Params }) {
     supabase.from("analytics_events").select("id", { count: "exact", head: true }).eq("app_id", appId).eq("event_type", "install").gte("created_at", since),
     supabase.from("app_members").select("id", { count: "exact", head: true }).eq("app_id", appId),
     supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("app_id", appId),
-    supabase.from("schedule_settings").select("app_id").eq("app_id", appId).maybeSingle(),
+    supabase.from("schedule_settings").select("app_id, time_zone").eq("app_id", appId).maybeSingle(),
   ]);
   const checklist = checklists.get(app.id);
   const schedulingOn = app.kind !== "code" && Boolean(scheduleSettings.data);
@@ -64,9 +65,10 @@ export default async function AppHomePage({ params }: { params: Params }) {
   const brand = app.theme.primary_color;
   const iconUrl = app.manifest.icon_url;
 
-  // Both pictures are made here from the address, nothing leaves the server.
-  const qrSvg = published ? await QRCode.toString(liveUrl, { type: "svg", margin: 1, color: { dark: "#0a0a0a", light: "#ffffff" } }) : null;
-  const qrPng = published ? await QRCode.toDataURL(liveUrl, { width: 1024, margin: 2 }) : null;
+  // Both pictures are made here from the address, nothing leaves the server. A Scheduling app's home shows its admin
+  // portal instead of the QR hero, so it does not need them.
+  const qrSvg = published && !schedulingOn ? await QRCode.toString(liveUrl, { type: "svg", margin: 1, color: { dark: "#0a0a0a", light: "#ffffff" } }) : null;
+  const qrPng = published && !schedulingOn ? await QRCode.toDataURL(liveUrl, { width: 1024, margin: 2 }) : null;
 
   return (
     <main className="flex-1 bg-neutral-100/70">
@@ -108,6 +110,16 @@ export default async function AppHomePage({ params }: { params: Params }) {
           </div>
         </header>
 
+        {schedulingOn && scheduleSettings.data ? (
+          <SchedulingPortal
+            appId={app.id}
+            appName={app.name}
+            timeZone={scheduleSettings.data.time_zone}
+            published={published}
+            liveUrl={liveUrl}
+          />
+        ) : (
+          <>
         <section className="grid gap-6 rounded-3xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 sm:grid-cols-[1fr_auto]">
           {published && qrSvg && qrPng ? (
             <>
@@ -221,6 +233,8 @@ export default async function AppHomePage({ params }: { params: Params }) {
             ))}
           </ul>
         </section>
+          </>
+        )}
       </div>
     </main>
   );

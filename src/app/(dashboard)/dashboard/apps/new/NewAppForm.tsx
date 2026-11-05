@@ -42,6 +42,7 @@ const NAME_HINTS: Record<string, string> = {
   fitness: "Flow Yoga Studio",
   salon: "Bloom Hair Studio",
   community: "Ballard Neighbors",
+  scheduling: "Sparkle Home Cleaning",
 };
 
 /** How many designs a website starter comes in (the same for all of them). */
@@ -170,7 +171,8 @@ export function NewAppForm({
       else toast.success(`${domainOrder.domain} is connected to your new site. It starts working in a few minutes.`, { duration: 8000 });
     }
     // The guard stays on from here: this page is about to be replaced.
-    router.push(`/dashboard/apps/${body.app.id}/builder`);
+    // A visiting business starts on its admin portal; every other template still opens the builder.
+    router.push(selected.id === "scheduling" ? `/dashboard/apps/${body.app.id}` : `/dashboard/apps/${body.app.id}/builder`);
   }
 
   if (selected && step === "about") {

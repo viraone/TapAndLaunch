@@ -148,51 +148,6 @@ const SAMPLE_PRODUCT = "(Sample product: edit it under Manage, Products.)";
 
 export const WEBSITE_TOPICS: WebsiteTopic[] = [
   {
-    id: "scheduling",
-    style: "classic",
-    name: "Scheduling",
-    tagline: "A site for a business that visits its customers (cleaning, lawn care, pet sitting): your services, a quote form, and a private schedule with repeat visits, reminders and messages from your own Gmail.",
-    icon: "calendar",
-    color: "#0891b2",
-    nameHint: "Sparkle Home Cleaning",
-    aboutHint: "I clean homes around Seattle, weekly or every other week, with the same person every visit",
-    eyebrow: "Home cleaning",
-    headline: "A clean home, on your schedule.",
-    subtext: "Weekly, every other week or one-time visits, planned around the days you're home.",
-    stats: [
-      { value: "Weekly", label: "Or every other week" },
-      { value: "One-time", label: "Deep cleans" },
-      { value: "Move-out", label: "And move-in cleans" },
-    ],
-    aboutHeading: "A bit about me",
-    aboutBody: "I'm a one-person cleaning business, so the person who answers your message is the person who cleans your home. I keep the same homes on the same days, bring my own supplies and work around the way you keep your place.",
-    storyBody: "I started cleaning homes for friends and family, and it grew from there. I work on my own, which means no rotating crews and no strangers at your door. Before the first clean I'll ask what matters to you, how you'd like the rooms left and how often you'd like me to come. Then I'll come on the same day each time, and tell you honestly if a job needs longer than we planned.",
-    quote: "A clean home is less about shiny surfaces than the time it gives you back.",
-    reviews: [
-      { quote: "The same person every visit, and the house is left just the way I like it.", name: "A customer" },
-      { quote: "Clear about what's included and careful with everything in the house.", name: "A neighbour" },
-    ],
-    newsletterTitle: "Open dates and small tips",
-    newsletterIntro: "A short note now and then: which days have opened up, and one small thing that keeps a home feeling fresh.",
-    contactHeading: "Ask for a quote",
-    contactBody: "Tell me about your home, how often you'd like it cleaned and where you are. I'll reply with a time and an honest price.",
-    contactTitle: "Ask for a quote",
-    priceList: {
-      title: "Services",
-      subtitle: "Every home is different. Tell me what you need and I'll come back with a quote.",
-      sections: [
-        {
-          name: "Cleaning",
-          items: [
-            { name: "Standard clean", description: "Floors, kitchen, bathrooms and dusting, on a weekly or every-other-week visit.", price: "Quote" },
-            { name: "Deep clean", description: "The first clean or a seasonal one: the oven, the fridge, baseboards and windows.", price: "Quote" },
-            { name: "Move-in / move-out", description: "An empty home cleaned from top to bottom, ready for the next keys.", price: "Quote" },
-          ],
-        },
-      ],
-    },
-  },
-  {
     id: "entertainment",
     style: "bold",
     name: "Entertainment",
@@ -934,7 +889,7 @@ export function websiteDesigns(templateId: string): Array<WebsiteDesign & { temp
  * still reads well as a hero subtext rather than a paragraph. */
 export const ABOUT_MAX_LENGTH = 240;
 
-export type TemplateCategoryId = "website" | "food" | "fitness" | "shops" | "venues" | "local" | "scratch" | "ai";
+export type TemplateCategoryId = "website" | "food" | "fitness" | "shops" | "venues" | "local" | "business" | "scratch" | "ai";
 
 /** The picker's groups, in the order they are shown. */
 export const TEMPLATE_CATEGORIES: Array<{ id: TemplateCategoryId; name: string; blurb: string }> = [
@@ -944,6 +899,7 @@ export const TEMPLATE_CATEGORIES: Array<{ id: TemplateCategoryId; name: string; 
   { id: "shops", name: "Shops & services", blurb: "Sell products, take bookings, or just get found" },
   { id: "venues", name: "Venues, events & community", blurb: "Events people can book, and a home for your group" },
   { id: "local", name: "Local info", blurb: "Live data for the neighbourhood" },
+  { id: "business", name: "Run your business", blurb: "A private admin portal for a business that visits its customers" },
   { id: "scratch", name: "Start from scratch", blurb: "Build exactly what you want" },
   { id: "ai", name: "Bring your own bot", blurb: "Use your own Claude or ChatGPT key and build your app by chatting" },
 ];
@@ -1069,6 +1025,15 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     color: "#0f766e",
     includes: ["Photo banner", "Events", "Gallery", "Reviews", "Join form"],
     category: "venues",
+  },
+  {
+    id: "scheduling",
+    name: "Scheduling",
+    tagline: "An admin portal for a business that visits its customers (cleaning, lawn care, pet sitting): today's visits, customers, repeat schedules, and reminders and messages sent from your own Gmail.",
+    icon: "calendar",
+    color: "#0891b2",
+    includes: ["Today's visits", "Customers", "Repeat visits", "Reminders", "Automation"],
+    category: "business",
   },
   {
     id: "blank",
@@ -1331,8 +1296,6 @@ function buildStarterBody(templateId: string, appName: string, about?: string, h
       ],
       events: topic.sampleEvents,
       products: topic.sampleProducts,
-      // The one topic that opens with its private schedule switched on; every other starter leaves it off.
-      ...(template.id === "scheduling" ? { scheduling: true } : {}),
     };
   }
 
@@ -1639,6 +1602,15 @@ function buildStarterBody(templateId: string, appName: string, about?: string, h
           { title: "Live acoustic evening", description: `Local songwriters, candlelight and a full bar. ${SAMPLE_NOTE}`, dayOffset: 6, time: "20:00", minutes: 120, capacity: 40 },
           { title: "Cocktail masterclass", description: `Shake three classic cocktails with our bartender. ${SAMPLE_NOTE}`, dayOffset: 9, time: "19:30", minutes: 90, capacity: 16 },
         ],
+      };
+    case "scheduling":
+      // An admin portal, not a marketing site: one placeholder public page, and the owner lands on their dashboard
+      // home (the portal) after creating it. No hero, services, reviews, prices or forms to strip out later.
+      return {
+        manifest,
+        theme,
+        pages: [home([block("text", { heading: appName, body: "Coming soon." })])],
+        scheduling: true,
       };
     case "food":
       return { manifest, theme, pages: [home([block("food_directory")])] };

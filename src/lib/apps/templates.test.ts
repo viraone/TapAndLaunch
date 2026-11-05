@@ -5,11 +5,11 @@ import { ABOUT_MAX_LENGTH, STARTER_TEMPLATES, TEMPLATE_CATEGORIES, WEBSITE_STYLE
 import { LOOK_IDS } from "@/lib/pwa/look";
 import { WEBSITE_DESIGNS } from "./designs";
 
-const TOPIC_IDS = ["scheduling", "entertainment", "comedians", "photography", "design", "education", "consulting", "art", "health", "marketing", "technology", "construction", "apparel", "music", "realestate", "beauty", "travel", "weddings"];
+const TOPIC_IDS = ["entertainment", "comedians", "photography", "design", "education", "consulting", "art", "health", "marketing", "technology", "construction", "apparel", "music", "realestate", "beauty", "travel", "weddings"];
 
 describe("starter templates", () => {
   it("offers a template for everything, ending with a blank one", () => {
-    expect(STARTER_TEMPLATES.map((t) => t.id)).toEqual(["portfolio", ...TOPIC_IDS, "business", "store", "events", "food", "gas", "openmic", "restaurant", "fitness", "salon", "community", "blank", "byob"]);
+    expect(STARTER_TEMPLATES.map((t) => t.id)).toEqual(["portfolio", ...TOPIC_IDS, "business", "store", "events", "food", "gas", "openmic", "restaurant", "fitness", "salon", "community", "scheduling", "blank", "byob"]);
     expect(STARTER_TEMPLATES.at(-1)?.id).toBe("byob");
     expect(new Set(STARTER_TEMPLATES.map((t) => t.id)).size).toBe(STARTER_TEMPLATES.length);
     expect(isTemplateId("store")).toBe(true);
@@ -39,7 +39,7 @@ describe("starter templates", () => {
   it("opens every finished template with a photo banner that has a headline", () => {
     // The website templates are deliberately photo-less: their hero falls back to a solid brand colour
     // (HeroBlockView), so a personal site never starts with a stock photo of a stranger.
-    for (const t of STARTER_TEMPLATES.filter((x) => x.category !== "website" && !["food", "gas", "blank", "byob"].includes(x.id))) {
+    for (const t of STARTER_TEMPLATES.filter((x) => x.category !== "website" && !["food", "gas", "blank", "byob", "scheduling"].includes(x.id))) {
       const first = buildStarter(t.id, "Maple Street Bakery").pages[0]?.blocks[0];
       expect(first?.type, t.id).toBe("hero");
       expect((first?.config as { image_url?: string; headline?: string }).image_url, t.id).toMatch(/\/templates\/.+\.jpg$/);
@@ -147,7 +147,6 @@ describe("starter templates", () => {
       return { home: on(0), contact: on(2), events: s.events?.length ?? 0, products: s.products?.length ?? 0 };
     };
     const expected: Record<string, ReturnType<typeof extras>> = {
-      scheduling: { home: ["price_list"], contact: [], events: 0, products: 0 },
       entertainment: { home: ["gallery", "video", "event_calendar", "faq"], contact: ["hours", "map"], events: 3, products: 0 },
       comedians: { home: ["gallery", "video", "event_calendar", "faq"], contact: [], events: 3, products: 0 },
       photography: { home: ["gallery", "video"], contact: [], events: 0, products: 0 },
@@ -198,33 +197,35 @@ describe("starter templates", () => {
     }
   });
 
-  it("puts the scheduling template first on the Websites shelf, with a searchable cleaning tagline", () => {
+  it("offers Scheduling as a business admin portal, not a website topic", () => {
     const template = starterTemplateFor("scheduling");
     expect(template?.name).toBe("Scheduling");
-    expect(template?.category).toBe("website");
-    expect(WEBSITE_TOPICS[0]?.id).toBe("scheduling");
-    // The first card of the picker's default shelf: the Personal website card is hidden.
-    expect(STARTER_TEMPLATES.filter((t) => !t.hidden && t.category === "website")[0]?.id).toBe("scheduling");
+    expect(template?.category).toBe("business");
+    expect(TEMPLATE_CATEGORIES.find((c) => c.id === "business")?.name).toBe("Run your business");
+    // It is a phone-first template now: no designs, no trade page, no website layout.
+    expect(WEBSITE_TOPICS.map((t) => t.id)).not.toContain("scheduling");
+    expect(websiteDesigns("scheduling")).toEqual([]);
+    expect(isTemplateId("scheduling--noir")).toBe(false);
     // The picker searches name and tagline.
     expect(`${template?.name} ${template?.tagline}`.toLowerCase()).toContain("cleaning");
   });
 
-  it("switches Scheduling on when the scheduling template is built, and on no other starter", () => {
+  it("builds Scheduling as one placeholder Home page, with the private schedule switched on", () => {
     const starter = buildStarter("scheduling", "Sparkle Home Cleaning");
     expect(starter.scheduling).toBe(true);
-    expect(starter.pages.find((p) => p.isHome)?.path).toBe("home");
-    expect(starter.pages.some((p) => p.blocks.some((b) => b.type === "contact_form"))).toBe(true);
-    // Every design of the topic builds it switched on too: that is the id the picker actually creates.
-    expect(buildStarter("scheduling--noir", "X").scheduling).toBe(true);
+    expect(starter.pages).toHaveLength(1);
+    expect(starter.pages[0]).toMatchObject({ name: "Home", path: "home", isHome: true });
+    expect(starter.pages[0].blocks).toHaveLength(1);
+    expect(starter.pages[0].blocks[0].type).toBe("text");
+    expect((starter.pages[0].blocks[0].config as { heading?: string; body?: string }).heading).toBe("Sparkle Home Cleaning");
+    expect((starter.pages[0].blocks[0].config as { heading?: string; body?: string }).body).toBe("Coming soon.");
 
-    // The starting words: one house cleaner, three services, a quote form.
-    const home = starter.pages.find((p) => p.isHome);
-    expect((home?.blocks[0]?.config as { headline?: string }).headline).toBe("A clean home, on your schedule.");
-    const services = starter.pages.flatMap((p) => p.blocks).find((b) => b.type === "price_list")?.config as { sections?: Array<{ items: Array<{ name: string }> }> };
-    expect(services.sections?.[0]?.items.map((i) => i.name)).toEqual(["Standard clean", "Deep clean", "Move-in / move-out"]);
-    expect((starter.pages.flatMap((p) => p.blocks).find((b) => b.type === "contact_form")?.config as { title?: string }).title).toBe("Ask for a quote");
+    // No marketing site to strip out: no hero, services, reviews, prices, newsletter or contact form.
+    const blocks = starter.pages[0].blocks.map((b) => b.type);
+    for (const type of ["hero", "price_list", "reviews", "newsletter", "contact_form"]) expect(blocks).not.toContain(type);
+    expect(starter.theme.layout).not.toBe("website");
 
-    // One other website topic and one phone-first template leave the private schedule off.
+    // Every other starter leaves the private schedule off.
     expect(buildStarter("photography", "X").scheduling).toBeUndefined();
     expect(buildStarter("business", "X").scheduling).toBeUndefined();
   });
