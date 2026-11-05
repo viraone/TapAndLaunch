@@ -564,7 +564,7 @@ export function AutomationEditor({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
-      <div className="mx-auto w-full max-w-md px-4 pb-16 pt-6">
+      <div className="mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom)+7.5rem)] pt-6">
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
