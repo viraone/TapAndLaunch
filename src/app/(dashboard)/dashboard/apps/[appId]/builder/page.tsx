@@ -96,11 +96,15 @@ export default async function BuilderPage({ params, searchParams }: { params: Pa
   // or sample events still on the calendar.
   const since = new Date();
   since.setHours(since.getHours() - 6);
-  const [hasVisit, otherBlocks, { data: events }] = await Promise.all([
+  const [hasVisit, otherBlocks, { data: events }, scheduleSettings] = await Promise.all([
     app.status === "published" ? appHasVisit(supabase, appId) : Promise.resolve(false),
     otherPageIds.length ? supabase.from("blocks").select("id").in("page_id", otherPageIds).limit(1) : Promise.resolve({ data: [] }),
     supabase.from("events").select("id, title, starts_at, description, created_at").eq("app_id", appId).gte("starts_at", since.toISOString()).order("starts_at", { ascending: true }).limit(30),
+    supabase.from("schedule_settings").select("app_id").eq("app_id", appId).maybeSingle(),
   ]);
+  // The same gate as the app home page: Scheduling is on once the app has a `schedule_settings` row. Code apps
+  // returned above (and never have one), so the kind half of the gate is already decided here.
+  const schedulingOn = Boolean(scheduleSettings.data);
 
   // When the AI chat changes the saved app, this value changes and the builder reloads from the new version.
   const allPageIds = pages.map((p) => p.id);
@@ -121,6 +125,7 @@ export default async function BuilderPage({ params, searchParams }: { params: Pa
       initialBlocks={blocks ?? []}
       mapsEnabled={org?.maps_enabled === true}
       domainsEnabled={isVercelDomainsConfigured()}
+      schedulingOn={schedulingOn}
       hasVisit={hasVisit}
       contentOnOtherPages={!!otherBlocks.data?.length}
       recentEvents={events ?? []}

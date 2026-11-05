@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
-import { ArrowUpRight, BarChart3, Bell, CalendarClock, CalendarDays, Download, Fuel, Inbox, Mail, Pencil, ShoppingBag, Smartphone, Ticket, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, BarChart3, Bell, CalendarDays, Download, Fuel, Inbox, Pencil, ShoppingBag, Smartphone, Ticket, Users, Zap, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRootDomain } from "@/lib/tenant";
 import { appLiveUrl } from "@/lib/apps/share";
 import { getChecklists } from "@/lib/apps/signals";
+import { BUSINESS_TOOLS } from "@/lib/apps/business-tools";
 import { tileGradient, tileInitial } from "@/lib/apps/tile";
 import { CopyButton } from "@/components/dashboard/CopyButton";
 
@@ -29,10 +30,8 @@ const MANAGE: ManageEntry[] = [
   { path: "orders", label: "Orders", hint: "Who bought what", icon: ShoppingBag },
   { path: "events", label: "Events", hint: "Dates people can book", icon: CalendarDays },
   { path: "bookings", label: "Bookings", hint: "Who booked", icon: Ticket },
-  { path: "schedule", label: "Schedule", hint: "Visits and repeats", icon: CalendarClock, scheduling: true },
-  { path: "customers", label: "Customers", hint: "People you visit", icon: UsersRound, scheduling: true },
-  { path: "reminders", label: "Reminders", hint: "Emails before each visit", icon: Mail, scheduling: true },
-  { path: "automation", label: "Automation", hint: "Messages to people you choose", icon: Zap, scheduling: true },
+  // The four Scheduling sections come from the list the builder's "Business tools" menu also links to.
+  ...BUSINESS_TOOLS.map((tool) => ({ ...tool, scheduling: true })),
   { path: "gas-stations", label: "Gas stations", hint: "Prices and reports", icon: Fuel },
 ];
 

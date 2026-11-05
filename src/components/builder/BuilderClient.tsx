@@ -52,6 +52,7 @@ import { SiteHeader } from "@/components/pwa-runtime/SiteHeader";
 import { SiteFooter } from "@/components/pwa-runtime/SiteFooter";
 import { AnnouncementBar } from "@/components/pwa-runtime/SiteNotices";
 import { AppSettingsDialog } from "@/components/builder/AppSettingsDialog";
+import { BusinessToolsMenu } from "@/components/builder/BusinessToolsMenu";
 import { BottomNav } from "@/components/pwa-runtime/BottomNav";
 import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { createClient } from "@/lib/supabase/client";
@@ -101,6 +102,7 @@ export function BuilderClient({
   contentOnOtherPages,
   mapsEnabled,
   domainsEnabled,
+  schedulingOn,
   recentEvents,
   domainReturn = null,
 }: {
@@ -117,6 +119,8 @@ export function BuilderClient({
   mapsEnabled: boolean;
   /** Custom domains are set up on this server (Vercel keys present). */
   domainsEnabled: boolean;
+  /** The app has Scheduling on (a `schedule_settings` row), so the builder also links to its business sections. */
+  schedulingOn: boolean;
   /** Upcoming events, for "Next up". */
   recentEvents: SuggestionEvent[];
   /** Set when the owner has just come back from paying for a domain: the Domain tab opens with the outcome. */
@@ -1075,6 +1079,7 @@ export function BuilderClient({
               </button>
             </div>
             <DeviceFrameSwitcher value={device} onChange={setDevice} />
+            {schedulingOn && <BusinessToolsMenu appId={currentApp.id} />}
             <AppSettingsDialog
               app={currentApp}
               pages={pages}
