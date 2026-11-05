@@ -28,13 +28,11 @@ const CARD = "rounded-3xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_
  */
 export async function SchedulingPortal({
   appId,
-  appName,
   timeZone,
   published,
   liveUrl,
 }: {
   appId: string;
-  appName: string;
   timeZone: string;
   published: boolean;
   liveUrl: string;
@@ -93,13 +91,8 @@ export async function SchedulingPortal({
 
   return (
     <>
-      <section className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-xl font-semibold tracking-tight text-neutral-950">{appName}</h2>
-        <span className="rounded-full bg-neutral-950 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white">
-          Admin
-        </span>
-        <p className="w-full text-sm text-neutral-500">Your day at a glance.</p>
-      </section>
+      {/* The page header above already shows the app's name and its ADMIN pill, so the portal does not repeat them. */}
+      <p className="text-sm text-neutral-500">Your day at a glance.</p>
 
       <section className={CARD}>
         <h2 className="text-lg font-semibold text-neutral-950">Today</h2>

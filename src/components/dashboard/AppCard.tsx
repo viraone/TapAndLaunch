@@ -16,6 +16,7 @@ import {
 import type { Database } from "@/types/database";
 import { tileGradient, tileInitial } from "@/lib/apps/tile";
 import type { Checklist } from "@/lib/apps/checklist";
+import { BUSINESS_TOOLS, schedulingCardSummary } from "@/lib/apps/business-tools";
 import {
   DeleteAppDialog,
   DeleteAppMenuItem,
@@ -40,9 +41,20 @@ const MANAGE_LINKS = [
 /** Views per day, oldest first (7 entries). */
 export type DailyViews = number[];
 
+/** What a Scheduling app's card says under its name. */
+export interface SchedulingCardStats {
+  /** Visits scheduled or confirmed for the app's local today; null when there were too many apps to summarise. */
+  visitsToday: number | null;
+  /** The people the business visits; null when there were too many apps to summarise. */
+  customers: number | null;
+}
+
 /**
  * One app on the dashboard: a cover in the app's own brand colour with its
  * last-7-days views drawn across it, then name, address and actions.
+ *
+ * A Scheduling app (a house-cleaning business's admin portal, not a website)
+ * gets its own card below: same cover, no views, no "Get live", no "Visit".
  */
 export function AppCard({
   app,
@@ -50,13 +62,19 @@ export function AppCard({
   views,
   checklist,
   canDelete = false,
+  scheduling,
 }: {
   app: AppRow;
   rootDomain: string;
   views: DailyViews;
   checklist?: Checklist;
   canDelete?: boolean;
+  scheduling?: SchedulingCardStats;
 }) {
+  if (scheduling) {
+    return <SchedulingAppCard app={app} scheduling={scheduling} canDelete={canDelete} />;
+  }
+
   // AI-written apps live on their own domain once it's set up (see getCodeAppsDomain).
   const appRoot =
     app.kind === "code"
@@ -242,6 +260,114 @@ export function AppCard({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+        </div>
+      </div>
+      {canDelete && <DeleteAppDialog appId={app.id} appName={app.name} />}
+    </article>
+  );
+}
+
+/**
+ * A Scheduling app on the dashboard. It keeps the cover and name, but it is an admin portal rather than a website:
+ * no views, no address, no "Get live" list and no "Visit". The card opens the admin home, and the More menu is just
+ * the four business tools plus Delete.
+ */
+function SchedulingAppCard({
+  app,
+  scheduling,
+  canDelete,
+}: {
+  app: AppRow;
+  scheduling: SchedulingCardStats;
+  canDelete: boolean;
+}) {
+  // Taken down by TapAndLaunch: not live, whatever its status says.
+  const takenDown = app.suspended_at !== null && app.suspended_at !== undefined;
+  const iconUrl = app.manifest.icon_url;
+  const tile = tileGradient(app.id);
+  const brand = app.theme.primary_color ?? tile.from;
+  const cover = app.theme.primary_color
+    ? `linear-gradient(135deg, ${brand} 0%, color-mix(in oklab, ${brand} 45%, #0a0a0a) 100%)`
+    : `linear-gradient(135deg, ${tile.from} 0%, ${tile.to} 100%)`;
+  const coverHref = `/dashboard/apps/${app.id}`;
+
+  return (
+    <article className="group relative flex flex-col" style={{ ["--brand" as string]: brand }}>
+      <Link
+        href={coverHref}
+        aria-label={`Open ${app.name}`}
+        className="relative block aspect-[16/9] overflow-hidden rounded-lg ring-1 ring-black/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950"
+        style={{ background: cover }}
+      >
+        <div className="absolute inset-0 transition duration-500 ease-out group-hover:scale-[1.03]">
+          <div aria-hidden className="absolute -right-10 -top-16 h-44 w-44 rounded-full bg-white/15 blur-2xl" />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.18)_1px,transparent_0)] [background-size:14px_14px] opacity-40"
+          />
+          <div className="absolute inset-0 grid place-items-center">
+            {iconUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
+              <img src={iconUrl} alt="" className="h-20 w-20 rounded-2xl object-cover shadow-xl ring-4 ring-white/90" />
+            ) : (
+              <span className="grid h-20 w-20 place-items-center rounded-2xl bg-white/15 text-3xl font-bold text-white shadow-xl ring-4 ring-white/80 backdrop-blur">
+                {tileInitial(app.name)}
+              </span>
+            )}
+          </div>
+        </div>
+        <span className="absolute right-3 top-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/85 px-2.5 py-1 text-[11px] font-semibold text-neutral-700 backdrop-blur-md">
+          <span className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
+          {takenDown ? "Taken down" : "Admin portal"}
+        </span>
+      </Link>
+
+      <div className="flex flex-1 flex-col">
+        <h2 className="mt-3.5 truncate text-[17px] font-medium tracking-tight text-neutral-950">
+          <Link href={coverHref} className="hover:underline">
+            {app.name}
+          </Link>
+        </h2>
+        {scheduling.visitsToday !== null && scheduling.customers !== null && (
+          <p className="mt-1 truncate text-sm text-neutral-500">
+            {schedulingCardSummary(scheduling.visitsToday, scheduling.customers)}
+          </p>
+        )}
+
+        <div className="mt-5 flex flex-col gap-2">
+          <Link
+            href={coverHref}
+            className="inline-flex h-10 min-w-0 items-center justify-center gap-2 rounded-full bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800"
+          >
+            <ArrowRight className="h-4 w-4 shrink-0" />
+            <span className="truncate">Open admin</span>
+          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={`More for ${app.name}`}
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-neutral-100 px-3.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-200 hover:text-neutral-950"
+            >
+              <MoreHorizontal className="h-4 w-4" /> More
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {BUSINESS_TOOLS.map((item) => (
+                <DropdownMenuItem
+                  key={item.path}
+                  render={
+                    <Link href={`/dashboard/apps/${app.id}/${item.path}`} />
+                  }
+                >
+                  {item.label}
+                </DropdownMenuItem>
+              ))}
+              {canDelete && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DeleteAppMenuItem appId={app.id} />
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       {canDelete && <DeleteAppDialog appId={app.id} appName={app.name} />}

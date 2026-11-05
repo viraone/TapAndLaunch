@@ -86,14 +86,24 @@ export default async function AppHomePage({ params }: { params: Params }) {
             </span>
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-semibold tracking-tight text-neutral-950">{app.name}</h1>
-            <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-neutral-500">
-              <span className={`h-2 w-2 rounded-full ${published ? "bg-emerald-500" : "bg-neutral-400"}`} />
-              {published ? "Live" : "Draft, not published yet"}
-            </p>
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight text-neutral-950">{app.name}</h1>
+              {schedulingOn && (
+                <span className="shrink-0 rounded-full bg-neutral-950 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white">
+                  Admin
+                </span>
+              )}
+            </div>
+            {/* A Scheduling app is an admin portal, not a website waiting to be published, so it has no status line. */}
+            {!schedulingOn && (
+              <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-neutral-500">
+                <span className={`h-2 w-2 rounded-full ${published ? "bg-emerald-500" : "bg-neutral-400"}`} />
+                {published ? "Live" : "Draft, not published yet"}
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
-            {app.kind !== "code" && (
+            {!schedulingOn && app.kind !== "code" && (
               <Link
                 href={`/dashboard/apps/${appId}/updates`}
                 className="inline-flex h-11 items-center gap-2 rounded-full bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800"
@@ -105,7 +115,7 @@ export default async function AppHomePage({ params }: { params: Params }) {
               href={`/dashboard/apps/${appId}/builder`}
               className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-neutral-900 ring-1 ring-black/10 transition hover:bg-neutral-50"
             >
-              <Pencil className="h-4 w-4" /> Open builder
+              <Pencil className="h-4 w-4" /> {schedulingOn ? "Edit public page" : "Open builder"}
             </Link>
           </div>
         </header>
@@ -113,7 +123,6 @@ export default async function AppHomePage({ params }: { params: Params }) {
         {schedulingOn && scheduleSettings.data ? (
           <SchedulingPortal
             appId={app.id}
-            appName={app.name}
             timeZone={scheduleSettings.data.time_zone}
             published={published}
             liveUrl={liveUrl}
