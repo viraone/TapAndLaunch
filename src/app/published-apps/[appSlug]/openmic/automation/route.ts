@@ -1,7 +1,7 @@
 import { automationCaller } from "@/lib/automation/auth";
 import { openMicConfigFor } from "@/lib/automation/config";
+import { automationDefaultsFor } from "@/lib/automation/defaults";
 import { RECENT_LOG_LIMIT, reminderState } from "@/lib/automation/state";
-import { DEFAULT_AUTOMATION } from "@/lib/automation/validate";
 import { getConnectionStatus } from "@/lib/integrations/google/connection";
 import { isGoogleConfigured } from "@/lib/integrations/google/oauth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -93,6 +93,6 @@ export async function GET(
     showName: config?.show_name ?? caller.appName,
     timeZone: config?.time_zone ?? DEFAULT_TIME_ZONE,
     reminders,
-    defaults: DEFAULT_AUTOMATION,
+    defaults: automationDefaultsFor(config),
   });
 }
