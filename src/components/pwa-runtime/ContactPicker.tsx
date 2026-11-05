@@ -14,11 +14,14 @@ export function ContactPicker({
   chosen,
   onAdd,
   onClose,
+  title = "Choose comics and contacts",
 }: {
   contacts: AutomationContact[];
   chosen: AutomationRecipient[];
   onAdd: (additions: AutomationContact[]) => void;
   onClose: () => void;
+  /** The dialog's heading; the combined Gmail and comics list unless the caller names another source. */
+  title?: string;
 }) {
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<Set<string>>(
@@ -55,7 +58,7 @@ export function ContactPicker({
 
   return (
     <AutomationDialog
-      title="Choose comics and contacts"
+      title={title}
       onClose={onClose}
       footer={
         <>

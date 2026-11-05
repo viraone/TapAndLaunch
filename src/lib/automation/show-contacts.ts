@@ -9,9 +9,33 @@ import { showClient, type ShowProject } from "@/lib/openmic/push-server";
 
 const MAX_CONTACTS = 2000;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SHEET_TIMEOUT_MS = 10_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Rows as Contact[]: an address must be a string that looks like an email, emails are trimmed and lower-cased, a
+ * missing name is "", and only the first row for an address is kept. The rows' own order is preserved.
+ */
+function cleanContactRows(rows: unknown[]): Contact[] {
+  const contacts: Contact[] = [];
+  const seen = new Set<string>();
+
+  for (const row of rows) {
+    if (contacts.length >= MAX_CONTACTS) break;
+    if (!isRecord(row) || typeof row.email !== "string") continue;
+
+    const email = row.email.trim().toLowerCase();
+    if (!EMAIL_PATTERN.test(email) || seen.has(email)) continue;
+
+    const name = typeof row.name === "string" ? row.name.trim() : "";
+    seen.add(email);
+    contacts.push({ name, email });
+  }
+
+  return contacts;
 }
 
 /** The same order listContacts uses: by name ignoring case, then by email. */
@@ -50,22 +74,53 @@ export async function listShowContacts(
     return null;
   }
 
-  const contacts: Contact[] = [];
-  const seen = new Set<string>();
+  return cleanContactRows(data);
+}
 
-  for (const row of data) {
-    if (contacts.length >= MAX_CONTACTS) break;
-    if (!isRecord(row) || typeof row.email !== "string") continue;
-
-    const email = row.email.trim().toLowerCase();
-    if (!EMAIL_PATTERN.test(email) || seen.has(email)) continue;
-
-    const name = typeof row.name === "string" ? row.name.trim() : "";
-    seen.add(email);
-    contacts.push({ name, email });
+/**
+ * The show's contact list from the Google Sheet served by its edge function, read as the person holding `token`. The
+ * URL must already have passed `usableContactListUrl` (config.ts). Rows are cleaned exactly like listShowContacts'
+ * and kept in the sheet's order — the sheet is already sorted the way its owner wants. On any failure the answer is
+ * null, and only a short code is logged — never a name, an address or the token.
+ */
+export async function listSheetContacts(
+  url: string,
+  project: ShowProject,
+  token: string
+): Promise<Contact[] | null> {
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: project.anonKey,
+      },
+      signal: AbortSignal.timeout(SHEET_TIMEOUT_MS),
+    });
+  } catch {
+    console.error("sheet contacts: fetch failed");
+    return null;
   }
 
-  return contacts;
+  if (response.status !== 200) {
+    console.error("sheet contacts: request refused");
+    return null;
+  }
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    console.error("sheet contacts: unreadable response");
+    return null;
+  }
+
+  if (!isRecord(body) || !Array.isArray(body.contacts)) {
+    console.error("sheet contacts: unexpected response");
+    return null;
+  }
+
+  return cleanContactRows(body.contacts);
 }
 
 /**

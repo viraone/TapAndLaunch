@@ -538,6 +538,9 @@ export interface OpenMicSignupBlockConfig {
   lineup_preview_emails?: string[];
   /** The only signed-in emails that may use the Automation screen; enforced on the server from this block's saved config. */
   automation_emails?: string[];
+  /** The show's contact-list function (on the show project, `…/functions/v1/…`) serving a Google Sheet of people the
+   * owner can pick as recipients. Optional; saved on the block whose view is "automation", next to `automation_emails`. */
+  contact_list_url?: string;
   title?: string;
   show_name?: string;
   venue?: string;

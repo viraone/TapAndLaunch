@@ -1,5 +1,5 @@
 import { automationCaller } from "@/lib/automation/auth";
-import { openMicConfigFor } from "@/lib/automation/config";
+import { contactListUrlFor, openMicConfigFor } from "@/lib/automation/config";
 import { automationDefaultsFor } from "@/lib/automation/defaults";
 import { RECENT_LOG_LIMIT, reminderState } from "@/lib/automation/state";
 import { getConnectionStatus } from "@/lib/integrations/google/connection";
@@ -21,9 +21,10 @@ export async function GET(
   if (!caller.ok) return caller.response;
 
   const admin = createAdminClient();
-  const [gmail, config] = await Promise.all([
+  const [gmail, config, contactListUrl] = await Promise.all([
     getConnectionStatus(caller.appId),
     openMicConfigFor(caller.appId),
+    contactListUrlFor(caller.appId),
   ]);
 
   const { data: reminderRows, error: remindersError } = await admin
@@ -94,5 +95,6 @@ export async function GET(
     timeZone: config?.time_zone ?? DEFAULT_TIME_ZONE,
     reminders,
     defaults: automationDefaultsFor(config),
+    contactList: contactListUrl !== null,
   });
 }

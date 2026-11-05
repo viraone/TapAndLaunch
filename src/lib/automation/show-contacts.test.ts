@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -8,7 +8,7 @@ vi.mock("@/lib/openmic/push-server", () => ({
   showClient: () => ({ rpc: state.rpc }),
 }));
 
-import { listShowContacts, mergeContacts } from "./show-contacts";
+import { listSheetContacts, listShowContacts, mergeContacts } from "./show-contacts";
 import type { Contact } from "@/lib/integrations/google/people";
 
 const project = { url: "https://show.example", anonKey: "anon-key" };
@@ -71,6 +71,100 @@ describe("listShowContacts", () => {
     state.rpc.mockResolvedValue({ data: { rows: [] }, error: null });
 
     await expect(listShowContacts(project, "show-token")).resolves.toBeNull();
+  });
+});
+
+const SHEET_URL = "https://show.example/functions/v1/contact-list";
+
+function sheetResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+describe("listSheetContacts", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps the sheet's order and cleans rows like listShowContacts", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        sheetResponse({
+          contacts: [
+            { name: "  Zoe ", email: " Zoe@Example.com " },
+            { name: "Alex", email: "alex@example.com" },
+            { name: "Zoe again", email: "zoe@example.com" },
+            { name: "Bad", email: "not-an-email" },
+            { name: null, email: "sam@example.com" },
+          ],
+        })
+      )
+    );
+
+    await expect(listSheetContacts(SHEET_URL, project, "show-token")).resolves.toEqual([
+      { name: "Zoe", email: "zoe@example.com" },
+      { name: "Alex", email: "alex@example.com" },
+      { name: "", email: "sam@example.com" },
+    ]);
+  });
+
+  it("sends the show session and the project's anon key", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sheetResponse({ contacts: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await listSheetContacts(SHEET_URL, project, "show-token");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(SHEET_URL);
+    expect(init.headers).toEqual({
+      Authorization: "Bearer show-token",
+      apikey: "anon-key",
+    });
+  });
+
+  it("returns null on a non-200 and logs only a short code", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    logged.mockClear();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sheetResponse({ error: "no" }, 403)));
+
+    await expect(listSheetContacts(SHEET_URL, project, "show-token")).resolves.toBeNull();
+
+    expect(logged).toHaveBeenCalledTimes(1);
+    const message = logged.mock.calls[0]?.join(" ") ?? "";
+    expect(message).not.toContain("show-token");
+    expect(message).not.toContain("anon-key");
+    logged.mockRestore();
+  });
+
+  it("returns null when fetch throws", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
+
+    await expect(listSheetContacts(SHEET_URL, project, "show-token")).resolves.toBeNull();
+
+    vi.restoreAllMocks();
+  });
+
+  it("returns null when the body is not { contacts: array }", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sheetResponse({ people: [] })));
+    await expect(listSheetContacts(SHEET_URL, project, "show-token")).resolves.toBeNull();
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sheetResponse({ contacts: "nope" })));
+    await expect(listSheetContacts(SHEET_URL, project, "show-token")).resolves.toBeNull();
+
+    vi.restoreAllMocks();
+  });
+
+  it("returns an empty list when the sheet has no rows", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sheetResponse({ contacts: [] })));
+
+    await expect(listSheetContacts(SHEET_URL, project, "show-token")).resolves.toEqual([]);
   });
 });
 

@@ -32,6 +32,10 @@ vi.mock("@/lib/automation/config", () => ({
     state.dbTouched = true;
     throw new Error("the database must not be reached");
   },
+  contactListUrlFor: async () => {
+    state.dbTouched = true;
+    throw new Error("the database must not be reached");
+  },
 }));
 
 import { GET } from "./route";

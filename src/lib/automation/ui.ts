@@ -62,6 +62,8 @@ export interface AutomationState {
   timeZone: string;
   reminders: AutomationReminder[];
   defaults: AutomationDefaults;
+  /** True when the app's Automation block saves a usable contact-list function URL. */
+  contactList: boolean;
 }
 
 export interface AutomationContact {

@@ -164,6 +164,9 @@ export function AutomationEditor({
   const [contacts, setContacts] = useState<AutomationContact[] | null>(null);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [contactsError, setContactsError] = useState<string | null>(null);
+  const [sheetContacts, setSheetContacts] = useState<AutomationContact[] | null>(null);
+  const [sheetLoading, setSheetLoading] = useState(false);
+  const [pickerSource, setPickerSource] = useState<"all" | "sheet">("all");
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const subjectRef = useRef<HTMLInputElement>(null);
@@ -291,6 +294,7 @@ export function AutomationEditor({
   async function openPicker() {
     if (contactsLoading) return;
     if (contacts) {
+      setPickerSource("all");
       setPickerOpen(true);
       return;
     }
@@ -315,11 +319,49 @@ export function AutomationEditor({
         return;
       }
       setContacts(body.contacts as AutomationContact[]);
+      setPickerSource("all");
       setPickerOpen(true);
     } catch {
       setContactsError("Couldn't load your contacts. Check your connection and try again.");
     } finally {
       setContactsLoading(false);
+    }
+  }
+
+  async function openSheetPicker() {
+    if (sheetLoading) return;
+    if (sheetContacts) {
+      setPickerSource("sheet");
+      setPickerOpen(true);
+      return;
+    }
+    setSheetLoading(true);
+    setContactsError(null);
+    try {
+      const result = await automationFetch(client, `${AUTOMATION_BASE}/contact-list`);
+      if (!result.ok || result.response.status === 401) {
+        onSignedOut();
+        return;
+      }
+      const body = (await result.response.json().catch(() => null)) as {
+        contacts?: unknown;
+        error?: unknown;
+      } | null;
+      if (!result.response.ok || !Array.isArray(body?.contacts)) {
+        setContactsError(
+          typeof body?.error === "string"
+            ? body.error
+            : "Couldn't load the contact list. Try again."
+        );
+        return;
+      }
+      setSheetContacts(body.contacts as AutomationContact[]);
+      setPickerSource("sheet");
+      setPickerOpen(true);
+    } catch {
+      setContactsError("Couldn't load the contact list. Check your connection and try again.");
+    } finally {
+      setSheetLoading(false);
     }
   }
 
@@ -503,6 +545,7 @@ export function AutomationEditor({
   }
 
   const dialogOpen = pickerOpen || askEnable || askDelete || askDiscard;
+  const pickerContacts = pickerSource === "sheet" ? sheetContacts : contacts;
   const closeRef = useRef(requestClose);
   useEffect(() => {
     closeRef.current = requestClose;
@@ -737,6 +780,17 @@ export function AutomationEditor({
             {contactsLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
             {contactsLoading ? "Loading contacts…" : "Choose comics and Gmail contacts"}
           </button>
+          {state.contactList && (
+            <button
+              type="button"
+              onClick={() => void openSheetPicker()}
+              disabled={sheetLoading || atCap}
+              className={`${SECONDARY} mt-3 w-full`}
+            >
+              {sheetLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+              {sheetLoading ? "Loading contact list…" : "Choose from Comedian Contact List"}
+            </button>
+          )}
           {contactsError && (
             <p role="alert" className="mt-2 text-sm text-red-400">
               {contactsError}
@@ -909,9 +963,10 @@ export function AutomationEditor({
           )}
         </div>
 
-        {pickerOpen && contacts && (
+        {pickerOpen && pickerContacts && (
           <ContactPicker
-            contacts={contacts}
+            contacts={pickerContacts}
+            title={pickerSource === "sheet" ? "Choose from Comedian Contact List" : undefined}
             chosen={form.recipients}
             onAdd={addRecipients}
             onClose={() => setPickerOpen(false)}
