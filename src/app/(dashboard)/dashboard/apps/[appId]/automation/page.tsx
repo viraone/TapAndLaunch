@@ -3,13 +3,21 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAppEditor } from "@/lib/org";
 import { TurnOnScheduling } from "../schedule/TurnOnScheduling";
+import { GMAIL_MESSAGES } from "@/lib/integrations/google/messages";
 import { AutomationManager } from "./AutomationManager";
 
 type Params = Promise<{ appId: string }>;
 
 /** Automation for an app with Scheduling on: messages to chosen people, sent from the owner's own Gmail. */
-export default async function AutomationPage({ params }: { params: Params }) {
+export default async function AutomationPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Promise<{ gmail?: string }>;
+}) {
   const { appId } = await params;
+  const { gmail } = await searchParams;
   const supabase = await createClient();
 
   const { data: app } = await supabase.from("apps").select("id, name").eq("id", appId).maybeSingle();
@@ -23,6 +31,9 @@ export default async function AutomationPage({ params }: { params: Params }) {
     .eq("app_id", appId)
     .maybeSingle();
 
+  // Google sends the owner back here after connecting from this screen; say how it went.
+  const result = gmail ? GMAIL_MESSAGES.get(gmail) : undefined;
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 p-6">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -34,6 +45,12 @@ export default async function AutomationPage({ params }: { params: Params }) {
       <p className="mb-6 text-sm text-muted-foreground">
         Send a message to the people you choose, on the day and time you pick, from your own Gmail.
       </p>
+
+      {result && (
+        <p role="status" className="mb-4 rounded-xl bg-white px-4 py-3 text-sm text-neutral-700 ring-1 ring-black/5">
+          {result}
+        </p>
+      )}
 
       {settings ? (
         <AutomationManager appId={appId} appName={app.name} />

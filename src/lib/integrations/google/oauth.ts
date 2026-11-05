@@ -79,6 +79,8 @@ export interface OAuthState {
   exp: number;
   /** "openmic" for a connect started inside a published app; absent for the dashboard's flow. */
   kind?: "openmic";
+  /** Where the dashboard flow returns: "automation" for a connect started on the Automation screen; absent for Reminders. */
+  back?: "automation";
 }
 
 /**
@@ -103,7 +105,7 @@ export function verifyState(
   state: string,
   keyBase64: string,
   now = Date.now()
-): { appId: string; userId: string; nonce: string; kind?: "openmic" } | null {
+): { appId: string; userId: string; nonce: string; kind?: "openmic"; back?: "automation" } | null {
   try {
     const parts = state.split(".");
     if (parts.length !== 2) return null;
@@ -116,17 +118,22 @@ export function verifyState(
 
     const parsed: unknown = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     if (typeof parsed !== "object" || parsed === null) return null;
-    const { appId, userId, nonce, exp, kind } = parsed as Record<string, unknown>;
+    const { appId, userId, nonce, exp, kind, back } = parsed as Record<string, unknown>;
     if (typeof appId !== "string" || appId.length === 0) return null;
     if (typeof userId !== "string" || userId.length === 0) return null;
     if (typeof nonce !== "string" || nonce.length === 0) return null;
     if (typeof exp !== "number" || !Number.isFinite(exp)) return null;
     if (exp <= Math.floor(now / 1000)) return null;
     if (kind !== undefined && kind !== "openmic") return null;
+    if (back !== undefined && back !== "automation") return null;
 
-    return kind === "openmic"
-      ? { appId, userId, nonce, kind }
-      : { appId, userId, nonce };
+    return {
+      appId,
+      userId,
+      nonce,
+      ...(kind === "openmic" ? { kind } : {}),
+      ...(back === "automation" ? { back } : {}),
+    };
   } catch {
     return null;
   }

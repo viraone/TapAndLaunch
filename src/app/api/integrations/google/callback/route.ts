@@ -35,7 +35,7 @@ function nonceMatches(cookieNonce: string, stateNonce: string): boolean {
 
 /**
  * Google sends the owner back here. The state is verified before its app id is used, so every redirect goes either to
- * that app's reminders page or to /dashboard — never to an address taken from the query string. The nonce cookie is
+ * that app's reminders or automation page or to /dashboard — never to an address taken from the query string. The nonce cookie is
  * cleared on every response, whatever the result.
  */
 export async function GET(request: NextRequest) {
@@ -158,8 +158,10 @@ export async function GET(request: NextRequest) {
     return toAutomation("connected");
   }
 
+  // The signed state names the screen to return to; it is never taken from the query string.
+  const returnScreen = state.back === "automation" ? "automation" : "reminders";
   const toReminders = (result: string) =>
-    finish(`/dashboard/apps/${state.appId}/reminders?gmail=${result}`);
+    finish(`/dashboard/apps/${state.appId}/${returnScreen}?gmail=${result}`);
 
   const cookieNonce = request.cookies.get(NONCE_COOKIE)?.value ?? "";
   if (!nonceMatches(cookieNonce, state.nonce)) return toReminders("failed");

@@ -9,20 +9,12 @@ import { DEFAULT_REMINDER } from "@/lib/reminders/render";
 import type { ReminderSettingsInput } from "@/lib/reminders/validate";
 import { TurnOnScheduling } from "../schedule/TurnOnScheduling";
 import { AutomaticRemindersCard } from "./AutomaticRemindersCard";
+import { GMAIL_MESSAGES } from "@/lib/integrations/google/messages";
 import { ConnectGmailCard } from "./ConnectGmailCard";
 import { RecentReminders } from "./RecentReminders";
 import { ReminderSettingsForm } from "./ReminderSettingsForm";
 
 type Params = Promise<{ appId: string }>;
-
-// A Map so an unknown value such as "constructor" from the query string simply shows nothing.
-const GMAIL_MESSAGES = new Map<string, string>([
-  ["connected", "Gmail is connected."],
-  ["cancelled", "You closed Google's screen before finishing."],
-  ["missing_permission", "Google didn't give permission to send email. Connect again and leave that box ticked."],
-  ["failed", "That didn't work. Please try again."],
-  ["unavailable", "Connecting Gmail isn't available yet."],
-]);
 
 /** Reminders for an app with Scheduling on: the Gmail connection, then the email editor once it can send. */
 export default async function RemindersPage({

@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -22,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { ConnectGmailCard } from "../reminders/ConnectGmailCard";
 import {
   describeSchedule,
   formatInstant,
@@ -164,23 +164,23 @@ export function AutomationManager({
   const canRun = gmail.configured && gmail.connected && gmail.canSend && !gmail.needsReconnect;
 
   if (!canRun) {
+    // Connect right here: the owner never has to leave this screen. A connection that cannot send is treated as one
+    // that needs reconnecting, so the card always offers a Connect button.
     return (
-      <Card className="max-w-lg">
-        <CardHeader>
-          <CardTitle>Connect Gmail first</CardTitle>
-          <CardDescription>
-            Messages go out from your own Gmail, and replies come back to it.
-          </CardDescription>
-        </CardHeader>
-        <CardFooter>
-          <Link
-            href={`/dashboard/apps/${appId}/reminders`}
-            className={buttonVariants({ className: BUTTON_CLASS })}
-          >
-            Go to Reminders to connect
-          </Link>
-        </CardFooter>
-      </Card>
+      <ConnectGmailCard
+        appId={appId}
+        back="automation"
+        configured={gmail.configured}
+        status={{
+          connected: gmail.connected,
+          email: gmail.email,
+          connectedAt: null,
+          canSend: gmail.canSend,
+          canReadContacts: gmail.canReadContacts,
+          canReadOtherContacts: gmail.canReadOtherContacts,
+          needsReconnect: gmail.needsReconnect || (gmail.connected && !gmail.canSend),
+        }}
+      />
     );
   }
 

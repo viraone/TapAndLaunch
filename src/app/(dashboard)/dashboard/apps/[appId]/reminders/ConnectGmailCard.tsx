@@ -30,16 +30,22 @@ export function ConnectGmailCard({
   appId,
   status,
   configured,
+  back,
 }: {
   appId: string;
   status: ConnectionStatus;
   configured: boolean;
+  /** Set when the connect starts on the Automation screen, so Google sends the owner back there. */
+  back?: "automation";
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const email = status.email ?? "this account";
+  // On the Automation screen the card talks about messages, not visit reminders.
+  const noun = back === "automation" ? "messages" : "reminders";
+  const connectHref = `/api/integrations/google/start?app=${appId}${back ? `&back=${back}` : ""}`;
 
   async function disconnect() {
     setBusy(true);
@@ -75,15 +81,15 @@ export function ConnectGmailCard({
     return (
       <Card className="max-w-lg">
         <CardHeader>
-          <CardTitle>Send reminders from your Gmail</CardTitle>
+          <CardTitle>Send {noun} from your Gmail</CardTitle>
           <CardDescription>
-            Connect the Gmail account your customers already know. Reminders go out from it, and replies come back to
+            Connect the Gmail account your customers already know. {noun === "messages" ? "Messages" : "Reminders"} go out from it, and replies come back to
             it. We never see your password.
           </CardDescription>
         </CardHeader>
         <CardFooter>
           <a
-            href={`/api/integrations/google/start?app=${appId}`}
+            href={connectHref}
             className={buttonVariants({ className: BUTTON_CLASS })}
           >
             Connect Gmail
@@ -98,11 +104,11 @@ export function ConnectGmailCard({
       <Card className="max-w-lg">
         <CardHeader>
           <CardTitle>Reconnect Gmail</CardTitle>
-          <CardDescription>Your Gmail connection ended. Connect again to keep reminders going.</CardDescription>
+          <CardDescription>Your Gmail connection ended. Connect again to keep {noun} going.</CardDescription>
         </CardHeader>
         <CardFooter>
           <a
-            href={`/api/integrations/google/start?app=${appId}`}
+            href={connectHref}
             className={buttonVariants({ className: BUTTON_CLASS })}
           >
             Connect Gmail

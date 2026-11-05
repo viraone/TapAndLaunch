@@ -37,17 +37,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", origin), 302);
   }
 
+  // Only the two known screens can be returned to; anything else means Reminders.
+  const back = request.nextUrl.searchParams.get("back") === "automation" ? "automation" : undefined;
+
   const config = googleConfig();
   if (!config) {
     return NextResponse.redirect(
-      new URL(`/dashboard/apps/${appId}/reminders?gmail=unavailable`, origin),
+      new URL(`/dashboard/apps/${appId}/${back ?? "reminders"}?gmail=unavailable`, origin),
       302
     );
   }
 
   const nonce = randomBytes(32).toString("base64url");
   const state = signState(
-    { appId, userId: user.id, nonce, exp: stateExpiry() },
+    { appId, userId: user.id, nonce, exp: stateExpiry(), ...(back ? { back } : {}) },
     config.keyBase64
   );
   const authUrl = buildAuthUrl({

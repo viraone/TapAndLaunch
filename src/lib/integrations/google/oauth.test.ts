@@ -82,6 +82,20 @@ describe("signState / verifyState", () => {
     });
   });
 
+  it("round trips the automation return screen", () => {
+    const state = verifyState(signState({ ...PAYLOAD, back: "automation" }, KEY), KEY, NOW);
+    expect(state).toMatchObject({ appId: PAYLOAD.appId, back: "automation" });
+    expect(verifyState(signState(PAYLOAD, KEY), KEY, NOW)).not.toHaveProperty("back");
+  });
+
+  it("refuses a tampered return screen", () => {
+    const [body, signature] = signState({ ...PAYLOAD, back: "automation" }, KEY).split(".");
+    const parsed = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+    parsed.back = "https://evil.example";
+    const forged = `${Buffer.from(JSON.stringify(parsed)).toString("base64url")}.${signature}`;
+    expect(verifyState(forged, KEY, NOW)).toBeNull();
+  });
+
   it("refuses a tampered kind", () => {
     const [body, signature] = signState({ ...PAYLOAD, kind: "openmic" }, KEY).split(".");
     const parsed = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
