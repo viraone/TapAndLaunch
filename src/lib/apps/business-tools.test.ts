@@ -7,7 +7,7 @@ describe("Business tools links", () => {
   });
 
   it("labels each one the way the app home page does", () => {
-    expect(BUSINESS_TOOLS.map((tool) => tool.label)).toEqual(["Schedule", "Customers", "Reminders", "Automation"]);
+    expect(BUSINESS_TOOLS.map((tool) => tool.label)).toEqual(["Schedule", "Customers", "Visit reminders", "Automation"]);
   });
 
   it("gives every link a one-line hint and an icon", () => {

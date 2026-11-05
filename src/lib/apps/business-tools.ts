@@ -17,7 +17,7 @@ export interface BusinessTool {
 export const BUSINESS_TOOLS: BusinessTool[] = [
   { path: "schedule", label: "Schedule", hint: "Visits and repeats", icon: CalendarClock },
   { path: "customers", label: "Customers", hint: "People you visit", icon: UsersRound },
-  { path: "reminders", label: "Reminders", hint: "Emails before each visit", icon: Mail },
+  { path: "reminders", label: "Visit reminders", hint: "Emails your customers before each visit", icon: Mail },
   { path: "automation", label: "Automation", hint: "Messages to people you choose", icon: Zap },
 ];
 

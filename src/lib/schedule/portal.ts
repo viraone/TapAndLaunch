@@ -73,10 +73,10 @@ function reminderLeadLabel(hoursBefore: number): string {
  * else; an automatic reminder is only "On" when one is actually saved.
  */
 export function remindersTileStatus(facts: ReminderTileFacts): string {
-  if (!facts.connected) return "Connect Gmail";
-  if (facts.needsReconnect) return "Reconnect Gmail";
-  if (!facts.enabled || !facts.hoursBefore || facts.hoursBefore <= 0) return "Off";
-  return `On · ${reminderLeadLabel(facts.hoursBefore)} before`;
+  if (!facts.connected) return "Connect Gmail to email customers";
+  if (facts.needsReconnect) return "Reconnect Gmail to keep emailing";
+  if (!facts.enabled || !facts.hoursBefore || facts.hoursBefore <= 0) return "Off · customers are not emailed";
+  return `Emails customers ${reminderLeadLabel(facts.hoursBefore)} before`;
 }
 
 /** The Automation tile's status line: "2 messages on", "1 message on", or "Nothing scheduled". */

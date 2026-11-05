@@ -89,31 +89,31 @@ describe("remindersTileStatus", () => {
   const connected = { connected: true, needsReconnect: false, enabled: false, hoursBefore: null };
 
   it("asks to connect when there is no Gmail account", () => {
-    expect(remindersTileStatus({ ...connected, connected: false })).toBe("Connect Gmail");
+    expect(remindersTileStatus({ ...connected, connected: false })).toBe("Connect Gmail to email customers");
   });
 
   it("asks to reconnect when Google no longer accepts the grant", () => {
     expect(remindersTileStatus({ ...connected, needsReconnect: true, enabled: true, hoursBefore: 24 })).toBe(
-      "Reconnect Gmail"
+      "Reconnect Gmail to keep emailing"
     );
   });
 
   it("turns hours into days", () => {
-    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 24 })).toBe("On · 1 day before");
-    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 48 })).toBe("On · 2 days before");
-    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 72 })).toBe("On · 3 days before");
+    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 24 })).toBe("Emails customers 1 day before");
+    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 48 })).toBe("Emails customers 2 days before");
+    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 72 })).toBe("Emails customers 3 days before");
   });
 
   it("keeps short leads in hours", () => {
-    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 1 })).toBe("On · 1 hour before");
-    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 2 })).toBe("On · 2 hours before");
-    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 4 })).toBe("On · 4 hours before");
-    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 12 })).toBe("On · 12 hours before");
+    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 1 })).toBe("Emails customers 1 hour before");
+    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 2 })).toBe("Emails customers 2 hours before");
+    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 4 })).toBe("Emails customers 4 hours before");
+    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: 12 })).toBe("Emails customers 12 hours before");
   });
 
   it("is Off when automatic reminders are off or none is saved", () => {
-    expect(remindersTileStatus({ ...connected, enabled: false, hoursBefore: 24 })).toBe("Off");
-    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: null })).toBe("Off");
+    expect(remindersTileStatus({ ...connected, enabled: false, hoursBefore: 24 })).toBe("Off · customers are not emailed");
+    expect(remindersTileStatus({ ...connected, enabled: true, hoursBefore: null })).toBe("Off · customers are not emailed");
   });
 });
 
