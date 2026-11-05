@@ -87,6 +87,7 @@ export async function GET(
       email: gmail.email,
       canSend: gmail.canSend,
       canReadContacts: gmail.canReadContacts,
+      canReadOtherContacts: gmail.canReadOtherContacts,
       needsReconnect: gmail.needsReconnect,
     },
     showName: config?.show_name ?? caller.appName,

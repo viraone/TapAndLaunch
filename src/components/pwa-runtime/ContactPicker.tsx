@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { AutomationContact, AutomationRecipient } from "@/lib/automation/ui";
-import { filterContacts } from "@/lib/automation/ui";
+import { contactPickerEmptyMessage, filterContacts } from "@/lib/automation/ui";
 import { AutomationDialog } from "./AutomationDialog";
 
 /**
@@ -112,7 +112,9 @@ export function ContactPicker({
 
       <ul className="mt-2 max-h-[45vh] overflow-y-auto rounded-xl bg-muted">
         {shown.length === 0 ? (
-          <li className="px-3 py-4 text-sm text-muted-foreground">No contacts match.</li>
+          <li className="px-3 py-4 text-sm text-muted-foreground">
+            {contactPickerEmptyMessage(contacts.length, shown.length)}
+          </li>
         ) : (
           shown.map((contact) => {
             const email = contact.email.trim().toLowerCase();

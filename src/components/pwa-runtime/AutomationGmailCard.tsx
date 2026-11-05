@@ -156,7 +156,24 @@ export function AutomationGmailCard({
           </button>
         </>
       )}
-      {!gmail.canReadContacts && (
+      {gmail.canSend && !gmail.canReadOtherContacts && (
+        <>
+          <p className="mt-2 text-sm text-muted-foreground">
+            To pick from the people you&apos;ve emailed, reconnect Gmail and keep every box
+            ticked.
+          </p>
+          <button
+            type="button"
+            onClick={() => void connect()}
+            disabled={busy}
+            className="mt-2 inline-flex h-11 items-center justify-center gap-2 rounded-xl border bg-muted px-4 text-sm font-semibold transition active:scale-[0.99] disabled:opacity-50"
+          >
+            {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            {busy ? "Opening Google…" : "Reconnect Gmail"}
+          </button>
+        </>
+      )}
+      {!gmail.canReadContacts && !gmail.canReadOtherContacts && (
         <p className="mt-2 text-sm text-muted-foreground">
           You didn&apos;t allow contacts, so you&apos;ll type email addresses by hand.
         </p>

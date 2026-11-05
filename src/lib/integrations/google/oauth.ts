@@ -12,10 +12,13 @@ export const GOOGLE_SCOPES = [
   "email",
   "https://www.googleapis.com/auth/gmail.send",
   "https://www.googleapis.com/auth/contacts.readonly",
+  "https://www.googleapis.com/auth/contacts.other.readonly",
 ] as const;
 
 export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
 export const CONTACTS_READONLY_SCOPE = "https://www.googleapis.com/auth/contacts.readonly";
+export const CONTACTS_OTHER_READONLY_SCOPE =
+  "https://www.googleapis.com/auth/contacts.other.readonly";
 
 const AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";

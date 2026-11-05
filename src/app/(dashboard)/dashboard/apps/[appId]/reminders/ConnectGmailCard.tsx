@@ -19,6 +19,7 @@ type ConnectionStatus = {
   connectedAt: string | null;
   canSend: boolean;
   canReadContacts: boolean;
+  canReadOtherContacts: boolean;
   needsReconnect: boolean;
 };
 
@@ -117,7 +118,7 @@ export function ConnectGmailCard({
         <CardHeader>
           <CardTitle>Connected as {email}</CardTitle>
         </CardHeader>
-        {!status.canReadContacts && (
+        {!status.canReadContacts && !status.canReadOtherContacts && (
           <CardContent>
             <p className="text-sm text-muted-foreground">
               You didn&apos;t allow contacts, so you&apos;ll type email addresses by hand.

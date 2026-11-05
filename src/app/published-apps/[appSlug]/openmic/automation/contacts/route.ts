@@ -34,9 +34,10 @@ export async function GET(
     );
   }
 
-  // The saved scopes already know whether contacts were granted; asking Google would only repeat that.
+  // The saved scopes already know whether contacts were granted; asking Google would only repeat that. Either list
+  // is enough: the owner may have granted only one, and listContacts() returns whichever it can read.
   const gmail = await getConnectionStatus(caller.appId);
-  if (!gmail.canReadContacts) {
+  if (!gmail.canReadContacts && !gmail.canReadOtherContacts) {
     return Response.json({ error: NO_PERMISSION }, { status: 403 });
   }
 

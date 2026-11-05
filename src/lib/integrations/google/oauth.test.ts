@@ -1,6 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
+  CONTACTS_OTHER_READONLY_SCOPE,
+  CONTACTS_READONLY_SCOPE,
+  GMAIL_SEND_SCOPE,
   GOOGLE_SCOPES,
   buildAuthUrl,
   grantedScopes,
@@ -21,6 +24,17 @@ const PAYLOAD = {
 function flip(part: string): string {
   return `${part[0] === "A" ? "B" : "A"}${part.slice(1)}`;
 }
+
+describe("GOOGLE_SCOPES", () => {
+  it("asks for sending, My Contacts and Other contacts", () => {
+    expect(GOOGLE_SCOPES).toContain(GMAIL_SEND_SCOPE);
+    expect(GOOGLE_SCOPES).toContain(CONTACTS_READONLY_SCOPE);
+    expect(GOOGLE_SCOPES).toContain(CONTACTS_OTHER_READONLY_SCOPE);
+    expect(CONTACTS_OTHER_READONLY_SCOPE).toBe(
+      "https://www.googleapis.com/auth/contacts.other.readonly"
+    );
+  });
+});
 
 describe("buildAuthUrl", () => {
   it("asks Google for a code with every parameter the connection needs", () => {

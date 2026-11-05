@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  contactPickerEmptyMessage,
   describeSchedule,
   filterContacts,
   formatInstant,
@@ -117,6 +118,22 @@ describe("filterContacts", () => {
 
   it("returns nothing when nobody matches", () => {
     expect(filterContacts(contacts, "zzz")).toEqual([]);
+  });
+});
+
+describe("contactPickerEmptyMessage", () => {
+  it("points at typing an address when Gmail returned nobody", () => {
+    expect(contactPickerEmptyMessage(0, 0)).toBe(
+      "No contacts found. You can still add email addresses by hand."
+    );
+  });
+
+  it("says a search matched nobody when the list itself has people", () => {
+    expect(contactPickerEmptyMessage(12, 0)).toBe("No contacts match.");
+  });
+
+  it("says nothing while there are rows to show", () => {
+    expect(contactPickerEmptyMessage(12, 3)).toBeNull();
   });
 });
 

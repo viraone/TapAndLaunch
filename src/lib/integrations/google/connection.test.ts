@@ -5,6 +5,7 @@ const state = vi.hoisted(() => ({
   table: "",
   row: null as Record<string, unknown> | null,
   options: null as Record<string, unknown> | null,
+  statusRow: null as Record<string, unknown> | null,
 }));
 
 vi.mock("server-only", () => ({}));
@@ -17,11 +18,17 @@ vi.mock("@/lib/supabase/admin", () => ({
         state.options = options;
         return { error: null };
       },
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: state.statusRow, error: null }),
+        }),
+      }),
     }),
   }),
 }));
 
-import { saveConnection } from "./connection";
+import { getConnectionStatus, saveConnection } from "./connection";
+import { CONTACTS_OTHER_READONLY_SCOPE, CONTACTS_READONLY_SCOPE, GMAIL_SEND_SCOPE } from "./oauth";
 
 const original = {
   clientId: process.env.GOOGLE_OAUTH_CLIENT_ID,
@@ -36,6 +43,7 @@ beforeEach(() => {
   state.table = "";
   state.row = null;
   state.options = null;
+  state.statusRow = null;
 });
 
 afterEach(() => {
@@ -45,6 +53,60 @@ afterEach(() => {
   else process.env.GOOGLE_OAUTH_CLIENT_SECRET = original.clientSecret;
   if (original.key === undefined) delete process.env.GOOGLE_TOKEN_ENC_KEY;
   else process.env.GOOGLE_TOKEN_ENC_KEY = original.key;
+});
+
+describe("getConnectionStatus", () => {
+  it("answers each permission from the saved scopes", async () => {
+    state.statusRow = {
+      google_email: "owner@example.com",
+      scopes: [GMAIL_SEND_SCOPE, CONTACTS_READONLY_SCOPE],
+      connected_at: "2026-11-04T12:00:00.000Z",
+      last_error: null,
+    };
+
+    await expect(getConnectionStatus("app_1")).resolves.toEqual({
+      connected: true,
+      email: "owner@example.com",
+      connectedAt: "2026-11-04T12:00:00.000Z",
+      canSend: true,
+      canReadContacts: true,
+      canReadOtherContacts: false,
+      needsReconnect: false,
+    });
+  });
+
+  it("reports Other contacts on its own", async () => {
+    state.statusRow = {
+      google_email: "owner@example.com",
+      scopes: [CONTACTS_OTHER_READONLY_SCOPE],
+      connected_at: null,
+      last_error: "reconnect",
+    };
+
+    await expect(getConnectionStatus("app_1")).resolves.toEqual({
+      connected: true,
+      email: "owner@example.com",
+      connectedAt: null,
+      canSend: false,
+      canReadContacts: false,
+      canReadOtherContacts: true,
+      needsReconnect: true,
+    });
+  });
+
+  it("turns every permission off when nothing is connected", async () => {
+    state.statusRow = null;
+
+    await expect(getConnectionStatus("app_1")).resolves.toEqual({
+      connected: false,
+      email: null,
+      connectedAt: null,
+      canSend: false,
+      canReadContacts: false,
+      canReadOtherContacts: false,
+      needsReconnect: false,
+    });
+  });
 });
 
 describe("saveConnection", () => {

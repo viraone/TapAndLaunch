@@ -40,6 +40,7 @@ export interface AutomationGmail {
   email: string | null;
   canSend: boolean;
   canReadContacts: boolean;
+  canReadOtherContacts: boolean;
   needsReconnect: boolean;
 }
 
@@ -158,6 +159,17 @@ export function filterContacts(
       contact.name.toLowerCase().includes(wanted) ||
       contact.email.toLowerCase().includes(wanted)
   );
+}
+
+/**
+ * The line the contact picker shows under its search box when there is nothing to list. An empty Gmail list is not
+ * the same as a search that matched nobody, so only the first one points at typing an address instead.
+ */
+export function contactPickerEmptyMessage(total: number, shown: number): string | null {
+  if (shown > 0) return null;
+  return total === 0
+    ? "No contacts found. You can still add email addresses by hand."
+    : "No contacts match.";
 }
 
 /** Adds the addresses not already present, matching by lower-cased email; the first row for an address wins. */

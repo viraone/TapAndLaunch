@@ -728,7 +728,7 @@ export function AutomationEditor({
             </ul>
           )}
 
-          {state.gmail.canReadContacts && (
+          {(state.gmail.canReadContacts || state.gmail.canReadOtherContacts) && (
             <button
               type="button"
               onClick={() => void openPicker()}

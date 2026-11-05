@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptSecret, encryptSecret } from "./crypto";
 import {
+  CONTACTS_OTHER_READONLY_SCOPE,
   CONTACTS_READONLY_SCOPE,
   GMAIL_SEND_SCOPE,
   googleConfig,
@@ -22,6 +23,8 @@ export interface GoogleConnectionStatus {
   connectedAt: string | null;
   canSend: boolean;
   canReadContacts: boolean;
+  /** The people the account has emailed, which Google keeps apart from My Contacts. */
+  canReadOtherContacts: boolean;
   needsReconnect: boolean;
 }
 
@@ -41,6 +44,7 @@ export async function getConnectionStatus(appId: string): Promise<GoogleConnecti
       connectedAt: null,
       canSend: false,
       canReadContacts: false,
+      canReadOtherContacts: false,
       needsReconnect: false,
     };
   }
@@ -51,6 +55,7 @@ export async function getConnectionStatus(appId: string): Promise<GoogleConnecti
     connectedAt: data.connected_at,
     canSend: data.scopes.includes(GMAIL_SEND_SCOPE),
     canReadContacts: data.scopes.includes(CONTACTS_READONLY_SCOPE),
+    canReadOtherContacts: data.scopes.includes(CONTACTS_OTHER_READONLY_SCOPE),
     needsReconnect: data.last_error === "reconnect",
   };
 }
