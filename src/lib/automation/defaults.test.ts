@@ -39,8 +39,41 @@ describe("automationDefaultsFor", () => {
     expect(DEFAULT_AUTOMATION.body).toBe(before);
   });
 
-  it("keeps StageTime's lineup message intact, and it saves as a reminder", () => {
-    const defaults = automationDefaultsFor({ reminder_default_body: STAGETIME_BODY });
+  it.each([
+    ["a number", 7],
+    ["null", null],
+    ["an empty string", ""],
+    ["only whitespace", "   "],
+    ["a subject over the limit", "a".repeat(151)],
+    ["a subject with a line break", "Tomorrow's\nLineup Order"],
+  ])("keeps the shared subject for %s", (_label, subject) => {
+    expect(automationDefaultsFor({ reminder_default_subject: subject })).toEqual(DEFAULT_AUTOMATION);
+  });
+
+  it("uses the app's own subject, trimmed, and leaves the message alone", () => {
+    const result = automationDefaultsFor({ reminder_default_subject: "  Tomorrow's Lineup Order  " });
+    expect(result).toEqual({ ...DEFAULT_AUTOMATION, subject: "Tomorrow's Lineup Order" });
+  });
+
+  it("accepts a subject exactly at the limit", () => {
+    const subject = "a".repeat(150);
+    expect(automationDefaultsFor({ reminder_default_subject: subject }).subject).toBe(subject);
+  });
+
+  it("falls back for each field on its own", () => {
+    const result = automationDefaultsFor({
+      reminder_default_subject: "",
+      reminder_default_body: "Something else",
+    });
+    expect(result).toEqual({ ...DEFAULT_AUTOMATION, body: "Something else" });
+  });
+
+  it("keeps StageTime's lineup subject and message intact, and they save as a reminder", () => {
+    const defaults = automationDefaultsFor({
+      reminder_default_subject: "Tomorrow's Lineup Order",
+      reminder_default_body: STAGETIME_BODY,
+    });
+    expect(defaults.subject).toBe("Tomorrow's Lineup Order");
     expect(defaults.body).toBe(STAGETIME_BODY);
     const parsed = parseAutomationInput({
       ...defaults,
