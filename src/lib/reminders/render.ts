@@ -26,30 +26,40 @@ export const DEFAULT_REMINDER: {
 
 const TOKEN_RE = /\{([^{}]+)\}/g;
 
-function isKnownToken(name: string): name is ReminderToken {
-  return (REMINDER_TOKENS as readonly string[]).includes(name);
+/** The names inside {...} that are not in `knownTokens`, de-duplicated in the order they appear. */
+export function findUnknownTokensIn(text: string, knownTokens: readonly string[]): string[] {
+  const unknown: string[] = [];
+  for (const match of text.matchAll(TOKEN_RE)) {
+    const name = match[1].trim();
+    if (name.length === 0 || knownTokens.includes(name) || unknown.includes(name)) continue;
+    unknown.push(name);
+  }
+  return unknown;
 }
 
 /** The names inside {...} that are not one of REMINDER_TOKENS, de-duplicated in the order they appear. */
 export function findUnknownTokens(text: string): string[] {
-  const unknown: string[] = [];
-  for (const match of text.matchAll(TOKEN_RE)) {
-    const name = match[1].trim();
-    if (name.length === 0 || isKnownToken(name) || unknown.includes(name)) continue;
-    unknown.push(name);
-  }
-  return unknown;
+  return findUnknownTokensIn(text, REMINDER_TOKENS);
 }
 
 /**
  * Replaces the known {tokens} in one pass. A known token with no value becomes "", an unknown one is left as it was,
  * and replaced text is never scanned again (so a name containing "{name}" stays literal).
  */
-export function renderTemplate(text: string, values: Record<string, string>): string {
+export function renderTemplateWith(
+  text: string,
+  values: Record<string, string>,
+  knownTokens: readonly string[]
+): string {
   return text.replace(TOKEN_RE, (whole, rawName: string) => {
     const name = rawName.trim();
-    return isKnownToken(name) ? (values[name] ?? "") : whole;
+    return knownTokens.includes(name) ? (values[name] ?? "") : whole;
   });
+}
+
+/** Replaces the known REMINDER_TOKENS in one pass. */
+export function renderTemplate(text: string, values: Record<string, string>): string {
+  return renderTemplateWith(text, values, REMINDER_TOKENS);
 }
 
 export interface ReminderValues {
@@ -129,21 +139,24 @@ export interface ReminderSettings {
 }
 
 /**
- * The subject, plain text and HTML for one reminder. The HTML is built here from escaped text, never from raw
- * customer data, and it carries no images, links or tracking.
+ * The subject, plain text and HTML for a message built from templates. The HTML is built here from escaped text,
+ * never from raw customer data, and it carries no images, links or tracking.
  */
-export function renderReminder(
-  settings: ReminderSettings,
-  values: Record<string, string>
+export function renderTemplateMessage(
+  subjectTemplate: string,
+  bodyTemplate: string,
+  prepNoteTemplate: string | null,
+  values: Record<string, string>,
+  knownTokens: readonly string[]
 ): { subject: string; text: string; html: string } {
   // A line break in a subject would let its text inject headers; flatten it.
-  const subject = renderTemplate(settings.subject, values)
+  const subject = renderTemplateWith(subjectTemplate, values, knownTokens)
     .replace(/[\r\n\t]+/g, " ")
     .trim();
 
-  const body = renderTemplate(settings.body, values);
-  const prepNote = settings.prep_note
-    ? renderTemplate(settings.prep_note, values).trim()
+  const body = renderTemplateWith(bodyTemplate, values, knownTokens);
+  const prepNote = prepNoteTemplate
+    ? renderTemplateWith(prepNoteTemplate, values, knownTokens).trim()
     : "";
 
   const text = prepNote
@@ -164,4 +177,18 @@ export function renderReminder(
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#222">${bodyHtml}${prepHtml}</div>`;
 
   return { subject, text, html };
+}
+
+/** The subject, plain text and HTML for one reminder. */
+export function renderReminder(
+  settings: ReminderSettings,
+  values: Record<string, string>
+): { subject: string; text: string; html: string } {
+  return renderTemplateMessage(
+    settings.subject,
+    settings.body,
+    settings.prep_note,
+    values,
+    REMINDER_TOKENS
+  );
 }

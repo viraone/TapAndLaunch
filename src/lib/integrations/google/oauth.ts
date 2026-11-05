@@ -74,6 +74,8 @@ export interface OAuthState {
   userId: string;
   nonce: string;
   exp: number;
+  /** "openmic" for a connect started inside a published app; absent for the dashboard's flow. */
+  kind?: "openmic";
 }
 
 /**
@@ -98,7 +100,7 @@ export function verifyState(
   state: string,
   keyBase64: string,
   now = Date.now()
-): { appId: string; userId: string; nonce: string } | null {
+): { appId: string; userId: string; nonce: string; kind?: "openmic" } | null {
   try {
     const parts = state.split(".");
     if (parts.length !== 2) return null;
@@ -111,14 +113,17 @@ export function verifyState(
 
     const parsed: unknown = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     if (typeof parsed !== "object" || parsed === null) return null;
-    const { appId, userId, nonce, exp } = parsed as Record<string, unknown>;
+    const { appId, userId, nonce, exp, kind } = parsed as Record<string, unknown>;
     if (typeof appId !== "string" || appId.length === 0) return null;
     if (typeof userId !== "string" || userId.length === 0) return null;
     if (typeof nonce !== "string" || nonce.length === 0) return null;
     if (typeof exp !== "number" || !Number.isFinite(exp)) return null;
     if (exp <= Math.floor(now / 1000)) return null;
+    if (kind !== undefined && kind !== "openmic") return null;
 
-    return { appId, userId, nonce };
+    return kind === "openmic"
+      ? { appId, userId, nonce, kind }
+      : { appId, userId, nonce };
   } catch {
     return null;
   }

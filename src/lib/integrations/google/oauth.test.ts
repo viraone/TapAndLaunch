@@ -53,6 +53,28 @@ describe("signState / verifyState", () => {
       userId: PAYLOAD.userId,
       nonce: PAYLOAD.nonce,
     });
+    // A state made before `kind` existed has none.
+    expect(verifyState(signState(PAYLOAD, KEY), KEY, NOW)).not.toHaveProperty("kind");
+  });
+
+  it("round trips the open mic kind", () => {
+    const state = signState({ ...PAYLOAD, kind: "openmic" }, KEY);
+
+    expect(verifyState(state, KEY, NOW)).toEqual({
+      appId: PAYLOAD.appId,
+      userId: PAYLOAD.userId,
+      nonce: PAYLOAD.nonce,
+      kind: "openmic",
+    });
+  });
+
+  it("refuses a tampered kind", () => {
+    const [body, signature] = signState({ ...PAYLOAD, kind: "openmic" }, KEY).split(".");
+    const parsed = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+    parsed.kind = "dashboard";
+    const tampered = `${Buffer.from(JSON.stringify(parsed), "utf8").toString("base64url")}.${signature}`;
+
+    expect(verifyState(tampered, KEY, NOW)).toBeNull();
   });
 
   it("refuses a changed payload", () => {

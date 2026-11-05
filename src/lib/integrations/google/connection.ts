@@ -58,7 +58,8 @@ export async function getConnectionStatus(appId: string): Promise<GoogleConnecti
 /** Encrypts the refresh token, saves it (replacing an older grant) and clears any previous error. */
 export async function saveConnection(input: {
   appId: string;
-  userId: string;
+  /** The TapAndLaunch user who connected it; null for a sign-in started inside a published app. */
+  userId: string | null;
   email: string;
   refreshToken: string;
   scopes: string[];

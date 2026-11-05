@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { runAutomationSender } from "@/lib/automation/sender";
 import { runReminderSender } from "@/lib/reminders/sender";
 
 export const dynamic = "force-dynamic";
@@ -26,5 +27,6 @@ export async function GET(request: Request) {
   }
 
   const summary = await runReminderSender();
-  return Response.json({ ok: true, ...summary });
+  const automation = await runAutomationSender();
+  return Response.json({ ok: true, ...summary, automation });
 }

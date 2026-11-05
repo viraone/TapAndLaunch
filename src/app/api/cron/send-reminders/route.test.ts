@@ -2,13 +2,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   calls: 0,
+  automationCalls: 0,
   summary: { apps: 1, sent: 2, failed: 0, skipped: 1, limited: false },
+  automation: { reminders: 1, sent: 3, failed: 0, limited: false },
 }));
 
 vi.mock("@/lib/reminders/sender", () => ({
   runReminderSender: async () => {
     state.calls += 1;
     return state.summary;
+  },
+}));
+
+vi.mock("@/lib/automation/sender", () => ({
+  runAutomationSender: async () => {
+    state.automationCalls += 1;
+    return state.automation;
   },
 }));
 
@@ -26,6 +35,7 @@ function get(authorization?: string) {
 
 beforeEach(() => {
   state.calls = 0;
+  state.automationCalls = 0;
 });
 
 afterEach(() => {
@@ -42,6 +52,7 @@ describe("GET /api/cron/send-reminders", () => {
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({ error: "Not configured" });
     expect(state.calls).toBe(0);
+    expect(state.automationCalls).toBe(0);
   });
 
   it.each([
@@ -58,15 +69,21 @@ describe("GET /api/cron/send-reminders", () => {
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
     expect(state.calls).toBe(0);
+    expect(state.automationCalls).toBe(0);
   });
 
-  it("runs the sender and returns its summary with the right header", async () => {
+  it("runs both senders and returns their summaries with the right header", async () => {
     process.env.CRON_SECRET = "secret-value";
 
     const response = await get("Bearer secret-value");
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ ok: true, ...state.summary });
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      ...state.summary,
+      automation: state.automation,
+    });
     expect(state.calls).toBe(1);
+    expect(state.automationCalls).toBe(1);
   });
 });

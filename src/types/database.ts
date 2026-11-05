@@ -68,6 +68,12 @@ export type ScheduleVisitStatus = "scheduled" | "confirmed" | "reschedule_reques
 export type ScheduleSeriesRow = Database["public"]["Tables"]["schedule_series"]["Row"];
 /** A visit row ready to insert into schedule_visits (migration 0056). */
 export type ScheduleVisitInsert = Database["public"]["Tables"]["schedule_visits"]["Insert"];
+/** One owner-made reminder automation (migration 0060). */
+export type AutomationReminderRow = Database["public"]["Tables"]["automation_reminders"]["Row"];
+/** One hand-picked recipient of an automation (migration 0060). */
+export type AutomationRecipientRow = Database["public"]["Tables"]["automation_recipients"]["Row"];
+/** One send attempt for one recipient and one occurrence (migration 0060). */
+export type AutomationSendLogRow = Database["public"]["Tables"]["automation_send_log"]["Row"];
 /** One shipping choice the shopper sees on Stripe's page (`store_settings.shipping_rates`). */
 export interface ShippingRate {
   name: string;
@@ -522,14 +528,16 @@ export interface OpenMicSignupBlockConfig {
    * full-screen website page for a laptop or TV at the venue (needs `lineup_url`); "remote": the hosts' remote
    * control for that screen (Remote tab, needs `lineup_url`); "votes": the costume contest's vote tally for the hosts
    * (Votes tab, needs `votes_csv_url`); "ai": the hosts' lineup helper, a chat about the lineup from `lineup_url`
-   * (AI tab). */
-  view?: "signup" | "profile" | "hosts" | "messages" | "lineup" | "remote" | "votes" | "ai";
+   * (AI tab); "automation": the owner's private reminder sender (Automation tab, see `automation_emails`). */
+  view?: "signup" | "profile" | "hosts" | "messages" | "lineup" | "remote" | "votes" | "ai" | "automation";
   /** The Google Sheet "Tally" tab published to the web as CSV (https://docs.google.com/spreadsheets/d/e/.../pub?...output=csv). */
   votes_csv_url?: string;
   /** Who may read the vote tally; any host when empty. */
   results_emails?: string[];
   /** Emails that see the show-day lineup screen at any time (testing before show day). */
   lineup_preview_emails?: string[];
+  /** The only signed-in emails that may use the Automation screen; enforced on the server from this block's saved config. */
+  automation_emails?: string[];
   title?: string;
   show_name?: string;
   venue?: string;
@@ -1552,6 +1560,103 @@ export interface Database {
           refresh_token_enc: string;
         };
         Update: Partial<Database["public"]["Tables"]["google_connections"]["Row"]>;
+        Relationships: [];
+      };
+      /**
+       * One owner-made reminder automation (migration 0060). Service-role only: the private Automation screen and
+       * the cron sender read and write it; no anon or signed-in Supabase user has a policy or a grant.
+       */
+      automation_reminders: {
+        Row: {
+          id: string;
+          app_id: string;
+          name: string;
+          enabled: boolean;
+          /** Set when it is switched on; occurrences before it are never sent. */
+          activated_at: string | null;
+          schedule_kind: "weekly" | "once";
+          /** 0 = Sunday; set for a weekly reminder, null for a one-off. */
+          weekday: number | null;
+          /** Local date ("YYYY-MM-DD"); set for a one-off, null for a weekly reminder. */
+          once_date: string | null;
+          /** Local wall-clock time; PostgREST returns "HH:MM:SS". */
+          send_time: string;
+          time_zone: string;
+          subject: string;
+          body: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["automation_reminders"]["Row"]> & {
+          app_id: string;
+          name: string;
+          schedule_kind: "weekly" | "once";
+          send_time: string;
+          subject: string;
+          body: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["automation_reminders"]["Row"]>;
+        Relationships: [];
+      };
+      /** The people an automation sends to (migration 0060). Service-role only. */
+      automation_recipients: {
+        Row: {
+          id: string;
+          reminder_id: string;
+          app_id: string;
+          name: string | null;
+          email: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["automation_recipients"]["Row"]> & {
+          reminder_id: string;
+          app_id: string;
+          email: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["automation_recipients"]["Row"]>;
+        Relationships: [];
+      };
+      /** One send attempt per reminder, occurrence and address (migration 0060). Service-role only. */
+      automation_send_log: {
+        Row: {
+          id: string;
+          app_id: string;
+          reminder_id: string;
+          /** The scheduled instant this send belongs to. */
+          occurrence_at: string;
+          email: string;
+          status: "sending" | "sent" | "failed";
+          /** 'rate_limited' | 'send_failed' | 'bad_address' | 'interrupted' */
+          error: string | null;
+          attempts: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["automation_send_log"]["Row"]> & {
+          app_id: string;
+          reminder_id: string;
+          occurrence_at: string;
+          email: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["automation_send_log"]["Row"]>;
+        Relationships: [];
+      };
+      /** One-time nonces for a Google sign-in started inside a published app (migration 0060). Service-role only. */
+      google_oauth_states: {
+        Row: {
+          nonce: string;
+          app_id: string;
+          email: string;
+          expires_at: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["google_oauth_states"]["Row"]> & {
+          nonce: string;
+          app_id: string;
+          email: string;
+          expires_at: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["google_oauth_states"]["Row"]>;
         Relationships: [];
       };
     };

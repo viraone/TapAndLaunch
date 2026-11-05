@@ -52,6 +52,8 @@ import { OpenMicLineupRuntime } from "@/components/pwa-runtime/OpenMicLineupRunt
 import { OpenMicRemoteRuntime } from "@/components/pwa-runtime/OpenMicRemoteRuntime";
 import { OpenMicVotesRuntime } from "@/components/pwa-runtime/OpenMicVotesRuntime";
 import { OpenMicAiRuntime } from "@/components/pwa-runtime/OpenMicAiRuntime";
+import { OpenMicAutomationRuntime } from "@/components/pwa-runtime/OpenMicAutomationRuntime";
+import { OpenMicAutomationBlockView } from "@/components/pwa-runtime/OpenMicAutomationBlockView";
 import { ClassFinderRuntime } from "@/components/pwa-runtime/ClassFinderRuntime";
 import { GroupChatRuntime } from "@/components/pwa-runtime/GroupChatRuntime";
 import { GroupChatBlockView } from "@/components/pwa-runtime/GroupChatBlockView";
@@ -160,6 +162,13 @@ function BlockBody({
       }
       if ((block.config as OpenMicSignupBlockConfig).view === "ai") {
         return live ? <OpenMicAiRuntime config={block.config as OpenMicSignupBlockConfig} /> : <OpenMicAiBlockView />;
+      }
+      if ((block.config as OpenMicSignupBlockConfig).view === "automation") {
+        return live ? (
+          <OpenMicAutomationRuntime config={block.config as OpenMicSignupBlockConfig} />
+        ) : (
+          <OpenMicAutomationBlockView />
+        );
       }
       if ((block.config as OpenMicSignupBlockConfig).view === "lineup") {
         return live ? <OpenMicLineupRuntime config={block.config as OpenMicSignupBlockConfig} /> : <OpenMicLineupBlockView />;

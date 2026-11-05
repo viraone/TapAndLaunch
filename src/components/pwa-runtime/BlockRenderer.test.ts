@@ -45,3 +45,11 @@ describe("food_directory blocks in the builder", () => {
     expect(html).not.toContain("border-dashed");
   });
 });
+
+describe("automation blocks in the builder", () => {
+  it("shows a private placeholder instead of the owner's screen", () => {
+    const html = render({ type: "open_mic_signup", config: { view: "automation" } });
+    expect(html).toContain("Automation (private)");
+    expect(html).not.toContain("Connect Gmail");
+  });
+});
