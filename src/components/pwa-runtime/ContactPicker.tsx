@@ -6,8 +6,8 @@ import { contactPickerEmptyMessage, filterContacts } from "@/lib/automation/ui";
 import { AutomationDialog } from "./AutomationDialog";
 
 /**
- * The owner's Gmail contacts as a searchable checklist. People already on the reminder start ticked; "Add N" adds
- * the newly ticked ones and leaves the rest alone.
+ * The show's own comics and the owner's Gmail contacts as one searchable checklist. People already on the reminder
+ * start ticked; "Add N" adds the newly ticked ones and leaves the rest alone.
  */
 export function ContactPicker({
   contacts,
@@ -55,7 +55,7 @@ export function ContactPicker({
 
   return (
     <AutomationDialog
-      title="Choose from my Gmail contacts"
+      title="Choose comics and contacts"
       onClose={onClose}
       footer={
         <>

@@ -31,7 +31,8 @@ export async function showProjectFor(appId: string): Promise<ShowProject | null>
   return config ? { url: config.supabase_url!, anonKey: config.anon_key!, showName: config.show_name } : null;
 }
 
-function showClient(project: ShowProject, token: string): SupabaseClient {
+/** A client for the show's project that acts as the holder of `token`. */
+export function showClient(project: ShowProject, token: string): SupabaseClient {
   return createClient(project.url, project.anonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },

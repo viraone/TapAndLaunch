@@ -728,17 +728,15 @@ export function AutomationEditor({
             </ul>
           )}
 
-          {(state.gmail.canReadContacts || state.gmail.canReadOtherContacts) && (
-            <button
-              type="button"
-              onClick={() => void openPicker()}
-              disabled={contactsLoading || atCap}
-              className={`${SECONDARY} mt-3 w-full`}
-            >
-              {contactsLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-              {contactsLoading ? "Loading contacts…" : "Choose from my Gmail contacts"}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => void openPicker()}
+            disabled={contactsLoading || atCap}
+            className={`${SECONDARY} mt-3 w-full`}
+          >
+            {contactsLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            {contactsLoading ? "Loading contacts…" : "Choose comics and Gmail contacts"}
+          </button>
           {contactsError && (
             <p role="alert" className="mt-2 text-sm text-red-400">
               {contactsError}
