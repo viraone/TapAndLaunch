@@ -136,7 +136,10 @@ export function BuilderClient({
   );
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   // A website-layout app opens on its Desktop preview (that's the point of the layout); an app opens on iPhone.
-  const [device, setDevice] = useState<DeviceFrame>(app.theme.layout === "website" ? "desktop" : "ios");
+  // A Scheduling app is a business's admin portal, whose public page is a plain site: it opens on Computer too.
+  const [device, setDevice] = useState<DeviceFrame>(
+    app.theme.layout === "website" || schedulingOn ? "desktop" : "ios",
+  );
   const inspectorRef = useRef<HTMLElement>(null);
   // "Edit" shows the sections to arrange and change; "Try it" loads the real app at its own address inside the phone,
   // so a tap on a cuisine or a Book link does what it will do for a visitor. A draft needs a preview key for that
