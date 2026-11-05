@@ -19,6 +19,7 @@ import { ButtonBlockEditor, FaqBlockEditor, QuoteBlockEditor } from "@/component
 import { AudioBlockEditor, ImageTextBlockEditor, MapBlockEditor, NewsletterBlockEditor, ShareBlockEditor } from "@/components/builder/blocks/MoreEditors";
 import { BlockAccessControl } from "@/components/builder/BlockAccessControl";
 import { SectionOptionsControl } from "@/components/builder/SectionOptionsControl";
+import { AdminPortalCard } from "@/components/builder/AdminPortalCard";
 import { GetLiveChecklist } from "@/components/builder/GetLiveChecklist";
 import { NextUpCard } from "@/components/builder/NextUpCard";
 import type { Suggestion } from "@/lib/apps/suggestions";
@@ -46,6 +47,7 @@ export function Inspector({
   suggestions,
   busySuggestion,
   onSuggestion,
+  schedulingOn,
 }: {
   block: BuilderBlock | null;
   pageName: string;
@@ -67,6 +69,8 @@ export function Inspector({
   /** The suggestion the AI is working on right now, or null. */
   busySuggestion: string | null;
   onSuggestion: (s: Suggestion) => void;
+  /** A Scheduling app's public page is optional: the idle panel points at the Admin portal instead of the nudges. */
+  schedulingOn: boolean;
 }) {
   if (!block) {
     // Hovering a row outlines that section on the page and brings it into view, so "Banner" means the big photo at the
@@ -82,8 +86,14 @@ export function Inspector({
     return (
       // Extra room at the bottom so the floating "Build with AI" button never covers the last item or the tip.
       <div className="flex flex-col gap-5 p-4 pb-24">
-        <GetLiveChecklist checklist={checklist} busy={publishing} onAction={onChecklistAction} />
-        <NextUpCard suggestions={suggestions} busy={busySuggestion} onAction={onSuggestion} />
+        {schedulingOn ? (
+          <AdminPortalCard appId={appId} />
+        ) : (
+          <>
+            <GetLiveChecklist checklist={checklist} busy={publishing} onAction={onChecklistAction} />
+            <NextUpCard suggestions={suggestions} busy={busySuggestion} onAction={onSuggestion} />
+          </>
+        )}
         <div>
           <p className="text-base font-semibold text-neutral-100">{pageName}</p>
           <p className="mt-1 text-sm leading-relaxed text-neutral-300">

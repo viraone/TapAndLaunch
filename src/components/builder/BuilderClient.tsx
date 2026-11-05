@@ -1295,6 +1295,7 @@ export function BuilderClient({
               suggestions={suggestions}
               busySuggestion={busySuggestion}
               onSuggestion={(s) => void runSuggestion(s)}
+              schedulingOn={schedulingOn}
             />
           </aside>
         </div>
