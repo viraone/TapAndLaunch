@@ -32,6 +32,7 @@ const MANAGE: ManageEntry[] = [
   { path: "schedule", label: "Schedule", hint: "Visits and repeats", icon: CalendarClock, scheduling: true },
   { path: "customers", label: "Customers", hint: "People you visit", icon: UsersRound, scheduling: true },
   { path: "reminders", label: "Reminders", hint: "Emails before each visit", icon: Mail, scheduling: true },
+  { path: "automation", label: "Automation", hint: "Messages to people you choose", icon: Zap, scheduling: true },
   { path: "gas-stations", label: "Gas stations", hint: "Prices and reports", icon: Fuel },
 ];
 

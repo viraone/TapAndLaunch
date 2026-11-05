@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   contactPickerEmptyMessage,
   describeSchedule,
+  earliestOnceDate,
   filterContacts,
   formatInstant,
   formatTimeOfDay,
   looksLikeEmail,
   mergeRecipients,
+  previewValues,
   summarizeRecent,
+  tomorrowDate,
 } from "./ui";
 
 describe("formatTimeOfDay", () => {
@@ -203,5 +206,59 @@ describe("summarizeRecent", () => {
 
   it("counts zeros plainly", () => {
     expect(summarizeRecent({ sent: 0, failed: 0, sending: 0 })).toBe("0 sent");
+  });
+});
+
+describe("earliestOnceDate", () => {
+  it("uses today's local date in the app's time zone", () => {
+    expect(
+      earliestOnceDate(new Date("2026-11-05T03:00:00.000Z"), "America/Los_Angeles")
+    ).toBe("2026-11-04");
+    expect(earliestOnceDate(new Date("2026-11-05T03:00:00.000Z"), "UTC")).toBe(
+      "2026-11-05"
+    );
+  });
+});
+
+describe("tomorrowDate", () => {
+  it("uses tomorrow's local date in the app's time zone", () => {
+    expect(
+      tomorrowDate(new Date("2026-11-04T20:00:00.000Z"), "America/Los_Angeles")
+    ).toBe("2026-11-05");
+  });
+
+  it("rolls over at local midnight, not UTC midnight", () => {
+    expect(
+      tomorrowDate(new Date("2026-11-05T03:00:00.000Z"), "America/Los_Angeles")
+    ).toBe("2026-11-05");
+    expect(tomorrowDate(new Date("2026-11-05T03:00:00.000Z"), "UTC")).toBe(
+      "2026-11-06"
+    );
+  });
+
+  it("crosses a month end", () => {
+    expect(
+      tomorrowDate(new Date("2026-11-30T20:00:00.000Z"), "America/Los_Angeles")
+    ).toBe("2026-12-01");
+  });
+});
+
+describe("previewValues", () => {
+  it("gives every token something made-up but readable to show", () => {
+    expect(
+      previewValues(
+        "Sparkle Home Cleaning",
+        new Date("2026-11-04T20:00:00.000Z"),
+        "America/Los_Angeles"
+      )
+    ).toEqual({
+      first_name: "Alex",
+      name: "Alex Morgan",
+      show_name: "Sparkle Home Cleaning",
+      show_date: "Wednesday, November 4",
+      show_time: "",
+      venue: "",
+      business: "Sparkle Home Cleaning",
+    });
   });
 });

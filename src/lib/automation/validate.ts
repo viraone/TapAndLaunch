@@ -1,7 +1,10 @@
 import { findUnknownTokensIn } from "@/lib/reminders/render";
 
-/** Placeholders the owner can put in an automation, written as {first_name} in text. */
-export const AUTOMATION_TOKENS = [
+/**
+ * The six placeholders the published-app Automation screen has always offered. AUTOMATION_TOKENS adds {business}
+ * for the dashboard's Scheduling automation; a screen that must keep the original six can list these instead.
+ */
+export const ROOT_AUTOMATION_TOKENS = [
   "first_name",
   "name",
   "show_name",
@@ -9,6 +12,9 @@ export const AUTOMATION_TOKENS = [
   "show_time",
   "venue",
 ] as const;
+
+/** Placeholders the owner can put in an automation, written as {first_name} in text. */
+export const AUTOMATION_TOKENS = [...ROOT_AUTOMATION_TOKENS, "business"] as const;
 
 /** The reminder a new automation starts with: Thursday night, before the usual Friday show. */
 export const DEFAULT_AUTOMATION: {
@@ -25,6 +31,23 @@ export const DEFAULT_AUTOMATION: {
   send_time: "19:00",
   subject: "Reminder: you're performing tomorrow night",
   body: "Hey {first_name},\n\nThis is a friendly reminder that you're scheduled to perform tomorrow night ({show_date}) at {show_name}.\n\nReply to this email if anything changes.\n\nThanks!",
+};
+
+/** The reminder a new Scheduling automation starts with. The screen asks for the date before it can be saved. */
+export const DEFAULT_SCHEDULING_AUTOMATION: {
+  name: string;
+  schedule_kind: "once";
+  weekday: null;
+  send_time: string;
+  subject: string;
+  body: string;
+} = {
+  name: "New message",
+  schedule_kind: "once",
+  weekday: null,
+  send_time: "09:00",
+  subject: "A note from {business}",
+  body: "Hi {first_name},\n\n\n\nThank you,\n{business}",
 };
 
 export interface AutomationInput {

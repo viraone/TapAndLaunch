@@ -151,7 +151,7 @@ export const WEBSITE_TOPICS: WebsiteTopic[] = [
     id: "scheduling",
     style: "classic",
     name: "Scheduling",
-    tagline: "A site for a business that visits its customers (cleaning, lawn care, pet sitting): your services, a quote form, and a private schedule with repeat visits.",
+    tagline: "A site for a business that visits its customers (cleaning, lawn care, pet sitting): your services, a quote form, and a private schedule with repeat visits, reminders and messages from your own Gmail.",
     icon: "calendar",
     color: "#0891b2",
     nameHint: "Sparkle Home Cleaning",

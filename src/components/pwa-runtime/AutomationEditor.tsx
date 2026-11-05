@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Loader2, X } from "lucide-react";
 import { automationValues, renderAutomation } from "@/lib/automation/render";
 import { showDateAfter } from "@/lib/automation/schedule";
-import { AUTOMATION_TOKENS } from "@/lib/automation/validate";
+import { ROOT_AUTOMATION_TOKENS } from "@/lib/automation/validate";
 import {
   describeSchedule,
   looksLikeEmail,
@@ -823,7 +823,7 @@ export function AutomationEditor({
           />
 
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {AUTOMATION_TOKENS.map((token) => (
+            {ROOT_AUTOMATION_TOKENS.map((token) => (
               <button
                 key={token}
                 type="button"

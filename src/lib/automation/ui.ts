@@ -1,3 +1,5 @@
+import { addDays, localDateOf } from "@/lib/schedule/recurrence";
+import { automationValues } from "./render";
 import { formatLongDate } from "./schedule";
 
 /**
@@ -65,6 +67,33 @@ export interface AutomationState {
 export interface AutomationContact {
   name: string;
   email: string;
+}
+
+/** One Scheduling customer the dashboard's picker can add as a recipient. */
+export interface SchedulingCustomer {
+  id: string;
+  name: string;
+  email: string;
+}
+
+/** The reminder a new Scheduling message starts with (lib/automation/validate.ts). */
+export interface SchedulingDefaults {
+  name: string;
+  schedule_kind: "weekly" | "once";
+  weekday: number | null;
+  send_time: string;
+  subject: string;
+  body: string;
+}
+
+/** Everything GET /api/apps/[appId]/automation answers with. */
+export interface SchedulingState {
+  gmail: AutomationGmail;
+  showName: string;
+  timeZone: string;
+  reminders: AutomationReminder[];
+  defaults: SchedulingDefaults;
+  customers: SchedulingCustomer[];
 }
 
 const DAY_NAMES = [
@@ -215,4 +244,32 @@ export function summarizeRecent(r: {
   if (r.sending > 0) return "sending…";
   if (r.failed > 0) return `${r.sent} sent, ${r.failed} failed`;
   return `${r.sent} sent`;
+}
+
+/** The earliest date the one-time picker allows: today in the app's time zone, as "YYYY-MM-DD". */
+export function earliestOnceDate(now: Date, timeZone: string): string {
+  return localDateOf(now, timeZone);
+}
+
+/** The date a new one-time message starts with: tomorrow in the app's time zone. */
+export function tomorrowDate(now: Date, timeZone: string): string {
+  return addDays(localDateOf(now, timeZone), 1);
+}
+
+/**
+ * The made-up values the editor's live preview fills the tokens with. The business is the app's own name and the
+ * date is today in the app's time zone, so every token has something real to show.
+ */
+export function previewValues(
+  business: string,
+  now: Date,
+  timeZone: string
+): Record<string, string> {
+  return automationValues({
+    name: "Alex Morgan",
+    showName: business,
+    showDate: localDateOf(now, timeZone),
+    showTime: null,
+    venue: null,
+  });
 }

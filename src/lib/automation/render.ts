@@ -22,6 +22,9 @@ export function automationValues(input: AutomationValuesInput): Record<string, s
     show_date: formatLongDate(input.showDate),
     show_time: input.showTime ?? "",
     venue: input.venue ?? "",
+    // The business the message comes from. The sender passes the show name, or the app name when the app has no
+    // open-mic block, so a Scheduling app's {business} is that app's name.
+    business: input.showName,
   };
 }
 

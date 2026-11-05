@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   AUTOMATION_TOKENS,
   DEFAULT_AUTOMATION,
+  DEFAULT_SCHEDULING_AUTOMATION,
+  ROOT_AUTOMATION_TOKENS,
   parseAutomationInput,
   type AutomationInput,
 } from "./validate";
 
 const TOKEN_HELP =
-  "{first_name}, {name}, {show_name}, {show_date}, {show_time}, {venue}";
+  "{first_name}, {name}, {show_name}, {show_date}, {show_time}, {venue}, {business}";
 const UUID = "3f2f1a2b-4c5d-4e6f-8a9b-0c1d2e3f4a5b";
 
 function input(
@@ -28,8 +30,20 @@ function input(
 }
 
 describe("AUTOMATION_TOKENS", () => {
-  it("lists the six placeholders the owner can use", () => {
+  it("lists the seven placeholders the owner can use", () => {
     expect(AUTOMATION_TOKENS).toEqual([
+      "first_name",
+      "name",
+      "show_name",
+      "show_date",
+      "show_time",
+      "venue",
+      "business",
+    ]);
+  });
+
+  it("keeps the published-app screen's original six in ROOT_AUTOMATION_TOKENS", () => {
+    expect(ROOT_AUTOMATION_TOKENS).toEqual([
       "first_name",
       "name",
       "show_name",
@@ -59,6 +73,30 @@ describe("DEFAULT_AUTOMATION", () => {
         id: null,
         once_date: null,
         recipients: [],
+      }).ok
+    ).toBe(true);
+  });
+});
+
+describe("DEFAULT_SCHEDULING_AUTOMATION", () => {
+  it("starts with the one-time note a Scheduling owner expects", () => {
+    expect(DEFAULT_SCHEDULING_AUTOMATION).toEqual({
+      name: "New message",
+      schedule_kind: "once",
+      weekday: null,
+      send_time: "09:00",
+      subject: "A note from {business}",
+      body: "Hi {first_name},\n\n\n\nThank you,\n{business}",
+    });
+  });
+
+  it("is accepted by the parser once the screen supplies a date", () => {
+    expect(
+      parseAutomationInput({
+        ...DEFAULT_SCHEDULING_AUTOMATION,
+        id: null,
+        once_date: "2026-12-24",
+        recipients: [{ name: "Alex Morgan", email: "alex@example.com" }],
       }).ok
     ).toBe(true);
   });
@@ -377,7 +415,7 @@ describe("parseAutomationInput", () => {
 
   it("accepts every known placeholder in both fields", () => {
     const known =
-      "{first_name} {name} {show_name} {show_date} {show_time} {venue}";
+      "{first_name} {name} {show_name} {show_date} {show_time} {venue} {business}";
 
     expect(parseAutomationInput(input({ subject: known, body: known })).ok).toBe(true);
   });

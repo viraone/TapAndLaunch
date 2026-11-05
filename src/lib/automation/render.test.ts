@@ -8,6 +8,7 @@ const VALUES = {
   show_date: "Friday, November 6",
   show_time: "7:30 PM",
   venue: "Rickshaw Stop",
+  business: "Rickshaw Stop",
 };
 
 describe("automationValues", () => {
@@ -72,6 +73,19 @@ describe("automationValues", () => {
     expect(values.show_time).toBe("");
     expect(values.venue).toBe("");
   });
+
+  it("fills {business} with the same show/app name it is given", () => {
+    const values = automationValues({
+      name: "Alex Morgan",
+      showName: "Jay's Cleaning",
+      showDate: "2026-11-06",
+      showTime: null,
+      venue: null,
+    });
+
+    expect(values.business).toBe("Jay's Cleaning");
+    expect(values.show_name).toBe("Jay's Cleaning");
+  });
 });
 
 describe("renderAutomation", () => {
@@ -88,6 +102,16 @@ describe("renderAutomation", () => {
     expect(rendered.text).toBe(
       "Hey Alex (Alex Morgan), see you at Rickshaw Stop on Friday, November 6."
     );
+  });
+
+  it("renders {business} in the subject and the body", () => {
+    const rendered = renderAutomation(
+      { subject: "A note from {business}", body: "Thank you,\n{business}" },
+      VALUES
+    );
+
+    expect(rendered.subject).toBe("A note from Rickshaw Stop");
+    expect(rendered.text).toBe("Thank you,\nRickshaw Stop");
   });
 
   it("leaves an unknown token as it was", () => {
