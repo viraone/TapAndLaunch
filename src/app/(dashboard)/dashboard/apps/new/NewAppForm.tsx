@@ -144,6 +144,8 @@ export function NewAppForm({
           name: name.trim(),
           slug: addressFor(name, fallbackAddress),
           template: selected.id,
+          // Sent for every template (harmless to the others); a starter with Scheduling on uses it as the app's zone.
+          time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           ...(selected.asksAbout && about.trim() ? { about: about.trim() } : {}),
           ...(selected.asksAbout && photo.trim() ? { hero_image: photo.trim() } : {}),
           ...(topic && goals.length ? { goals } : {}),

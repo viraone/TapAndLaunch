@@ -7,6 +7,9 @@ import { MAPS_LOCKED_MESSAGE, isMapsBlock } from "@/lib/platform/maps-shared";
 
 type AppRow = Database["public"]["Tables"]["apps"]["Row"];
 
+/** Where Scheduling starts before the owner picks their own zone (the database column's default too). */
+export const DEFAULT_TIME_ZONE = "America/Los_Angeles";
+
 /** `maple` -> `maple`, `maple-2`, `maple-3`... for when the address is taken. */
 export function slugCandidates(slug: string): string[] {
   return [slug, ...[2, 3, 4, 5].map((n) => `${slug.slice(0, 60)}-${n}`)];
@@ -20,7 +23,7 @@ export function slugCandidates(slug: string): string[] {
 export async function createAppFromStarter(
   supabase: SupabaseClient<Database>,
   user: User,
-  input: { organizationId: string; name: string; slug: string; starter: Starter }
+  input: { organizationId: string; name: string; slug: string; starter: Starter; timeZone?: string }
 ): Promise<{ app: AppRow } | { error: string; status: number }> {
   const { organizationId, name, starter } = input;
   if (starter.pages.some((p) => p.blocks.some((b) => isMapsBlock(b.type))) && !(await orgHasMaps(organizationId))) {
@@ -55,6 +58,15 @@ export async function createAppFromStarter(
 
   // If any later step fails, remove the half-built app so the customer doesn't end up with an empty one they never asked for.
   const created = app;
+
+  // A visiting business (the Scheduling template) starts with its private schedule switched on. This row is the
+  // switch (migration 0056); if it cannot be written, the site is still perfectly usable, so the app is not undone:
+  // the dashboard simply shows its "Turn on scheduling" card.
+  if (starter.scheduling) {
+    const { error: scheduleError } = await supabase.from("schedule_settings").insert({ app_id: created.id, time_zone: input.timeZone ?? DEFAULT_TIME_ZONE });
+    if (scheduleError) console.error("schedule settings on create failed:", scheduleError.message);
+  }
+
   const fail = async (message: string) => {
     await supabase.from("apps").delete().eq("id", created.id);
     return { error: message, status: 400 };

@@ -148,6 +148,51 @@ const SAMPLE_PRODUCT = "(Sample product: edit it under Manage, Products.)";
 
 export const WEBSITE_TOPICS: WebsiteTopic[] = [
   {
+    id: "scheduling",
+    style: "classic",
+    name: "Scheduling",
+    tagline: "A site for a business that visits its customers (cleaning, lawn care, pet sitting): your services, a quote form, and a private schedule with repeat visits.",
+    icon: "calendar",
+    color: "#0891b2",
+    nameHint: "Sparkle Home Cleaning",
+    aboutHint: "I clean homes around Seattle, weekly or every other week, with the same person every visit",
+    eyebrow: "Home cleaning",
+    headline: "A clean home, on your schedule.",
+    subtext: "Weekly, every other week or one-time visits, planned around the days you're home.",
+    stats: [
+      { value: "Weekly", label: "Or every other week" },
+      { value: "One-time", label: "Deep cleans" },
+      { value: "Move-out", label: "And move-in cleans" },
+    ],
+    aboutHeading: "A bit about me",
+    aboutBody: "I'm a one-person cleaning business, so the person who answers your message is the person who cleans your home. I keep the same homes on the same days, bring my own supplies and work around the way you keep your place.",
+    storyBody: "I started cleaning homes for friends and family, and it grew from there. I work on my own, which means no rotating crews and no strangers at your door. Before the first clean I'll ask what matters to you, how you'd like the rooms left and how often you'd like me to come. Then I'll come on the same day each time, and tell you honestly if a job needs longer than we planned.",
+    quote: "A clean home is less about shiny surfaces than the time it gives you back.",
+    reviews: [
+      { quote: "The same person every visit, and the house is left just the way I like it.", name: "A customer" },
+      { quote: "Clear about what's included and careful with everything in the house.", name: "A neighbour" },
+    ],
+    newsletterTitle: "Open dates and small tips",
+    newsletterIntro: "A short note now and then: which days have opened up, and one small thing that keeps a home feeling fresh.",
+    contactHeading: "Ask for a quote",
+    contactBody: "Tell me about your home, how often you'd like it cleaned and where you are. I'll reply with a time and an honest price.",
+    contactTitle: "Ask for a quote",
+    priceList: {
+      title: "Services",
+      subtitle: "Every home is different. Tell me what you need and I'll come back with a quote.",
+      sections: [
+        {
+          name: "Cleaning",
+          items: [
+            { name: "Standard clean", description: "Floors, kitchen, bathrooms and dusting, on a weekly or every-other-week visit.", price: "Quote" },
+            { name: "Deep clean", description: "The first clean or a seasonal one: the oven, the fridge, baseboards and windows.", price: "Quote" },
+            { name: "Move-in / move-out", description: "An empty home cleaned from top to bottom, ready for the next keys.", price: "Quote" },
+          ],
+        },
+      ],
+    },
+  },
+  {
     id: "entertainment",
     style: "bold",
     name: "Entertainment",
@@ -1111,6 +1156,9 @@ export interface Starter {
   listings?: StarterListing[];
   /** A code app (BYOB): the AI writes a React app. These are its first files. */
   codeFiles?: Record<string, string>;
+  /** A visiting business (the Scheduling template): the app starts with its private Scheduling section switched on
+   * (a `schedule_settings` row, see create.ts), rather than showing "Turn on scheduling" on the dashboard. */
+  scheduling?: boolean;
 }
 
 /** A photo that ships with TapAndLaunch (public/templates), as a full address so it also loads inside customers' apps. */
@@ -1283,6 +1331,8 @@ function buildStarterBody(templateId: string, appName: string, about?: string, h
       ],
       events: topic.sampleEvents,
       products: topic.sampleProducts,
+      // The one topic that opens with its private schedule switched on; every other starter leaves it off.
+      ...(template.id === "scheduling" ? { scheduling: true } : {}),
     };
   }
 

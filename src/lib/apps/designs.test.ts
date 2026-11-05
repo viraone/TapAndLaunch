@@ -131,7 +131,7 @@ describe("website designs", () => {
 
   it("give every design a clean, unique id, name and one-line feel", () => {
     const starterIds = new Set<string>([
-      "entertainment", "comedians", "photography", "design", "education", "consulting", "art", "health", "marketing",
+      "scheduling", "entertainment", "comedians", "photography", "design", "education", "consulting", "art", "health", "marketing",
       "technology", "construction", "apparel", "music", "realestate", "beauty", "travel", "weddings", "website", "food",
       "fitness", "shops", "venues", "local", "scratch", "ai", "portfolio", "business", "store", "events", "gas", "openmic",
       "restaurant", "salon", "community", "blank", "byob",
