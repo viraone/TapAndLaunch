@@ -38,6 +38,10 @@ export async function proxy(request: NextRequest) {
 
   const sessionResponse = await updateSession(request);
 
+  // The Gmail connection routes belong to TapAndLaunch, not to any published app: they must answer on whatever host
+  // the owner started from, so they are never rewritten into the published-app tree (whose routes do not include them).
+  if (request.nextUrl.pathname.startsWith("/api/integrations/google")) return sessionResponse;
+
   // A DB hiccup on the custom-domain lookup degrades to "no tenant" (falls
   // through to the marketing/dashboard routes) rather than a 500 — every
   // ordinary `{slug}.$ROOT_DOMAIN` request never reaches this catch at all

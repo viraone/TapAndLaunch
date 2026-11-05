@@ -1487,6 +1487,28 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["schedule_visits"]["Row"]>;
         Relationships: [];
       };
+      /** The app's connected Gmail account (migration 0057). The refresh token is encrypted; service-role routes only. */
+      google_connections: {
+        Row: {
+          app_id: string;
+          google_email: string;
+          /** AES-256-GCM sealed by src/lib/integrations/google/crypto.ts. */
+          refresh_token_enc: string;
+          scopes: string[];
+          connected_by: string | null;
+          connected_at: string;
+          /** "reconnect" once Google says the grant is gone. */
+          last_error: string | null;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["google_connections"]["Row"]> & {
+          app_id: string;
+          google_email: string;
+          refresh_token_enc: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["google_connections"]["Row"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

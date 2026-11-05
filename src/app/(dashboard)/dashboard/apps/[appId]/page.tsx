@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
-import { ArrowUpRight, BarChart3, Bell, CalendarClock, CalendarDays, Download, Fuel, Inbox, Pencil, ShoppingBag, Smartphone, Ticket, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, BarChart3, Bell, CalendarClock, CalendarDays, Download, Fuel, Inbox, Mail, Pencil, ShoppingBag, Smartphone, Ticket, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRootDomain } from "@/lib/tenant";
 import { appLiveUrl } from "@/lib/apps/share";
@@ -31,6 +31,7 @@ const MANAGE: ManageEntry[] = [
   { path: "bookings", label: "Bookings", hint: "Who booked", icon: Ticket },
   { path: "schedule", label: "Schedule", hint: "Visits and repeats", icon: CalendarClock, scheduling: true },
   { path: "customers", label: "Customers", hint: "People you visit", icon: UsersRound, scheduling: true },
+  { path: "reminders", label: "Reminders", hint: "Emails before each visit", icon: Mail, scheduling: true },
   { path: "gas-stations", label: "Gas stations", hint: "Prices and reports", icon: Fuel },
 ];
 
