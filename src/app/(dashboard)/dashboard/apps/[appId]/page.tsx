@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
-import { ArrowUpRight, BarChart3, Bell, CalendarDays, Download, Fuel, Inbox, Pencil, ShoppingBag, Smartphone, Ticket, Users, Zap } from "lucide-react";
+import { ArrowUpRight, BarChart3, Bell, CalendarClock, CalendarDays, Download, Fuel, Inbox, Pencil, ShoppingBag, Smartphone, Ticket, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRootDomain } from "@/lib/tenant";
 import { appLiveUrl } from "@/lib/apps/share";
@@ -11,7 +11,16 @@ import { CopyButton } from "@/components/dashboard/CopyButton";
 
 type Params = Promise<{ appId: string }>;
 
-const MANAGE = [
+interface ManageEntry {
+  path: string;
+  label: string;
+  hint: string;
+  icon: LucideIcon;
+  /** Only shown once the app has a schedule_settings row. */
+  scheduling?: boolean;
+}
+
+const MANAGE: ManageEntry[] = [
   { path: "analytics", label: "Analytics", hint: "Views, installs and where people go", icon: BarChart3 },
   { path: "members", label: "Members", hint: "Who has signed up", icon: Users },
   { path: "notifications", label: "Notifications", hint: "Send a push, email or text", icon: Bell },
@@ -20,6 +29,8 @@ const MANAGE = [
   { path: "orders", label: "Orders", hint: "Who bought what", icon: ShoppingBag },
   { path: "events", label: "Events", hint: "Dates people can book", icon: CalendarDays },
   { path: "bookings", label: "Bookings", hint: "Who booked", icon: Ticket },
+  { path: "schedule", label: "Schedule", hint: "Visits and repeats", icon: CalendarClock, scheduling: true },
+  { path: "customers", label: "Customers", hint: "People you visit", icon: UsersRound, scheduling: true },
   { path: "gas-stations", label: "Gas stations", hint: "Prices and reports", icon: Fuel },
 ];
 
@@ -34,14 +45,16 @@ export default async function AppHomePage({ params }: { params: Params }) {
   const sinceDate = new Date();
   sinceDate.setDate(sinceDate.getDate() - 7);
   const since = sinceDate.toISOString();
-  const [checklists, views, installs, members, subscribers] = await Promise.all([
+  const [checklists, views, installs, members, subscribers, scheduleSettings] = await Promise.all([
     getChecklists(supabase, [app]),
     supabase.from("analytics_events").select("id", { count: "exact", head: true }).eq("app_id", appId).eq("event_type", "view").gte("created_at", since),
     supabase.from("analytics_events").select("id", { count: "exact", head: true }).eq("app_id", appId).eq("event_type", "install").gte("created_at", since),
     supabase.from("app_members").select("id", { count: "exact", head: true }).eq("app_id", appId),
     supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("app_id", appId),
+    supabase.from("schedule_settings").select("app_id").eq("app_id", appId).maybeSingle(),
   ]);
   const checklist = checklists.get(app.id);
+  const schedulingOn = app.kind !== "code" && Boolean(scheduleSettings.data);
 
   const published = app.status === "published";
   const liveUrl = appLiveUrl(app, getRootDomain());
@@ -187,7 +200,9 @@ export default async function AppHomePage({ params }: { params: Params }) {
           <h2 className="mb-3 text-lg font-semibold text-neutral-950">Manage</h2>
           <ul className="grid gap-3 sm:grid-cols-2">
             {/* An AI-written app has no blocks, so no members, forms, products, events or stations to manage: just its numbers. */}
-            {(app.kind === "code" ? MANAGE.filter((m) => m.path === "analytics") : MANAGE).map(({ path, label, hint, icon: Icon }) => (
+            {MANAGE.filter((entry) =>
+              app.kind === "code" ? entry.path === "analytics" : !entry.scheduling || schedulingOn
+            ).map(({ path, label, hint, icon: Icon }) => (
               <li key={path}>
                 <Link
                   href={`/dashboard/apps/${appId}/${path}`}

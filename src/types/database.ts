@@ -62,6 +62,12 @@ export type PaymentMethod = "request" | "stripe";
 export type RefundStatus = "pending" | "succeeded" | "failed";
 /** How often a recurring product is charged; null means a one-time purchase. See migration 0046. */
 export type BillingInterval = "month" | "year";
+/** Where a scheduled visit stands (migration 0056). */
+export type ScheduleVisitStatus = "scheduled" | "confirmed" | "reschedule_requested" | "cancelled" | "done";
+/** One repeat rule from schedule_series (migration 0056). */
+export type ScheduleSeriesRow = Database["public"]["Tables"]["schedule_series"]["Row"];
+/** A visit row ready to insert into schedule_visits (migration 0056). */
+export type ScheduleVisitInsert = Database["public"]["Tables"]["schedule_visits"]["Insert"];
 /** One shipping choice the shopper sees on Stripe's page (`store_settings.shipping_rates`). */
 export interface ShippingRate {
   name: string;
@@ -1391,6 +1397,94 @@ export interface Database {
         Row: { app_id: string; day: string; calls: number };
         Insert: { app_id: string; day: string; calls?: number };
         Update: Partial<{ app_id: string; day: string; calls: number }>;
+        Relationships: [];
+      };
+      /** A row here means the app uses Scheduling (migration 0056). */
+      schedule_settings: {
+        Row: {
+          app_id: string;
+          time_zone: string;
+          default_duration_minutes: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["schedule_settings"]["Row"]> & {
+          app_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["schedule_settings"]["Row"]>;
+        Relationships: [];
+      };
+      schedule_customers: {
+        Row: {
+          id: string;
+          app_id: string;
+          name: string;
+          email: string | null;
+          phone: string | null;
+          address: string | null;
+          entry_notes: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["schedule_customers"]["Row"]> & {
+          app_id: string;
+          name: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["schedule_customers"]["Row"]>;
+        Relationships: [];
+      };
+      schedule_series: {
+        Row: {
+          id: string;
+          app_id: string;
+          customer_id: string;
+          starts_on: string;
+          start_time: string;
+          duration_minutes: number;
+          interval_weeks: number;
+          ends_on: string | null;
+          service: string | null;
+          notes: string | null;
+          active: boolean;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["schedule_series"]["Row"]> & {
+          app_id: string;
+          customer_id: string;
+          starts_on: string;
+          start_time: string;
+          duration_minutes: number;
+          interval_weeks: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["schedule_series"]["Row"]>;
+        Relationships: [];
+      };
+      schedule_visits: {
+        Row: {
+          id: string;
+          app_id: string;
+          customer_id: string;
+          series_id: string | null;
+          starts_at: string;
+          /** The local date of the occurrence a repeat-rule visit stands for; null for one-off visits. */
+          occurrence_on: string | null;
+          duration_minutes: number;
+          status: ScheduleVisitStatus;
+          service: string | null;
+          notes: string | null;
+          entry_instructions: string | null;
+          confirmed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["schedule_visits"]["Row"]> & {
+          app_id: string;
+          customer_id: string;
+          starts_at: string;
+          duration_minutes: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["schedule_visits"]["Row"]>;
         Relationships: [];
       };
     };
