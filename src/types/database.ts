@@ -1487,6 +1487,26 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["schedule_visits"]["Row"]>;
         Relationships: [];
       };
+      /** The owner's reminder email (migration 0058). Automatic sending is phase 5; `enabled` has no UI yet. */
+      reminder_settings: {
+        Row: {
+          app_id: string;
+          enabled: boolean;
+          hours_before: number;
+          subject: string;
+          body: string;
+          prep_note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["reminder_settings"]["Row"]> & {
+          app_id: string;
+          subject: string;
+          body: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["reminder_settings"]["Row"]>;
+        Relationships: [];
+      };
       /** The app's connected Gmail account (migration 0057). The refresh token is encrypted; service-role routes only. */
       google_connections: {
         Row: {

@@ -4,8 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { isAppEditor } from "@/lib/org";
 import { getConnectionStatus } from "@/lib/integrations/google/connection";
 import { isGoogleConfigured } from "@/lib/integrations/google/oauth";
+import { addDays, localDateOf, zonedTimeToUtc } from "@/lib/schedule/recurrence";
+import { DEFAULT_REMINDER } from "@/lib/reminders/render";
+import type { ReminderSettingsInput } from "@/lib/reminders/validate";
 import { TurnOnScheduling } from "../schedule/TurnOnScheduling";
 import { ConnectGmailCard } from "./ConnectGmailCard";
+import { ReminderSettingsForm } from "./ReminderSettingsForm";
 
 type Params = Promise<{ appId: string }>;
 
@@ -18,7 +22,7 @@ const GMAIL_MESSAGES = new Map<string, string>([
   ["unavailable", "Connecting Gmail isn't available yet."],
 ]);
 
-/** Reminders for an app with Scheduling on. For now the only thing here is the Gmail connection. */
+/** Reminders for an app with Scheduling on: the Gmail connection, then the email editor once it can send. */
 export default async function RemindersPage({
   params,
   searchParams,
@@ -37,7 +41,7 @@ export default async function RemindersPage({
 
   const { data: settings } = await supabase
     .from("schedule_settings")
-    .select("app_id")
+    .select("app_id, time_zone")
     .eq("app_id", appId)
     .maybeSingle();
 
@@ -65,6 +69,29 @@ export default async function RemindersPage({
 
   const status = await getConnectionStatus(appId);
 
+  const { data: reminder } = await supabase
+    .from("reminder_settings")
+    .select("hours_before, subject, body, prep_note")
+    .eq("app_id", appId)
+    .maybeSingle();
+
+  const initialSettings: ReminderSettingsInput = reminder
+    ? {
+        // The table's check constraint keeps this one of the allowed choices.
+        hours_before: reminder.hours_before as ReminderSettingsInput["hours_before"],
+        subject: reminder.subject,
+        body: reminder.body,
+        prep_note: reminder.prep_note,
+      }
+    : DEFAULT_REMINDER;
+
+  const sampleDate = addDays(localDateOf(new Date(), settings.time_zone), 1);
+  const sampleStartsAt = zonedTimeToUtc(
+    sampleDate,
+    "10:00",
+    settings.time_zone
+  ).toISOString();
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 p-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
@@ -75,6 +102,18 @@ export default async function RemindersPage({
       </div>
       {resultLine}
       <ConnectGmailCard appId={appId} status={status} configured={isGoogleConfigured()} />
+      {status.connected && status.canSend && !status.needsReconnect && (
+        <div className="mt-6">
+          <ReminderSettingsForm
+            appId={appId}
+            business={app.name}
+            timeZone={settings.time_zone}
+            email={status.email ?? ""}
+            sampleStartsAt={sampleStartsAt}
+            initialSettings={initialSettings}
+          />
+        </div>
+      )}
     </main>
   );
 }
