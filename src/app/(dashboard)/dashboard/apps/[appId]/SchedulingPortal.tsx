@@ -28,7 +28,7 @@ const STATUS: Record<ScheduleVisitStatus, { label: string; className: string }> 
   done: { label: "Done", className: "bg-neutral-200 text-neutral-700" },
 };
 
-const CARD = "rounded-3xl bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 sm:p-6";
+const CARD = "rounded-2xl bg-neutral-100 p-5 sm:p-6";
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950";
 
 /**
@@ -127,9 +127,9 @@ export async function SchedulingPortal({ appId, timeZone }: { appId: string; tim
     <>
       {/* Editors only: the Gmail step needs a fact a visitor cannot read. The strip disappears once all three are done. */}
       {editor && setup.doneCount < setup.steps.length && (
-        <section className="rounded-2xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-black/5 sm:p-5">
+        <section className="rounded-2xl bg-neutral-100 p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <h2 className="text-sm font-semibold text-neutral-950">Get set up</h2>
+            <h2 className="text-sm font-medium text-neutral-950">Get set up</h2>
             <p className="text-xs tabular-nums text-neutral-500">
               {setup.doneCount} of {setup.steps.length} done
             </p>
@@ -139,7 +139,7 @@ export async function SchedulingPortal({ appId, timeZone }: { appId: string; tim
               <li key={step.key}>
                 {step.done ? (
                   <span className="flex min-h-11 items-center gap-2 text-sm text-neutral-400">
-                    <CircleCheck aria-hidden className="h-4 w-4 shrink-0 text-cyan-600" />
+                    <CircleCheck aria-hidden className="h-4 w-4 shrink-0 text-neutral-500" />
                     <span className="min-w-0">{step.label}</span>
                   </span>
                 ) : (
@@ -165,7 +165,7 @@ export async function SchedulingPortal({ appId, timeZone }: { appId: string; tim
 
       <section className={CARD}>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-neutral-950">Today</h2>
+          <h2 className="text-lg font-medium text-neutral-950">Today</h2>
           <Link
             href={scheduleHref}
             className={`inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 ${FOCUS}`}
@@ -175,7 +175,7 @@ export async function SchedulingPortal({ appId, timeZone }: { appId: string; tim
         </div>
 
         {todayVisits.length > 0 ? (
-          <ul className="mt-2 divide-y divide-neutral-100">
+          <ul className="mt-2 divide-y divide-neutral-200">
             {todayVisits.map((visit) => {
               const status = STATUS[visit.status];
               const customer = customerNames.get(visit.customer_id) ?? "Customer";
@@ -207,7 +207,7 @@ export async function SchedulingPortal({ appId, timeZone }: { appId: string; tim
           <p className="mt-4 text-sm text-neutral-500">Nothing scheduled today.</p>
         )}
 
-        <p className="mt-3 flex flex-wrap items-center gap-x-1.5 border-t border-neutral-100 pt-1 text-sm text-neutral-500">
+        <p className="mt-3 flex flex-wrap items-center gap-x-1.5 border-t border-neutral-200 pt-1 text-sm text-neutral-500">
           <span>{moreThisWeekLine(nextWeekCount)} ·</span>
           <Link
             href={scheduleHref}
@@ -223,9 +223,9 @@ export async function SchedulingPortal({ appId, timeZone }: { appId: string; tim
           <Link
             key={path}
             href={`/dashboard/apps/${appId}/${path}`}
-            className={`flex min-h-28 flex-col rounded-2xl bg-white p-4 ring-1 ring-black/5 transition hover:ring-black/20 ${FOCUS}`}
+            className={`flex min-h-28 flex-col rounded-2xl bg-neutral-100 p-5 transition hover:bg-neutral-200/70 ${FOCUS}`}
           >
-            <Icon aria-hidden className="h-5 w-5 text-cyan-600" />
+            <Icon aria-hidden className="h-5 w-5 text-neutral-900" />
             <span className="mt-2 block text-sm font-medium text-neutral-950">{label}</span>
             <span className="mt-auto block pt-1 text-xs text-neutral-500">{tileStatus(path, hint)}</span>
           </Link>

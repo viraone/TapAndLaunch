@@ -89,9 +89,9 @@ export default async function AppHomePage({ params }: { params: Params }) {
   const qrPng = published && !schedulingOn ? await QRCode.toDataURL(liveUrl, { width: 1024, margin: 2 }) : null;
 
   return (
-    <main className="flex-1 bg-neutral-100/70">
+    <main className={`flex-1 ${schedulingOn ? "bg-white" : "bg-neutral-100/70"}`}>
       <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8 sm:px-6">
-        <header className="flex flex-wrap items-center gap-4">
+        <header className={`flex flex-wrap items-center gap-4 ${schedulingOn ? "border-b border-neutral-200 pb-6" : ""}`}>
           {iconUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
             <img src={iconUrl} alt="" className="h-16 w-16 rounded-2xl object-cover shadow ring-1 ring-black/5" />
