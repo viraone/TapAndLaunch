@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowRight, Circle, CircleCheck, Plus } from "lucide-react";
 import { BUSINESS_TOOLS } from "@/lib/apps/business-tools";
 import { formatClock } from "@/lib/format-date";
 import { isAppEditor } from "@/lib/org";
@@ -9,6 +9,15 @@ import { createClient } from "@/lib/supabase/server";
 import { ensureSeriesVisits } from "@/lib/schedule/generate";
 import { addDays, localDateOf } from "@/lib/schedule/recurrence";
 import { countVisitsWithin, localDayBounds, localDaysBounds, visitsWithin } from "@/lib/schedule/day";
+import {
+  automationTileStatus,
+  customersTileStatus,
+  moreThisWeekLine,
+  remindersTileStatus,
+  scheduleTileStatus,
+  setupSteps,
+  visitLengthLabel,
+} from "@/lib/schedule/portal";
 import type { ScheduleVisitStatus } from "@/types/database";
 
 const STATUS: Record<ScheduleVisitStatus, { label: string; className: string }> = {
@@ -19,24 +28,14 @@ const STATUS: Record<ScheduleVisitStatus, { label: string; className: string }> 
   done: { label: "Done", className: "bg-neutral-200 text-neutral-700" },
 };
 
-const CARD = "rounded-3xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5";
+const CARD = "rounded-3xl bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 sm:p-6";
+const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950";
 
 /**
- * The home of a visiting business (Scheduling on): today's visits and the way into the four private business
- * sections, instead of the marketing-site dashboard (link/QR hero, "Get live" list, stats and the general Manage
- * list). The public website still exists; the quiet row at the bottom is the only link to it.
+ * The home of a visiting business (Scheduling on): what is on today, the one step to do next, and the four private
+ * business sections. The public website still exists; its link lives quietly in the page header.
  */
-export async function SchedulingPortal({
-  appId,
-  timeZone,
-  published,
-  liveUrl,
-}: {
-  appId: string;
-  timeZone: string;
-  published: boolean;
-  liveUrl: string;
-}) {
+export async function SchedulingPortal({ appId, timeZone }: { appId: string; timeZone: string }) {
   const supabase = await createClient();
   const now = new Date();
 
@@ -51,8 +50,9 @@ export async function SchedulingPortal({
   const today = localDateOf(now, timeZone);
   const todayBounds = localDayBounds(today, timeZone);
   const nextWeekBounds = localDaysBounds(addDays(today, 1), 7, timeZone);
+  const weekBounds = localDaysBounds(today, 8, timeZone);
 
-  const [{ data: visits }, { data: customers }] = await Promise.all([
+  const [{ data: visits }, { data: customers }, { count: visitCount }] = await Promise.all([
     supabase
       .from("schedule_visits")
       .select("*")
@@ -61,62 +61,142 @@ export async function SchedulingPortal({
       .lt("starts_at", nextWeekBounds.end.toISOString())
       .order("starts_at", { ascending: true }),
     supabase.from("schedule_customers").select("id, name").eq("app_id", appId).order("name", { ascending: true }),
+    // One visit of any status or date is enough to know the business has started using the schedule.
+    supabase.from("schedule_visits").select("id", { count: "exact", head: true }).eq("app_id", appId),
   ]);
 
   const todayVisits = visitsWithin(visits ?? [], todayBounds);
   const nextWeekCount = countVisitsWithin(visits ?? [], nextWeekBounds, ["scheduled", "confirmed"]);
+  const weekCount = countVisitsWithin(visits ?? [], weekBounds, ["scheduled", "confirmed"]);
   const customerNames = new Map((customers ?? []).map((customer) => [customer.id, customer.name]));
   const customerCount = customers?.length ?? 0;
+  const anyVisit = (visitCount ?? 0) > 0;
+  const scheduleHref = `/dashboard/apps/${appId}/schedule`;
 
   // The Gmail connection and the Automation tables are private: read them only after the signed-in person is shown
   // to be an editor of this app.
   let editor = false;
   let gmailConnected = false;
-  let gmailEmail: string | null = null;
+  let gmailNeedsReconnect = false;
+  let gmailReady = false;
   let remindersOn = false;
+  let reminderHours: number | null = null;
   let automationCount = 0;
   if (await isAppEditor(supabase, appId)) {
     editor = true;
     const admin = createAdminClient();
     const [gmail, reminder, automations] = await Promise.all([
       getConnectionStatus(appId),
-      admin.from("reminder_settings").select("enabled").eq("app_id", appId).maybeSingle(),
+      admin.from("reminder_settings").select("enabled, hours_before").eq("app_id", appId).maybeSingle(),
       admin.from("automation_reminders").select("id", { count: "exact", head: true }).eq("app_id", appId).eq("enabled", true),
     ]);
     gmailConnected = gmail.connected;
-    gmailEmail = gmail.email;
+    gmailNeedsReconnect = gmail.needsReconnect;
+    gmailReady = gmail.connected && gmail.canSend && !gmail.needsReconnect;
     remindersOn = reminder.data?.enabled ?? false;
+    reminderHours = reminder.data?.hours_before ?? null;
     automationCount = automations.count ?? 0;
+  }
+
+  const setup = setupSteps({ customers: customerCount, anyVisit, gmailReady });
+
+  // A non-editor gets the plain hint from the shared business-tools list for the two private sections.
+  function tileStatus(path: string, hint: string): string {
+    switch (path) {
+      case "schedule":
+        return scheduleTileStatus(weekCount);
+      case "customers":
+        return customersTileStatus(customerCount);
+      case "reminders":
+        return editor
+          ? remindersTileStatus({
+              connected: gmailConnected,
+              needsReconnect: gmailNeedsReconnect,
+              enabled: remindersOn,
+              hoursBefore: reminderHours,
+            })
+          : hint;
+      case "automation":
+        return editor ? automationTileStatus(automationCount) : hint;
+      default:
+        return hint;
+    }
   }
 
   return (
     <>
-      {/* The page header above already shows the app's name and its ADMIN pill, so the portal does not repeat them. */}
-      <p className="text-sm text-neutral-500">Your day at a glance.</p>
+      {/* Editors only: the Gmail step needs a fact a visitor cannot read. The strip disappears once all three are done. */}
+      {editor && setup.doneCount < setup.steps.length && (
+        <section className="rounded-2xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-black/5 sm:p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <h2 className="text-sm font-semibold text-neutral-950">Get set up</h2>
+            <p className="text-xs tabular-nums text-neutral-500">
+              {setup.doneCount} of {setup.steps.length} done
+            </p>
+          </div>
+          <ul className="mt-1 grid gap-0.5 sm:grid-cols-3 sm:gap-2">
+            {setup.steps.map((step, index) => (
+              <li key={step.key}>
+                {step.done ? (
+                  <span className="flex min-h-11 items-center gap-2 text-sm text-neutral-400">
+                    <CircleCheck aria-hidden className="h-4 w-4 shrink-0 text-cyan-600" />
+                    <span className="min-w-0">{step.label}</span>
+                  </span>
+                ) : (
+                  <Link
+                    href={`/dashboard/apps/${appId}/${step.path}`}
+                    className={`flex min-h-11 items-center gap-2 rounded-lg text-sm transition hover:text-neutral-950 ${FOCUS} ${
+                      index === setup.nextIndex ? "font-semibold text-neutral-950" : "font-normal text-neutral-700"
+                    }`}
+                  >
+                    <Circle
+                      aria-hidden
+                      className={`h-4 w-4 shrink-0 ${index === setup.nextIndex ? "text-neutral-950" : "text-neutral-400"}`}
+                    />
+                    <span className="min-w-0">{step.label}</span>
+                    {index === setup.nextIndex && <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />}
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className={CARD}>
-        <h2 className="text-lg font-semibold text-neutral-950">Today</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-neutral-950">Today</h2>
+          <Link
+            href={scheduleHref}
+            className={`inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 ${FOCUS}`}
+          >
+            <Plus aria-hidden className="h-4 w-4" /> Add a visit
+          </Link>
+        </div>
+
         {todayVisits.length > 0 ? (
-          <ul className="mt-4 divide-y divide-neutral-100">
+          <ul className="mt-2 divide-y divide-neutral-100">
             {todayVisits.map((visit) => {
               const status = STATUS[visit.status];
-              const start = new Date(visit.starts_at);
-              const end = new Date(start.getTime() + visit.duration_minutes * 60_000);
+              const customer = customerNames.get(visit.customer_id) ?? "Customer";
+              const length = visitLengthLabel(visit.duration_minutes);
               return (
                 <li
                   key={visit.id}
-                  className={`flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-3 first:pt-0 last:pb-0 ${
-                    visit.status === "cancelled" ? "opacity-60" : ""
-                  }`}
+                  className={`flex items-start gap-3 py-3 ${visit.status === "cancelled" ? "opacity-60" : ""}`}
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold tabular-nums text-neutral-950">
-                      {formatClock(start, timeZone)} – {formatClock(end, timeZone)}
+                  <span className="w-[4.25rem] shrink-0 pt-0.5 text-sm font-medium tabular-nums text-neutral-950">
+                    {formatClock(new Date(visit.starts_at), timeZone)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-neutral-950">{customer}</p>
+                    <p className="truncate text-xs text-neutral-500">
+                      {visit.service ? `${visit.service} · ${length}` : length}
                     </p>
-                    <p className="mt-0.5 truncate text-sm text-neutral-800">{customerNames.get(visit.customer_id) ?? "Customer"}</p>
-                    <p className="truncate text-xs text-neutral-500">{visit.service || "Visit"}</p>
                   </div>
-                  <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium ${status.className}`}>
+                  <span
+                    className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium ${status.className}`}
+                  >
                     {status.label}
                   </span>
                 </li>
@@ -126,124 +206,30 @@ export async function SchedulingPortal({
         ) : (
           <p className="mt-4 text-sm text-neutral-500">Nothing scheduled today.</p>
         )}
-        <p className="mt-4 text-sm text-neutral-500">
-          {nextWeekCount} {nextWeekCount === 1 ? "visit" : "visits"} in the next 7 days.
+
+        <p className="mt-3 flex flex-wrap items-center gap-x-1.5 border-t border-neutral-100 pt-1 text-sm text-neutral-500">
+          <span>{moreThisWeekLine(nextWeekCount)} ·</span>
+          <Link
+            href={scheduleHref}
+            className={`inline-flex min-h-11 items-center font-medium text-neutral-700 underline-offset-4 transition hover:text-neutral-950 hover:underline ${FOCUS}`}
+          >
+            See the full schedule
+          </Link>
         </p>
-        <div className="mt-6 flex flex-wrap gap-2">
+      </section>
+
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {BUSINESS_TOOLS.map(({ path, label, hint, icon: Icon }) => (
           <Link
-            href={`/dashboard/apps/${appId}/schedule`}
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-neutral-950 px-5 text-sm font-semibold text-white transition hover:bg-neutral-800"
+            key={path}
+            href={`/dashboard/apps/${appId}/${path}`}
+            className={`flex min-h-28 flex-col rounded-2xl bg-white p-4 ring-1 ring-black/5 transition hover:ring-black/20 ${FOCUS}`}
           >
-            Add a visit
+            <Icon aria-hidden className="h-5 w-5 text-cyan-600" />
+            <span className="mt-2 block text-sm font-medium text-neutral-950">{label}</span>
+            <span className="mt-auto block pt-1 text-xs text-neutral-500">{tileStatus(path, hint)}</span>
           </Link>
-          <Link
-            href={`/dashboard/apps/${appId}/customers`}
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-neutral-900 ring-1 ring-black/10 transition hover:bg-neutral-50"
-          >
-            Add a customer
-          </Link>
-        </div>
-      </section>
-
-      <section className="grid gap-3 sm:grid-cols-3">
-        <Link
-          href={`/dashboard/apps/${appId}/customers`}
-          className="rounded-2xl bg-white p-4 ring-1 ring-black/5 transition hover:ring-black/20"
-        >
-          <span className="block text-xs font-medium text-neutral-500">Customers</span>
-          <span className="mt-1 block text-2xl font-semibold tabular-nums text-neutral-950">{customerCount}</span>
-          <span className="block text-xs text-neutral-500">People you visit</span>
-        </Link>
-
-        <Link
-          href={`/dashboard/apps/${appId}/reminders`}
-          className="rounded-2xl bg-white p-4 ring-1 ring-black/5 transition hover:ring-black/20"
-        >
-          <span className="block text-xs font-medium text-neutral-500">Reminders</span>
-          {editor ? (
-            gmailConnected ? (
-              <>
-                <span className="mt-1 block truncate text-sm font-medium text-neutral-950" title={gmailEmail ?? undefined}>
-                  Connected as {gmailEmail}
-                </span>
-                <span className="mt-0.5 block text-xs text-neutral-500">Automatic reminders: {remindersOn ? "On" : "Off"}</span>
-              </>
-            ) : (
-              <>
-                <span className="mt-1 block text-sm font-medium text-neutral-950">Connect Gmail</span>
-                <span className="mt-0.5 block text-xs text-neutral-500">Reminders go out from your own inbox.</span>
-              </>
-            )
-          ) : (
-            <span className="mt-1 block text-sm font-medium text-neutral-950">Open reminders</span>
-          )}
-        </Link>
-
-        <Link
-          href={`/dashboard/apps/${appId}/automation`}
-          className="rounded-2xl bg-white p-4 ring-1 ring-black/5 transition hover:ring-black/20"
-        >
-          <span className="block text-xs font-medium text-neutral-500">Automation</span>
-          {editor ? (
-            <>
-              <span className="mt-1 block text-sm font-medium text-neutral-950">
-                {automationCount > 0 ? `${automationCount} ${automationCount === 1 ? "message" : "messages"} on` : "Nothing scheduled"}
-              </span>
-              <span className="mt-0.5 block text-xs text-neutral-500">Messages to people you choose</span>
-            </>
-          ) : (
-            <span className="mt-1 block text-sm font-medium text-neutral-950">Open automation</span>
-          )}
-        </Link>
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-neutral-950">Business tools</h2>
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {BUSINESS_TOOLS.map(({ path, label, hint, icon: Icon }) => (
-            <li key={path}>
-              <Link
-                href={`/dashboard/apps/${appId}/${path}`}
-                className="flex min-h-14 items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-black/5 transition hover:ring-black/20"
-              >
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-700">
-                  <Icon className="h-5 w-5" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-neutral-950">{label}</span>
-                  <span className="block truncate text-xs text-neutral-500">{hint}</span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="rounded-2xl bg-white p-4 ring-1 ring-black/5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-neutral-950">Website</p>
-            <p className="text-xs text-neutral-500">Your public page is separate and optional.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/dashboard/apps/${appId}/builder`}
-              className="inline-flex h-9 items-center rounded-full bg-neutral-100 px-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-200"
-            >
-              Edit it
-            </Link>
-            {published && (
-              <a
-                href={liveUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-9 items-center gap-1.5 rounded-full bg-neutral-100 px-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-200"
-              >
-                {liveUrl.replace(/^https?:\/\//, "")} <ArrowUpRight className="h-4 w-4" />
-              </a>
-            )}
-          </div>
-        </div>
+        ))}
       </section>
     </>
   );

@@ -8,6 +8,9 @@ import { appLiveUrl } from "@/lib/apps/share";
 import { getChecklists } from "@/lib/apps/signals";
 import { BUSINESS_TOOLS } from "@/lib/apps/business-tools";
 import { tileGradient, tileInitial } from "@/lib/apps/tile";
+import { localDayBounds } from "@/lib/schedule/day";
+import { localDateOf } from "@/lib/schedule/recurrence";
+import { todayHeaderLine } from "@/lib/schedule/portal";
 import { CopyButton } from "@/components/dashboard/CopyButton";
 import { SchedulingPortal } from "./SchedulingPortal";
 
@@ -58,6 +61,21 @@ export default async function AppHomePage({ params }: { params: Params }) {
   const checklist = checklists.get(app.id);
   const schedulingOn = app.kind !== "code" && Boolean(scheduleSettings.data);
 
+  // The Scheduling header's one muted line: the app's local date and how many visits are on today.
+  let todayLine = "";
+  if (schedulingOn && scheduleSettings.data) {
+    const timeZone = scheduleSettings.data.time_zone;
+    const today = localDateOf(new Date(), timeZone);
+    const bounds = localDayBounds(today, timeZone);
+    const { count } = await supabase
+      .from("schedule_visits")
+      .select("id", { count: "exact", head: true })
+      .eq("app_id", appId)
+      .gte("starts_at", bounds.start.toISOString())
+      .lt("starts_at", bounds.end.toISOString());
+    todayLine = todayHeaderLine(today, count ?? 0);
+  }
+
   const published = app.status === "published";
   const liveUrl = appLiveUrl(app, getRootDomain());
   const shown = liveUrl.replace(/^https?:\/\//, "");
@@ -94,15 +112,17 @@ export default async function AppHomePage({ params }: { params: Params }) {
                 </span>
               )}
             </div>
-            {/* A Scheduling app is an admin portal, not a website waiting to be published, so it has no status line. */}
-            {!schedulingOn && (
+            {schedulingOn ? (
+              <p className="mt-1 text-sm text-neutral-500">{todayLine}</p>
+            ) : (
               <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-neutral-500">
                 <span className={`h-2 w-2 rounded-full ${published ? "bg-emerald-500" : "bg-neutral-400"}`} />
                 {published ? "Live" : "Draft, not published yet"}
               </p>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
+          {/* On a phone the admin portal's quiet link drops under the name, so the name is never cut short. */}
+          <div className={`flex flex-wrap gap-2 ${schedulingOn ? "-mt-2 w-full sm:mt-0 sm:w-auto" : ""}`}>
             {!schedulingOn && app.kind !== "code" && (
               <Link
                 href={`/dashboard/apps/${appId}/updates`}
@@ -111,22 +131,26 @@ export default async function AppHomePage({ params }: { params: Params }) {
                 <Zap className="h-4 w-4" /> Quick updates
               </Link>
             )}
-            <Link
-              href={`/dashboard/apps/${appId}/builder`}
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-neutral-900 ring-1 ring-black/10 transition hover:bg-neutral-50"
-            >
-              <Pencil className="h-4 w-4" /> {schedulingOn ? "Edit public page" : "Open builder"}
-            </Link>
+            {schedulingOn ? (
+              <Link
+                href={`/dashboard/apps/${appId}/builder`}
+                className="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-medium text-neutral-500 underline-offset-4 transition hover:text-neutral-950 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950"
+              >
+                Edit public page
+              </Link>
+            ) : (
+              <Link
+                href={`/dashboard/apps/${appId}/builder`}
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-neutral-900 ring-1 ring-black/10 transition hover:bg-neutral-50"
+              >
+                <Pencil className="h-4 w-4" /> Open builder
+              </Link>
+            )}
           </div>
         </header>
 
         {schedulingOn && scheduleSettings.data ? (
-          <SchedulingPortal
-            appId={app.id}
-            timeZone={scheduleSettings.data.time_zone}
-            published={published}
-            liveUrl={liveUrl}
-          />
+          <SchedulingPortal appId={app.id} timeZone={scheduleSettings.data.time_zone} />
         ) : (
           <>
         <section className="grid gap-6 rounded-3xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 sm:grid-cols-[1fr_auto]">
