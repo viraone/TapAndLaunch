@@ -1487,7 +1487,7 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["schedule_visits"]["Row"]>;
         Relationships: [];
       };
-      /** The owner's reminder email (migration 0058). Automatic sending is phase 5; `enabled` has no UI yet. */
+      /** The owner's reminder email (migration 0058). `enabled` turns the automatic sender (phase 5) on. */
       reminder_settings: {
         Row: {
           app_id: string;
@@ -1505,6 +1505,31 @@ export interface Database {
           body: string;
         };
         Update: Partial<Database["public"]["Tables"]["reminder_settings"]["Row"]>;
+        Relationships: [];
+      };
+      /**
+       * One automatic reminder email per visit (migration 0059). The service-role sender writes it; org editors can
+       * only read their app's rows. `error` is a short code, never Gmail's response or the message text.
+       */
+      reminder_log: {
+        Row: {
+          id: string;
+          app_id: string;
+          visit_id: string;
+          kind: "before";
+          status: "sending" | "sent" | "failed" | "skipped";
+          /** 'no_email' | 'bad_address' | 'send_failed' | 'rate_limited' | 'interrupted' */
+          error: string | null;
+          to_email: string | null;
+          attempts: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["reminder_log"]["Row"]> & {
+          app_id: string;
+          visit_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["reminder_log"]["Row"]>;
         Relationships: [];
       };
       /** The app's connected Gmail account (migration 0057). The refresh token is encrypted; service-role routes only. */

@@ -116,7 +116,6 @@ export function ConnectGmailCard({
       <Card className="max-w-lg">
         <CardHeader>
           <CardTitle>Connected as {email}</CardTitle>
-          <CardDescription>Reminder settings come next.</CardDescription>
         </CardHeader>
         {!status.canReadContacts && (
           <CardContent>

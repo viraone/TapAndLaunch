@@ -8,7 +8,9 @@ import { addDays, localDateOf, zonedTimeToUtc } from "@/lib/schedule/recurrence"
 import { DEFAULT_REMINDER } from "@/lib/reminders/render";
 import type { ReminderSettingsInput } from "@/lib/reminders/validate";
 import { TurnOnScheduling } from "../schedule/TurnOnScheduling";
+import { AutomaticRemindersCard } from "./AutomaticRemindersCard";
 import { ConnectGmailCard } from "./ConnectGmailCard";
+import { RecentReminders } from "./RecentReminders";
 import { ReminderSettingsForm } from "./ReminderSettingsForm";
 
 type Params = Promise<{ appId: string }>;
@@ -71,7 +73,7 @@ export default async function RemindersPage({
 
   const { data: reminder } = await supabase
     .from("reminder_settings")
-    .select("hours_before, subject, body, prep_note")
+    .select("enabled, hours_before, subject, body, prep_note")
     .eq("app_id", appId)
     .maybeSingle();
 
@@ -103,7 +105,13 @@ export default async function RemindersPage({
       {resultLine}
       <ConnectGmailCard appId={appId} status={status} configured={isGoogleConfigured()} />
       {status.connected && status.canSend && !status.needsReconnect && (
-        <div className="mt-6">
+        <div className="mt-6 space-y-6">
+          <AutomaticRemindersCard
+            appId={appId}
+            enabled={reminder?.enabled ?? false}
+            hoursBefore={initialSettings.hours_before}
+            hasSavedReminder={Boolean(reminder)}
+          />
           <ReminderSettingsForm
             appId={appId}
             business={app.name}
@@ -114,6 +122,9 @@ export default async function RemindersPage({
           />
         </div>
       )}
+      <div className="mt-6">
+        <RecentReminders appId={appId} timeZone={settings.time_zone} />
+      </div>
     </main>
   );
 }

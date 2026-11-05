@@ -42,6 +42,10 @@ export async function proxy(request: NextRequest) {
   // the owner started from, so they are never rewritten into the published-app tree (whose routes do not include them).
   if (request.nextUrl.pathname.startsWith("/api/integrations/google")) return sessionResponse;
 
+  // Vercel's cron calls are TapAndLaunch routes too. They carry no session and must answer on the deployment's own
+  // address, so a tenant host must not send them into the published-app tree either.
+  if (request.nextUrl.pathname.startsWith("/api/cron/")) return sessionResponse;
+
   // A DB hiccup on the custom-domain lookup degrades to "no tenant" (falls
   // through to the marketing/dashboard routes) rather than a 500 — every
   // ordinary `{slug}.$ROOT_DOMAIN` request never reaches this catch at all

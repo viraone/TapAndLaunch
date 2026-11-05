@@ -326,7 +326,7 @@ export function ReminderSettingsForm({
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        Reminders aren&apos;t sent automatically yet. Until then, use Send me a test to see how it looks.
+        Changes apply to reminders that haven&apos;t been sent yet.
       </p>
 
       <Card className="max-w-lg">

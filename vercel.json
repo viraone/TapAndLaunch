@@ -1,4 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "bash scripts/vercel-install.sh"
+  "installCommand": "bash scripts/vercel-install.sh",
+  "crons": [
+    { "path": "/api/cron/send-reminders", "schedule": "*/5 * * * *" }
+  ]
 }
