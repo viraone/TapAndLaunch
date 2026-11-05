@@ -58,7 +58,11 @@ async function fetchContactList(
     const url = new URL(options.endpoint);
     url.searchParams.set(options.fieldsParam, "names,emailAddresses");
     url.searchParams.set("pageSize", String(PAGE_SIZE));
-    url.searchParams.set("sortOrder", "FIRST_NAME_ASCENDING");
+    // Only My Contacts can be sorted by Google; the Other contacts list rejects `sortOrder` with a 400. The merged
+    // result is sorted here anyway.
+    if (options.entriesKey === "connections") {
+      url.searchParams.set("sortOrder", "FIRST_NAME_ASCENDING");
+    }
     if (pageToken) url.searchParams.set("pageToken", pageToken);
 
     let response: Response;

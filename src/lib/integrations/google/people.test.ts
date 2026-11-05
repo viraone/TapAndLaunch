@@ -88,6 +88,8 @@ describe("listContacts", () => {
 
     expect(otherPages[0]?.searchParams.get("readMask")).toBe("names,emailAddresses");
     expect(otherPages[0]?.searchParams.get("pageSize")).toBe("1000");
+    // Google answers 400 to `sortOrder` on the Other contacts list (found live), so it is never sent there.
+    expect(otherPages[0]?.searchParams.has("sortOrder")).toBe(false);
     expect(otherPages[0]?.searchParams.get("pageToken")).toBeNull();
     expect(otherPages[1]?.searchParams.get("pageToken")).toBe("other-2");
   });
