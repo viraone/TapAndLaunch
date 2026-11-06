@@ -65,7 +65,13 @@ const SEATTLE_TIME_ZONE = "America/Los_Angeles";
 
 /** The time in Seattle to the minute. Nothing renders until mounted, because the server has no "now"; the 1 s tick
  * keeps it within a second of the minute boundary, and state changes only when the text does. */
-function SeattleClock() {
+export function SeattleClock({
+  wrapperClassName = "ml-auto shrink-0 text-right",
+  textClassName = "text-2xl font-black tabular-nums tracking-tight",
+}: {
+  wrapperClassName?: string;
+  textClassName?: string;
+}) {
   const [time, setTime] = useState<string | null>(null);
   const last = useRef<string | null>(null);
   useEffect(() => {
@@ -81,8 +87,8 @@ function SeattleClock() {
   }, []);
   if (!time) return null;
   return (
-    <div className="ml-auto shrink-0 text-right">
-      <p className="text-2xl font-black tabular-nums tracking-tight">{time}</p>
+    <div className={wrapperClassName}>
+      <p className={textClassName}>{time}</p>
     </div>
   );
 }

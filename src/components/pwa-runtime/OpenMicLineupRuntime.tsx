@@ -7,7 +7,7 @@ import type { LineupFeed } from "@/lib/openmic/selection";
 import { LINEUP_FROM_MINUTES, formatShowDate, formatWeekTime, isLineupTime, isShowDay, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
-import { useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
+import { SeattleClock, useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
  * The show-night lineup for a screen at the venue (block view "lineup", its own page, e.g. /lineup). A full-screen
@@ -43,10 +43,6 @@ function previewNow(w: WeeklyWindow): Date {
 /** The on-deck colour: amber with black type, the most visible pairing on a dark screen in a dim room. */
 const ON_DECK = "bg-[#fbbf24] text-black";
 const ON_DECK_GLOW = "shadow-[0_0_0_3px_#fbbf24,0_0_48px_12px_rgba(251,191,36,0.35)]";
-
-function clockLabel(now: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" }).format(now);
-}
 
 export function OpenMicLineupRuntime({ config }: { config: OpenMicSignupBlockConfig }) {
   const client = useOpenMicClient(config);
@@ -118,9 +114,7 @@ function LineupPage({
             {today ? "Tonight" : "Next show"}
           </p>
           <p className="mt-1 whitespace-nowrap text-xl font-black tracking-tight md:text-3xl">{dateLabel}</p>
-          <p className="mt-1 hidden text-base tabular-nums text-muted-foreground md:block" aria-label="Current time">
-            {clockLabel(now, window_.timeZone)}
-          </p>
+          <SeattleClock wrapperClassName="mt-1" textClassName="text-xl font-black tabular-nums md:text-3xl" />
         </div>
       </header>
 

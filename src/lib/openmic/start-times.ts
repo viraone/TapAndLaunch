@@ -15,10 +15,25 @@ export const CHANGEOVER_SECONDS = 45;
 /** Used when a row's set length is empty, has no number, or is zero. */
 export const DEFAULT_SET_MINUTES = 3;
 
+/** A highlight older than this is stale (a previous show, or a test), so it must not move the times. */
+export const ANCHOR_MAX_AGE_MS = 3 * 60 * 60 * 1000;
+
+/** A highlight further ahead than this is nonsense for the same reason. */
+export const ANCHOR_MAX_FUTURE_MS = 2 * 60 * 1000;
+
 const MINUTE_MS = 60_000;
 const CHANGEOVER_MS = CHANGEOVER_SECONDS * 1000;
 
 export type StartLabel = { text: string; estimated: boolean };
+
+/** Epoch ms for a spotlight's `set_at`. Postgres can return a timestamp without a zone designator ("2026-11-07T03:05:30"
+ *  or "2026-11-07 03:05:30.12"); the database clock is UTC, so those are read as UTC. A string that already carries
+ *  a designator is parsed as it is. Unparseable -> NaN. */
+export function parseSetAt(value: string): number {
+  const text = value.trim();
+  if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(text)) return Date.parse(text);
+  return Date.parse(`${text.replace(" ", "T")}Z`);
+}
 
 /** Minutes in a sheet set length: "5 min" -> 5, "7" -> 7, "3 minutes" -> 3; anything unusable -> 3. */
 export function setMinutes(setLength: string): number {
@@ -40,8 +55,12 @@ export function estimateStartTimes(input: {
   const { lineup, spotlight, showDate, timeZone, now } = input;
   const labels: StartLabel[] = lineup.map((entry) => ({ text: entry.start_time, estimated: false }));
   const at = spotlightIndex(spotlight, lineup, showDate);
-  const anchor = spotlight ? Date.parse(spotlight.set_at) : Number.NaN;
+  const anchor = spotlight ? parseSetAt(spotlight.set_at) : Number.NaN;
   if (at === -1 || !Number.isFinite(anchor)) return labels;
+
+  // A stale or nonsense highlight must never change the times: it would show rows in the past or the future.
+  const nowMs = now.getTime();
+  if (anchor - nowMs > ANCHOR_MAX_FUTURE_MS || nowMs - anchor > ANCHOR_MAX_AGE_MS) return labels;
 
   if (at === 0) {
     // Nobody has walked on yet. The sheet time stands until it has passed; after that the show is late and starts now.

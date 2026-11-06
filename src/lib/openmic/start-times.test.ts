@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { LineupEntry } from "@/lib/openmic/selection";
 import type { Spotlight } from "./spotlight";
-import { estimateStartTimes, setMinutes } from "./start-times";
+import { estimateStartTimes, parseSetAt, setMinutes } from "./start-times";
 
 const lineup: LineupEntry[] = [
   { name: "Nick Cody", set_length: "5 min", start_time: "7:00 PM" },
@@ -93,6 +93,55 @@ describe("estimateStartTimes", () => {
     const rows = [{ ...lineup[0]!, start_time: "" }, ...lineup.slice(1)];
     const result = labels(spotlightAt(3, "Phil Ganz", "2026-11-07T03:05:30Z"), "2026-11-07T03:06:00Z", rows);
     expect(result[0]).toEqual({ text: "", estimated: false });
+  });
+
+  it("reads a set_at without a zone designator as UTC", () => {
+    const withZ = labels(spotlightAt(2, "Masih Ahmad", "2026-11-07T03:05:30Z"), "2026-11-07T03:06:00Z");
+    const withoutZ = labels(spotlightAt(2, "Masih Ahmad", "2026-11-07T03:05:30"), "2026-11-07T03:06:00Z");
+    expect(withoutZ).toEqual(withZ);
+  });
+
+  it("ignores a highlight more than 2 minutes in the future", () => {
+    expect(labels(spotlightAt(2, "Masih Ahmad", "2026-11-07T03:11:00Z"), "2026-11-07T03:06:00Z")).toEqual(sheetLabels());
+  });
+
+  it("ignores a highlight more than 3 hours old", () => {
+    expect(labels(spotlightAt(2, "Masih Ahmad", "2026-11-06T23:06:00Z"), "2026-11-07T03:06:00Z")).toEqual(sheetLabels());
+  });
+
+  it("still estimates from a highlight 2 h 50 min old, with the next row clamped to now", () => {
+    const result = labels(spotlightAt(2, "Masih Ahmad", "2026-11-07T00:16:00Z"), "2026-11-07T03:06:00Z");
+    expect(result[0]).toEqual({ text: "7:00 PM", estimated: false });
+    expect(result[1]).toEqual({ text: "4:16 PM", estimated: false });
+    expect(result.slice(2)).toEqual([
+      { text: "~7:06 PM", estimated: true },
+      { text: "~7:10 PM", estimated: true },
+      { text: "~7:14 PM", estimated: true },
+    ]);
+  });
+
+  it("still estimates from a highlight 90 seconds in the future", () => {
+    const result = labels(spotlightAt(2, "Masih Ahmad", "2026-11-07T03:07:30Z"), "2026-11-07T03:06:00Z");
+    expect(result[1]).toEqual({ text: "7:07 PM", estimated: false });
+    expect(result.slice(2)).toEqual([
+      { text: "~7:11 PM", estimated: true },
+      { text: "~7:15 PM", estimated: true },
+      { text: "~7:19 PM", estimated: true },
+    ]);
+  });
+});
+
+describe("parseSetAt", () => {
+  it("reads a Postgres timestamp without a zone designator as UTC", () => {
+    const utc = Date.parse("2026-11-07T03:05:30Z");
+    expect(parseSetAt("2026-11-07T03:05:30Z")).toBe(utc);
+    expect(parseSetAt("2026-11-07T03:05:30")).toBe(utc);
+    expect(parseSetAt("2026-11-07T03:05:30+00:00")).toBe(utc);
+    expect(parseSetAt("2026-11-07 03:05:30")).toBe(utc);
+  });
+
+  it("returns NaN for garbage", () => {
+    expect(parseSetAt("garbage")).toBeNaN();
   });
 });
 
