@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ensureSeriesVisits } from "@/lib/schedule/generate";
 import { addDays, localDateOf, zonedTimeToUtc } from "@/lib/schedule/recurrence";
+import { SchedulingShell } from "../SchedulingShell";
 import { ScheduleManager } from "./ScheduleManager";
 import { TurnOnScheduling } from "./TurnOnScheduling";
 
@@ -71,7 +72,7 @@ export default async function SchedulePage({ params }: { params: Params }) {
       .eq("active", true),
   ]);
 
-  return (
+  const screen = (
     <main className="mx-auto w-full max-w-2xl flex-1 p-6">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">{app.name} — schedule</h1>
@@ -96,5 +97,11 @@ export default async function SchedulePage({ params }: { params: Params }) {
         nowIso={now.toISOString()}
       />
     </main>
+  );
+
+  return (
+    <SchedulingShell appId={appId} active="schedule">
+      {screen}
+    </SchedulingShell>
   );
 }

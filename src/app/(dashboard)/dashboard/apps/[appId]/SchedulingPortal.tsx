@@ -1,23 +1,13 @@
 import Link from "next/link";
 import { ArrowRight, Circle, CircleCheck, Plus } from "lucide-react";
-import { BUSINESS_TOOLS } from "@/lib/apps/business-tools";
 import { formatClock } from "@/lib/format-date";
 import { isAppEditor } from "@/lib/org";
 import { getConnectionStatus } from "@/lib/integrations/google/connection";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { ensureSeriesVisits } from "@/lib/schedule/generate";
 import { addDays, localDateOf } from "@/lib/schedule/recurrence";
 import { countVisitsWithin, localDayBounds, localDaysBounds, visitsWithin } from "@/lib/schedule/day";
-import {
-  automationTileStatus,
-  customersTileStatus,
-  moreThisWeekLine,
-  remindersTileStatus,
-  scheduleTileStatus,
-  setupSteps,
-  visitLengthLabel,
-} from "@/lib/schedule/portal";
+import { moreThisWeekLine, setupSteps, visitLengthLabel } from "@/lib/schedule/portal";
 import type { ScheduleVisitStatus } from "@/types/database";
 
 const STATUS: Record<ScheduleVisitStatus, { label: string; className: string }> = {
@@ -32,8 +22,8 @@ const CARD = "rounded-2xl bg-neutral-100 p-5 sm:p-6";
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950";
 
 /**
- * The home of a visiting business (Scheduling on): what is on today, the one step to do next, and the four private
- * business sections. The public website still exists; its link lives quietly in the page header.
+ * The home of a visiting business (Scheduling on): what is on today and the one step to do next. The four private
+ * business sections live in the sidebar. The public website still exists; its link lives quietly in the page header.
  */
 export async function SchedulingPortal({ appId, timeZone }: { appId: string; timeZone: string }) {
   const supabase = await createClient();
@@ -50,7 +40,6 @@ export async function SchedulingPortal({ appId, timeZone }: { appId: string; tim
   const today = localDateOf(now, timeZone);
   const todayBounds = localDayBounds(today, timeZone);
   const nextWeekBounds = localDaysBounds(addDays(today, 1), 7, timeZone);
-  const weekBounds = localDaysBounds(today, 8, timeZone);
 
   const [{ data: visits }, { data: customers }, { count: visitCount }] = await Promise.all([
     supabase
@@ -67,61 +56,21 @@ export async function SchedulingPortal({ appId, timeZone }: { appId: string; tim
 
   const todayVisits = visitsWithin(visits ?? [], todayBounds);
   const nextWeekCount = countVisitsWithin(visits ?? [], nextWeekBounds, ["scheduled", "confirmed"]);
-  const weekCount = countVisitsWithin(visits ?? [], weekBounds, ["scheduled", "confirmed"]);
   const customerNames = new Map((customers ?? []).map((customer) => [customer.id, customer.name]));
   const customerCount = customers?.length ?? 0;
   const anyVisit = (visitCount ?? 0) > 0;
   const scheduleHref = `/dashboard/apps/${appId}/schedule`;
 
-  // The Gmail connection and the Automation tables are private: read them only after the signed-in person is shown
-  // to be an editor of this app.
+  // The Gmail connection is private: read it only after the signed-in person is shown to be an editor of this app.
   let editor = false;
-  let gmailConnected = false;
-  let gmailNeedsReconnect = false;
   let gmailReady = false;
-  let remindersOn = false;
-  let reminderHours: number | null = null;
-  let automationCount = 0;
   if (await isAppEditor(supabase, appId)) {
     editor = true;
-    const admin = createAdminClient();
-    const [gmail, reminder, automations] = await Promise.all([
-      getConnectionStatus(appId),
-      admin.from("reminder_settings").select("enabled, hours_before").eq("app_id", appId).maybeSingle(),
-      admin.from("automation_reminders").select("id", { count: "exact", head: true }).eq("app_id", appId).eq("enabled", true),
-    ]);
-    gmailConnected = gmail.connected;
-    gmailNeedsReconnect = gmail.needsReconnect;
+    const gmail = await getConnectionStatus(appId);
     gmailReady = gmail.connected && gmail.canSend && !gmail.needsReconnect;
-    remindersOn = reminder.data?.enabled ?? false;
-    reminderHours = reminder.data?.hours_before ?? null;
-    automationCount = automations.count ?? 0;
   }
 
   const setup = setupSteps({ customers: customerCount, anyVisit, gmailReady });
-
-  // A non-editor gets the plain hint from the shared business-tools list for the two private sections.
-  function tileStatus(path: string, hint: string): string {
-    switch (path) {
-      case "schedule":
-        return scheduleTileStatus(weekCount);
-      case "customers":
-        return customersTileStatus(customerCount);
-      case "reminders":
-        return editor
-          ? remindersTileStatus({
-              connected: gmailConnected,
-              needsReconnect: gmailNeedsReconnect,
-              enabled: remindersOn,
-              hoursBefore: reminderHours,
-            })
-          : hint;
-      case "automation":
-        return editor ? automationTileStatus(automationCount) : hint;
-      default:
-        return hint;
-    }
-  }
 
   return (
     <>
@@ -216,20 +165,6 @@ export async function SchedulingPortal({ appId, timeZone }: { appId: string; tim
             See the full schedule
           </Link>
         </p>
-      </section>
-
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {BUSINESS_TOOLS.map(({ path, label, hint, icon: Icon }) => (
-          <Link
-            key={path}
-            href={`/dashboard/apps/${appId}/${path}`}
-            className={`flex min-h-28 flex-col rounded-2xl bg-neutral-100 p-5 transition hover:bg-neutral-200/70 ${FOCUS}`}
-          >
-            <Icon aria-hidden className="h-5 w-5 text-neutral-900" />
-            <span className="mt-2 block text-sm font-medium text-neutral-950">{label}</span>
-            <span className="mt-auto block pt-1 text-xs text-neutral-500">{tileStatus(path, hint)}</span>
-          </Link>
-        ))}
       </section>
     </>
   );

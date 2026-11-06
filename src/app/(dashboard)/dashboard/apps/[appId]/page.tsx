@@ -13,6 +13,7 @@ import { localDateOf } from "@/lib/schedule/recurrence";
 import { todayHeaderLine } from "@/lib/schedule/portal";
 import { CopyButton } from "@/components/dashboard/CopyButton";
 import { SchedulingPortal } from "./SchedulingPortal";
+import { SchedulingShell } from "./SchedulingShell";
 
 type Params = Promise<{ appId: string }>;
 
@@ -88,8 +89,7 @@ export default async function AppHomePage({ params }: { params: Params }) {
   const qrSvg = published && !schedulingOn ? await QRCode.toString(liveUrl, { type: "svg", margin: 1, color: { dark: "#0a0a0a", light: "#ffffff" } }) : null;
   const qrPng = published && !schedulingOn ? await QRCode.toDataURL(liveUrl, { width: 1024, margin: 2 }) : null;
 
-  return (
-    <main className={`flex-1 ${schedulingOn ? "bg-white" : "bg-neutral-100/70"}`}>
+  const content = (
       <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8 sm:px-6">
         <header className={`flex flex-wrap items-center gap-4 ${schedulingOn ? "border-b border-neutral-200 pb-6" : ""}`}>
           {iconUrl ? (
@@ -269,6 +269,17 @@ export default async function AppHomePage({ params }: { params: Params }) {
           </>
         )}
       </div>
+  );
+
+  return (
+    <main className={`flex-1 ${schedulingOn ? "flex flex-col bg-white" : "bg-neutral-100/70"}`}>
+      {schedulingOn ? (
+        <SchedulingShell appId={app.id} active="home">
+          {content}
+        </SchedulingShell>
+      ) : (
+        content
+      )}
     </main>
   );
 }

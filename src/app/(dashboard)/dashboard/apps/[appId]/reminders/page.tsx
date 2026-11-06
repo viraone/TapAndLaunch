@@ -7,6 +7,7 @@ import { isGoogleConfigured } from "@/lib/integrations/google/oauth";
 import { addDays, localDateOf, zonedTimeToUtc } from "@/lib/schedule/recurrence";
 import { DEFAULT_REMINDER } from "@/lib/reminders/render";
 import type { ReminderSettingsInput } from "@/lib/reminders/validate";
+import { SchedulingShell } from "../SchedulingShell";
 import { TurnOnScheduling } from "../schedule/TurnOnScheduling";
 import { AutomaticRemindersCard } from "./AutomaticRemindersCard";
 import { GMAIL_MESSAGES } from "@/lib/integrations/google/messages";
@@ -86,7 +87,7 @@ export default async function RemindersPage({
     settings.time_zone
   ).toISOString();
 
-  return (
+  const screen = (
     <main className="mx-auto w-full max-w-2xl flex-1 p-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">{app.name} — reminders</h1>
@@ -118,5 +119,11 @@ export default async function RemindersPage({
         <RecentReminders appId={appId} timeZone={settings.time_zone} />
       </div>
     </main>
+  );
+
+  return (
+    <SchedulingShell appId={appId} active="reminders">
+      {screen}
+    </SchedulingShell>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { SchedulingShell } from "../SchedulingShell";
 import { TurnOnScheduling } from "../schedule/TurnOnScheduling";
 import { CustomersManager } from "./CustomersManager";
 
@@ -27,7 +28,7 @@ export default async function CustomersPage({ params }: { params: Params }) {
         .order("name", { ascending: true })
     : { data: null };
 
-  return (
+  const screen = (
     <main className="mx-auto w-full max-w-2xl flex-1 p-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">{app.name} — customers</h1>
@@ -42,5 +43,13 @@ export default async function CustomersPage({ params }: { params: Params }) {
         <TurnOnScheduling appId={appId} />
       )}
     </main>
+  );
+
+  return settings ? (
+    <SchedulingShell appId={appId} active="customers">
+      {screen}
+    </SchedulingShell>
+  ) : (
+    screen
   );
 }
