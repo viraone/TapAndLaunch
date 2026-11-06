@@ -82,7 +82,6 @@ function SeattleClock() {
   return (
     <div className="ml-auto shrink-0 text-right">
       <p className="text-2xl font-black tabular-nums tracking-tight">{time}</p>
-      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Seattle time</p>
     </div>
   );
 }
