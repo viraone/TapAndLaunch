@@ -1166,7 +1166,9 @@ export function LineupList({ feed }: { feed: LineupFeed }) {
   return (
     <section aria-label="Lineup">
       {/* Each row is its own small card with its place in the order; the comic's own row carries the colour,
-          a left bar and a soft glow. Rows slide in one after another (openmic-row, globals.css). */}
+          a left bar and a soft glow. Rows slide in one after another (openmic-row, globals.css). The outline is
+          drawn inside the row (ring-inset): the scroller is exactly as wide as the rows and clips anything outside
+          them, which cut the sides and corners of the highlighted row's outline. */}
       <ol className="mt-2 space-y-1.5">
         {feed.lineup.map((entry, i) => (
           <li
@@ -1174,7 +1176,7 @@ export function LineupList({ feed }: { feed: LineupFeed }) {
             aria-current={entry.mine ? "true" : undefined}
             style={{ animationDelay: `${Math.min(i, 14) * 35}ms` }}
             className={
-              "openmic-row relative flex min-h-14 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-3 ring-1 " +
+              "openmic-row relative flex min-h-14 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-3 ring-1 ring-inset " +
               (entry.mine
                 ? "bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))] ring-primary"
                 : "bg-muted ring-white/[0.06]")
