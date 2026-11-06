@@ -163,7 +163,7 @@ function HostPreview({ config, empty }: { config: OpenMicSignupBlockConfig; empt
           chat={empty ? { count: 0, names: [] } : { count: 3, names: ["Nick", "Noah"] }}
           onDismiss={() => {}}
         />
-        {client && <HostLineup client={client} config={config} today={false} />}
+        {client && <HostLineup client={client} config={config} />}
       </div>
     </div>
   );
@@ -362,7 +362,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
         {phase === "host" && user && (
           <>
             <HostInbox client={client} user={user} timeZone={window_.timeZone} />
-            {showDayOn && isLineupTime(window_, now) && <HostLineup client={client} config={config} today={isShowDay(window_, now)} />}
+            {showDayOn && isLineupTime(window_, now) && <HostLineup client={client} config={config} />}
           </>
         )}
 
@@ -1153,7 +1153,7 @@ export function ShowDay({
       {optIn}
 
       {lineupTime && config.show_lineup !== false && feed?.posted && feed.lineup.length > 0 && (
-        <LineupList feed={feed} today={today} />
+        <LineupList feed={feed} />
       )}
     </div>
   );
@@ -1162,22 +1162,9 @@ export function ShowDay({
 /** The lineup as an inset grouped list (the comics' show-day screen and the hosts' Home): place in the order, name,
  * set length and start time; the asking comic's own row (entry.mine) carries the colour and one clean outline (no bar or glow: stacked edges
  * looked doubled on a phone). */
-export function LineupList({ feed, today }: { feed: LineupFeed; today: boolean }) {
+export function LineupList({ feed }: { feed: LineupFeed }) {
   return (
     <section aria-label="Lineup">
-      {/* Like an iOS inset grouped list: the section header sits outside the card and stays
-          pinned while the rows slide under it. Solid, not translucent: a blurred header let
-          the edge of a row show above it on iOS Safari. The 8px strip above it (before:) covers
-          the gap if Safari paints the sticky header late; the list has no overflow-hidden mask
-          (rows round their own corners) because that mask can escape the scroller's clip. */}
-      <div className="sticky top-0 z-10 bg-[color-mix(in_oklab,var(--primary)_16%,var(--background))] px-4 pb-3 pt-3.5 before:absolute before:inset-x-0 before:bottom-full before:h-2 before:bg-inherit">
-        <div className="min-w-0">
-          <h2 className="text-[15px] font-black uppercase tracking-[0.14em] text-primary">
-            {today ? "Tonight's lineup" : "Lineup"}
-          </h2>
-          {feed.lineup[0]?.start_time && <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">First up {feed.lineup[0].start_time}</p>}
-        </div>
-      </div>
       {/* Each row is its own small card with its place in the order; the comic's own row carries the colour,
           a left bar and a soft glow. Rows slide in one after another (openmic-row, globals.css). */}
       <ol className="mt-2 space-y-1.5">
@@ -1213,7 +1200,7 @@ export function LineupList({ feed, today }: { feed: LineupFeed; today: boolean }
 
 /** The hosts' Home, from the time the lineup goes up until requests reopen: the same list the comics see, under
  * the inbox, so a host needn't open the Remote just to read the order. No row is "mine" for a host. */
-function HostLineup({ client, config, today }: { client: SupabaseClient; config: OpenMicSignupBlockConfig; today: boolean }) {
+function HostLineup({ client, config }: { client: SupabaseClient; config: OpenMicSignupBlockConfig }) {
   const { feed, failed } = useLineup(config.lineup_url, client, undefined, true);
   if (!feed && !failed) {
     return (
@@ -1240,7 +1227,7 @@ function HostLineup({ client, config, today }: { client: SupabaseClient; config:
   }
   return (
     <div className="mt-4">
-      <LineupList feed={feed} today={today} />
+      <LineupList feed={feed} />
     </div>
   );
 }
