@@ -2,7 +2,7 @@ import { z } from "zod";
 import { getPublishedApp } from "@/lib/pwa/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { comicFromToken, isHostToken, showProjectFor } from "@/lib/openmic/push-server";
-import { buildSystemPrompt, EDITS_NOT_LIVE, parseModelAnswer, previewCommand } from "@/lib/openmic/ai-commands";
+import { buildSystemPrompt, EDITS_NOT_LIVE, isSpotlightCommand, parseModelAnswer, previewCommand } from "@/lib/openmic/ai-commands";
 import type { LineupFeed } from "@/lib/openmic/selection";
 import { allowSearch } from "@/lib/domains/search-limit";
 import { askDeepSeek } from "@/lib/ai/deepseek";
@@ -102,5 +102,7 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
 
   const preview = previewCommand(command, feed?.lineup ?? []);
   if (!preview.ok) return Response.json({ reply: preview.text, command: null });
+  // on_deck and performing are live on the hosts' phone, so they carry no "preview only" line.
+  if (isSpotlightCommand(command)) return Response.json({ reply: preview.text, command });
   return Response.json({ reply: `${preview.text} ${EDITS_NOT_LIVE}`, command });
 }

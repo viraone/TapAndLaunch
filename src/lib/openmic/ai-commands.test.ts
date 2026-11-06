@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { EDITS_NOT_LIVE, buildSystemPrompt, matchComic, parseModelAnswer, previewCommand, type LineupCommand } from "./ai-commands";
+import {
+  EDITS_NOT_LIVE,
+  buildSystemPrompt,
+  matchComic,
+  parseModelAnswer,
+  planSpotlight,
+  previewCommand,
+  spotlightReply,
+  type LineupCommand,
+} from "./ai-commands";
 
 const LINEUP = [{ name: "Jeff Morris" }, { name: "David Chen" }, { name: "David Ortiz" }, { name: "Lori Peck" }];
+const SHOW = [{ name: "Jeff Morris" }, { name: "Katie Nguyen" }, { name: "David Chen" }, { name: "Lori Peck" }];
 
 describe("parseModelAnswer", () => {
   it("reads a plain JSON answer", () => {
@@ -26,6 +36,8 @@ describe("parseModelAnswer", () => {
       { type: "swap", name: "David Chen", other: "Lori Peck" },
       { type: "no_show", name: "David Chen" },
       { type: "back", name: "David Chen" },
+      { type: "on_deck", name: "David Chen" },
+      { type: "performing", name: "David Chen" },
       { type: "undo" },
     ];
     for (const command of commands) {
@@ -64,6 +76,12 @@ describe("parseModelAnswer", () => {
     expect(parseModelAnswer('{"reply":"Hmm.","command":{"type":"add","name":"Sam","position":"sideways"}}').command).toBeNull();
   });
 
+  it("drops an on_deck or performing command without a name", () => {
+    expect(parseModelAnswer('{"reply":"Hmm.","command":{"type":"on_deck"}}').command).toBeNull();
+    expect(parseModelAnswer('{"reply":"Hmm.","command":{"type":"performing"}}').command).toBeNull();
+    expect(parseModelAnswer('{"reply":"Hmm.","command":{"type":"on_deck","name":"   "}}').command).toBeNull();
+  });
+
   it("falls back to the plain text when the JSON has no reply string", () => {
     expect(parseModelAnswer('{"command":null}')).toEqual({ reply: '{"command":null}', command: null });
   });
@@ -100,6 +118,68 @@ describe("matchComic", () => {
 
   it("says none for an empty name", () => {
     expect(matchComic("   ", LINEUP)).toEqual({ kind: "none" });
+  });
+});
+
+describe("planSpotlight", () => {
+  it("puts the spotlight on the comic named on deck, by first name", () => {
+    expect(planSpotlight({ type: "on_deck", name: "Katie" }, SHOW)).toEqual({
+      ok: true,
+      index: 1,
+      name: "Katie Nguyen",
+      performing: "Jeff Morris",
+    });
+  });
+
+  it("has nobody performing when the first comic is on deck", () => {
+    expect(planSpotlight({ type: "on_deck", name: "Jeff" }, SHOW)).toEqual({
+      ok: true,
+      index: 0,
+      name: "Jeff Morris",
+      performing: null,
+    });
+  });
+
+  it("puts the next comic on deck when one is performing", () => {
+    expect(planSpotlight({ type: "performing", name: "Katie" }, SHOW)).toEqual({
+      ok: true,
+      index: 2,
+      name: "David Chen",
+      performing: "Katie Nguyen",
+    });
+  });
+
+  it("refuses performing on the last comic", () => {
+    expect(planSpotlight({ type: "performing", name: "Lori" }, SHOW)).toEqual({
+      ok: false,
+      text: "Lori Peck is the last comic, so there is nobody to put on deck.",
+    });
+  });
+
+  it("asks which one when a name matches two comics", () => {
+    expect(planSpotlight({ type: "on_deck", name: "David" }, LINEUP)).toEqual({
+      ok: false,
+      text: "Which one: David Chen or David Ortiz?",
+    });
+  });
+
+  it("says when a name is not on the lineup", () => {
+    expect(planSpotlight({ type: "performing", name: "Sam" }, SHOW)).toEqual({
+      ok: false,
+      text: "I don't see Sam on the lineup.",
+    });
+  });
+});
+
+describe("spotlightReply", () => {
+  it("says who is on deck", () => {
+    expect(spotlightReply({ ok: true, index: 0, name: "Jeff Morris", performing: null })).toBe("Jeff Morris is on deck.");
+  });
+
+  it("adds who is performing now", () => {
+    expect(spotlightReply({ ok: true, index: 2, name: "David Chen", performing: "Katie Nguyen" })).toBe(
+      "David Chen is on deck. Katie Nguyen is performing now."
+    );
   });
 });
 
@@ -166,6 +246,30 @@ describe("previewCommand", () => {
     expect(previewCommand({ type: "undo" }, LINEUP)).toEqual({ ok: true, text: "Would undo the last change." });
   });
 
+  it("previews the two live commands in the words of the live move", () => {
+    expect(previewCommand({ type: "on_deck", name: "Jeff" }, SHOW)).toEqual({ ok: true, text: "Jeff Morris is on deck." });
+    expect(previewCommand({ type: "on_deck", name: "Katie" }, SHOW)).toEqual({
+      ok: true,
+      text: "Katie Nguyen is on deck. Jeff Morris is performing now.",
+    });
+    expect(previewCommand({ type: "performing", name: "Katie" }, SHOW)).toEqual({
+      ok: true,
+      text: "David Chen is on deck. Katie Nguyen is performing now.",
+    });
+  });
+
+  it("refuses a live command that cannot be made", () => {
+    expect(previewCommand({ type: "performing", name: "Lori" }, SHOW)).toEqual({
+      ok: false,
+      text: "Lori Peck is the last comic, so there is nobody to put on deck.",
+    });
+    expect(previewCommand({ type: "on_deck", name: "Sam" }, SHOW)).toEqual({ ok: false, text: "I don't see Sam on the lineup." });
+    expect(previewCommand({ type: "performing", name: "David" }, LINEUP)).toEqual({
+      ok: false,
+      text: "Which one: David Chen or David Ortiz?",
+    });
+  });
+
   it("says when a name is not on the lineup", () => {
     expect(previewCommand({ type: "remove", name: "Sam" }, LINEUP)).toEqual({ ok: false, text: "I don't see Sam on the lineup." });
   });
@@ -219,5 +323,12 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("Minutes are never part of a command.");
     expect(prompt).toContain("Do not say a change was made.");
     expect(prompt).toContain("Never mention any email address.");
+  });
+
+  it("lists the two commands that happen right away", () => {
+    const prompt = buildSystemPrompt([], null);
+    expect(prompt).toContain("on_deck");
+    expect(prompt).toContain("performing");
+    expect(prompt).toContain("happen right away");
   });
 });

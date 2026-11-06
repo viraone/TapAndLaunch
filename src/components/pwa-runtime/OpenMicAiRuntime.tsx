@@ -6,7 +6,11 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { Loader2, Lock, Send } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
-import { PINNED_PAGE, PINNED_SCROLL, useOpenMicClient } from "./OpenMicSignupRuntime";
+import { showDateFor } from "@/lib/openmic/window";
+import { setSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { upNextStatus } from "@/lib/openmic/push";
+import { isSpotlightCommand, planSpotlight, spotlightReply, type LineupCommand } from "@/lib/openmic/ai-commands";
+import { PINNED_PAGE, PINNED_SCROLL, useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
  * StageTime's AI tab (block view "ai"), for the show's hosts only: a chat about the lineup that also previews
@@ -106,13 +110,46 @@ function AiGate({ config }: { config: OpenMicSignupBlockConfig }) {
       </div>
     );
   }
-  return <Chat client={client} />;
+  return <Chat client={client} config={config} userId={user.id} />;
 }
 
-function Chat({ client }: { client: SupabaseClient }) {
+function Chat({ client, config, userId }: { client: SupabaseClient; config: OpenMicSignupBlockConfig; userId: string }) {
+  const window_ = windowOf(config);
+  const now = useNow();
+  const showDate = showDateFor(window_, now);
+  const showYmd = ymd(showDate);
+  // The host needs the list whatever the day (a Thursday run-through, say), so this never waits for show day.
+  const { feed, failed } = useLineup(config.lineup_url, client, userId, true);
+  const lineup = feed?.lineup ?? [];
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
+
+  /** The up-next push, the same call the Remote makes: the server checks the token is a host's. */
+  async function pushUpNext(name: string): Promise<{ sent: number; matched: number } | null> {
+    try {
+      const { data } = await client.auth.getSession();
+      const res = await fetch("/openmic/up-next", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: data.session?.access_token, name }),
+      });
+      return res.ok ? ((await res.json()) as { sent: number; matched: number }) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** A live on_deck or performing: move the spotlight, then buzz the comic now on deck. */
+  async function applySpotlight(command: Extract<LineupCommand, { type: "on_deck" | "performing" }>): Promise<string> {
+    if (!feed || failed) return "The lineup has not loaded yet. Try again in a moment.";
+    const plan = planSpotlight(command, lineup);
+    if (!plan.ok) return plan.text;
+    const problem = await setSpotlight(client, showYmd, lineup, plan.index);
+    if (problem) return "That did not save. Check the connection and try again.";
+    const result = await pushUpNext(plan.name);
+    return `${spotlightReply(plan)} ${upNextStatus(plan.name, result)}`;
+  }
 
   async function send() {
     const text = input.trim();
@@ -127,14 +164,20 @@ function Chat({ client }: { client: SupabaseClient }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: data.session?.access_token, messages: next.slice(-12) }),
       });
-      const body = (await res.json().catch(() => ({}))) as { reply?: unknown; error?: unknown };
+      const body = (await res.json().catch(() => ({}))) as { reply?: string; error?: string; command?: LineupCommand | null };
       if (!res.ok) {
         // The server's own words (signed out, too fast, the AI didn't answer), with the question still in the box.
         setInput(text);
         setMessages([...messages, { role: "assistant", content: typeof body.error === "string" ? body.error : "The AI didn't answer. Try again." }]);
         return;
       }
-      setMessages([...next, { role: "assistant", content: typeof body.reply === "string" ? body.reply : "I didn't get an answer. Try again." }]);
+      const command = body.command ?? null;
+      const content = isSpotlightCommand(command)
+        ? await applySpotlight(command)
+        : typeof body.reply === "string"
+          ? body.reply
+          : "I didn't get an answer. Try again.";
+      setMessages([...next, { role: "assistant", content }]);
     } catch {
       setInput(text);
       setMessages([...messages, { role: "assistant", content: "The AI didn't answer. Try again." }]);

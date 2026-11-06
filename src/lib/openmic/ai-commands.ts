@@ -11,6 +11,8 @@ export type LineupCommand =
   | { type: "swap"; name: string; other: string }
   | { type: "no_show"; name: string }
   | { type: "back"; name: string }
+  | { type: "on_deck"; name: string }
+  | { type: "performing"; name: string }
   | { type: "undo" };
 
 /** What the hosts read after a preview until the in-app lineup can make the change itself. */
@@ -77,6 +79,14 @@ function commandOf(value: unknown): LineupCommand | null {
     case "back": {
       const name = stringField(command.name);
       return name ? { type: "back", name } : null;
+    }
+    case "on_deck": {
+      const name = stringField(command.name);
+      return name ? { type: "on_deck", name } : null;
+    }
+    case "performing": {
+      const name = stringField(command.name);
+      return name ? { type: "performing", name } : null;
     }
     case "undo":
       return { type: "undo" };
@@ -145,6 +155,34 @@ function resolve(name: string, lineup: { name: string }[]): Resolved {
   return { ok: false, text: `I don't see ${name.trim()} on the lineup.` };
 }
 
+export type SpotlightPlan = { ok: true; index: number; name: string; performing: string | null } | { ok: false; text: string };
+
+/**
+ * Where a live on_deck or performing command would put the spotlight. `on_deck` highlights the comic the host
+ * named; `performing` highlights the row after them, because the comic on stage now means the next one is on
+ * deck. The row before (on_deck) or the comic named (performing) is who is already on stage.
+ */
+export function planSpotlight(command: Extract<LineupCommand, { type: "on_deck" | "performing" }>, lineup: { name: string }[]): SpotlightPlan {
+  const who = resolve(command.name, lineup);
+  if (!who.ok) return who;
+  const row = lineup.findIndex((entry) => entry.name === who.name);
+  if (command.type === "on_deck") {
+    return { ok: true, index: row, name: who.name, performing: row > 0 ? lineup[row - 1]!.name : null };
+  }
+  const next = lineup[row + 1];
+  if (!next) return { ok: false, text: `${who.name} is the last comic, so there is nobody to put on deck.` };
+  return { ok: true, index: row + 1, name: next.name, performing: who.name };
+}
+
+export function isSpotlightCommand(command: LineupCommand | null): command is Extract<LineupCommand, { type: "on_deck" | "performing" }> {
+  return command !== null && (command.type === "on_deck" || command.type === "performing");
+}
+
+/** What the hosts read back after a live spotlight move. */
+export function spotlightReply(plan: Extract<SpotlightPlan, { ok: true }>): string {
+  return plan.performing ? `${plan.name} is on deck. ${plan.performing} is performing now.` : `${plan.name} is on deck.`;
+}
+
 /**
  * The sentence for a command, checked against the current lineup. A change with a name that isn't on the lineup
  * (or is on it twice) is refused with the sentence that asks which one; `ok` is true only for a change that
@@ -196,6 +234,11 @@ export function previewCommand(command: LineupCommand, lineup: { name: string }[
       if (!who.ok) return who;
       return { ok: true, text: `Would put ${who.name} back on the lineup.` };
     }
+    case "on_deck":
+    case "performing": {
+      const plan = planSpotlight(command, lineup);
+      return plan.ok ? { ok: true, text: spotlightReply(plan) } : { ok: false, text: plan.text };
+    }
     case "undo":
       return { ok: true, text: "Would undo the last change." };
   }
@@ -232,12 +275,17 @@ export function buildSystemPrompt(lineup: { name: string; set_length: string; st
     '{"type": "swap", "name": "existing comic", "other": "existing comic"}',
     '{"type": "no_show", "name": "existing comic"}',
     '{"type": "back", "name": "existing comic"}',
+    '{"type": "on_deck", "name": "existing comic"}',
+    '{"type": "performing", "name": "existing comic"}',
     '{"type": "undo"}',
     "",
     "Use `of` only with above or below.",
+    "on_deck: the host says a comic is on deck, up next, next, or should be buzzed.",
+    "performing: the host says a comic is performing now, on stage now, or just started.",
+    "on_deck and performing happen right away; the other commands are previews only.",
     "One command per message. If a host asks for two changes at once, ask for one at a time first.",
     "Minutes are never part of a command.",
-    "Do not say a change was made. These commands are previews only.",
+    "Do not say a change was made.",
     "Never mention any email address.",
   ].join("\n");
 }
