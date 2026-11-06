@@ -2,7 +2,15 @@ import { z } from "zod";
 import { getPublishedApp } from "@/lib/pwa/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { comicFromToken, isHostToken, showProjectFor } from "@/lib/openmic/push-server";
-import { buildSystemPrompt, EDITS_NOT_LIVE, isSpotlightCommand, parseModelAnswer, previewCommand } from "@/lib/openmic/ai-commands";
+import {
+  bareNameCommand,
+  buildSystemPrompt,
+  EDITS_NOT_LIVE,
+  isSpotlightCommand,
+  parseModelAnswer,
+  previewCommand,
+  type LineupCommand,
+} from "@/lib/openmic/ai-commands";
 import type { LineupFeed } from "@/lib/openmic/selection";
 import { allowSearch } from "@/lib/domains/search-limit";
 import { askDeepSeek } from "@/lib/ai/deepseek";
@@ -89,15 +97,20 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
     ? buildSystemPrompt(feed.lineup, feed.showDate)
     : `${buildSystemPrompt([], null)}\n\nThe lineup could not be loaded just now.`;
 
-  let answer: string;
-  try {
-    answer = await askDeepSeek({ system, turns: parsed.data.messages, apiKey });
-  } catch (error) {
-    console.error(`openmic/ai: ${error instanceof Error ? error.message : String(error)}`);
-    return Response.json({ error: "The AI didn't answer. Try again." }, { status: 502 });
+  // A message that is only a comic's name is on_deck, read here so it is instant and cannot be misread.
+  const lastText = parsed.data.messages[parsed.data.messages.length - 1]!.content;
+  let reply = "";
+  let command: LineupCommand | null = bareNameCommand(lastText, feed?.lineup ?? []);
+  if (!command) {
+    let answer: string;
+    try {
+      answer = await askDeepSeek({ system, turns: parsed.data.messages, apiKey });
+    } catch (error) {
+      console.error(`openmic/ai: ${error instanceof Error ? error.message : String(error)}`);
+      return Response.json({ error: "The AI didn't answer. Try again." }, { status: 502 });
+    }
+    ({ reply, command } = parseModelAnswer(answer));
   }
-
-  const { reply, command } = parseModelAnswer(answer);
   if (!command) return Response.json({ reply, command: null });
 
   const preview = previewCommand(command, feed?.lineup ?? []);

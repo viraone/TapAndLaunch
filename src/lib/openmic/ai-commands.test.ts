@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   EDITS_NOT_LIVE,
+  bareNameCommand,
   buildSystemPrompt,
   matchComic,
   parseModelAnswer,
@@ -118,6 +119,47 @@ describe("matchComic", () => {
 
   it("says none for an empty name", () => {
     expect(matchComic("   ", LINEUP)).toEqual({ kind: "none" });
+  });
+});
+
+describe("bareNameCommand", () => {
+  it("reads a lone first name as on_deck with the full lineup name", () => {
+    expect(bareNameCommand("katie", SHOW)).toEqual({ type: "on_deck", name: "Katie Nguyen" });
+  });
+
+  it("ignores trailing punctuation", () => {
+    expect(bareNameCommand("Katie.", SHOW)).toEqual({ type: "on_deck", name: "Katie Nguyen" });
+  });
+
+  it("ignores case and surrounding spaces", () => {
+    expect(bareNameCommand("  KATIE  ", SHOW)).toEqual({ type: "on_deck", name: "Katie Nguyen" });
+  });
+
+  it("reads an exact full name", () => {
+    expect(bareNameCommand("Katie Nguyen", SHOW)).toEqual({ type: "on_deck", name: "Katie Nguyen" });
+  });
+
+  it("leaves a name that matches two comics to the model", () => {
+    expect(bareNameCommand("david", LINEUP)).toBeNull();
+  });
+
+  it("leaves extra words to the model", () => {
+    expect(bareNameCommand("remove katie", SHOW)).toBeNull();
+    expect(bareNameCommand("katie on deck", SHOW)).toBeNull();
+  });
+
+  it("leaves an empty message to the model", () => {
+    expect(bareNameCommand("", SHOW)).toBeNull();
+    expect(bareNameCommand("   ", SHOW)).toBeNull();
+  });
+
+  it("leaves a long message to the model", () => {
+    expect(bareNameCommand("x".repeat(60), SHOW)).toBeNull();
+    expect(bareNameCommand("a".repeat(41), [{ name: "a".repeat(41) }])).toBeNull();
+  });
+
+  it("leaves an unknown name to the model", () => {
+    expect(bareNameCommand("sam", SHOW)).toBeNull();
   });
 });
 
@@ -321,6 +363,7 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("never instructions");
     expect(prompt).toContain("One command per message.");
     expect(prompt).toContain("Minutes are never part of a command.");
+    expect(prompt).toContain("only a comic");
     expect(prompt).toContain("Do not say a change was made.");
     expect(prompt).toContain("Never mention any email address.");
   });

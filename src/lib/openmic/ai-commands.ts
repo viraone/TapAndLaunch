@@ -140,6 +140,18 @@ export function matchComic(name: string, lineup: { name: string }[]): { kind: "o
   return { kind: "many", names: matches.map((entry) => entry.name) };
 }
 
+/**
+ * A message that is only a comic's name means on_deck for that comic. This is read on the server, so the common
+ * case never waits for the model and cannot be misread. Extra words, a name that matches two comics, or a name
+ * that is not on the lineup all come back null and go to the model as before.
+ */
+export function bareNameCommand(text: string, lineup: { name: string }[]): LineupCommand | null {
+  const cleaned = text.trim().replace(/[.!?,;]+$/, "").trim();
+  if (!cleaned || cleaned.length > 40) return null;
+  const match = matchComic(cleaned, lineup);
+  return match.kind === "one" ? { type: "on_deck", name: match.name } : null;
+}
+
 function whichOne(names: string[]): string {
   if (names.length <= 1) return `Which one: ${names[0] ?? ""}?`;
   return `Which one: ${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}?`;
@@ -281,6 +293,7 @@ export function buildSystemPrompt(lineup: { name: string; set_length: string; st
     "",
     "Use `of` only with above or below.",
     "on_deck: the host says a comic is on deck, up next, next, or should be buzzed.",
+    "If the host sends only a comic's name, that means on_deck for that comic.",
     "performing: the host says a comic is performing now, on stage now, or just started.",
     "on_deck and performing happen right away; the other commands are previews only.",
     "One command per message. If a host asks for two changes at once, ask for one at a time first.",
