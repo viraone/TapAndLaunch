@@ -74,9 +74,15 @@ export function useSpotlight(client: SupabaseClient | null): { spotlight: Spotli
 /** Move the spotlight (hosts only; the database refuses anyone else). `index` -1 clears it. */
 export async function setSpotlight(client: SupabaseClient, showDate: string, lineup: LineupEntry[], index: number): Promise<string | null> {
   const entry = index >= 0 ? lineup[index] : undefined;
+  const moved = { show_date: showDate, position: entry ? index : null, name: entry?.name ?? "" };
   const { error } = await client
     .from("lineup_spotlight")
-    .update({ show_date: showDate, position: entry ? index : null, name: entry?.name ?? "" })
+    .update({ ...moved, set_at: new Date().toISOString() })
     .eq("id", 1);
-  return error ? error.message : null;
+  if (!error) return null;
+  // The anchor for the live start times rides along, but a column permission must never stop the Remote or the AI
+  // tab moving the highlight: if writing set_at was the problem, move it once without, and the board falls back to
+  // the sheet's times.
+  const retry = await client.from("lineup_spotlight").update(moved).eq("id", 1);
+  return retry.error ? retry.error.message : null;
 }

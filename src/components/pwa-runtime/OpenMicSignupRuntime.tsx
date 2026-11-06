@@ -12,6 +12,7 @@ import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { isLineupPreviewer } from "@/lib/openmic/preview-emails";
 import { setSignedInName } from "@/lib/openmic/signed-in-name";
 import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
 import { HostInbox, HostInboxView } from "./OpenMicHostInbox";
 import { OpenMicPushOptIn } from "./OpenMicPushOptIn";
 
@@ -1016,7 +1017,11 @@ function ShowDayScreen({
   // The system notification comes as a push from the server (OpenMicPushOptIn), which also reaches a closed app.
   const { spotlight } = useSpotlight(lineupTime && state === "selected" ? client : null);
   const mineAt = feed?.lineup.findIndex((e) => e.mine) ?? -1;
-  const upNext = state === "selected" && mineAt >= 0 && spotlightIndex(spotlight, feed!.lineup, ymd(showDateFor(window, now))) === mineAt;
+  const showDate = ymd(showDateFor(window, now));
+  const upNext = state === "selected" && mineAt >= 0 && spotlightIndex(spotlight, feed!.lineup, showDate) === mineAt;
+  // From the hosts' highlight: the row after it is on deck, so each later row can show a live estimate. Without a
+  // usable spotlight every row keeps its sheet time (see start-times.ts).
+  const startLabels = feed ? estimateStartTimes({ lineup: feed.lineup, spotlight, showDate, timeZone: window.timeZone, now }) : undefined;
   useEffect(() => {
     if (!upNext) return;
     try {
@@ -1037,6 +1042,7 @@ function ShowDayScreen({
       today={isShowDay(window, now)}
       lineupTime={lineupTime}
       upNext={upNext}
+      startLabels={startLabels}
       optIn={optIn}
       dismissKey={`openmic-in-dismissed:${userId ?? "anon"}:${dateLabel}`}
     />
@@ -1052,6 +1058,7 @@ export function ShowDay({
   today,
   lineupTime,
   upNext,
+  startLabels,
   optIn,
   dismissKey,
 }: {
@@ -1063,6 +1070,8 @@ export function ShowDay({
   lineupTime: boolean;
   /** The hosts have highlighted this comic on the lineup screen: they're up next. */
   upNext?: boolean;
+  /** Live start times from the spotlight, one per lineup row (start-times.ts). */
+  startLabels?: StartLabel[];
   /** The "Get buzzed when you're up next" card (OpenMicPushOptIn), under the night's status card. */
   optIn?: ReactNode;
   /** Where the "You're in!" card remembers it was dismissed (per person, per show day). */
@@ -1086,6 +1095,8 @@ export function ShowDay({
   const mine = feed?.me;
   // 1-based place in the running order, for the card; 0 when the comic's row isn't in the list.
   const spot = (feed?.lineup.findIndex((e) => e.mine) ?? -1) + 1;
+  // The card shows the same live estimate as this comic's lineup row, falling back to the sheet's time.
+  const myStart = spot > 0 ? startLabels?.[spot - 1]?.text : undefined;
 
   return (
     <div className="space-y-4">
@@ -1135,7 +1146,7 @@ export function ShowDay({
             <div className="mt-5 grid grid-cols-2 gap-1.5 rounded-2xl bg-background/50 p-1.5 ring-1 ring-white/10">
               <div className="rounded-xl bg-muted px-3 py-2.5">
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">You&apos;re on</p>
-                <p className="mt-0.5 text-[22px] font-black tabular-nums leading-tight text-primary">{mine.start_time || "—"}</p>
+                <p className="mt-0.5 text-[22px] font-black tabular-nums leading-tight text-primary">{myStart || mine.start_time || "—"}</p>
               </div>
               <div className="rounded-xl bg-muted px-3 py-2.5">
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Your set</p>
@@ -1181,7 +1192,7 @@ export function ShowDay({
       {optIn}
 
       {lineupTime && config.show_lineup !== false && feed?.posted && feed.lineup.length > 0 && (
-        <LineupList feed={feed} />
+        <LineupList feed={feed} startLabels={startLabels} />
       )}
     </div>
   );
@@ -1190,7 +1201,7 @@ export function ShowDay({
 /** The lineup as an inset grouped list (the comics' show-day screen and the hosts' Home): place in the order, name,
  * set length and start time; the asking comic's own row (entry.mine) carries the colour and one clean outline (no bar or glow: stacked edges
  * looked doubled on a phone). */
-export function LineupList({ feed }: { feed: LineupFeed }) {
+export function LineupList({ feed, startLabels }: { feed: LineupFeed; startLabels?: StartLabel[] }) {
   return (
     <section aria-label="Lineup">
       {/* Each row is its own small card with its place in the order; the comic's own row carries the colour,
@@ -1220,7 +1231,7 @@ export function LineupList({ feed }: { feed: LineupFeed }) {
               )}
             </span>
             <span className="shrink-0 rounded-full bg-background/60 px-2.5 py-1 text-[13px] font-semibold tabular-nums text-muted-foreground ring-1 ring-white/10">{entry.set_length}</span>
-            <span className="w-[4.75rem] shrink-0 text-right text-[17px] font-bold tabular-nums text-primary">{entry.start_time}</span>
+            <span className="w-24 shrink-0 whitespace-nowrap text-right text-[17px] font-bold tabular-nums text-primary">{startLabels?.[i]?.text ?? entry.start_time}</span>
           </li>
         ))}
       </ol>
@@ -1232,6 +1243,14 @@ export function LineupList({ feed }: { feed: LineupFeed }) {
  * the inbox, so a host needn't open the Remote just to read the order. No row is "mine" for a host. */
 function HostLineup({ client, config }: { client: SupabaseClient; config: OpenMicSignupBlockConfig }) {
   const { feed, failed } = useLineup(config.lineup_url, client, undefined, true);
+  // The hosts' Home follows the same spotlight as the comics' screen and the venue board, so its times stay live
+  // even when a host isn't on show day.
+  const { spotlight } = useSpotlight(client);
+  const now = useNow();
+  const window_ = windowOf(config);
+  const startLabels = feed
+    ? estimateStartTimes({ lineup: feed.lineup, spotlight, showDate: ymd(showDateFor(window_, now)), timeZone: window_.timeZone, now })
+    : undefined;
   if (!feed && !failed) {
     return (
       <div className="flex justify-center py-8" role="status" aria-label="Loading the lineup">
@@ -1257,7 +1276,7 @@ function HostLineup({ client, config }: { client: SupabaseClient; config: OpenMi
   }
   return (
     <div className="mt-4">
-      <LineupList feed={feed} />
+      <LineupList feed={feed} startLabels={startLabels} />
     </div>
   );
 }

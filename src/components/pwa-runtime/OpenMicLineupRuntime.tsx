@@ -6,6 +6,7 @@ import type { OpenMicSignupBlockConfig } from "@/types/database";
 import type { LineupFeed } from "@/lib/openmic/selection";
 import { LINEUP_FROM_MINUTES, formatShowDate, formatWeekTime, isLineupTime, isShowDay, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
 import { useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
@@ -85,7 +86,10 @@ function LineupPage({
   const showDate = showDateFor(window_, now);
   const dateLabel = formatShowDate(showDate);
   const today = isShowDay(window_, now);
-  const highlighted = feed ? spotlightIndex(spotlight, feed.lineup, ymd(showDate)) : -1;
+  const showDay = ymd(showDate);
+  const highlighted = feed ? spotlightIndex(spotlight, feed.lineup, showDay) : -1;
+  // The same live estimates as the comics' screen and the hosts' Home, from the hosts' highlight.
+  const startLabels = feed ? estimateStartTimes({ lineup: feed.lineup, spotlight, showDate: showDay, timeZone: window_.timeZone, now }) : undefined;
 
   return (
     <div
@@ -138,7 +142,7 @@ function LineupPage({
         ) : !feed.posted || feed.lineup.length === 0 ? (
           <Notice title="We're putting the lineup together" body="Check back soon." />
         ) : (
-          <LineupBoard feed={feed} today={today} weekday={dateLabel.split(",")[0]} highlighted={highlighted} />
+          <LineupBoard feed={feed} today={today} weekday={dateLabel.split(",")[0]} highlighted={highlighted} startLabels={startLabels} />
         )}
       </main>
     </div>
@@ -156,7 +160,19 @@ function Notice({ title, body }: { title: string; body: string }) {
 
 /** The lineup in one column straight through, 1 to the end, on every screen (a TV reads top to bottom, no second
  * column to find), in big type. The highlighted row (the hosts' spotlight) is solid amber, with no words: the comics know. */
-function LineupBoard({ feed, today, weekday, highlighted }: { feed: LineupFeed; today: boolean; weekday: string; highlighted: number }) {
+function LineupBoard({
+  feed,
+  today,
+  weekday,
+  highlighted,
+  startLabels,
+}: {
+  feed: LineupFeed;
+  today: boolean;
+  weekday: string;
+  highlighted: number;
+  startLabels?: StartLabel[];
+}) {
   return (
     <section aria-label="Lineup" className="flex flex-1 flex-col">
       {/* The one line a bar reads from across the room: who is on now and who is on deck. The host's highlight is
@@ -196,7 +212,7 @@ function LineupBoard({ feed, today, weekday, highlighted }: { feed: LineupFeed; 
               <span className={`w-6 shrink-0 text-right text-base font-bold tabular-nums md:w-10 md:text-2xl ${on ? "text-black/70" : "text-muted-foreground"}`}>{i + 1}</span>
               <span className={`min-w-0 flex-1 break-words text-xl leading-tight tracking-tight md:text-3xl 2xl:text-[2.25rem] ${on ? "font-black" : "font-extrabold"}`}>{entry.name}</span>
               <span className={`w-12 shrink-0 whitespace-nowrap text-right text-base tabular-nums md:w-24 md:text-2xl 2xl:w-28 2xl:text-3xl ${on ? "text-black/70" : "text-muted-foreground"}`}>{entry.set_length}</span>
-              <span className={`w-16 shrink-0 whitespace-nowrap text-right text-base font-semibold tabular-nums md:w-32 md:text-2xl 2xl:w-36 2xl:text-3xl ${on ? "" : "text-primary"}`}>{entry.start_time}</span>
+              <span className={`w-[4.75rem] shrink-0 whitespace-nowrap text-right text-base font-semibold tabular-nums md:w-32 md:text-2xl 2xl:w-36 2xl:text-3xl ${on ? "" : "text-primary"}`}>{startLabels?.[i]?.text ?? entry.start_time}</span>
             </li>
           );
         })}
