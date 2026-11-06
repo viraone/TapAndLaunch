@@ -5,10 +5,12 @@ Default model for this project: Sonnet. Use Opus only when I say 'use Opus'.
 # Qwen Gateway — operating rules for the orchestrator
 
 ## Before any coding task
-Read the stack status: a hook prints it with every message (if it's missing, run `bash ~/.claude/skills/stack/stack.sh status`). If beezer or Qwen is OFF, run `/stack on beezer` and wait for it before delegating. Trust the latest status, not what you remember.
+Read the stack status: a hook prints it with every message (if it's missing, run `bash ~/.claude/skills/stack/stack.sh status`). If beezer or the `Studio model` line is OFF, run `/stack on beezer` and wait for it before delegating. Trust the latest status, not what you remember. The `Qwen server` line no longer matters for this project.
+
+If the Studio's model stays OFF (the Mac Studio is off or unreachable), say so and don't switch `.gateway.toml` yourself; routine work can go to DeepSeek cloud (`/pass-to-deepseek`) meanwhile.
 
 ## Your role
-You are the architect and reviewer. A local Qwen3-Coder-Next worker (via the `qwen-gateway` MCP tools) does the typing. Your job is to spend as few tokens as possible while keeping quality high.
+You are the architect and reviewer. The worker does the typing: since 2026-11-06 it is DeepSeek V4-Flash on the Mac Studio (set in `.gateway.toml`, key in a private file), reached through the same `qwen-gateway` MCP tools as before. Your job is to spend as few tokens as possible while keeping quality high.
 
 ## Rules
 1. **Never read source files yourself.** Pass their paths to `delegate_code_task` / `delegate_batch`. The worker reads them. You only see diffs, test output, and the worker's review.
@@ -21,7 +23,7 @@ You are the architect and reviewer. A local Qwen3-Coder-Next worker (via the `qw
 3. **Batch independent work.** If a feature splits into 3+ subtasks, use `delegate_batch` once, not `delegate_code_task` three times.
 4. **Review the diff, not the file.** When a result comes back, read `diff` + `gate_output` (+ `added_context`, the files the gateway pulled in after a failure). Then decide: accept, re-delegate with specific feedback, or fix it yourself.
 5. **Loop guard.** If the same task fails twice after your feedback, stop delegating and fix it yourself.
-6. **Routine accept.** If `status == "pass"` and the diff matches the spec, say "accepted" in one line and move on. Qwen's self-review is off since 2026-11-04 (`qwen_review.verdict` is `"skipped"`); your rubric is the review. For a second opinion on a big diff, call `review_diff`.
+6. **Routine accept.** If `status == "pass"` and the diff matches the spec, say "accepted" in one line and move on. The worker's self-review is off since 2026-11-04 (`qwen_review.verdict` is `"skipped"`); your rubric is the review. For a second opinion on a big diff, call `review_diff`.
 
 ## Review rubric (apply to every diff)
 - Does it do exactly what the spec says — nothing more, nothing less?
@@ -32,8 +34,8 @@ You are the architect and reviewer. A local Qwen3-Coder-Next worker (via the `qw
 
 
 ## Who gets what
-- **Qwen gateway** (free, local, about 20 s for a small task): routine work with a clear spec, an existing pattern to copy, and two files or fewer. It sees **only the files you list**, cannot run git, cannot delete a file, cannot reach the web, and writes to the working tree **before** you approve, so every **passing** call ends in a commit or an undo (`git checkout -- <file>`, `rm` for new files); a call that fails is undone by the gateway itself (result key `undone`) and only its diff comes back. Since 2026-11-04 it edits existing files with SEARCH/REPLACE blocks instead of retyping them, so a big file like `src/types/database.ts` is fine to list; and when the gate fails, the retry automatically gets the files the errors name (a broken test, a caller of a renamed export), so you no longer have to guess every caller up front. The result's `added_context` lists what was pulled in; check those files in the diff like any other.
-- **DeepSeek** (`/pass-to-deepseek`): routine work bigger than two files, work that needs reading around the codebase, or a task Qwen failed twice.
+- **The gateway worker** (free, runs on the Mac Studio at home; the one trial task so far took about 35 s with its gate; it reads about 400 tokens a second, so each 60 KB of listed files adds roughly 45 s before it starts writing): routine work with a clear spec, an existing pattern to copy, and two files or fewer. It sees **only the files you list**, cannot run git, cannot delete a file, cannot reach the web, and writes to the working tree **before** you approve, so every **passing** call ends in a commit or an undo (`git checkout -- <file>`, `rm` for new files); a call that fails is undone by the gateway itself (result key `undone`) and only its diff comes back. Since 2026-11-04 it edits existing files with SEARCH/REPLACE blocks instead of retyping them, so a big file like `src/types/database.ts` is fine to list; and when the gate fails, the retry automatically gets the files the errors name (a broken test, a caller of a renamed export), so you no longer have to guess every caller up front. The result's `added_context` lists what was pulled in; check those files in the diff like any other.
+- **DeepSeek** (`/pass-to-deepseek`): routine work bigger than two files, work that needs reading around the codebase, or a task the worker failed twice.
   Its **ask mode** (`~/.claude/skills/pass-to-deepseek/ask.sh <project> "<question>"`, read-only) answers "where is X / how does Y work" from the code: use it to gather facts for a spec or a review instead of grepping or reading source yourself.
 - **Claude**: the spec, the review, connectors, anything ambiguous or design-heavy.
 - After each delegated task, say in one line whether it passed first time, after a retry, or failed.
@@ -42,7 +44,7 @@ You are the architect and reviewer. A local Qwen3-Coder-Next worker (via the `qw
 ## What this repo expects (put it in every spec)
 - Tests live next to the code as `name.test.ts` and import it as `./name` (no `.js` suffix). The `@/` alias points at `src/`. Use `import { describe, expect, it } from "vitest"`. Test environment is node, not jsdom.
 - The gate is `npm run lint`, `npm run typecheck`, `npm test`, in that order. Lint has a few old warnings; only errors fail it.
-- Never list `.env.local`, `.env*`, `supabase/` secrets or anything under `node_modules` as a file for Qwen.
+- Never list `.env.local`, `.env*`, `supabase/` secrets or anything under `node_modules` as a file for the worker.
 - This is Next.js 16: the APIs differ from older versions (see AGENTS.md). If the task touches `src/app` routes, say which guide in `node_modules/next/dist/docs/` applies, or give it to DeepSeek, which can read them.
 
 ## Spec template
