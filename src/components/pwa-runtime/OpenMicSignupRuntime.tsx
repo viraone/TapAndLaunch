@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { Bell, Check, ChevronRight, CircleCheck, Loader2, Mail, Mic, X } from "lucide-react";
 import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
+import { formatClock } from "@/lib/format-date";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
@@ -59,6 +60,33 @@ export const PINNED_SCROLL = "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-con
 
 const CTA = "bg-[#dc2626] text-white hover:bg-[#b91c1c] active:bg-[#991b1b]";
 
+const SEATTLE_TIME_ZONE = "America/Los_Angeles";
+
+/** The time in Seattle to the minute. Nothing renders until mounted, because the server has no "now"; the 1 s tick
+ * keeps it within a second of the minute boundary, and state changes only when the text does. */
+function SeattleClock() {
+  const [time, setTime] = useState<string | null>(null);
+  const last = useRef<string | null>(null);
+  useEffect(() => {
+    const tick = () => {
+      const next = formatClock(new Date(), SEATTLE_TIME_ZONE);
+      if (next === last.current) return;
+      last.current = next;
+      setTime(next);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (!time) return null;
+  return (
+    <div className="ml-auto shrink-0 text-right">
+      <p className="text-2xl font-black tabular-nums tracking-tight">{time}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Seattle time</p>
+    </div>
+  );
+}
+
 /** The show, its date, and the Open/Closed pill. Shared by the page and the local preview. */
 export function SignupHeader({
   config,
@@ -88,8 +116,9 @@ export function SignupHeader({
         )}
         <div className="min-w-0">
           <p className="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Next show</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight">{showDate}</h1>
+          <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">{showDate}</h1>
         </div>
+        <SeattleClock />
       </div>
       {!hidePill && (
         <div
