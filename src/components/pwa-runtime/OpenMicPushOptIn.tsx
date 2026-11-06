@@ -16,7 +16,7 @@ const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
  * show day), a phone that is already on re-sends itself so the match is exact. On an iPhone in Safari the card
  * explains the Home Screen step instead, since iOS only allows pushes from an installed app.
  */
-export function OpenMicPushOptIn({ client, name }: { client: SupabaseClient; name: string }) {
+export function OpenMicPushOptIn({ client, name, hideWhenOn = false }: { client: SupabaseClient; name: string; hideWhenOn?: boolean }) {
   const [status, setStatus] = useState<Status>("checking");
   const [problem, setProblem] = useState<string | null>(null);
   const syncedName = useRef<string | null>(null);
@@ -115,7 +115,7 @@ export function OpenMicPushOptIn({ client, name }: { client: SupabaseClient; nam
     }
   }
 
-  if (!VAPID_PUBLIC_KEY || status === "checking" || status === "unsupported") return null;
+  if (!VAPID_PUBLIC_KEY || status === "checking" || status === "unsupported" || (hideWhenOn && status === "on")) return null;
 
   const body =
     status === "on"

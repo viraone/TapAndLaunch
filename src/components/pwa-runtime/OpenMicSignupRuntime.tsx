@@ -999,7 +999,7 @@ function ShowDayScreen({
   }, [upNext]);
   // Offered to a comic who is on (or may still be put on) tonight's lineup; the stored name follows the lineup row.
   const pushName = mineAt >= 0 ? feed!.lineup[mineAt]!.name : stageName;
-  const optIn = lineupTime && (state === "selected" || state === "selections-pending") ? <OpenMicPushOptIn client={client} name={pushName} /> : undefined;
+  const optIn = lineupTime && (state === "selected" || state === "selections-pending") ? <OpenMicPushOptIn client={client} name={pushName} hideWhenOn /> : undefined;
   return (
     <ShowDay
       state={state}
