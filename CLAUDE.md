@@ -47,6 +47,15 @@ You are the architect and reviewer. The worker does the typing: since 2026-11-06
 - Never list `.env.local`, `.env*`, `supabase/` secrets or anything under `node_modules` as a file for the worker.
 - This is Next.js 16: the APIs differ from older versions (see AGENTS.md). If the task touches `src/app` routes, say which guide in `node_modules/next/dist/docs/` applies, or give it to DeepSeek, which can read them.
 
+## What works on the Studio worker (from its first 11 real tasks, 2026-11-06/07)
+The three first-time passes (65 s, 29 s, 98 s) and the five failures split on the spec, not the size:
+1. **Additive beats subtractive.** Every "remove X and clean up whatever becomes unused" task looped (no-op edits until the token cap). "Remove exactly this `<p>`, whose text is …" passed in 14 s. Never ask it to decide what else is now unused: name every line to delete, or leave the cleanup to the gate and fix the one unused import yourself.
+2. **Dictate the code shape, not just the goal.** The 98 s pass said `const big = size === "board"` and listed the exact classes per element; the model had nothing to design. Give the exact signature, the exact strings, and the one-line pattern to copy.
+3. **No invented logic or test expectations.** The month-grid helper (date math, time zones, tests with expected values the model had to compute) failed six attempts. Logic that needs working out goes to cloud DeepSeek with thinking, or Claude writes the test values into the spec.
+4. **Fence the scope and tell it to stop.** "Do not restructure, do not change the JSX tree, send only the edits needed, then stop." Every pass had replies under 2,500 tokens; every failure had a 10,000+ token reply. A long reply means it is dithering.
+5. **Listing the big file the pattern lives in is fine** (19k prompt tokens cost ~40 s). Thinking stays off.
+6. **Safety net:** the gateway now stops a looping reply and applies its good start, and `max_tokens` 8000 bounds a bad attempt to ~3 min; a task that still fails twice goes to cloud DeepSeek with the failing output.
+
 ## Spec template
 ```
 TASK: <one line>
