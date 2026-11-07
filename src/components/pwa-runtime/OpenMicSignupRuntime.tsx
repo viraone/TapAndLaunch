@@ -404,7 +404,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
         {phase === "host" && user && (
           <>
             <HostInbox client={client} user={user} timeZone={window_.timeZone} />
-            {showDayOn && isLineupTime(window_, now) && <HostLineup client={client} config={config} viewerEmail={user.email} />}
+            {(config.lineup_always === true || (showDayOn && isLineupTime(window_, now))) && <HostLineup client={client} config={config} viewerEmail={user.email} />}
           </>
         )}
 
