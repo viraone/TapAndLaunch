@@ -13,6 +13,7 @@ import { isLineupPreviewer } from "@/lib/openmic/preview-emails";
 import { setSignedInName } from "@/lib/openmic/signed-in-name";
 import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
+import { noHangLock } from "@/lib/supabase/no-hang-lock";
 import { HostInbox, HostInboxView } from "./OpenMicHostInbox";
 import { OpenMicPushOptIn } from "./OpenMicPushOptIn";
 
@@ -217,6 +218,10 @@ export function useOpenMicClient(config: OpenMicSignupBlockConfig): SupabaseClie
         detectSessionInUrl: true,
         persistSession: true,
         autoRefreshToken: true,
+        // iOS Home Screen web apps never release a navigator.locks lock, even after a force-quit,
+        // so getSession and verifyOtp waited forever; this lock runs calls in order in this page
+        // and gives up waiting after five seconds.
+        lock: noHangLock,
       },
     });
   }, [url, key]);
