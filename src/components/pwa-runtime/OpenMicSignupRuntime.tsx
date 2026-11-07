@@ -1297,7 +1297,7 @@ export function LineupList({
                 </span>
               )}
             </span>
-            <span className={"shrink-0 rounded-full bg-background/60 px-2.5 py-1 text-[13px] font-semibold tabular-nums text-muted-foreground ring-1 ring-white/10 " + (big ? "md:px-4 md:py-1.5 md:text-xl " : "")}>{entry.set_length}</span>
+            <span className={"shrink-0 rounded-full bg-background/60 px-2.5 py-1 text-[13px] font-semibold tabular-nums text-muted-foreground ring-1 ring-white/10 " + (big ? "md:px-6 md:py-2 md:text-3xl 2xl:text-4xl md:font-bold md:text-white md:bg-white/10 md:ring-white/25 " : "")}>{entry.set_length}</span>
             <span className={"w-24 shrink-0 whitespace-nowrap text-right text-[17px] font-bold tabular-nums text-primary " + (big ? "md:w-44 md:text-4xl 2xl:w-56 2xl:text-5xl " : "")}>{startLabels?.[i]?.text ?? entry.start_time}</span>
           </li>
         ))}
