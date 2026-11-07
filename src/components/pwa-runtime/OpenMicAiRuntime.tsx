@@ -8,6 +8,7 @@ import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { showDateFor } from "@/lib/openmic/window";
 import { setSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { putOnDeck, pushUpNext } from "@/lib/openmic/spotlight-actions";
 import { upNextStatus } from "@/lib/openmic/push";
 import { isRemovalCommand, isSpotlightCommand, planSpotlight, spotlightReply, type LineupCommand } from "@/lib/openmic/ai-commands";
 import { PINNED_PAGE, PINNED_SCROLL, useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
@@ -126,29 +127,20 @@ function Chat({ client, config, userId }: { client: SupabaseClient; config: Open
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
 
-  /** The up-next push, the same call the Remote makes: the server checks the token is a host's. */
-  async function pushUpNext(name: string): Promise<{ sent: number; matched: number } | null> {
-    try {
-      const { data } = await client.auth.getSession();
-      const res = await fetch("/openmic/up-next", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: data.session?.access_token, name }),
-      });
-      return res.ok ? ((await res.json()) as { sent: number; matched: number }) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  /** A live on_deck or performing: move the spotlight, then buzz the comic now on deck. */
+  /** A live on_deck or performing: move the spotlight, then buzz the comic now on deck. on_deck shares its
+   * save-and-push with the hosts' tappable lineup; performing stays here. */
   async function applySpotlight(command: Extract<LineupCommand, { type: "on_deck" | "performing" }>): Promise<string> {
     if (!feed || failed) return "The lineup has not loaded yet. Try again in a moment.";
+    if (command.type === "on_deck") {
+      const { data } = await client.auth.getSession();
+      return putOnDeck({ client, lineup, showDate: showYmd, name: command.name, sessionToken: data.session?.access_token });
+    }
     const plan = planSpotlight(command, lineup);
     if (!plan.ok) return plan.text;
     const problem = await setSpotlight(client, showYmd, lineup, plan.index);
     if (problem) return "That did not save. Check the connection and try again.";
-    const result = await pushUpNext(plan.name);
+    const { data } = await client.auth.getSession();
+    const result = await pushUpNext(plan.name, data.session?.access_token);
     return `${spotlightReply(plan)} ${upNextStatus(plan.name, result)}`;
   }
 

@@ -19,6 +19,16 @@ export interface Spotlight {
   set_by: string;
 }
 
+/** The hosts who may put a comic on deck by tapping the comic's row on the hosts' Home. */
+export const TAP_ON_DECK_EMAILS: readonly string[] = ["vxayananh@gmail.com"];
+
+/** Whether a signed-in account may tap a lineup row to put that comic on deck. */
+export function canTapOnDeck(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const wanted = email.trim().toLowerCase();
+  return !!wanted && TAP_ON_DECK_EMAILS.some((allowed) => allowed.trim().toLowerCase() === wanted);
+}
+
 /** YYYY-MM-DD from a show date's parts. */
 export function ymd(date: { year: number; month: number; day: number }): string {
   return `${date.year}-${String(date.month).padStart(2, "0")}-${String(date.day).padStart(2, "0")}`;

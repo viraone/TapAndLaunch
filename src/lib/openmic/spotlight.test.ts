@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { spotlightIndex, ymd, type Spotlight } from "./spotlight";
+import { canTapOnDeck, spotlightIndex, ymd, type Spotlight } from "./spotlight";
 
 const lineup = [
   { name: "Viradeth", set_length: "5 min", start_time: "7:00 PM" },
@@ -28,6 +28,21 @@ describe("spotlightIndex", () => {
     expect(spotlightIndex(null, lineup, "2026-10-23")).toBe(-1);
     expect(spotlightIndex(at(1, "Someone Gone"), lineup, "2026-10-23")).toBe(-1);
     expect(spotlightIndex(at(9, "Rich Snyder"), lineup, "2026-10-23")).toBe(1);
+  });
+});
+
+describe("canTapOnDeck", () => {
+  it("allows the one host on the list", () => {
+    expect(canTapOnDeck("vxayananh@gmail.com")).toBe(true);
+  });
+  it("ignores case and surrounding whitespace", () => {
+    expect(canTapOnDeck("  VXAYANANH@Gmail.com  ")).toBe(true);
+  });
+  it("says no to everyone else, and to a signed-out or missing email", () => {
+    expect(canTapOnDeck("someone@example.com")).toBe(false);
+    expect(canTapOnDeck(null)).toBe(false);
+    expect(canTapOnDeck(undefined)).toBe(false);
+    expect(canTapOnDeck("   ")).toBe(false);
   });
 });
 

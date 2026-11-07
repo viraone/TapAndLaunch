@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import dynamic from "next/dynamic";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { Bell, Check, ChevronRight, CircleCheck, Loader2, Mail, Mic, X } from "lucide-react";
-import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
+import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupEntry, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
 import { applyRemovals, readLineupRemoved, type LineupRemoved } from "@/lib/openmic/removed";
 import { formatClock } from "@/lib/format-date";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
@@ -12,7 +12,8 @@ import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, 
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { isLineupPreviewer } from "@/lib/openmic/preview-emails";
 import { setSignedInName } from "@/lib/openmic/signed-in-name";
-import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { canTapOnDeck, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { putOnDeck } from "@/lib/openmic/spotlight-actions";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
 import { noHangLock } from "@/lib/supabase/no-hang-lock";
 import { HostInbox, HostInboxView } from "./OpenMicHostInbox";
@@ -403,7 +404,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
         {phase === "host" && user && (
           <>
             <HostInbox client={client} user={user} timeZone={window_.timeZone} />
-            {showDayOn && isLineupTime(window_, now) && <HostLineup client={client} config={config} />}
+            {showDayOn && isLineupTime(window_, now) && <HostLineup client={client} config={config} viewerEmail={user.email} />}
           </>
         )}
 
@@ -1234,7 +1235,7 @@ export function ShowDay({
 /** The lineup as an inset grouped list (the comics' show-day screen and the hosts' Home): place in the order, name,
  * set length and start time; the asking comic's own row (entry.mine) carries the colour and one clean outline (no bar or glow: stacked edges
  * looked doubled on a phone). */
-export function LineupList({ feed, startLabels }: { feed: LineupFeed; startLabels?: StartLabel[] }) {
+export function LineupList({ feed, startLabels, onTap }: { feed: LineupFeed; startLabels?: StartLabel[]; onTap?: (entry: LineupEntry, index: number) => void }) {
   return (
     <section aria-label="Lineup">
       {/* Each row is its own small card with its place in the order; the comic's own row carries the colour,
@@ -1247,11 +1248,25 @@ export function LineupList({ feed, startLabels }: { feed: LineupFeed; startLabel
             key={`${entry.name}-${i}`}
             aria-current={entry.mine ? "true" : undefined}
             style={{ animationDelay: `${Math.min(i, 14) * 35}ms` }}
+            role={onTap ? "button" : undefined}
+            tabIndex={onTap ? 0 : undefined}
+            onClick={onTap ? () => onTap(entry, i) : undefined}
+            onKeyDown={
+              onTap
+                ? (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onTap(entry, i);
+                    }
+                  }
+                : undefined
+            }
             className={
               "openmic-row relative flex min-h-14 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-3 ring-1 ring-inset " +
               (entry.mine
                 ? "bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))] ring-primary"
-                : "bg-muted ring-white/[0.06]")
+                : "bg-muted ring-white/[0.06]") +
+              (onTap ? " cursor-pointer active:opacity-80" : "")
             }
           >
             <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (entry.mine ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
@@ -1274,15 +1289,19 @@ export function LineupList({ feed, startLabels }: { feed: LineupFeed; startLabel
 
 /** The hosts' Home, from the time the lineup goes up until requests reopen: the same list the comics see, under
  * the inbox, so a host needn't open the Remote just to read the order. No row is "mine" for a host. */
-function HostLineup({ client, config }: { client: SupabaseClient; config: OpenMicSignupBlockConfig }) {
+function HostLineup({ client, config, viewerEmail }: { client: SupabaseClient; config: OpenMicSignupBlockConfig; viewerEmail?: string | null }) {
   const { feed, failed } = useLineup(config.lineup_url, client, undefined, true);
   // The hosts' Home follows the same spotlight as the comics' screen and the venue board, so its times stay live
   // even when a host isn't on show day.
   const { spotlight } = useSpotlight(client);
   const now = useNow();
   const window_ = windowOf(config);
+  const showYmd = ymd(showDateFor(window_, now));
+  const canTap = canTapOnDeck(viewerEmail);
+  const [status, setStatus] = useState("");
+  const tapping = useRef(false);
   const startLabels = feed
-    ? estimateStartTimes({ lineup: feed.lineup, spotlight, showDate: ymd(showDateFor(window_, now)), timeZone: window_.timeZone, now })
+    ? estimateStartTimes({ lineup: feed.lineup, spotlight, showDate: showYmd, timeZone: window_.timeZone, now })
     : undefined;
   if (!feed && !failed) {
     return (
@@ -1307,9 +1326,26 @@ function HostLineup({ client, config }: { client: SupabaseClient; config: OpenMi
       </div>
     );
   }
+  // Tapping the row that is already on deck does nothing; the guard also stops a second tap while one is saving.
+  const onDeck = spotlightIndex(spotlight, feed.lineup, showYmd);
+  const tap = async (entry: LineupEntry, index: number) => {
+    if (tapping.current || index === onDeck) return;
+    tapping.current = true;
+    try {
+      const { data } = await client.auth.getSession();
+      setStatus(await putOnDeck({ client, lineup: feed.lineup, showDate: showYmd, name: entry.name, sessionToken: data.session?.access_token }));
+    } finally {
+      tapping.current = false;
+    }
+  };
   return (
     <div className="mt-4">
-      <LineupList feed={feed} startLabels={startLabels} />
+      {canTap && status && (
+        <p className="mb-2 text-sm font-medium text-muted-foreground" role="status">
+          {status}
+        </p>
+      )}
+      <LineupList feed={feed} startLabels={startLabels} onTap={canTap ? (entry, index) => void tap(entry, index) : undefined} />
     </div>
   );
 }
