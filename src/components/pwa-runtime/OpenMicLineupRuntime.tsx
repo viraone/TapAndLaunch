@@ -136,7 +136,7 @@ function LineupPage({
         ) : !feed.posted || feed.lineup.length === 0 ? (
           <Notice title="We're putting the lineup together" body="Check back soon." />
         ) : (
-          <LineupBoard feed={feed} today={today} weekday={dateLabel.split(",")[0]} highlighted={highlighted} startLabels={startLabels} />
+          <LineupBoard feed={feed} highlighted={highlighted} startLabels={startLabels} />
         )}
       </main>
     </div>
@@ -156,14 +156,10 @@ function Notice({ title, body }: { title: string; body: string }) {
  * column to find), in big type. The highlighted row (the hosts' spotlight) is solid amber, with no words: the comics know. */
 function LineupBoard({
   feed,
-  today,
-  weekday,
   highlighted,
   startLabels,
 }: {
   feed: LineupFeed;
-  today: boolean;
-  weekday: string;
   highlighted: number;
   startLabels?: StartLabel[];
 }) {
@@ -187,11 +183,10 @@ function LineupBoard({
           </div>
         </div>
       )}
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-        <h2 className="text-lg font-bold uppercase tracking-[0.2em] text-primary md:text-2xl">{today ? "Tonight's lineup" : `${weekday}'s lineup`}</h2>
-      </div>
       {/* onDeckIndex means the same as `highlighted` (the row the hosts' spotlight is on), so pass it when valid. */}
-      <LineupList feed={feed} startLabels={startLabels} onDeckIndex={highlighted >= 0 ? highlighted : undefined} />
+      <div className="mt-5">
+        <LineupList feed={feed} startLabels={startLabels} onDeckIndex={highlighted >= 0 ? highlighted : undefined} />
+      </div>
     </section>
   );
 }
