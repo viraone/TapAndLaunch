@@ -29,6 +29,16 @@ export function canTapOnDeck(email: string | null | undefined): boolean {
   return !!wanted && TAP_ON_DECK_EMAILS.some((allowed) => allowed.trim().toLowerCase() === wanted);
 }
 
+/** The hosts who may see which comic is on deck highlighted on their Home lineup. */
+export const ON_DECK_ROW_EMAILS: readonly string[] = ["vxayananh@gmail.com", "nickrcody@gmail.com", "dinodadcomedy@gmail.com"];
+
+/** Whether a signed-in account may see the on-deck row highlighted on the hosts' Home. */
+export function canSeeOnDeckRow(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const wanted = email.trim().toLowerCase();
+  return !!wanted && ON_DECK_ROW_EMAILS.some((allowed) => allowed.trim().toLowerCase() === wanted);
+}
+
 /** YYYY-MM-DD from a show date's parts. */
 export function ymd(date: { year: number; month: number; day: number }): string {
   return `${date.year}-${String(date.month).padStart(2, "0")}-${String(date.day).padStart(2, "0")}`;

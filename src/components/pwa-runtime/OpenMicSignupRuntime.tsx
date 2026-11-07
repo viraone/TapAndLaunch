@@ -12,7 +12,7 @@ import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, 
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { isLineupPreviewer } from "@/lib/openmic/preview-emails";
 import { setSignedInName } from "@/lib/openmic/signed-in-name";
-import { canTapOnDeck, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { canSeeOnDeckRow, canTapOnDeck, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { putOnDeck } from "@/lib/openmic/spotlight-actions";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
 import { noHangLock } from "@/lib/supabase/no-hang-lock";
@@ -1235,7 +1235,17 @@ export function ShowDay({
 /** The lineup as an inset grouped list (the comics' show-day screen and the hosts' Home): place in the order, name,
  * set length and start time; the asking comic's own row (entry.mine) carries the colour and one clean outline (no bar or glow: stacked edges
  * looked doubled on a phone). */
-export function LineupList({ feed, startLabels, onTap }: { feed: LineupFeed; startLabels?: StartLabel[]; onTap?: (entry: LineupEntry, index: number) => void }) {
+export function LineupList({
+  feed,
+  startLabels,
+  onTap,
+  onDeckIndex,
+}: {
+  feed: LineupFeed;
+  startLabels?: StartLabel[];
+  onTap?: (entry: LineupEntry, index: number) => void;
+  onDeckIndex?: number;
+}) {
   return (
     <section aria-label="Lineup">
       {/* Each row is its own small card with its place in the order; the comic's own row carries the colour,
@@ -1263,18 +1273,23 @@ export function LineupList({ feed, startLabels, onTap }: { feed: LineupFeed; sta
             }
             className={
               "openmic-row relative flex min-h-14 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-3 ring-1 ring-inset " +
-              (entry.mine
+              (entry.mine || i === onDeckIndex
                 ? "bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))] ring-primary"
                 : "bg-muted ring-white/[0.06]") +
               (onTap ? " cursor-pointer active:opacity-80" : "")
             }
           >
-            <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (entry.mine ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
-            <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (entry.mine ? "font-bold" : "font-medium")}>
+            <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (entry.mine || i === onDeckIndex ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
+            <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (entry.mine || i === onDeckIndex ? "font-bold" : "font-medium")}>
               {entry.name}
               {entry.mine && (
                 <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[11px] font-black uppercase leading-none tracking-wide text-primary-foreground">
                   You
+                </span>
+              )}
+              {i === onDeckIndex && (
+                <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[11px] font-black uppercase leading-none tracking-wide text-primary-foreground">
+                  On deck
                 </span>
               )}
             </span>
@@ -1298,6 +1313,7 @@ function HostLineup({ client, config, viewerEmail }: { client: SupabaseClient; c
   const window_ = windowOf(config);
   const showYmd = ymd(showDateFor(window_, now));
   const canTap = canTapOnDeck(viewerEmail);
+  const seesOnDeck = canSeeOnDeckRow(viewerEmail);
   const [status, setStatus] = useState("");
   const tapping = useRef(false);
   const startLabels = feed
@@ -1345,7 +1361,7 @@ function HostLineup({ client, config, viewerEmail }: { client: SupabaseClient; c
           {status}
         </p>
       )}
-      <LineupList feed={feed} startLabels={startLabels} onTap={canTap ? (entry, index) => void tap(entry, index) : undefined} />
+      <LineupList feed={feed} startLabels={startLabels} onTap={canTap ? (entry, index) => void tap(entry, index) : undefined} onDeckIndex={seesOnDeck ? onDeck : undefined} />
     </div>
   );
 }
