@@ -570,6 +570,8 @@ export interface OpenMicSignupBlockConfig {
    * (e.g. 4 and 1410 for Thursday 11:30 PM). Runs until requests reopen. */
   lineup_from_weekday?: number;
   lineup_from_minutes?: number;
+  /** true shows the venue lineup board at any time, ignoring the Thursday-to-Friday reveal window; missing means the window applies. */
+  lineup_always?: boolean;
   /** One-off: requests stay closed until this moment (ISO 8601 with offset, e.g. "2026-10-24T12:00:00-07:00") even
    * once the weekly window says open. Expires by itself. */
   closed_until?: string;

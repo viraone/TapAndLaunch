@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "./window";
+import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, lineupVisible, reopenLabel, showDateFor, type WeeklyWindow } from "./window";
 
 const RTR: WeeklyWindow = {
   timeZone: "America/Los_Angeles",
@@ -71,6 +71,26 @@ describe("Read The Room request window", () => {
     expect(isLineupTime(early, pdt("2026-10-02T21:39"))).toBe(true);
     expect(isLineupTime(early, pdt("2026-10-02T21:40"))).toBe(false); // requests are open again
     expect(isLineupTime(early, pdt("2026-10-04T10:00"))).toBe(false);
+  });
+
+  it("always shows the lineup when lineup_always is true, even while requests are open", () => {
+    expect(lineupVisible(RTR, true, pdt("2026-10-02T21:40"))).toBe(true); // requests are open again
+    expect(lineupVisible(RTR, true, pdt("2026-10-04T10:00"))).toBe(true); // an ordinary open day
+  });
+
+  it("always shows the lineup when lineup_always is true, even outside the reveal window", () => {
+    expect(lineupVisible(RTR, true, pdt("2026-10-01T22:30"))).toBe(true); // Thursday night
+    expect(lineupVisible(RTR, true, pdt("2026-10-02T00:00"))).toBe(true); // midnight
+    expect(lineupVisible(RTR, true, pdt("2026-10-02T05:59"))).toBe(true);
+  });
+
+  it("behaves exactly like isLineupTime when lineup_always is undefined or false", () => {
+    const inside = pdt("2026-10-02T06:00");
+    const outside = pdt("2026-10-02T21:40");
+    expect(lineupVisible(RTR, undefined, inside)).toBe(isLineupTime(RTR, inside));
+    expect(lineupVisible(RTR, undefined, outside)).toBe(isLineupTime(RTR, outside));
+    expect(lineupVisible(RTR, false, inside)).toBe(isLineupTime(RTR, inside));
+    expect(lineupVisible(RTR, false, outside)).toBe(isLineupTime(RTR, outside));
   });
 
   it("formats the open/close times", () => {

@@ -138,6 +138,13 @@ export function isLineupTime(w: WeeklyWindow, now: Date = new Date()): boolean {
   return (at - from + WEEK) % WEEK < (opens - from + WEEK) % WEEK;
 }
 
+/** Whether the venue lineup board may be shown. `always` true shows it at any time, ignoring the Thursday-to-Friday
+ * reveal window; otherwise it follows `isLineupTime` unchanged. */
+export function lineupVisible(w: WeeklyWindow, always: boolean | undefined, now: Date = new Date()): boolean {
+  if (always === true) return true;
+  return isLineupTime(w, now);
+}
+
 /** "after tonight's show" on show day, "after tomorrow's show" the night before; during a one-off hold, the
  * moment requests reopen ("Saturday at 12:00 PM"). */
 export function reopenLabel(w: WeeklyWindow, now: Date = new Date()): string {
