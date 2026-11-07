@@ -51,6 +51,7 @@ import { OpenMicProfileRuntime } from "@/components/pwa-runtime/OpenMicProfileRu
 import { OpenMicHostsRuntime } from "@/components/pwa-runtime/OpenMicHostsRuntime";
 import { OpenMicMessagesRuntime } from "@/components/pwa-runtime/OpenMicMessagesRuntime";
 import { OpenMicLineupRuntime } from "@/components/pwa-runtime/OpenMicLineupRuntime";
+import { OpenMicFlatscreenRuntime } from "@/components/pwa-runtime/OpenMicFlatscreenRuntime";
 import { OpenMicRemoteRuntime } from "@/components/pwa-runtime/OpenMicRemoteRuntime";
 import { OpenMicVotesRuntime } from "@/components/pwa-runtime/OpenMicVotesRuntime";
 import { OpenMicAiRuntime } from "@/components/pwa-runtime/OpenMicAiRuntime";
@@ -177,6 +178,13 @@ function BlockBody({
           <OpenMicAutomationRuntime config={block.config as OpenMicSignupBlockConfig} />
         ) : (
           <OpenMicAutomationBlockView />
+        );
+      }
+      if ((block.config as OpenMicSignupBlockConfig).view === "tv") {
+        return live ? (
+          <OpenMicFlatscreenRuntime config={block.config as OpenMicSignupBlockConfig} />
+        ) : (
+          <p className="px-4 py-3 text-sm text-muted-foreground">The show flyer fills the screen when published.</p>
         );
       }
       if ((block.config as OpenMicSignupBlockConfig).view === "lineup") {

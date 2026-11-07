@@ -532,8 +532,9 @@ export interface OpenMicSignupBlockConfig {
    * full-screen website page for a laptop or TV at the venue (needs `lineup_url`); "remote": the hosts' remote
    * control for that screen (Remote tab, needs `lineup_url`); "votes": the costume contest's vote tally for the hosts
    * (Votes tab, needs `votes_csv_url`); "ai": the hosts' lineup helper, a chat about the lineup from `lineup_url`
-   * (AI tab); "automation": the owner's private reminder sender (Automation tab, see `automation_emails`). */
-  view?: "signup" | "profile" | "hosts" | "messages" | "lineup" | "remote" | "votes" | "ai" | "automation";
+   * (AI tab); "automation": the owner's private reminder sender (Automation tab, see `automation_emails`); "tv": the
+   * show's flyer full screen for a flat-screen TV at the venue (needs `flyer_url`). */
+  view?: "signup" | "profile" | "hosts" | "messages" | "lineup" | "tv" | "remote" | "votes" | "ai" | "automation";
   /** The Google Sheet "Tally" tab published to the web as CSV (https://docs.google.com/spreadsheets/d/e/.../pub?...output=csv). */
   votes_csv_url?: string;
   /** Who may read the vote tally; any host when empty. */
@@ -556,6 +557,8 @@ export interface OpenMicSignupBlockConfig {
   logo_url?: string;
   /** The show's lineup feed (name, set, time, and the viewer's own status). Without it the closed screen stays simple. */
   lineup_url?: string;
+  /** The show flyer for the venue TV (view "tv"): a public image URL, portrait or landscape. */
+  flyer_url?: string;
   /** List everyone on the lineup (names, set, time) for signed-in comics from show day 6 AM. On unless set to false. */
   show_lineup?: boolean;
   supabase_url?: string;
