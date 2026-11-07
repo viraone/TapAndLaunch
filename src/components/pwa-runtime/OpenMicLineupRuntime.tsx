@@ -7,7 +7,7 @@ import type { LineupFeed } from "@/lib/openmic/selection";
 import { LINEUP_FROM_MINUTES, formatShowDate, formatWeekTime, isShowDay, lineupVisible, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
-import { SeattleClock, useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
+import { LineupList, SeattleClock, useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
  * The show-night lineup for a screen at the venue (block view "lineup", its own page, e.g. /lineup). A full-screen
@@ -194,23 +194,8 @@ function LineupBoard({
           {feed.lineup[0]?.start_time ? ` · first up ${feed.lineup[0].start_time}` : ""}
         </p>
       </div>
-      <ol className="mt-5 min-w-0 divide-y divide-white/10 rounded-2xl bg-white/[0.03] px-4 ring-1 ring-white/10 md:px-6">
-        {feed.lineup.map((entry, i) => {
-          const on = i === highlighted;
-          return (
-            <li
-              key={`${entry.name}-${i}`}
-              aria-current={on ? "true" : undefined}
-              className={`flex items-center gap-3 py-3 transition-all duration-500 md:gap-6 md:py-4 ${on ? `-mx-4 rounded-2xl px-4 md:-mx-6 md:px-6 ${ON_DECK} ${ON_DECK_GLOW}` : ""}`}
-            >
-              <span className={`w-6 shrink-0 text-right text-base font-bold tabular-nums md:w-10 md:text-2xl ${on ? "text-black/70" : "text-muted-foreground"}`}>{i + 1}</span>
-              <span className={`min-w-0 flex-1 break-words text-xl leading-tight tracking-tight md:text-3xl 2xl:text-[2.25rem] ${on ? "font-black" : "font-extrabold"}`}>{entry.name}</span>
-              <span className={`w-12 shrink-0 whitespace-nowrap text-right text-base tabular-nums md:w-24 md:text-2xl 2xl:w-28 2xl:text-3xl ${on ? "text-black/70" : "text-muted-foreground"}`}>{entry.set_length}</span>
-              <span className={`w-[4.75rem] shrink-0 whitespace-nowrap text-right text-base font-semibold tabular-nums md:w-32 md:text-2xl 2xl:w-36 2xl:text-3xl ${on ? "" : "text-primary"}`}>{startLabels?.[i]?.text ?? entry.start_time}</span>
-            </li>
-          );
-        })}
-      </ol>
+      {/* onDeckIndex means the same as `highlighted` (the row the hosts' spotlight is on), so pass it when valid. */}
+      <LineupList feed={feed} startLabels={startLabels} onDeckIndex={highlighted >= 0 ? highlighted : undefined} />
     </section>
   );
 }
