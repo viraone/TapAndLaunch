@@ -1240,12 +1240,15 @@ export function LineupList({
   startLabels,
   onTap,
   onDeckIndex,
+  size,
 }: {
   feed: LineupFeed;
   startLabels?: StartLabel[];
   onTap?: (entry: LineupEntry, index: number) => void;
   onDeckIndex?: number;
+  size?: "default" | "board";
 }) {
+  const big = size === "board";
   return (
     <section aria-label="Lineup">
       {/* Each row is its own small card with its place in the order; the comic's own row carries the colour,
@@ -1273,14 +1276,15 @@ export function LineupList({
             }
             className={
               "openmic-row relative flex min-h-14 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-3 ring-1 ring-inset " +
+              (big ? "md:gap-6 md:py-5 " : "") +
               (entry.mine || i === onDeckIndex
                 ? "bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))] ring-primary"
                 : "bg-muted ring-white/[0.06]") +
               (onTap ? " cursor-pointer active:opacity-80" : "")
             }
           >
-            <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (entry.mine || i === onDeckIndex ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
-            <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (entry.mine || i === onDeckIndex ? "font-bold" : "font-medium")}>
+            <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (big ? "md:w-10 md:text-2xl " : "") + (entry.mine || i === onDeckIndex ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
+            <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (big ? "md:text-4xl 2xl:text-5xl md:font-bold " : "") + (entry.mine || i === onDeckIndex ? "font-bold" : "font-medium")}>
               {entry.name}
               {entry.mine && (
                 <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[11px] font-black uppercase leading-none tracking-wide text-primary-foreground">
@@ -1293,8 +1297,8 @@ export function LineupList({
                 </span>
               )}
             </span>
-            <span className="shrink-0 rounded-full bg-background/60 px-2.5 py-1 text-[13px] font-semibold tabular-nums text-muted-foreground ring-1 ring-white/10">{entry.set_length}</span>
-            <span className="w-24 shrink-0 whitespace-nowrap text-right text-[17px] font-bold tabular-nums text-primary">{startLabels?.[i]?.text ?? entry.start_time}</span>
+            <span className={"shrink-0 rounded-full bg-background/60 px-2.5 py-1 text-[13px] font-semibold tabular-nums text-muted-foreground ring-1 ring-white/10 " + (big ? "md:px-4 md:py-1.5 md:text-xl " : "")}>{entry.set_length}</span>
+            <span className={"w-24 shrink-0 whitespace-nowrap text-right text-[17px] font-bold tabular-nums text-primary " + (big ? "md:w-44 md:text-4xl 2xl:w-56 2xl:text-5xl " : "")}>{startLabels?.[i]?.text ?? entry.start_time}</span>
           </li>
         ))}
       </ol>

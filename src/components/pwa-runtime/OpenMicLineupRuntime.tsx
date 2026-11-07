@@ -185,7 +185,7 @@ function LineupBoard({
       )}
       {/* onDeckIndex means the same as `highlighted` (the row the hosts' spotlight is on), so pass it when valid. */}
       <div className="mt-5">
-        <LineupList feed={feed} startLabels={startLabels} onDeckIndex={highlighted >= 0 ? highlighted : undefined} />
+        <LineupList feed={feed} startLabels={startLabels} onDeckIndex={highlighted >= 0 ? highlighted : undefined} size="board" />
       </div>
     </section>
   );
