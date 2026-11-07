@@ -60,18 +60,22 @@ describe("automation blocks in the builder", () => {
 });
 
 describe("event_calendar blocks", () => {
+  function makeEvent(title: string): RuntimeEvent {
+    return {
+      id: "a",
+      title,
+      description: null,
+      location: null,
+      starts_at: "2026-11-06T19:00:00-08:00",
+      ends_at: null,
+      capacity: null,
+      bookedCount: 0,
+    };
+  }
+
   it("draws the month view when the block's view is month", () => {
     const html = render({ type: "event_calendar", config: { title: "Calendar", view: "month" } }, undefined, [
-      {
-        id: "a",
-        title: "First Night",
-        description: null,
-        location: null,
-        starts_at: "2026-11-06T19:00:00-08:00",
-        ends_at: null,
-        capacity: null,
-        bookedCount: 0,
-      },
+      makeEvent("First Night"),
     ]);
 
     expect(html).toContain("Calendar");
@@ -79,5 +83,36 @@ describe("event_calendar blocks", () => {
     expect(html).toContain("Previous month");
     expect(html).toContain("Next month");
     expect(html).toContain("First Night");
+  });
+
+  it("keeps the Book button when booking is not turned off", () => {
+    const html = render({ type: "event_calendar", config: { title: "Calendar" } }, undefined, [
+      makeEvent("First Night"),
+    ]);
+
+    expect(html).toContain("First Night");
+    expect(html).toContain(">Book<");
+  });
+
+  it("hides the booking controls in the list when the block turns booking off", () => {
+    const html = render({ type: "event_calendar", config: { title: "Calendar", booking: false } }, undefined, [
+      { ...makeEvent("First Night"), ticket_url: "https://example.com/tickets" },
+    ]);
+
+    expect(html).toContain("First Night");
+    expect(html).not.toContain(">Book<");
+    expect(html).not.toContain("Tickets");
+    expect(html).not.toContain("Fully booked");
+  });
+
+  it("hides the Book button in the month view when the block turns booking off", () => {
+    const html = render(
+      { type: "event_calendar", config: { title: "Calendar", view: "month", booking: false } },
+      undefined,
+      [makeEvent("First Night")]
+    );
+
+    expect(html).toContain("First Night");
+    expect(html).not.toContain(">Book<");
   });
 });

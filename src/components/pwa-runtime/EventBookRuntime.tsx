@@ -35,7 +35,7 @@ function EventTime({ startsAt, endsAt }: { startsAt: string; endsAt: string | nu
   return <time dateTime={startsAt}>{text}</time>;
 }
 
-export function EventBookRuntime({ event }: { event: RuntimeEvent }) {
+export function EventBookRuntime({ event, hideBooking }: { event: RuntimeEvent; hideBooking?: boolean }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -79,53 +79,54 @@ export function EventBookRuntime({ event }: { event: RuntimeEvent }) {
       {event.location && <p className="text-sm text-muted-foreground">{event.location}</p>}
       {event.description && <p className="text-sm">{event.description}</p>}
 
-      {event.ticket_url ? (
-        <a
-          href={event.ticket_url}
-          target="_blank"
-          rel="noreferrer"
-          className="block w-full rounded-[var(--button-radius,0.375rem)] bg-primary px-3 py-2 text-center text-sm font-medium text-primary-foreground"
-        >
-          Tickets
-        </a>
-      ) : full || status === "full" ? (
-        <p className="text-sm font-medium text-muted-foreground">Fully booked</p>
-      ) : !open ? (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="w-full rounded-[var(--button-radius,0.375rem)] bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-        >
-          Book
-        </button>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-2 pt-2">
-          <input
-            type="text"
-            required
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-md border px-3 py-2 text-sm"
-          />
-          <input
-            type="email"
-            required
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border px-3 py-2 text-sm"
-          />
-          {status === "error" && <p className="text-sm text-destructive">Something went wrong — please try again.</p>}
-          <button
-            type="submit"
-            disabled={status === "submitting"}
-            className="w-full rounded-[var(--button-radius,0.375rem)] bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+      {!hideBooking &&
+        (event.ticket_url ? (
+          <a
+            href={event.ticket_url}
+            target="_blank"
+            rel="noreferrer"
+            className="block w-full rounded-[var(--button-radius,0.375rem)] bg-primary px-3 py-2 text-center text-sm font-medium text-primary-foreground"
           >
-            {status === "submitting" ? "Booking…" : "Confirm booking"}
+            Tickets
+          </a>
+        ) : full || status === "full" ? (
+          <p className="text-sm font-medium text-muted-foreground">Fully booked</p>
+        ) : !open ? (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="w-full rounded-[var(--button-radius,0.375rem)] bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+          >
+            Book
           </button>
-        </form>
-      )}
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-2 pt-2">
+            <input
+              type="text"
+              required
+              placeholder="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-md border px-3 py-2 text-sm"
+            />
+            <input
+              type="email"
+              required
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-md border px-3 py-2 text-sm"
+            />
+            {status === "error" && <p className="text-sm text-destructive">Something went wrong — please try again.</p>}
+            <button
+              type="submit"
+              disabled={status === "submitting"}
+              className="w-full rounded-[var(--button-radius,0.375rem)] bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            >
+              {status === "submitting" ? "Booking…" : "Confirm booking"}
+            </button>
+          </form>
+        ))}
     </div>
   );
 }

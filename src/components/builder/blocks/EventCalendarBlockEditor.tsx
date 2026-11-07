@@ -43,6 +43,14 @@ export function EventCalendarBlockEditor({
           </SelectContent>
         </Select>
       </div>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={config.booking !== false}
+          onChange={(e) => onChange({ ...config, booking: e.target.checked ? undefined : false })}
+        />
+        Let people book
+      </label>
       <p className="text-xs text-muted-foreground">
         Shows every upcoming event.{" "}
         <Link href={`/dashboard/apps/${appId}/events`} className="underline" target="_blank">

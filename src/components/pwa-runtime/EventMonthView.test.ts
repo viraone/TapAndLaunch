@@ -20,9 +20,14 @@ function makeEvent(id: string, title: string, startsAt: string): RuntimeEvent {
   };
 }
 
-function render(events: RuntimeEvent[], todayKey: string, timeZone?: string) {
+function render(events: RuntimeEvent[], todayKey: string, timeZone?: string, hideBooking?: boolean) {
   return renderToStaticMarkup(
-    createElement(EventMonthView, { events, todayKey, ...(timeZone !== undefined ? { timeZone } : {}) })
+    createElement(EventMonthView, {
+      events,
+      todayKey,
+      ...(timeZone !== undefined ? { timeZone } : {}),
+      ...(hideBooking !== undefined ? { hideBooking } : {}),
+    })
   );
 }
 
@@ -57,5 +62,19 @@ describe("EventMonthView", () => {
     expect(html).toContain("November 2026");
     expect(html).not.toContain("October 2026");
     expect(html).toContain("Third Friday");
+  });
+
+  it("keeps the Book button on the selected day's events by default", () => {
+    const html = render([makeEvent("a", "Early Show", "2026-11-06T19:00:00-08:00")], "2026-11-06");
+
+    expect(html).toContain("Early Show");
+    expect(html).toContain(">Book<");
+  });
+
+  it("hides the Book button on the selected day's events when booking is off", () => {
+    const html = render([makeEvent("a", "Early Show", "2026-11-06T19:00:00-08:00")], "2026-11-06", undefined, true);
+
+    expect(html).toContain("Early Show");
+    expect(html).not.toContain(">Book<");
   });
 });

@@ -402,6 +402,8 @@ export interface EventCalendarBlockConfig {
   title?: string;
   /** "month" draws a month grid and one selected day's events; missing means the plain list. */
   view?: "list" | "month";
+  /** false hides the Book button/form, the Tickets link and the "Fully booked" text; missing means booking is on. */
+  booking?: boolean;
 }
 
 export interface ZoomMeetingBlockConfig {

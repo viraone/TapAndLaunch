@@ -59,10 +59,12 @@ export function EventMonthView({
   events,
   todayKey,
   timeZone = DEFAULT_CALENDAR_TIME_ZONE,
+  hideBooking,
 }: {
   events: RuntimeEvent[];
   todayKey: string;
   timeZone?: string;
+  hideBooking?: boolean;
 }) {
   const [cursor, setCursor] = useState<Month>(() => initialMonth(events, timeZone, todayKey));
   const [selectedDay, setSelectedDay] = useState<string>(() => initialSelectedDay(events, timeZone, todayKey));
@@ -147,7 +149,9 @@ export function EventMonthView({
         ) : selectedEvents.length === 0 ? (
           <p className="text-sm text-muted-foreground">No events on this day.</p>
         ) : (
-          selectedEvents.map((event) => <EventBookRuntime key={event.id} event={event} />)
+          selectedEvents.map((event) => (
+            <EventBookRuntime key={event.id} event={event} hideBooking={hideBooking} />
+          ))
         )}
       </div>
     </div>

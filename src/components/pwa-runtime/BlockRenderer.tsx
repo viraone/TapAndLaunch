@@ -348,6 +348,8 @@ function EventCalendarBlockView({
   config: EventCalendarBlockConfig;
   events?: RuntimeEvent[];
 }) {
+  const hideBooking = config.booking === false;
+
   return (
     <div className="px-4 py-3 @lg:mx-auto @lg:max-w-4xl @lg:px-8 @lg:py-8">
       <EditableText as="h2" path={["title"]} value={config.title} placeholder="Upcoming events" className="mb-2 text-lg font-semibold @lg:mb-5 @lg:text-3xl @lg:tracking-tight" />
@@ -356,13 +358,17 @@ function EventCalendarBlockView({
           Shows every upcoming event when published.
         </p>
       ) : config.view === "month" ? (
-        <EventMonthView events={events} todayKey={dayKey(new Date(), DEFAULT_CALENDAR_TIME_ZONE) ?? ""} />
+        <EventMonthView
+          events={events}
+          todayKey={dayKey(new Date(), DEFAULT_CALENDAR_TIME_ZONE) ?? ""}
+          hideBooking={hideBooking}
+        />
       ) : events.length === 0 ? (
         <p className="text-sm text-muted-foreground">No upcoming events.</p>
       ) : (
         <div className="grid grid-cols-1 gap-3 @lg:grid-cols-2 @lg:gap-5">
           {events.map((event) => (
-            <EventBookRuntime key={event.id} event={event} />
+            <EventBookRuntime key={event.id} event={event} hideBooking={hideBooking} />
           ))}
         </div>
       )}
