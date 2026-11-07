@@ -4,7 +4,7 @@ import { useMemo, useSyncExternalStore } from "react";
 import { Loader2 } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import type { LineupFeed } from "@/lib/openmic/selection";
-import { LINEUP_FROM_MINUTES, formatShowDate, formatWeekTime, isLineupTime, isShowDay, lineupVisible, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
+import { LINEUP_FROM_MINUTES, formatShowDate, formatWeekTime, isShowDay, lineupVisible, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
 import { SeattleClock, useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
