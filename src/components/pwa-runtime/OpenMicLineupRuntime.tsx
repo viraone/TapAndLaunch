@@ -189,10 +189,6 @@ function LineupBoard({
       )}
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <h2 className="text-lg font-bold uppercase tracking-[0.2em] text-primary md:text-2xl">{today ? "Tonight's lineup" : `${weekday}'s lineup`}</h2>
-        <p className="text-base font-semibold tabular-nums text-muted-foreground md:text-xl">
-          {feed.lineup.length} {feed.lineup.length === 1 ? "comic" : "comics"}
-          {feed.lineup[0]?.start_time ? ` · first up ${feed.lineup[0].start_time}` : ""}
-        </p>
       </div>
       {/* onDeckIndex means the same as `highlighted` (the row the hosts' spotlight is on), so pass it when valid. */}
       <LineupList feed={feed} startLabels={startLabels} onDeckIndex={highlighted >= 0 ? highlighted : undefined} />
