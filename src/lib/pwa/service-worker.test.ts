@@ -24,6 +24,12 @@ describe("deployId / the service worker text", () => {
     expect(() => new Function(buildServiceWorkerScript("livebitesnow", "abc123"))).not.toThrow();
   });
 
+  it("never caches the lineup overlay under /openmic/", () => {
+    const script = buildServiceWorkerScript("a", "b");
+    expect(script).toContain('url.pathname.startsWith("/openmic/")');
+    expect(script).toContain("event.respondWith(fetch(event.request));");
+  });
+
   it("caches only the hashed /_next/static/ files cache-first; pages and everything else go to the network first", () => {
     const script = buildServiceWorkerScript("a", "b");
     expect(script).toContain('url.pathname.startsWith("/_next/static/")');

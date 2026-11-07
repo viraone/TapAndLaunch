@@ -9,13 +9,14 @@ import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { showDateFor } from "@/lib/openmic/window";
 import { setSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { upNextStatus } from "@/lib/openmic/push";
-import { isSpotlightCommand, planSpotlight, spotlightReply, type LineupCommand } from "@/lib/openmic/ai-commands";
+import { isRemovalCommand, isSpotlightCommand, planSpotlight, spotlightReply, type LineupCommand } from "@/lib/openmic/ai-commands";
 import { PINNED_PAGE, PINNED_SCROLL, useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
- * StageTime's AI tab (block view "ai"), for the show's hosts only: a chat about the lineup that also previews
- * lineup changes. The server route (openmic/ai) talks to DeepSeek and checks that the caller is a host; this
- * screen only decides what to show. The transcript lives in this component's state and nowhere else.
+ * StageTime's AI tab (block view "ai"), for the show's hosts only: a chat about the lineup that previews lineup
+ * changes and saves remove / no-show / back right away. The server route (openmic/ai) talks to DeepSeek and checks
+ * that the caller is a host; this screen only decides what to show. The transcript lives in this component's state
+ * and nowhere else.
  */
 
 interface ChatMessage {
@@ -151,6 +152,32 @@ function Chat({ client, config, userId }: { client: SupabaseClient; config: Open
     return `${spotlightReply(plan)} ${upNextStatus(plan.name, result)}`;
   }
 
+  /** remove, no_show and back: save the overlay through the host-checked route, then let every screen reload it. */
+  async function applyRemoval(
+    command: Extract<LineupCommand, { type: "remove" | "no_show" | "back" }>,
+    reply: string
+  ): Promise<string> {
+    if (!feed?.show_date) return "The lineup has not loaded yet. Try again in a moment.";
+    try {
+      const { data } = await client.auth.getSession();
+      const res = await fetch("/openmic/lineup-edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: data.session?.access_token,
+          action: command.type === "back" ? "restore" : "remove",
+          name: command.name,
+          show_date: feed.show_date,
+        }),
+      });
+      if (!res.ok) return "That did not save. Check the connection and try again.";
+      window.dispatchEvent(new CustomEvent("openmic-lineup-refresh"));
+      return reply;
+    } catch {
+      return "That did not save. Check the connection and try again.";
+    }
+  }
+
   async function send() {
     const text = input.trim();
     if (!text || pending) return;
@@ -174,9 +201,11 @@ function Chat({ client, config, userId }: { client: SupabaseClient; config: Open
       const command = body.command ?? null;
       const content = isSpotlightCommand(command)
         ? await applySpotlight(command)
-        : typeof body.reply === "string"
-          ? body.reply
-          : "I didn't get an answer. Try again.";
+        : isRemovalCommand(command)
+          ? await applyRemoval(command, typeof body.reply === "string" ? body.reply : "Lineup updated.")
+          : typeof body.reply === "string"
+            ? body.reply
+            : "I didn't get an answer. Try again.";
       setMessages([...next, { role: "assistant", content }]);
     } catch {
       setInput(text);

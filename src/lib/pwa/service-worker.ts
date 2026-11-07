@@ -13,6 +13,7 @@ export function deployId(env: Record<string, string | undefined> = process.env):
  * The per-app service worker: offline support plus Web Push.
  * - Pages: network first (the newest version whenever there is a connection), the cached shell when offline.
  * - /_next/static/ files: cache first. Their names contain a hash of their content, so a cached one can never be stale.
+ * - /openmic/ responses (the lineup overlay): network only, never cached, because hosts edit it while screens are open.
  * - Everything else (images, manifest, data): network first, cached copy when offline, so a replaced file shows up.
  * - A new deploy gets a new cache name; the old caches are deleted when the new worker activates.
  */
@@ -60,6 +61,10 @@ self.addEventListener("fetch", (event) => {
   }
 
   const url = new URL(event.request.url);
+  if (url.origin === self.location.origin && url.pathname.startsWith("/openmic/")) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
   if (url.origin === self.location.origin && url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
       caches.match(event.request).then((cached) => {

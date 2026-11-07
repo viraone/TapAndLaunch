@@ -6,11 +6,15 @@ import {
   bareNameCommand,
   buildSystemPrompt,
   EDITS_NOT_LIVE,
+  isRemovalCommand,
   isSpotlightCommand,
+  matchComic,
   parseModelAnswer,
   previewCommand,
+  removalReply,
   type LineupCommand,
 } from "@/lib/openmic/ai-commands";
+import { applyRemovals, readLineupRemoved } from "@/lib/openmic/removed";
 import type { LineupFeed } from "@/lib/openmic/selection";
 import { allowSearch } from "@/lib/domains/search-limit";
 import { askDeepSeek } from "@/lib/ai/deepseek";
@@ -39,20 +43,23 @@ async function aiConfigFor(appId: string): Promise<OpenMicSignupBlockConfig | nu
 }
 
 /** The lineup the model may see: names, set lengths and times only, never emails and never the viewer's row. */
-async function readLineup(url: string | undefined): Promise<{ lineup: { name: string; set_length: string; start_time: string }[]; showDate: string | null } | null> {
+async function readLineup(url: string | undefined): Promise<LineupFeed | null> {
   if (!url) return null;
   try {
     const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
-    const feed = (await res.json()) as LineupFeed;
+    const feed = (await res.json()) as Partial<LineupFeed> | null;
     if (!feed || !Array.isArray(feed.lineup)) return null;
     return {
-      showDate: typeof feed.show_date === "string" ? feed.show_date : null,
+      show_date: typeof feed.show_date === "string" ? feed.show_date : "",
+      posted: feed.posted === true,
       lineup: feed.lineup.map((entry) => ({
         name: typeof entry.name === "string" ? entry.name : "",
         set_length: typeof entry.set_length === "string" ? entry.set_length : "",
         start_time: typeof entry.start_time === "string" ? entry.start_time : "",
       })),
+      // The model never needs the signed-in host's own row.
+      me: null,
     };
   } catch {
     return null;
@@ -60,9 +67,10 @@ async function readLineup(url: string | undefined): Promise<{ lineup: { name: st
 }
 
 /**
- * The hosts' AI tab: a chat about the lineup, and previews of lineup changes. Hosts only. The model is never
- * told about emails, and this route changes nothing: every accepted command comes back as a sentence beginning
- * "Would…", with EDITS_NOT_LIVE saying where to make the change for now.
+ * The hosts' AI tab: a chat about the lineup. Hosts only, and the model is never told about emails. remove,
+ * no_show and back now change tonight's lineup right away (the client saves the overlay through
+ * openmic/lineup-edit); every other accepted command still comes back as a sentence beginning "Would…", with
+ * EDITS_NOT_LIVE saying where to make the change for now.
  */
 export async function POST(request: Request, context: { params: Promise<{ appSlug: string }> }) {
   const { appSlug } = await context.params;
@@ -92,9 +100,13 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) return Response.json({ error: "The AI isn't connected yet." }, { status: 503 });
 
-  const feed = await readLineup(config.lineup_url);
+  // The hosts' removals hide comics from the model as well as from the phones. A list for another show date is ignored.
+  const stored = readLineupRemoved(config.lineup_removed);
+  const raw = await readLineup(config.lineup_url);
+  const removed = raw && stored && stored.show_date === raw.show_date ? stored : null;
+  const feed = raw ? applyRemovals(raw, removed) : null;
   const system = feed
-    ? buildSystemPrompt(feed.lineup, feed.showDate)
+    ? buildSystemPrompt(feed.lineup, feed.show_date || null)
     : `${buildSystemPrompt([], null)}\n\nThe lineup could not be loaded just now.`;
 
   // A message that is only a comic's name is on_deck, read here so it is instant and cannot be misread.
@@ -112,6 +124,18 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
     ({ reply, command } = parseModelAnswer(answer));
   }
   if (!command) return Response.json({ reply, command: null });
+
+  // remove, no_show and back are live: they hide or restore a name in the overlay right away.
+  if (isRemovalCommand(command)) {
+    const removedRows = (removed?.names ?? []).map((name) => ({ name }));
+    // remove/no_show also look at the removed names, so removing the same comic twice gives the same answer.
+    const pool = command.type === "back" ? removedRows : [...(feed?.lineup ?? []), ...removedRows];
+    const check = previewCommand(command, pool);
+    if (!check.ok) return Response.json({ reply: check.text, command: null });
+    const match = matchComic(command.name, pool);
+    if (match.kind !== "one") return Response.json({ reply: check.text, command: null });
+    return Response.json({ reply: removalReply(command, match.name), command: { ...command, name: match.name } });
+  }
 
   const preview = previewCommand(command, feed?.lineup ?? []);
   if (!preview.ok) return Response.json({ reply: preview.text, command: null });

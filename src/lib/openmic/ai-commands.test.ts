@@ -3,10 +3,12 @@ import {
   EDITS_NOT_LIVE,
   bareNameCommand,
   buildSystemPrompt,
+  isRemovalCommand,
   matchComic,
   parseModelAnswer,
   planSpotlight,
   previewCommand,
+  removalReply,
   spotlightReply,
   type LineupCommand,
 } from "./ai-commands";
@@ -225,6 +227,30 @@ describe("spotlightReply", () => {
   });
 });
 
+describe("isRemovalCommand", () => {
+  it("catches remove, no_show and back", () => {
+    expect(isRemovalCommand({ type: "remove", name: "David Chen" })).toBe(true);
+    expect(isRemovalCommand({ type: "no_show", name: "David Chen" })).toBe(true);
+    expect(isRemovalCommand({ type: "back", name: "David Chen" })).toBe(true);
+  });
+
+  it("leaves the previews and a missing command alone", () => {
+    expect(isRemovalCommand({ type: "add", name: "Sam", position: "end" })).toBe(false);
+    expect(isRemovalCommand({ type: "move", name: "David Chen", position: "top" })).toBe(false);
+    expect(isRemovalCommand({ type: "swap", name: "David Chen", other: "Lori Peck" })).toBe(false);
+    expect(isRemovalCommand({ type: "undo" })).toBe(false);
+    expect(isRemovalCommand(null)).toBe(false);
+  });
+});
+
+describe("removalReply", () => {
+  it("says what happened, in the live words", () => {
+    expect(removalReply({ type: "remove", name: "English John" }, "English John")).toBe("Removed English John from tonight's lineup.");
+    expect(removalReply({ type: "no_show", name: "Sam" }, "Sam")).toBe("No-show: took Sam off the lineup.");
+    expect(removalReply({ type: "back", name: "English John" }, "English John")).toBe("Put English John back on the lineup.");
+  });
+});
+
 describe("previewCommand", () => {
   it("previews adding someone below or above someone", () => {
     expect(previewCommand({ type: "add", name: "Sam", position: "below", of: "Jeff" }, LINEUP)).toEqual({
@@ -364,14 +390,15 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("One command per message.");
     expect(prompt).toContain("Minutes are never part of a command.");
     expect(prompt).toContain("only a comic");
-    expect(prompt).toContain("Do not say a change was made.");
+    expect(prompt).toContain("Do not say a change was made unless");
     expect(prompt).toContain("Never mention any email address.");
   });
 
-  it("lists the two commands that happen right away", () => {
+  it("lists the commands that happen right away", () => {
     const prompt = buildSystemPrompt([], null);
     expect(prompt).toContain("on_deck");
     expect(prompt).toContain("performing");
+    expect(prompt).toContain("remove, no_show and back happen right away");
     expect(prompt).toContain("happen right away");
   });
 });

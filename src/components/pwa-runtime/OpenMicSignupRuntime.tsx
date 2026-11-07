@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { Bell, Check, ChevronRight, CircleCheck, Loader2, Mail, Mic, X } from "lucide-react";
 import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
+import { applyRemovals, readLineupRemoved, type LineupRemoved } from "@/lib/openmic/removed";
 import { formatClock } from "@/lib/format-date";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
@@ -962,7 +963,21 @@ export function useNow(): Date {
   return now;
 }
 
-/** The lineup feed, refreshed every minute while the screen is showing. */
+/** The hosts' hidden names for tonight; any trouble reads as "nothing removed" so the lineup still shows. */
+async function fetchRemoved(): Promise<LineupRemoved | null> {
+  try {
+    const res = await fetch("/openmic/removed", { cache: "no-store" });
+    if (!res.ok) return null;
+    return readLineupRemoved(await res.json());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The lineup feed, refreshed every minute while the screen is showing, with the hosts' AI-tab removals applied.
+ * Every screen (phone, hosts' home, Remote, venue board and AI tab) reads the lineup through this hook.
+ */
 export function useLineup(url: string | undefined, client: SupabaseClient, userId: string | undefined, enabled: boolean) {
   const [feed, setFeed] = useState<LineupFeed | null>(null);
   const [failed, setFailed] = useState(false);
@@ -973,11 +988,14 @@ export function useLineup(url: string | undefined, client: SupabaseClient, userI
       try {
         const { data } = await client.auth.getSession();
         const token = data.session?.access_token;
-        const res = await fetch(url!, { headers: token ? { authorization: `Bearer ${token}` } : {} });
+        const [res, removed] = await Promise.all([
+          fetch(url!, { headers: token ? { authorization: `Bearer ${token}` } : {} }),
+          fetchRemoved(),
+        ]);
         if (!res.ok) throw new Error(String(res.status));
         const json = (await res.json()) as LineupFeed;
         if (!cancelled) {
-          setFeed(json);
+          setFeed(applyRemovals(json, removed));
           setFailed(false);
         }
       } catch {
@@ -986,9 +1004,13 @@ export function useLineup(url: string | undefined, client: SupabaseClient, userI
     }
     void load();
     const timer = setInterval(load, 60_000);
+    // The AI tab saves a removal, then asks every open screen to reload now rather than at the next minute.
+    const refresh = () => void load();
+    window.addEventListener("openmic-lineup-refresh", refresh);
     return () => {
       cancelled = true;
       clearInterval(timer);
+      window.removeEventListener("openmic-lineup-refresh", refresh);
     };
   }, [url, client, userId, enabled]);
   return { feed, failed };

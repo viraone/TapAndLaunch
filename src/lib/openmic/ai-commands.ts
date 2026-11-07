@@ -195,6 +195,25 @@ export function spotlightReply(plan: Extract<SpotlightPlan, { ok: true }>): stri
   return plan.performing ? `${plan.name} is on deck. ${plan.performing} is performing now.` : `${plan.name} is on deck.`;
 }
 
+/** The commands that change tonight's lineup right away: remove and no_show hide a comic, back puts one back. */
+export type RemovalCommand = Extract<LineupCommand, { type: "remove" | "no_show" | "back" }>;
+
+export function isRemovalCommand(command: LineupCommand | null): command is RemovalCommand {
+  return command !== null && (command.type === "remove" || command.type === "no_show" || command.type === "back");
+}
+
+/** What the hosts read back after a live removal or restore. */
+export function removalReply(command: RemovalCommand, name: string): string {
+  switch (command.type) {
+    case "remove":
+      return `Removed ${name} from tonight's lineup.`;
+    case "no_show":
+      return `No-show: took ${name} off the lineup.`;
+    case "back":
+      return `Put ${name} back on the lineup.`;
+  }
+}
+
 /**
  * The sentence for a command, checked against the current lineup. A change with a name that isn't on the lineup
  * (or is on it twice) is refused with the sentence that asks which one; `ok` is true only for a change that
@@ -295,10 +314,11 @@ export function buildSystemPrompt(lineup: { name: string; set_length: string; st
     "on_deck: the host says a comic is on deck, up next, next, or should be buzzed.",
     "If the host sends only a comic's name, that means on_deck for that comic.",
     "performing: the host says a comic is performing now, on stage now, or just started.",
-    "on_deck and performing happen right away; the other commands are previews only.",
+    "remove and no_show both take the comic off tonight's lineup; back puts a removed comic back on it.",
+    "on_deck, performing, remove, no_show and back happen right away; the other commands are previews only.",
     "One command per message. If a host asks for two changes at once, ask for one at a time first.",
     "Minutes are never part of a command.",
-    "Do not say a change was made.",
+    "Do not say a change was made unless it is one of the commands that happen right away.",
     "Never mention any email address.",
   ].join("\n");
 }
