@@ -41,6 +41,8 @@ import { EditableImage, EditableText, PromoteHeading } from "@/components/pwa-ru
 import { ContactFormRuntime } from "@/components/pwa-runtime/ContactFormRuntime";
 import { StoreRuntime, type RuntimeProduct } from "@/components/pwa-runtime/ProductBuyRuntime";
 import { EventBookRuntime, type RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
+import { EventMonthView } from "@/components/pwa-runtime/EventMonthView";
+import { DEFAULT_CALENDAR_TIME_ZONE, dayKey } from "@/lib/calendar/month-grid";
 import { GasDirectoryRuntime } from "@/components/pwa-runtime/GasDirectoryRuntime";
 import { FoodDirectoryPreview, FoodDirectoryRuntime } from "@/components/pwa-runtime/FoodDirectoryRuntime";
 import { ListingDirectoryRuntime } from "@/components/pwa-runtime/ListingDirectoryRuntime";
@@ -101,7 +103,14 @@ export function BlockRenderer(props: {
   // look can style it from globals.css; on the published site it also reveals as it scrolls in (RevealObserver).
   const classes = [APPEARANCE[options.appearance ?? ""], live ? SHOW_ON[options.show_on ?? ""] : ""].filter(Boolean).join(" ");
   return (
-    <div className={classes || undefined} data-block-type={props.block.type} {...(live ? { "data-reveal": "" } : {})}>
+    <div
+      className={classes || undefined}
+      data-block-type={props.block.type}
+      {...(live ? { "data-reveal": "" } : {})}
+      // RevealObserver (Look.tsx) adds data-in as soon as the section scrolls into view, which can be before React
+      // hydrates a client-heavy block such as the month calendar; that is by design, not a mismatch worth a warning.
+      suppressHydrationWarning
+    >
       <PromoteHeading on={props.headingLevel === "h1"}>
         <BlockBody {...props} />
       </PromoteHeading>
@@ -346,6 +355,8 @@ function EventCalendarBlockView({
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           Shows every upcoming event when published.
         </p>
+      ) : config.view === "month" ? (
+        <EventMonthView events={events} todayKey={dayKey(new Date(), DEFAULT_CALENDAR_TIME_ZONE) ?? ""} />
       ) : events.length === 0 ? (
         <p className="text-sm text-muted-foreground">No upcoming events.</p>
       ) : (

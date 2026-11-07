@@ -400,6 +400,8 @@ export interface ProductListBlockConfig {
 /** No event selection either, same reasoning as `ProductListBlockConfig`. */
 export interface EventCalendarBlockConfig {
   title?: string;
+  /** "month" draws a month grid and one selected day's events; missing means the plain list. */
+  view?: "list" | "month";
 }
 
 export interface ZoomMeetingBlockConfig {

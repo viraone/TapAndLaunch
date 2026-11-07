@@ -5,11 +5,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 vi.mock("server-only", () => ({}));
 
 import { BlockRenderer, type RenderableBlock } from "@/components/pwa-runtime/BlockRenderer";
+import type { RuntimeEvent } from "@/components/pwa-runtime/EventBookRuntime";
 import type { RuntimeListing } from "@/lib/pwa/listings";
 
-function render(block: RenderableBlock, listings?: RuntimeListing[]) {
+function render(block: RenderableBlock, listings?: RuntimeListing[], events?: RuntimeEvent[]) {
   return renderToStaticMarkup(
-    createElement(BlockRenderer, { block, ...(listings !== undefined ? { listings } : {}) })
+    createElement(BlockRenderer, {
+      block,
+      ...(listings !== undefined ? { listings } : {}),
+      ...(events !== undefined ? { events } : {}),
+    })
   );
 }
 
@@ -51,5 +56,28 @@ describe("automation blocks in the builder", () => {
     const html = render({ type: "open_mic_signup", config: { view: "automation" } });
     expect(html).toContain("Automation (private)");
     expect(html).not.toContain("Connect Gmail");
+  });
+});
+
+describe("event_calendar blocks", () => {
+  it("draws the month view when the block's view is month", () => {
+    const html = render({ type: "event_calendar", config: { title: "Calendar", view: "month" } }, undefined, [
+      {
+        id: "a",
+        title: "First Night",
+        description: null,
+        location: null,
+        starts_at: "2026-11-06T19:00:00-08:00",
+        ends_at: null,
+        capacity: null,
+        bookedCount: 0,
+      },
+    ]);
+
+    expect(html).toContain("Calendar");
+    expect(html).toContain("November 2026");
+    expect(html).toContain("Previous month");
+    expect(html).toContain("Next month");
+    expect(html).toContain("First Night");
   });
 });
