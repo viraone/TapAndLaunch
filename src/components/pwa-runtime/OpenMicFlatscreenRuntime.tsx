@@ -10,7 +10,7 @@ import { useLineup, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
  * The show's flyer full screen for a flat-screen TV at the venue (block view "tv", its own page, e.g. /tv). A black
- * page with the flyer kept whole, portrait or landscape, and the show's address along the bottom. The timer box in the
+ * page with the flyer kept whole, portrait or landscape, and nothing else but the timer box. The timer box in the
  * corner reads the same lineup, spotlight and estimates as the comics' phones and the hosts' Home.
  */
 export function OpenMicFlatscreenRuntime({ config }: { config: OpenMicSignupBlockConfig }) {
@@ -24,7 +24,6 @@ export function OpenMicFlatscreenRuntime({ config }: { config: OpenMicSignupBloc
         <p className="text-2xl font-semibold text-white/70">No flyer yet.</p>
       )}
       {client ? <TvTimerBox client={client} config={config} /> : null}
-      <p className="absolute bottom-6 left-8 text-lg font-semibold text-white/70">stagetimepnw.tapandlaunch.com</p>
     </div>
   );
 }
