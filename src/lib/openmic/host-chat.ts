@@ -1,6 +1,7 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { setEmailNavFlag, setNavFlag } from "@/lib/pwa/nav-flags";
 import { readSignedInName, setSignedInName } from "./signed-in-name";
+import { HIDE_CALENDAR_FLAG, hidesCalendarTab } from "./calendar-tab";
 
 /**
  * Two of StageTime's tabs depend on who is signed in: "Hosts" (show_if "openmic-hosts") for the show's hosts, and
@@ -18,11 +19,13 @@ export async function syncChatTabs(client: SupabaseClient, user: User | null): P
     setEmailNavFlag(null);
     setNavFlag(HOSTS_NAV_FLAG, false);
     setNavFlag(COMIC_NAV_FLAG, false);
+    setNavFlag(HIDE_CALENDAR_FLAG, false);
     setSignedInName(null);
     return false;
   }
   // A tab meant for one account (show_if "openmic-email:<address>") follows the signed-in address.
   setEmailNavFlag(user.email ?? null);
+  setNavFlag(HIDE_CALENDAR_FLAG, hidesCalendarTab(user.email));
   // The header's corner avatar: a name another screen already stored for this person (a host's display name) stays.
   if (readSignedInName()?.id !== user.id) {
     const stage = (user.user_metadata as Record<string, unknown> | undefined)?.stage_name;

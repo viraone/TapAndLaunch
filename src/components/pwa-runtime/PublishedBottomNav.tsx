@@ -46,7 +46,7 @@ export function PublishedBottomNav({
   // Tabs marked show_if appear only once this browser's switch for them is on, and a tab with label_if is renamed
   // while its switch is on (lib/pwa/nav-flags.ts, lib/pwa/bottom-nav.ts; a bar left with one tab shows nothing).
   // The snapshot is a string so it compares by value; the server render leaves the flagged tabs out.
-  const flagged = [...new Set(items.flatMap((i) => [i.show_if, i.label_if?.flag]).filter((f): f is string => !!f))];
+  const flagged = [...new Set(items.flatMap((i) => [i.show_if, i.hide_if, i.label_if?.flag]).filter((f): f is string => !!f))];
   const onFlags = useSyncExternalStore(
     subscribeNavFlags,
     () => flagged.filter(readNavFlag).join("|"),

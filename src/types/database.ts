@@ -134,7 +134,7 @@ export interface ThemeConfig {
   /** `show_if`: the tab appears only once that browser switch is on (lib/pwa/nav-flags.ts), e.g. StageTime's Hosts tab.
    * `label_if`: while that switch is on, the tab reads `label` (and shows `icon`) instead: StageTime's first tab is a
    * house called "Home" to hosts. */
-  bottom_nav?: Array<{ label: string; icon: string; page_path: string; show_if?: string; label_if?: { flag: string; label: string; icon?: string } }>;
+  bottom_nav?: Array<{ label: string; icon: string; page_path: string; show_if?: string; hide_if?: string; label_if?: { flag: string; label: string; icon?: string } }>;
   /** "dark" puts the published app on a dark zinc palette, the whole page
    * (not just the column) in `background_color`. Unset keeps the light look. */
   color_scheme?: "light" | "dark";

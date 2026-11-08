@@ -34,4 +34,14 @@ describe("tabsToShow", () => {
     ];
     expect(tabsToShow(plain, [])).toEqual(plain);
   });
+
+  it("hides a tab with hide_if while its switch is on", () => {
+    const items = [
+      { label: "A", icon: "a", page_path: "a" },
+      { label: "B", icon: "b", page_path: "b" },
+      { label: "Calendar", icon: "calendar", page_path: "calendar", hide_if: "openmic-hide-calendar" },
+    ];
+    expect(tabsToShow(items, []).map((i) => i.label)).toEqual(["A", "B", "Calendar"]);
+    expect(tabsToShow(items, ["openmic-hide-calendar"]).map((i) => i.label)).toEqual(["A", "B"]);
+  });
 });
