@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { initialsOf, shortName, useSignedInName } from "@/lib/openmic/signed-in-name";
 import { TabIcon } from "./BottomNav";
+import { HeaderClock } from "./HeaderClock";
 
 /**
  * The app header's corner link. Signed out it is a round icon button; once an app's sign-in reports a name
@@ -24,11 +25,13 @@ export function HeaderCornerLink({ href, label, icon }: { href: string; label: s
     );
   }
   return (
+    <div className="ml-auto flex shrink-0 flex-col items-center gap-1">
+    <HeaderClock />
     <Link
       href={href}
       aria-label={`Signed in as ${name}. ${label}`}
       title={`Signed in as ${name}`}
-      className="ml-auto flex w-14 shrink-0 flex-col items-center gap-1 transition active:scale-95"
+      className="flex w-14 shrink-0 flex-col items-center gap-1 transition active:scale-95"
     >
       <span
         aria-hidden
@@ -40,5 +43,6 @@ export function HeaderCornerLink({ href, label, icon }: { href: string; label: s
         {shortName(name)}
       </span>
     </Link>
+    </div>
   );
 }
