@@ -1314,25 +1314,21 @@ export function LineupList({
           const performing = i === performingIndex;
           const onDeck = !performing && i === onDeckIndex;
           const result = finished?.[i] ?? null;
-          const accent = entry.mine || performing || onDeck;
+          const accent = performing || onDeck;
           const fill = performing
             ? over
               ? "bg-red-950/50"
               : "bg-[color-mix(in_oklab,var(--primary)_16%,var(--muted))]"
             : onDeck
               ? "bg-white/[0.04]"
-              : entry.mine
-                ? "bg-[color-mix(in_oklab,var(--primary)_14%,var(--muted))]"
-                : "bg-muted";
+              : "bg-muted";
           const shadow = performing
             ? over
               ? "inset 0 0 0 1.5px #ef4444, inset 0 0 28px rgba(239, 68, 68, 0.28)"
               : "inset 0 0 0 1.5px var(--primary), inset 0 0 28px color-mix(in oklab, var(--primary) 30%, transparent)"
             : onDeck
               ? "inset 0 0 0 1.5px rgba(255, 255, 255, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.07)"
-              : entry.mine
-                ? "inset 0 0 0 1px var(--primary)"
-                : "inset 0 0 0 1px rgba(255, 255, 255, 0.05)";
+              : "inset 0 0 0 1px rgba(255, 255, 255, 0.05)";
           return (
             <li
               key={`${entry.name}-${i}`}
