@@ -9,22 +9,18 @@ import { formatCountdown, tvTimer, type TvTimer } from "@/lib/openmic/tv-timer";
 import { useLineup, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
- * The show's flyer full screen for a flat-screen TV at the venue (block view "tv", its own page, e.g. /tv). A page
- * with a blurred copy of the flyer filling the background and the flyer kept whole, portrait or landscape, and nothing else but the timer box. The timer box in its own right-hand column reads
+ * The show's flyer full screen for a flat-screen TV at the venue (block view "tv", its own page, e.g. /tv). A black
+ * page where the flyer fills everything left of the timer column, cropped top and bottom when its shape does not fit, and nothing else. The timer box in its own right-hand column reads
  * the same lineup, spotlight and estimates as the comics' phones and the hosts' Home.
  */
 export function OpenMicFlatscreenRuntime({ config }: { config: OpenMicSignupBlockConfig }) {
   const client = useOpenMicClient(config);
   return (
     <div className="fixed inset-0 z-[100] flex overflow-hidden bg-black text-white">
-      {config.flyer_url ? (
-        // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
-        <img src={config.flyer_url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-3xl" />
-      ) : null}
       <div className="relative flex min-w-0 flex-1 items-center justify-center">
         {config.flyer_url ? (
           // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
-          <img src={config.flyer_url} alt={`${config.show_name ?? "The show"} flyer`} className="h-full w-auto max-w-full object-contain" />
+          <img src={config.flyer_url} alt={`${config.show_name ?? "The show"} flyer`} className="h-full w-full object-cover object-center" />
         ) : (
           <p className="text-2xl font-semibold text-white/70">No flyer yet.</p>
         )}
