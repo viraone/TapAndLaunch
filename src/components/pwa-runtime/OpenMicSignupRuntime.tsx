@@ -1059,7 +1059,6 @@ function ShowDayScreen({
   const second = useSecond();
   const mineAt = feed?.lineup.findIndex((e) => e.mine) ?? -1;
   const showDate = ymd(showDateFor(window, now));
-  const upNext = state === "selected" && mineAt >= 0 && spotlightIndex(spotlight, feed!.lineup, showDate) === mineAt;
   // From the hosts' highlight: the row after it is on deck, so each later row can show a live estimate. Without a
   // usable spotlight every row keeps its sheet time (see start-times.ts).
   const startLabels = feed ? estimateStartTimes({ lineup: feed.lineup, spotlight, showDate, timeZone: window.timeZone, now: second }) : undefined;
@@ -1077,6 +1076,8 @@ function ShowDayScreen({
           finished: feed.lineup.map((entry, i) => finishedLabel(finishedRecord(spotlight?.sets, i, entry.name), entry.set_length)),
         }
       : undefined;
+  // On deck on the hosts' show clock: the open app buzzes at the same moment the server's up-next push goes out.
+  const upNext = state === "selected" && mineAt >= 0 && live?.onDeckIndex === mineAt;
   useEffect(() => {
     if (!upNext) return;
     try {
