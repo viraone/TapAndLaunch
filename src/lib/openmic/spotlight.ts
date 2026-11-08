@@ -8,6 +8,9 @@ import { useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LineupEntry } from "@/lib/openmic/selection";
 
+/** One finished set: who, where in the lineup, and the START and STOP moments. */
+export type SetRecord = { position: number; name: string; started_at: string; stopped_at: string };
+
 export interface Spotlight {
   /** YYYY-MM-DD of the show it was set for, or null when it has never been set. */
   show_date: string | null;
@@ -17,6 +20,10 @@ export interface Spotlight {
   name: string;
   set_at: string;
   set_by: string;
+  /** When the hosts pressed STOP for this comic; null while their clock runs. (Column added 2026-11-08.) */
+  stopped_at?: string | null;
+  /** Every finished set this show, appended on STOP, so a row can show how the comic did. */
+  sets?: SetRecord[];
 }
 
 /** The hosts who may put a comic on deck by tapping the comic's row on the hosts' Home. */
@@ -65,7 +72,7 @@ export function useSpotlight(client: SupabaseClient | null): { spotlight: Spotli
     if (!client) return;
     let cancelled = false;
     const load = async () => {
-      const { data, error } = await client.from("lineup_spotlight").select("show_date, position, name, set_at, set_by").eq("id", 1).maybeSingle();
+      const { data, error } = await client.from("lineup_spotlight").select("show_date, position, name, set_at, set_by, stopped_at, sets").eq("id", 1).maybeSingle();
       if (cancelled) return;
       if (error || !data) {
         setFailed(true);
