@@ -1233,74 +1233,125 @@ export function ShowDay({
 }
 
 /** The lineup as an inset grouped list (the comics' show-day screen and the hosts' Home): place in the order, name,
- * set length and start time; the asking comic's own row (entry.mine) carries the colour and one clean outline (no bar or glow: stacked edges
- * looked doubled on a phone). */
+ * set length and start time. The asking comic's own row (entry.mine) carries the colour and one clean outline. With the
+ * show clock: the performing row gets the primary ring, a PERFORMING tag and the live countdown in its pill (all red
+ * past the set length), the on-deck row a white ring and an ON DECK tag, and a finished row is dimmed with how the
+ * comic did in the time column. The list scrolls the performing row into view when it changes. */
 export function LineupList({
   feed,
   startLabels,
   onTap,
   onDeckIndex,
+  performingIndex,
+  over,
+  livePill,
+  finished,
   size,
 }: {
   feed: LineupFeed;
   startLabels?: StartLabel[];
   onTap?: (entry: LineupEntry, index: number) => void;
+  /** The comic who is next (white ring, ON DECK). */
   onDeckIndex?: number;
+  /** The comic on stage (primary ring, PERFORMING, live pill). */
+  performingIndex?: number;
+  /** The performing comic is past their set length: everything about that row turns red. */
+  over?: boolean;
+  /** The live countdown text for the performing row's pill, e.g. "2:41" or "+0:15". */
+  livePill?: string;
+  /** Per row, how a finished comic did ("2:50", "+0:40") or null; a non-null entry dims the row. */
+  finished?: (string | null)[];
   size?: "default" | "board";
 }) {
   const big = size === "board";
+  useEffect(() => {
+    if (performingIndex === undefined || performingIndex < 0) return;
+    document.getElementById(`openmic-row-${performingIndex}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [performingIndex]);
+  const tag = "absolute -top-2.5 left-3 rounded-full px-2 py-0.5 text-[10px] font-black uppercase leading-none tracking-[0.14em]";
   return (
     <section aria-label="Lineup">
-      {/* Each row is its own small card with its place in the order; the comic's own row carries the colour,
-          a left bar and a soft glow. Rows slide in one after another (openmic-row, globals.css). The outline is
-          drawn inside the row (ring-inset): the scroller is exactly as wide as the rows and clips anything outside
-          them, which cut the sides and corners of the highlighted row's outline. */}
-      <ol className="mt-2 space-y-1.5">
-        {feed.lineup.map((entry, i) => (
-          <li
-            key={`${entry.name}-${i}`}
-            aria-current={entry.mine ? "true" : undefined}
-            style={{ animationDelay: `${Math.min(i, 14) * 35}ms` }}
-            role={onTap ? "button" : undefined}
-            tabIndex={onTap ? 0 : undefined}
-            onClick={onTap ? () => onTap(entry, i) : undefined}
-            onKeyDown={
-              onTap
-                ? (event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      onTap(entry, i);
+      {/* Each row is its own small card with its place in the order. The outline is drawn inside the row (ring-inset):
+          the scroller is exactly as wide as the rows and clips anything outside them. Rows slide in one after
+          another (openmic-row, globals.css). */}
+      <ol className="mt-2 space-y-2">
+        {feed.lineup.map((entry, i) => {
+          const performing = i === performingIndex;
+          const onDeck = !performing && i === onDeckIndex;
+          const result = finished?.[i] ?? null;
+          const accent = entry.mine || performing || onDeck;
+          const ring = performing
+            ? over
+              ? "bg-red-950/40 ring-2 ring-red-500"
+              : "bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))] ring-2 ring-primary"
+            : onDeck
+              ? "bg-muted ring-2 ring-white/70"
+              : entry.mine
+                ? "bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))] ring-1 ring-primary"
+                : "bg-muted ring-1 ring-white/[0.06]";
+          return (
+            <li
+              key={`${entry.name}-${i}`}
+              id={`openmic-row-${i}`}
+              aria-current={entry.mine ? "true" : undefined}
+              style={{ animationDelay: `${Math.min(i, 14) * 35}ms` }}
+              role={onTap ? "button" : undefined}
+              tabIndex={onTap ? 0 : undefined}
+              onClick={onTap ? () => onTap(entry, i) : undefined}
+              onKeyDown={
+                onTap
+                  ? (event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onTap(entry, i);
+                      }
                     }
-                  }
-                : undefined
-            }
-            className={
-              "openmic-row relative flex min-h-14 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-3 ring-1 ring-inset " +
-              (big ? "md:gap-6 md:py-5 " : "") +
-              (entry.mine || i === onDeckIndex
-                ? "bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))] ring-primary"
-                : "bg-muted ring-white/[0.06]") +
-              (onTap ? " cursor-pointer active:opacity-80" : "")
-            }
-          >
-            <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (big ? "md:w-10 md:text-2xl " : "") + (entry.mine || i === onDeckIndex ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
-            <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (big ? "md:text-4xl 2xl:text-5xl md:font-bold " : "") + (entry.mine || i === onDeckIndex ? "font-bold" : "font-medium")}>
-              {entry.name}
-              {entry.mine && (
-                <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[11px] font-black uppercase leading-none tracking-wide text-primary-foreground">
-                  You
-                </span>
-              )}
-              {i === onDeckIndex && (
-                <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[11px] font-black uppercase leading-none tracking-wide text-primary-foreground">
-                  On deck
-                </span>
-              )}
-            </span>
-            <span className={"shrink-0 rounded-full bg-background/60 px-2.5 py-1 text-[13px] font-semibold tabular-nums text-muted-foreground ring-1 ring-white/10 " + (big ? "md:px-6 md:py-2 md:text-3xl 2xl:text-4xl md:font-bold md:text-white md:bg-white/10 md:ring-white/25 " : "")}>{entry.set_length}</span>
-            <span className={"w-24 shrink-0 whitespace-nowrap text-right text-[17px] font-bold tabular-nums text-primary " + (big ? "md:w-44 md:text-4xl 2xl:w-56 2xl:text-5xl " : "")}>{startLabels?.[i]?.text ?? entry.start_time}</span>
-          </li>
-        ))}
+                  : undefined
+              }
+              className={
+                "openmic-row relative flex min-h-14 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-3 ring-inset " +
+                (big ? "md:gap-6 md:py-5 " : "") +
+                ring +
+                (result ? " opacity-50" : "") +
+                (onTap ? " cursor-pointer active:opacity-80" : "")
+              }
+            >
+              {performing && <span className={`${tag} ${over ? "bg-red-500 text-white" : "bg-primary text-primary-foreground"}`}>{over ? "Time" : "Performing"}</span>}
+              {onDeck && <span className={`${tag} bg-white text-black`}>On deck</span>}
+              <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (big ? "md:w-10 md:text-2xl " : "") + (accent ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
+              <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (big ? "md:text-4xl 2xl:text-5xl md:font-bold " : "") + (accent ? "font-bold" : "font-medium")}>
+                {entry.name}
+                {entry.mine && (
+                  <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[11px] font-black uppercase leading-none tracking-wide text-primary-foreground">
+                    You
+                  </span>
+                )}
+              </span>
+              <span
+                className={
+                  "shrink-0 rounded-full px-2.5 py-1 text-[13px] font-semibold tabular-nums ring-1 " +
+                  (performing && livePill
+                    ? over
+                      ? "bg-red-500 text-white ring-red-400"
+                      : "bg-primary text-primary-foreground ring-primary"
+                    : "bg-background/60 text-muted-foreground ring-white/10") +
+                  (big ? " md:px-6 md:py-2 md:text-3xl 2xl:text-4xl md:font-bold md:text-white md:bg-white/10 md:ring-white/25" : "")
+                }
+              >
+                {performing && livePill ? livePill : entry.set_length}
+              </span>
+              <span
+                className={
+                  "w-24 shrink-0 whitespace-nowrap text-right text-[17px] font-bold tabular-nums " +
+                  (result ? (result.startsWith("+") ? "text-red-400" : "text-muted-foreground") : "text-primary") +
+                  (big ? " md:w-44 md:text-4xl 2xl:w-56 2xl:text-5xl" : "")
+                }
+              >
+                {result ?? startLabels?.[i]?.text ?? entry.start_time}
+              </span>
+            </li>
+          );
+        })}
       </ol>
     </section>
   );
