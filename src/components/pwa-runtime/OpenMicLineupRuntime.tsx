@@ -6,7 +6,7 @@ import type { OpenMicSignupBlockConfig } from "@/types/database";
 import type { LineupFeed } from "@/lib/openmic/selection";
 import { LINEUP_FROM_MINUTES, formatShowDate, formatWeekTime, isShowDay, lineupVisible, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { spotlightIndex, useSpotlight, ymd, type SetRecord } from "@/lib/openmic/spotlight";
-import { finishedLabel, finishedRecord, showClock, type ShowClock } from "@/lib/openmic/show-clock";
+import { clockProgress, finishedLabel, finishedRecord, showClock, type ShowClock } from "@/lib/openmic/show-clock";
 import { formatCountdown } from "@/lib/openmic/tv-timer";
 import { useSecond } from "@/lib/openmic/use-second";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
@@ -210,6 +210,7 @@ function LineupBoard({
           onDeckIndex={started ? onDeckIndex : undefined}
           over={over}
           livePill={livePill}
+          progress={clockProgress(clock)}
           finished={finished}
           size="board"
         />
