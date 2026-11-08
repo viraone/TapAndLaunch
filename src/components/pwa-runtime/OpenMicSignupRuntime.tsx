@@ -1309,7 +1309,7 @@ export function LineupList({
       {/* Each row is its own small card with its place in the order. The outline is drawn inside the row (ring-inset):
           the scroller is exactly as wide as the rows and clips anything outside them. Rows slide in one after
           another (openmic-row, globals.css). */}
-      <ol className="mt-2 space-y-3">
+      <ol className="mt-4 space-y-3">
         {feed.lineup.map((entry, i) => {
           const performing = i === performingIndex;
           const onDeck = !performing && i === onDeckIndex;
