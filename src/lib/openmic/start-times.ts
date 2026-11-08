@@ -1,11 +1,10 @@
-// Live start times for the open mic lineup. When a host moves the spotlight, the row after it is on deck and the
-// row before it walks on stage at that moment, so every row from the on-deck one onwards can be estimated from
-// `set_at` plus the sheet's set lengths and a short changeover. Pure and clock-injected, so it is tested without
-// a browser. The sheet's own start_time is the fallback whenever there is no usable spotlight.
+// Live start times for the open mic lineup, from the hosts' show clock. The spotlight row is the comic whose clock
+// it is: while it runs (stopped_at null) that comic walked on at `set_at`, so every later row is estimated from there
+// plus the sheet's set lengths and a short changeover; once it has stopped, the next comic walks on when the hosts
+// press START, so no earlier than now. Pure and clock-injected. The sheet's own start_time is the fallback whenever
+// there is no usable clock.
 
-import { zonedTimeToUtc } from "@/lib/apps/sample-events";
 import { formatClock } from "@/lib/format-date";
-import { parseTimeStringToMinutes } from "@/lib/listings/parse";
 import { spotlightIndex, type Spotlight } from "@/lib/openmic/spotlight";
 import type { LineupEntry } from "@/lib/openmic/selection";
 
@@ -58,31 +57,21 @@ export function estimateStartTimes(input: {
   const anchor = spotlight ? parseSetAt(spotlight.set_at) : Number.NaN;
   if (at === -1 || !Number.isFinite(anchor)) return labels;
 
-  // A stale or nonsense highlight must never change the times: it would show rows in the past or the future.
+  // A stale or nonsense clock must never change the times: it would show rows in the past or the future.
   const nowMs = now.getTime();
   if (anchor - nowMs > ANCHOR_MAX_FUTURE_MS || nowMs - anchor > ANCHOR_MAX_AGE_MS) return labels;
 
-  if (at === 0) {
-    // Nobody has walked on yet. The sheet time stands until it has passed; after that the show is late and starts now.
-    const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(showDate);
-    const startMinutes = parts ? parseTimeStringToMinutes(lineup[0]?.start_time) : null;
-    if (!parts || startMinutes === null) return labels;
-    const sheetStart = zonedTimeToUtc(Number(parts[1]), Number(parts[2]), Number(parts[3]), Math.floor(startMinutes / 60), startMinutes % 60, timeZone);
-    if (now.getTime() <= sheetStart.getTime()) return labels;
-    labels[0] = estimatedLabel(now.getTime(), timeZone);
-    let next = now.getTime() + setMinutes(lineup[0]!.set_length) * MINUTE_MS + CHANGEOVER_MS;
-    for (let i = 1; i < lineup.length; i++) {
-      labels[i] = estimatedLabel(next, timeZone);
-      next += setMinutes(lineup[i]!.set_length) * MINUTE_MS + CHANGEOVER_MS;
-    }
-    return labels;
+  const stopped = spotlight!.stopped_at ? parseSetAt(spotlight!.stopped_at) : Number.NaN;
+  let next: number;
+  if (Number.isFinite(stopped)) {
+    // The clock's comic has finished; the next one walks on when the hosts press START, so no earlier than now.
+    next = Math.max(stopped + CHANGEOVER_MS, nowMs);
+  } else {
+    // The clock's comic is on stage since the anchor: their actual start to the minute; the rows after them follow.
+    labels[at] = { text: formatClock(new Date(Math.floor(anchor / MINUTE_MS) * MINUTE_MS), timeZone), estimated: false };
+    next = Math.max(anchor + setMinutes(lineup[at]!.set_length) * MINUTE_MS + CHANGEOVER_MS, nowMs);
   }
-
-  // The row before the highlight is on stage now: the host moved it as that comic walked on. Its actual start is
-  // the anchor to the minute; the row after it is on deck and must not be estimated in the past.
-  labels[at - 1] = { text: formatClock(new Date(Math.floor(anchor / MINUTE_MS) * MINUTE_MS), timeZone), estimated: false };
-  let next = Math.max(anchor + setMinutes(lineup[at - 1]!.set_length) * MINUTE_MS + CHANGEOVER_MS, now.getTime());
-  for (let i = at; i < lineup.length; i++) {
+  for (let i = at + 1; i < lineup.length; i++) {
     labels[i] = estimatedLabel(next, timeZone);
     next += setMinutes(lineup[i]!.set_length) * MINUTE_MS + CHANGEOVER_MS;
   }
