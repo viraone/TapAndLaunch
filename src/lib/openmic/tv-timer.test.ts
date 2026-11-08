@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCountdown, tvTimer } from "./tv-timer";
+import { formatCountdown, timerTone, tvTimer } from "./tv-timer";
 import type { LineupEntry } from "@/lib/openmic/selection";
 
 function entry(name: string, set_length: string): LineupEntry {
@@ -64,6 +64,18 @@ describe("tvTimer", () => {
   it("a stale spotlight is ignored", () => {
     const result = tvTimer({ lineup, spotlight: spot, showDate, startLabels: labels, now: new Date("2026-11-14T07:30:00.000Z") });
     expect(result.kind).toBe("idle");
+  });
+});
+
+describe("timerTone", () => {
+  it("returns the tone for the time left", () => {
+    expect(timerTone(180000)).toBe("calm");
+    expect(timerTone(30001)).toBe("calm");
+    expect(timerTone(30000)).toBe("warn");
+    expect(timerTone(10001)).toBe("warn");
+    expect(timerTone(10000)).toBe("urgent");
+    expect(timerTone(0)).toBe("urgent");
+    expect(timerTone(-1)).toBe("over");
   });
 });
 

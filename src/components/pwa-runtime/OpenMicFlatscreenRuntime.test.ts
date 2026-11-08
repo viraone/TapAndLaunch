@@ -33,6 +33,8 @@ describe("TvTimerPanel", () => {
     expect(html).toContain("Karen Young");
     expect(html).toContain("2:00");
     expect(html).toContain("width:33.33");
+    expect(html).toContain("bg-primary");
+    expect(html).toContain("animate-pulse");
     expect(html).not.toContain("text-red-500");
     expect(html).not.toContain("On deck");
   });
@@ -43,6 +45,7 @@ describe("TvTimerPanel", () => {
     expect(html).toContain("+0:15");
     expect(html).toContain("text-red-500");
     expect(html).toContain("width:100%");
+    expect(html).toContain("bg-red-950/90");
   });
 
   it("shows the next comic and their set length, still, between comics", () => {
@@ -52,6 +55,31 @@ describe("TvTimerPanel", () => {
     expect(html).toContain("Evan Hales");
     expect(html).toContain("3:00");
     expect(html).not.toContain("Performing");
-    expect(html).not.toContain("rounded-full bg-white/15");
+    expect(html).not.toContain("animate-pulse");
+  });
+
+  it("warns with 30 seconds left", () => {
+    const html = renderToStaticMarkup(createElement(TvTimerPanel, { name: "Karen Young", ms: 25000, totalMs: 180000, running: true }));
+
+    expect(html).toContain("30 sec left");
+    expect(html).toContain("0:25");
+    expect(html).toContain("text-amber-400");
+    expect(html).toContain("bg-amber-400");
+  });
+
+  it("urges with 8 seconds left", () => {
+    const html = renderToStaticMarkup(createElement(TvTimerPanel, { name: "Karen Young", ms: 8000, totalMs: 180000, running: true }));
+
+    expect(html).toContain("Wrap up");
+    expect(html).toContain("0:08");
+    expect(html).toContain("text-red-500");
+  });
+
+  it("shows over time past zero", () => {
+    const html = renderToStaticMarkup(createElement(TvTimerPanel, { name: "Karen Young", ms: -12000, totalMs: 180000, running: true }));
+
+    expect(html).toContain("Over time");
+    expect(html).toContain("+0:12");
+    expect(html).toContain("bg-red-950/90");
   });
 });
