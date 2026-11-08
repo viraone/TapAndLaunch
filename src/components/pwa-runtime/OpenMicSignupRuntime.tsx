@@ -1486,7 +1486,7 @@ function HostLineup({ client, config, viewerEmail, hostName }: { client: Supabas
       }
     : undefined;
   return (
-    <div className="mt-4 pb-28">
+    <div className="mt-4 pb-36">
       {status && (
         <p className="mb-2 text-sm font-medium text-muted-foreground" role="status">
           {status}

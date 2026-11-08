@@ -7,7 +7,7 @@ describe("ShowClockBar", () => {
     expect(html).toContain("2:00");
     expect(html).toContain(">STOP<");
     expect(html).toContain(">START<");
-    expect(html).toMatch(/<button[^>]*bg-primary[^>]*>STOP</);
+    expect(html).toMatch(/<button[^>]*bg-white[^>]*>STOP</);
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>START</);
     expect(html).not.toContain("text-red-400");
   });
@@ -16,6 +16,25 @@ describe("ShowClockBar", () => {
     expect(html).toContain("+0:15");
     expect(html).toContain("text-red-400");
     expect(html).toContain("bg-red-950");
+  });
+  it("last 10 seconds: red digits and a red edge", () => {
+    const html = render({ clock: { kind: "running", index: 1, remainingMs: 8000, totalMs: 180000, onDeckIndex: 2 }, started: true, controls });
+    expect(html).toContain("0:08");
+    expect(html).toContain("text-red-400");
+    expect(html).toContain("border-red-500");
+    expect(html).not.toContain("bg-red-950");
+  });
+  it("running: a coral edge", () => {
+    const html = render({ clock: { kind: "running", index: 1, remainingMs: 120000, totalMs: 180000, onDeckIndex: 2 }, started: true, controls });
+    expect(html).toContain("border-primary");
+    expect(html).toContain("2:00");
+    expect(html).not.toContain("border-red-500");
+  });
+  it("between comics: a plain white edge", () => {
+    const html = render({ clock: { kind: "idle", nextIndex: 2, nextMs: 180000 }, started: true, controls });
+    expect(html).toContain("border-white/35");
+    expect(html).toContain("3:00");
+    expect(html).not.toContain("border-primary");
   });
   it("between comics: the next set length, still, and a lit START", () => {
     const html = render({ clock: { kind: "idle", nextIndex: 2, nextMs: 180000 }, started: true, controls });

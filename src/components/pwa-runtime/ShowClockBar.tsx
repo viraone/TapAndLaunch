@@ -21,34 +21,36 @@ export type ShowClockControls = {
 export function ShowClockBar({ clock, started, controls }: { clock: ShowClock; started: boolean; controls?: ShowClockControls }) {
   const running = clock.kind === "running";
   const over = running && clock.remainingMs < 0;
+  const hot = running && clock.remainingMs <= 10_000;
   const done = !running && clock.nextIndex === -1;
   const digits = running ? formatCountdown(clock.remainingMs) : done ? null : formatCountdown(clock.nextMs);
   const stopLit = running && !!controls && !controls.busy;
   const startLit = !running && !!controls && !controls.busy && (!done || started);
-  const lit = "bg-primary text-primary-foreground active:opacity-80";
-  const dim = "bg-muted text-muted-foreground";
-  const button = "min-w-[4.5rem] rounded-xl px-4 py-3 text-sm font-black tracking-wider disabled:cursor-default";
+  const litStart = "border-transparent bg-primary text-primary-foreground active:opacity-80";
+  const litStop = "border-transparent bg-white text-black active:opacity-80";
+  const dim = "border-white/15 bg-transparent text-white/40";
+  const button = "min-w-[4.75rem] rounded-2xl border-2 px-4 py-5 text-base font-black tracking-wider disabled:cursor-default";
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 px-3">
       <div
         className={
-          "pointer-events-auto mx-auto flex max-w-md items-center gap-3 rounded-2xl border px-4 py-3 shadow-lg " +
-          (over ? "border-red-500/60 bg-red-950" : "border-white/10 bg-card")
+          "pointer-events-auto mx-auto flex max-w-md items-center gap-3 rounded-3xl border-2 px-4 py-3 shadow-lg " +
+          (over ? "border-red-500 bg-red-950" : hot ? "border-red-500 bg-[#1f1f24]" : running ? "border-primary bg-[#1f1f24]" : "border-white/35 bg-[#1f1f24]")
         }
         role="status"
         aria-live="polite"
       >
         {digits ? (
-          <p className={"flex-1 text-4xl font-black tabular-nums tracking-tight " + (over ? "text-red-400" : running ? "text-foreground" : "text-muted-foreground")}>{digits}</p>
+          <p className={"flex-1 text-[2.75rem] font-black leading-none tabular-nums tracking-tight " + (hot ? "text-red-400" : "text-white")}>{digits}</p>
         ) : (
-          <p className="flex-1 text-lg font-bold text-foreground">That&apos;s the show</p>
+          <p className="flex-1 text-xl font-black text-white">That&apos;s the show</p>
         )}
         {controls && (
           <>
-            <button type="button" className={`${button} ${stopLit ? lit : dim}`} disabled={!stopLit} onClick={controls.onStop}>
+            <button type="button" className={`${button} ${stopLit ? litStop : dim}`} disabled={!stopLit} onClick={controls.onStop}>
               STOP
             </button>
-            <button type="button" className={`${button} ${startLit ? lit : dim}`} disabled={!startLit} onClick={done ? controls.onReset : controls.onStart}>
+            <button type="button" className={`${button} ${startLit ? litStart : dim}`} disabled={!startLit} onClick={done ? controls.onReset : controls.onStart}>
               {done && started ? "RESET" : "START"}
             </button>
           </>
