@@ -5,7 +5,10 @@ import { Loader2 } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import type { LineupFeed } from "@/lib/openmic/selection";
 import { LINEUP_FROM_MINUTES, formatShowDate, formatWeekTime, isShowDay, lineupVisible, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
-import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { spotlightIndex, useSpotlight, ymd, type SetRecord } from "@/lib/openmic/spotlight";
+import { finishedLabel, finishedRecord, showClock, type ShowClock } from "@/lib/openmic/show-clock";
+import { formatCountdown } from "@/lib/openmic/tv-timer";
+import { useSecond } from "@/lib/openmic/use-second";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
 import { LineupList, SeattleClock, useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
@@ -79,6 +82,7 @@ function LineupPage({
 }) {
   const { feed, failed } = useLineup(config.lineup_url, client, undefined, lineupTime);
   const { spotlight } = useSpotlight(client);
+  const second = useSecond();
   const showDate = showDateFor(window_, now);
   const dateLabel = formatShowDate(showDate);
   const today = isShowDay(window_, now);
@@ -86,6 +90,7 @@ function LineupPage({
   const highlighted = feed ? spotlightIndex(spotlight, feed.lineup, showDay) : -1;
   // The same live estimates as the comics' screen and the hosts' Home, from the hosts' highlight.
   const startLabels = feed ? estimateStartTimes({ lineup: feed.lineup, spotlight, showDate: showDay, timeZone: window_.timeZone, now }) : undefined;
+  const clock = feed ? showClock({ lineup: feed.lineup, spotlight, showDate: showDay, now: second }) : null;
 
   return (
     <div
@@ -136,7 +141,7 @@ function LineupPage({
         ) : !feed.posted || feed.lineup.length === 0 ? (
           <Notice title="We're putting the lineup together" body="Check back soon." />
         ) : (
-          <LineupBoard feed={feed} highlighted={highlighted} startLabels={startLabels} />
+          <LineupBoard feed={feed} started={highlighted !== -1} clock={clock ?? { kind: "idle", nextIndex: -1, nextMs: 0 }} startLabels={startLabels} sets={spotlight?.sets} />
         )}
       </main>
     </div>
@@ -153,39 +158,61 @@ function Notice({ title, body }: { title: string; body: string }) {
 }
 
 /** The lineup in one column straight through, 1 to the end, on every screen (a TV reads top to bottom, no second
- * column to find), in big type. The highlighted row (the hosts' spotlight) is solid amber, with no words: the comics know. */
+ * column to find), in big type, with the hosts' show clock: who is performing, their countdown, and who is on deck. */
 function LineupBoard({
   feed,
-  highlighted,
+  started,
+  clock,
   startLabels,
+  sets,
 }: {
   feed: LineupFeed;
-  highlighted: number;
+  /** The hosts have pressed START this show (a clock row exists for today). */
+  started: boolean;
+  clock: ShowClock;
   startLabels?: StartLabel[];
+  sets?: SetRecord[];
 }) {
+  const performingIndex = clock.kind === "running" ? clock.index : -1;
+  const onDeckIndex = clock.kind === "running" ? clock.onDeckIndex : clock.nextIndex;
+  const over = clock.kind === "running" && clock.remainingMs < 0;
+  const livePill = clock.kind === "running" ? formatCountdown(clock.remainingMs) : undefined;
+  const finished = started ? feed.lineup.map((entry, i) => finishedLabel(finishedRecord(sets, i, entry.name), entry.set_length)) : undefined;
   return (
     <section aria-label="Lineup" className="flex flex-1 flex-col">
-      {/* The one line a bar reads from across the room: who is on now and who is on deck. The host's highlight is
-          the comic on deck, so the one before them is on stage. Shown only once the hosts have highlighted someone. */}
-      {highlighted >= 0 && (
+      {/* The one line a bar reads from across the room: who is on now, their clock, and who is on deck. Shown only
+          once the hosts have pressed START. */}
+      {started && (performingIndex >= 0 || onDeckIndex >= 0) && (
         <div className="mb-8 grid gap-4 md:grid-cols-2 md:gap-6" aria-live="polite">
-          {highlighted > 0 && (
-            <div className="rounded-2xl border-l-4 border-primary bg-white/[0.04] px-5 py-4 ring-1 ring-white/10 md:px-7 md:py-6">
-              <p className="text-sm font-bold uppercase tracking-[0.3em] text-primary md:text-lg">Performing now</p>
-              <p className="mt-1 truncate text-3xl font-black leading-tight md:text-5xl 2xl:text-6xl">{feed.lineup[highlighted - 1]!.name}</p>
+          {performingIndex >= 0 && (
+            <div className={`rounded-2xl border-l-4 px-5 py-4 ring-1 md:px-7 md:py-6 ${over ? "border-red-500 bg-red-950/60 ring-red-500/40" : "border-primary bg-white/[0.04] ring-white/10"}`}>
+              <p className={`text-sm font-bold uppercase tracking-[0.3em] md:text-lg ${over ? "text-red-400" : "text-primary"}`}>{over ? "Time" : "Performing now"}</p>
+              <p className="mt-1 flex items-baseline justify-between gap-4">
+                <span className="truncate text-3xl font-black leading-tight md:text-5xl 2xl:text-6xl">{feed.lineup[performingIndex]!.name}</span>
+                <span className={`shrink-0 text-3xl font-black tabular-nums md:text-5xl 2xl:text-6xl ${over ? "text-red-400" : "text-white"}`}>{livePill}</span>
+              </p>
             </div>
           )}
-          {/* Amber on black: the brightest thing on a bar TV, and not the show's red, so "on deck" reads as its own
-              signal. The glow makes the card look lit rather than painted. */}
-          <div className={`rounded-2xl px-5 py-4 transition-all duration-500 md:px-7 md:py-6 ${ON_DECK} ${ON_DECK_GLOW}`}>
-            <p className="text-sm font-bold uppercase tracking-[0.3em] text-black/70 md:text-lg">On deck</p>
-            <p className="mt-1 truncate text-3xl font-black leading-tight md:text-5xl 2xl:text-6xl">{feed.lineup[highlighted]!.name}</p>
-          </div>
+          {onDeckIndex >= 0 && (
+            // Amber on black: the brightest thing on a bar TV, and not the show's red, so "on deck" reads as its own signal.
+            <div className={`rounded-2xl px-5 py-4 transition-all duration-500 md:px-7 md:py-6 ${ON_DECK} ${ON_DECK_GLOW}`}>
+              <p className="text-sm font-bold uppercase tracking-[0.3em] text-black/70 md:text-lg">On deck</p>
+              <p className="mt-1 truncate text-3xl font-black leading-tight md:text-5xl 2xl:text-6xl">{feed.lineup[onDeckIndex]!.name}</p>
+            </div>
+          )}
         </div>
       )}
-      {/* onDeckIndex means the same as `highlighted` (the row the hosts' spotlight is on), so pass it when valid. */}
       <div className="mt-5">
-        <LineupList feed={feed} startLabels={startLabels} onDeckIndex={highlighted >= 0 ? highlighted : undefined} size="board" />
+        <LineupList
+          feed={feed}
+          startLabels={startLabels}
+          performingIndex={performingIndex}
+          onDeckIndex={started ? onDeckIndex : undefined}
+          over={over}
+          livePill={livePill}
+          finished={finished}
+          size="board"
+        />
       </div>
     </section>
   );
