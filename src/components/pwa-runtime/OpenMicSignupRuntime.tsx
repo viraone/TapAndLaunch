@@ -1264,8 +1264,6 @@ export function ShowDay({
             livePill={live?.livePill}
             finished={live?.finished}
           />
-          {live && <div className="h-24" aria-hidden="true" />}
-          {live && <ShowClockBar clock={live.clock} started={live.started} />}
         </>
       )}
     </div>
