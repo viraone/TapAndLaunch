@@ -24,6 +24,7 @@ You are the architect and reviewer. The worker does the typing: since 2026-11-06
 4. **Review the diff, not the file.** When a result comes back, read `diff` + `gate_output` (+ `added_context`, the files the gateway pulled in after a failure). Then decide: accept, re-delegate with specific feedback, or fix it yourself.
 5. **Loop guard.** If the same task fails twice on the Studio worker after your feedback, escalate it to cloud DeepSeek (`/pass-to-deepseek`) with the Studio's failing gate output in the brief. Fix it yourself only if cloud DeepSeek also fails (the Studio is already paid for; Claude's own tokens are the scarce ones).
 6. **Routine accept.** If `status == "pass"` and the diff matches the spec, say "accepted" in one line and move on. The worker's self-review is off since 2026-11-04 (`qwen_review.verdict` is `"skipped"`); your rubric is the review. For a second opinion on a big diff, call `review_diff`.
+7. **Long calls return a job id (built 2026-11-08, live after a Claude app restart).** A delegate call that takes over about 50 s no longer "times out": it returns `{"status": "running", "job_id": ...}`. Call `task_result` with that id (it waits up to 50 s per call and returns the same JSON the original call would have) instead of polling `gateway.log`. Until the app is restarted the old gateway is still loaded: the call times out as before and the result is read from the log.
 
 ## Review rubric (apply to every diff)
 - Does it do exactly what the spec says — nothing more, nothing less?
@@ -40,6 +41,7 @@ You are the architect and reviewer. The worker does the typing: since 2026-11-06
 - **Reading code: the Studio first, too** (since 2026-11-07). When you know which files hold the answer, ask the Studio before the cloud:
   `cd ~/qwen-gateway && .venv/bin/python studio_ask.py --project /Users/viradeth/Developer/beezer -q "<question>" <file> [<file> ...]`
   (read-only, free, about a minute; `--think` for a logic question). Ask it for exact names, signatures and line numbers, or to quote code verbatim that the spec will copy: that is what made the TV-timer spec pass first time. It sees only the files you list, so when you do not know where something lives, use the cloud ask mode above, which can search the repo itself. Either way, Claude does not open the file.
+- **Tiny edits are Claude's own (since 2026-11-08, Viradeth said yes).** A change of 3 lines or fewer, in a file whose exact lines were already quoted to Claude this session (by `studio_ask.py` or an earlier diff), is made directly with Edit, then the gate runs (`npm run lint`, `npm run typecheck`, `npm test`) and the recap says "did it myself, N lines". Why: the audit found the spec cost about as much as the edit and added 60 to 90 seconds. Anything over 3 lines, any new logic, any new file, any removal beyond the named lines still goes to the Studio.
 - **Claude**: the spec, the review, connectors, anything ambiguous or design-heavy.
 - After each delegated task, say in one line whether it passed first time, after a retry, or failed.
 - Full guide, written for seo-audit but the same gateway: `~/Developer/seo-audit/docs/qwen-gateway.md`.
