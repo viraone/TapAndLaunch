@@ -1266,8 +1266,8 @@ export function ShowDay({
 
 /** The lineup as an inset grouped list (the comics' show-day screen and the hosts' Home): place in the order, name,
  * set length and start time. The asking comic's own row (entry.mine) carries the colour and one clean outline. With the
- * show clock: the performing row gets the primary ring, a PERFORMING tag and the live countdown in its pill (all red
- * past the set length), the on-deck row a white ring and an ON DECK tag, and a finished row is dimmed with how the
+ * show clock: the performing row gets the primary ring, a LIVE tag and the live countdown in its pill (all red
+ * past the set length), the on-deck row a gold ring and an ON DECK tag, and a finished row is dimmed with how the
  * comic did in the time column. The list scrolls the performing row into view when it changes. */
 export function LineupList({
   feed,
@@ -1286,7 +1286,7 @@ export function LineupList({
   onTap?: (entry: LineupEntry, index: number) => void;
   /** The comic who is next (gold ring, ON DECK). */
   onDeckIndex?: number;
-  /** The comic on stage (primary ring, PERFORMING, live pill). */
+  /** The comic on stage (primary ring, LIVE, live pill). */
   performingIndex?: number;
   /** The performing comic is past their set length: everything about that row turns red. */
   over?: boolean;
@@ -1324,8 +1324,8 @@ export function LineupList({
               : "bg-muted";
           const shadow = performing
             ? over
-              ? "inset 0 0 0 1.5px #ef4444, inset 0 0 28px rgba(239, 68, 68, 0.28)"
-              : "inset 0 0 0 1.5px var(--primary), inset 0 0 28px color-mix(in oklab, var(--primary) 30%, transparent)"
+              ? "inset 0 0 0 2px #ef4444, inset 0 0 36px rgba(239, 68, 68, 0.36)"
+              : "inset 0 0 0 2px var(--primary), inset 0 0 36px color-mix(in oklab, var(--primary) 38%, transparent)"
             : onDeck
               ? "inset 0 0 0 1.5px #fbbf24, inset 0 0 22px rgba(251, 191, 36, 0.22)"
               : "inset 0 0 0 1px rgba(255, 255, 255, 0.05)";
@@ -1352,18 +1352,21 @@ export function LineupList({
                 "openmic-row relative flex min-h-[3.75rem] items-center gap-3 rounded-[1.15rem] py-3 pl-4 pr-3.5 transition-[background-color,box-shadow,opacity] duration-500 ease-out motion-reduce:transition-none " +
                 (big ? "md:gap-6 md:py-6 " : "") +
                 fill +
-                (result ? " opacity-50" : "") +
+                (result ? " opacity-40" : "") +
                 (onTap ? " cursor-pointer active:opacity-80" : "")
               }
             >
               {performing && (
                 <span className={`${tag} ${over ? "bg-red-500 text-white" : "bg-primary text-primary-foreground"}`}>
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current motion-reduce:animate-none" aria-hidden="true" />
-                  {over ? "Time" : "Performing"}
+                  <span className="relative flex h-2 w-2" aria-hidden="true">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75 motion-reduce:animate-none" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
+                  </span>
+                  {over ? "Time" : "Live"}
                 </span>
               )}
               {onDeck && <span className={`${tag} bg-[#fbbf24] text-black`}>On deck</span>}
-              <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (big ? "md:w-10 md:text-2xl " : "") + (accent ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
+              <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (big ? "md:w-10 md:text-2xl " : "") + (performing ? "text-primary" : onDeck ? "text-[#fbbf24]" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
               <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug tracking-tight text-foreground dark:text-white " + (big ? "md:text-4xl 2xl:text-5xl md:font-bold " : "") + (accent ? "font-bold" : "font-medium")}>
                 {entry.name}
                 {entry.mine && (
@@ -1388,7 +1391,7 @@ export function LineupList({
               <span
                 className={
                   "flex w-24 shrink-0 items-center justify-end gap-1.5 whitespace-nowrap text-right text-[17px] font-bold tabular-nums " +
-                  (result ? (result.startsWith("+") ? "text-red-400" : "text-muted-foreground") : "text-primary") +
+                  (result ? (result.startsWith("+") ? "text-red-400" : "text-muted-foreground") : performing ? "text-primary" : onDeck ? "text-[#fbbf24]" : "text-foreground/75") +
                   (big ? " md:w-44 md:text-4xl 2xl:w-56 2xl:text-5xl" : "")
                 }
               >
