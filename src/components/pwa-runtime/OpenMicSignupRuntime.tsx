@@ -1116,7 +1116,6 @@ export function ShowDay({
   config,
   today,
   lineupTime,
-  upNext,
   startLabels,
   live,
   optIn,
@@ -1162,14 +1161,6 @@ export function ShowDay({
 
   return (
     <div className="space-y-4">
-      {upNext && (
-        <div role="alert" className="rounded-2xl bg-primary p-6 text-center text-primary-foreground shadow-[0_0_0_4px_var(--primary)]">
-          <p className="text-[13px] font-bold uppercase tracking-[0.2em] opacity-80">Heads up</p>
-          <h2 className="mt-1 text-3xl font-black">You&apos;re up next!</h2>
-          <p className="mt-2 text-base font-medium opacity-90">Head to the stage area.</p>
-        </div>
-      )}
-
       {state === "closed-night" && (
         <div className="rounded-2xl border bg-muted/60 p-6">
           <h2 className="text-xl font-bold">{CLOSED_NIGHT_COPY.title}</h2>
