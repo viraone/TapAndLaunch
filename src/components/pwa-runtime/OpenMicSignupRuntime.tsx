@@ -107,6 +107,7 @@ export function SignupHeader({
   showDate,
   open,
   hidePill,
+  showStartTime = false,
   reopenText,
   closesAt,
 }: {
@@ -114,6 +115,7 @@ export function SignupHeader({
   showDate: string;
   open: boolean;
   hidePill: boolean;
+  showStartTime?: boolean;
   reopenText: string;
   closesAt: string;
 }) {
@@ -132,7 +134,9 @@ export function SignupHeader({
           <p className="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Next show</p>
           <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">{showDate}</h1>
         </div>
-        <p className={`ml-auto shrink-0 self-end pb-1 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-foreground ${hidePill ? "translate-y-4" : ""}`}>Start time</p>
+        {showStartTime && (
+          <p className={`ml-auto shrink-0 self-end pb-1 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-foreground ${hidePill ? "translate-y-4" : ""}`}>Start time</p>
+        )}
       </div>
       {!hidePill && (
         <div
@@ -335,6 +339,8 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   // is left out. Also hidden while we find out who's signed in, so it doesn't flash for returning comics.
   const hidePill =
     phase === "loading" || phase === "requested" || phase === "host" || (showDayOn && lineupTime && !!user);
+  // The "Start time" label sits above the lineup's start times, so it only shows while the lineup screen is up.
+  const showStartTime = showDayOn && lineupTime && !!user;
 
   // Show day with the lineup showing: the header stays pinned and only the area below it
   // scrolls (the page itself doesn't scroll, so there's no scroll-inside-scroll).
@@ -351,7 +357,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   return (
     <div className={pinned ? PINNED_PAGE : "mx-auto w-full max-w-md px-4 pb-12 pt-8"}>
       <div className={pinned ? "shrink-0" : undefined}>
-      <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
+      <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} showStartTime={showStartTime} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
 
       </div>
 
