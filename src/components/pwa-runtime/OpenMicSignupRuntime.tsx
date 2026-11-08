@@ -1284,7 +1284,7 @@ export function LineupList({
   feed: LineupFeed;
   startLabels?: StartLabel[];
   onTap?: (entry: LineupEntry, index: number) => void;
-  /** The comic who is next (white ring, ON DECK). */
+  /** The comic who is next (gold ring, ON DECK). */
   onDeckIndex?: number;
   /** The comic on stage (primary ring, PERFORMING, live pill). */
   performingIndex?: number;
@@ -1327,7 +1327,7 @@ export function LineupList({
               ? "inset 0 0 0 1.5px #ef4444, inset 0 0 28px rgba(239, 68, 68, 0.28)"
               : "inset 0 0 0 1.5px var(--primary), inset 0 0 28px color-mix(in oklab, var(--primary) 30%, transparent)"
             : onDeck
-              ? "inset 0 0 0 1.5px rgba(255, 255, 255, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.07)"
+              ? "inset 0 0 0 1.5px #fbbf24, inset 0 0 22px rgba(251, 191, 36, 0.22)"
               : "inset 0 0 0 1px rgba(255, 255, 255, 0.05)";
           return (
             <li
@@ -1362,7 +1362,7 @@ export function LineupList({
                   {over ? "Time" : "Performing"}
                 </span>
               )}
-              {onDeck && <span className={`${tag} bg-white text-black`}>On deck</span>}
+              {onDeck && <span className={`${tag} bg-[#fbbf24] text-black`}>On deck</span>}
               <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (big ? "md:w-10 md:text-2xl " : "") + (accent ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
               <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug tracking-tight text-foreground dark:text-white " + (big ? "md:text-4xl 2xl:text-5xl md:font-bold " : "") + (accent ? "font-bold" : "font-medium")}>
                 {entry.name}
