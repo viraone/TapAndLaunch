@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { showDateFor } from "@/lib/openmic/window";
-import { useSpotlight, ymd } from "@/lib/openmic/spotlight";
-import { estimateStartTimes } from "@/lib/openmic/start-times";
-import { formatCountdown, tvTimer, type TvTimer } from "@/lib/openmic/tv-timer";
+import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { formatCountdown } from "@/lib/openmic/tv-timer";
+import { showClock } from "@/lib/openmic/show-clock";
 import { useLineup, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
@@ -47,36 +47,32 @@ function TvTimerBox({ client, config }: { client: NonNullable<ReturnType<typeof 
   const { spotlight } = useSpotlight(client);
   if (!feed || feed.lineup.length === 0) return null;
   const showDay = ymd(showDateFor(window_, now));
-  const startLabels = estimateStartTimes({ lineup: feed.lineup, spotlight, showDate: showDay, timeZone: window_.timeZone, now });
-  return <TvTimerPanel timer={tvTimer({ lineup: feed.lineup, spotlight, showDate: showDay, startLabels, now })} />;
+  // No box before the first START (nothing to count yet) and none after the last STOP.
+  if (spotlightIndex(spotlight, feed.lineup, showDay) === -1) return null;
+  const clock = showClock({ lineup: feed.lineup, spotlight, showDate: showDay, now });
+  if (clock.kind === "running") {
+    return <TvTimerPanel name={feed.lineup[clock.index]!.name} ms={clock.remainingMs} totalMs={clock.totalMs} running />;
+  }
+  if (clock.nextIndex === -1) return null;
+  return <TvTimerPanel name={feed.lineup[clock.nextIndex]!.name} ms={clock.nextMs} totalMs={clock.nextMs} running={false} />;
 }
 
-/** The corner box itself, pure so it can be rendered in a test. */
-export function TvTimerPanel({ timer }: { timer: TvTimer }) {
-  const over = timer.kind === "on" && timer.remainingMs < 0;
-  const progress = timer.kind === "on" ? Math.max(0, Math.min(100, 100 * (1 - timer.remainingMs / timer.totalMs))) : 0;
+/** The corner box itself, pure so it can be rendered in a test. Running: the live countdown and bar. Not running: the
+ *  next comic and their set length, still. */
+export function TvTimerPanel({ name, ms, totalMs, running }: { name: string; ms: number; totalMs: number; running: boolean }) {
+  const over = running && ms < 0;
+  const progress = running ? Math.max(0, Math.min(100, 100 * (1 - ms / totalMs))) : 0;
   return (
     <div className="relative flex w-[34rem] shrink-0 items-end p-8">
-      <div className="w-full rounded-3xl bg-black/80 p-8 ring-1 ring-white/20">
-      {timer.kind === "on" ? (
-        <>
-          <p className="text-xl font-semibold uppercase tracking-[0.3em] text-white/60">On stage</p>
-          <p className="mt-1 truncate text-5xl font-bold">{timer.name}</p>
-          <p className={`mt-2 text-7xl font-bold tabular-nums ${over ? "text-red-500" : "text-white"}`}>{formatCountdown(timer.remainingMs)}</p>
+      <div className={`w-full rounded-3xl p-8 ring-1 ${over ? "bg-red-950/90 ring-red-500/60" : "bg-black/80 ring-white/20"}`}>
+        <p className="text-xl font-semibold uppercase tracking-[0.3em] text-white/60">{running ? "Performing" : "On deck"}</p>
+        <p className="mt-1 truncate text-5xl font-bold">{name}</p>
+        <p className={`mt-2 text-7xl font-bold tabular-nums ${over ? "text-red-500" : running ? "text-white" : "text-white/60"}`}>{formatCountdown(ms)}</p>
+        {running ? (
           <div className="mt-4 h-3 w-full rounded-full bg-white/15">
             <div className={`h-3 rounded-full ${over ? "bg-red-500" : "bg-white"}`} style={{ width: `${progress}%` }} />
           </div>
-        </>
-      ) : null}
-      {timer.nextName ? (
-        <div className={timer.kind === "on" ? "mt-6" : ""}>
-          <p className="text-xl font-semibold uppercase tracking-[0.3em] text-white/60">Next up</p>
-          <p className="mt-1 flex items-baseline justify-between gap-4">
-            <span className="truncate text-3xl font-semibold">{timer.nextName}</span>
-            {timer.nextAt ? <span className="shrink-0 text-3xl tabular-nums text-white/70">{timer.nextAt}</span> : null}
-          </p>
-        </div>
-      ) : null}
+        ) : null}
       </div>
     </div>
   );
