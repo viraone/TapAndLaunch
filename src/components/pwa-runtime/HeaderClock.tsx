@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatClock } from "@/lib/format-date";
+import { useSignedInName } from "@/lib/openmic/signed-in-name";
 
-/** The live Seattle time, shown above the signed-in person's avatar in the app header. Renders nothing until mounted. */
-export function HeaderClock() {
+/** The live Seattle time, shown under the app title in the app header. Renders nothing until mounted. */
+export function HeaderClock({ requireSignIn = false, className = "text-[15px] font-black tabular-nums leading-none tracking-tight" }: { requireSignIn?: boolean; className?: string }) {
+  const name = useSignedInName();
   const [time, setTime] = useState<string | null>(null);
   const last = useRef<string | null>(null);
   useEffect(() => {
@@ -18,6 +20,6 @@ export function HeaderClock() {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
-  if (!time) return null;
-  return <p className="text-[15px] font-black tabular-nums leading-none tracking-tight">{time}</p>;
+  if (!time || (requireSignIn && !name)) return null;
+  return <p className={className}>{time}</p>;
 }

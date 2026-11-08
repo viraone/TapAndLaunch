@@ -1,5 +1,6 @@
 import type { ThemeConfig } from "@/types/database";
 import { HeaderCornerLink } from "./HeaderCornerLink";
+import { HeaderClock } from "./HeaderClock";
 
 /** Does this theme ask for a header bar? Any one of the three is enough. */
 export function hasAppHeader(theme: ThemeConfig): boolean {
@@ -28,6 +29,7 @@ export function AppHeader({ theme }: { theme: ThemeConfig }) {
       {(title || tagline) && (
         <div className="min-w-0">
           {title && <p className="truncate text-2xl font-extrabold leading-tight tracking-tight">{title}</p>}
+          <HeaderClock requireSignIn className="mt-1 text-[15px] font-black tabular-nums leading-none tracking-tight" />
           {tagline && <p className="mt-0.5 line-clamp-2 text-[15px] font-medium leading-snug text-muted-foreground">{tagline}</p>}
         </div>
       )}
