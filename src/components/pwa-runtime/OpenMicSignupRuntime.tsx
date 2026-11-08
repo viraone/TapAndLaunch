@@ -14,7 +14,7 @@ import { isLineupPreviewer } from "@/lib/openmic/preview-emails";
 import { setSignedInName } from "@/lib/openmic/signed-in-name";
 import { canTapOnDeck, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { pushUpNext } from "@/lib/openmic/spotlight-actions";
-import { finishedLabel, finishedRecord, showClock, type ShowClock } from "@/lib/openmic/show-clock";
+import { clockProgress, finishedLabel, finishedRecord, showClock, type ShowClock } from "@/lib/openmic/show-clock";
 import { resetClock, startClock, stopClock } from "@/lib/openmic/show-clock-actions";
 import { formatCountdown } from "@/lib/openmic/tv-timer";
 import { useSecond } from "@/lib/openmic/use-second";
@@ -1073,6 +1073,7 @@ function ShowDayScreen({
           onDeckIndex: clock.kind === "running" ? clock.onDeckIndex : clock.nextIndex,
           over: clock.kind === "running" && clock.remainingMs < 0,
           livePill: clock.kind === "running" ? formatCountdown(clock.remainingMs) : undefined,
+          progress: clockProgress(clock),
           finished: feed.lineup.map((entry, i) => finishedLabel(finishedRecord(spotlight?.sets, i, entry.name), entry.set_length)),
         }
       : undefined;
@@ -1107,7 +1108,7 @@ function ShowDayScreen({
 }
 
 /** What the show clock adds to the comics' lineup once the show has started. */
-export type LiveLineup = { clock: ShowClock; started: boolean; performingIndex: number; onDeckIndex: number; over: boolean; livePill?: string; finished: (string | null)[] };
+export type LiveLineup = { clock: ShowClock; started: boolean; performingIndex: number; onDeckIndex: number; over: boolean; livePill?: string; progress?: number; finished: (string | null)[] };
 
 /** Show day (Thu 10 PM to Fri 9:40 PM): the comic's own status, then the lineup. */
 export function ShowDay({
@@ -1254,6 +1255,7 @@ export function ShowDay({
             onDeckIndex={live?.onDeckIndex}
             over={live?.over}
             livePill={live?.livePill}
+            progress={live?.progress}
             finished={live?.finished}
           />
         </>
@@ -1275,6 +1277,7 @@ export function LineupList({
   performingIndex,
   over,
   livePill,
+  progress,
   finished,
   size,
 }: {
@@ -1289,6 +1292,8 @@ export function LineupList({
   over?: boolean;
   /** The live countdown text for the performing row's pill, e.g. "2:41" or "+0:15". */
   livePill?: string;
+  /** How much of the performing comic's set has gone, 0 to 100, for the progress line. */
+  progress?: number;
   /** Per row, how a finished comic did ("2:50", "+0:40") or null; a non-null entry dims the row. */
   finished?: (string | null)[];
   size?: "default" | "board";
@@ -1298,33 +1303,42 @@ export function LineupList({
     if (performingIndex === undefined || performingIndex < 0) return;
     document.getElementById(`openmic-row-${performingIndex}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [performingIndex]);
-  const tag = "absolute -top-2.5 left-3 rounded-full px-2 py-0.5 text-[10px] font-black uppercase leading-none tracking-[0.14em]";
+  const tag = "absolute -top-2.5 left-4 z-10 flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase leading-none tracking-[0.16em]";
   return (
     <section aria-label="Lineup">
       {/* Each row is its own small card with its place in the order. The outline is drawn inside the row (ring-inset):
           the scroller is exactly as wide as the rows and clips anything outside them. Rows slide in one after
           another (openmic-row, globals.css). */}
-      <ol className="mt-2 space-y-2">
+      <ol className="mt-2 space-y-3">
         {feed.lineup.map((entry, i) => {
           const performing = i === performingIndex;
           const onDeck = !performing && i === onDeckIndex;
           const result = finished?.[i] ?? null;
           const accent = entry.mine || performing || onDeck;
-          const ring = performing
+          const fill = performing
             ? over
-              ? "bg-red-950/40 ring-2 ring-red-500"
-              : "bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))] ring-2 ring-primary"
+              ? "bg-red-950/50"
+              : "bg-[color-mix(in_oklab,var(--primary)_16%,var(--muted))]"
             : onDeck
-              ? "bg-muted ring-2 ring-white/70"
+              ? "bg-white/[0.04]"
               : entry.mine
-                ? "bg-[color-mix(in_oklab,var(--primary)_22%,var(--muted))] ring-1 ring-primary"
-                : "bg-muted ring-1 ring-white/[0.06]";
+                ? "bg-[color-mix(in_oklab,var(--primary)_14%,var(--muted))]"
+                : "bg-muted";
+          const shadow = performing
+            ? over
+              ? "inset 0 0 0 1.5px #ef4444, inset 0 0 28px rgba(239, 68, 68, 0.28)"
+              : "inset 0 0 0 1.5px var(--primary), inset 0 0 28px color-mix(in oklab, var(--primary) 30%, transparent)"
+            : onDeck
+              ? "inset 0 0 0 1.5px rgba(255, 255, 255, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.07)"
+              : entry.mine
+                ? "inset 0 0 0 1px var(--primary)"
+                : "inset 0 0 0 1px rgba(255, 255, 255, 0.05)";
           return (
             <li
               key={`${entry.name}-${i}`}
               id={`openmic-row-${i}`}
               aria-current={entry.mine ? "true" : undefined}
-              style={{ animationDelay: `${Math.min(i, 14) * 35}ms` }}
+              style={{ animationDelay: `${Math.min(i, 14) * 35}ms`, boxShadow: shadow }}
               role={onTap ? "button" : undefined}
               tabIndex={onTap ? 0 : undefined}
               onClick={onTap ? () => onTap(entry, i) : undefined}
@@ -1339,17 +1353,22 @@ export function LineupList({
                   : undefined
               }
               className={
-                "openmic-row relative flex min-h-14 items-center gap-3 rounded-2xl py-2.5 pl-3.5 pr-3 ring-inset " +
-                (big ? "md:gap-6 md:py-5 " : "") +
-                ring +
+                "openmic-row relative flex min-h-[3.75rem] items-center gap-3 rounded-[1.15rem] py-3 pl-4 pr-3.5 transition-[background-color,box-shadow,opacity] duration-500 ease-out motion-reduce:transition-none " +
+                (big ? "md:gap-6 md:py-6 " : "") +
+                fill +
                 (result ? " opacity-50" : "") +
                 (onTap ? " cursor-pointer active:opacity-80" : "")
               }
             >
-              {performing && <span className={`${tag} ${over ? "bg-red-500 text-white" : "bg-primary text-primary-foreground"}`}>{over ? "Time" : "Performing"}</span>}
+              {performing && (
+                <span className={`${tag} ${over ? "bg-red-500 text-white" : "bg-primary text-primary-foreground"}`}>
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current motion-reduce:animate-none" aria-hidden="true" />
+                  {over ? "Time" : "Performing"}
+                </span>
+              )}
               {onDeck && <span className={`${tag} bg-white text-black`}>On deck</span>}
               <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (big ? "md:w-10 md:text-2xl " : "") + (accent ? "text-primary" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
-              <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug text-foreground dark:text-white " + (big ? "md:text-4xl 2xl:text-5xl md:font-bold " : "") + (accent ? "font-bold" : "font-medium")}>
+              <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug tracking-tight text-foreground dark:text-white " + (big ? "md:text-4xl 2xl:text-5xl md:font-bold " : "") + (accent ? "font-bold" : "font-medium")}>
                 {entry.name}
                 {entry.mine && (
                   <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[11px] font-black uppercase leading-none tracking-wide text-primary-foreground">
@@ -1359,12 +1378,12 @@ export function LineupList({
               </span>
               <span
                 className={
-                  "shrink-0 rounded-full px-2.5 py-1 text-[13px] font-semibold tabular-nums ring-1 " +
+                  "shrink-0 rounded-full tabular-nums ring-1 " +
                   (performing && livePill
                     ? over
-                      ? "bg-red-500 text-white ring-red-400"
-                      : "bg-primary text-primary-foreground ring-primary"
-                    : "bg-background/60 text-muted-foreground ring-white/10") +
+                      ? "bg-red-500 px-3 py-1 text-[15px] font-bold text-white ring-red-400"
+                      : "bg-primary px-3 py-1 text-[15px] font-bold text-primary-foreground ring-primary"
+                    : "bg-background/60 px-2.5 py-1 text-[13px] font-semibold text-muted-foreground ring-white/10") +
                   (big ? " md:px-6 md:py-2 md:text-3xl 2xl:text-4xl md:font-bold md:text-white md:bg-white/10 md:ring-white/25" : "")
                 }
               >
@@ -1372,13 +1391,22 @@ export function LineupList({
               </span>
               <span
                 className={
-                  "w-24 shrink-0 whitespace-nowrap text-right text-[17px] font-bold tabular-nums " +
+                  "flex w-24 shrink-0 items-center justify-end gap-1.5 whitespace-nowrap text-right text-[17px] font-bold tabular-nums " +
                   (result ? (result.startsWith("+") ? "text-red-400" : "text-muted-foreground") : "text-primary") +
                   (big ? " md:w-44 md:text-4xl 2xl:w-56 2xl:text-5xl" : "")
                 }
               >
+                {result && <Check className={"h-3.5 w-3.5 shrink-0 " + (big ? "md:h-6 md:w-6" : "")} aria-hidden="true" />}
                 {result ?? startLabels?.[i]?.text ?? entry.start_time}
               </span>
+              {performing && progress !== undefined && (
+                <span aria-hidden="true" className={"pointer-events-none absolute inset-x-4 bottom-1.5 h-[3px] overflow-hidden rounded-full bg-white/10 " + (big ? "md:bottom-3 md:h-[5px]" : "")}>
+                  <span
+                    className={"block h-full rounded-full transition-[width] duration-1000 ease-linear motion-reduce:transition-none " + (over ? "bg-red-500" : "bg-primary")}
+                    style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+                  />
+                </span>
+              )}
             </li>
           );
         })}
@@ -1475,6 +1503,7 @@ function HostLineup({ client, config, viewerEmail, hostName }: { client: Supabas
         onDeckIndex={clock.kind === "running" ? clock.onDeckIndex : clock.nextIndex}
         over={clock.kind === "running" && clock.remainingMs < 0}
         livePill={clock.kind === "running" ? formatCountdown(clock.remainingMs) : undefined}
+        progress={clockProgress(clock)}
         finished={finished}
       />
       <ShowClockBar clock={clock} started={started} controls={controls} />
