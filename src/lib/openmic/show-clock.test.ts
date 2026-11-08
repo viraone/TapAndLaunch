@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { finishedLabel, finishedRecord, firstComicIndex, showClock } from "./show-clock";
+import { clockProgress, finishedLabel, finishedRecord, firstComicIndex, showClock } from "./show-clock";
 import type { LineupEntry } from "@/lib/openmic/selection";
 import type { Spotlight } from "@/lib/openmic/spotlight";
 
@@ -84,5 +84,18 @@ describe("finishedLabel", () => {
   it("returns null for no record or a bad one", () => {
     expect(finishedLabel(undefined, "3 min")).toBeNull();
     expect(finishedLabel({ ...record, stopped_at: "2026-11-14T02:59:00.000Z" }, "3 min")).toBeNull();
+  });
+});
+
+describe("clockProgress", () => {
+  it("is undefined when nothing runs", () => {
+    expect(clockProgress({ kind: "idle", nextIndex: 1, nextMs: 180000 })).toBeUndefined();
+  });
+  it("starts at 0 and grows with the set", () => {
+    expect(clockProgress({ kind: "running", index: 1, remainingMs: 180000, totalMs: 180000, onDeckIndex: 2 })).toBe(0);
+    expect(clockProgress({ kind: "running", index: 1, remainingMs: 120000, totalMs: 180000, onDeckIndex: 2 })).toBeCloseTo(33.33, 2);
+  });
+  it("stops at 100 once over time", () => {
+    expect(clockProgress({ kind: "running", index: 1, remainingMs: -15000, totalMs: 180000, onDeckIndex: 2 })).toBe(100);
   });
 });

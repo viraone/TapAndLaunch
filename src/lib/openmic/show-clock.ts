@@ -59,3 +59,9 @@ export function finishedLabel(record: SetRecord | undefined, setLength: string):
   const over = stopped - started - setMinutes(setLength) * MINUTE_MS;
   return over > 0 ? formatCountdown(-over) : formatCountdown(stopped - started);
 }
+
+/** How much of a running set has gone, 0 to 100 (clamped, so 100 once over time); undefined when no clock runs. */
+export function clockProgress(clock: ShowClock): number | undefined {
+  if (clock.kind !== "running") return undefined;
+  return Math.max(0, Math.min(100, 100 * (1 - clock.remainingMs / clock.totalMs)));
+}
