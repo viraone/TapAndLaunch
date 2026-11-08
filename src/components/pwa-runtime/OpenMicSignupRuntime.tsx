@@ -132,7 +132,7 @@ export function SignupHeader({
           <p className="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Next show</p>
           <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">{showDate}</h1>
         </div>
-        <p className="ml-auto shrink-0 self-end pb-1 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Start time</p>
+        <p className={`ml-auto shrink-0 self-end pb-1 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-primary ${hidePill ? "translate-y-4" : ""}`}>Start time</p>
       </div>
       {!hidePill && (
         <div
