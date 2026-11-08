@@ -76,9 +76,11 @@ const SEATTLE_TIME_ZONE = "America/Los_Angeles";
 export function SeattleClock({
   wrapperClassName = "ml-auto shrink-0 text-right",
   textClassName = "text-2xl font-black tabular-nums tracking-tight",
+  label,
 }: {
   wrapperClassName?: string;
   textClassName?: string;
+  label?: string;
 }) {
   const [time, setTime] = useState<string | null>(null);
   const last = useRef<string | null>(null);
@@ -97,6 +99,7 @@ export function SeattleClock({
   return (
     <div className={wrapperClassName}>
       <p className={textClassName}>{time}</p>
+      {label && <p className="mt-1 text-[13px] font-bold uppercase tracking-[0.2em] text-primary">{label}</p>}
     </div>
   );
 }
@@ -132,7 +135,7 @@ export function SignupHeader({
           <p className="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Next show</p>
           <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">{showDate}</h1>
         </div>
-        <SeattleClock />
+        <SeattleClock label="Start time" />
       </div>
       {!hidePill && (
         <div
