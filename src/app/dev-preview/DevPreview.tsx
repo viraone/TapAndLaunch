@@ -1,0 +1,79 @@
+"use client";
+
+import type { CSSProperties } from "react";
+import { HeaderClock } from "@/components/pwa-runtime/HeaderClock";
+import { ShowClockBar } from "@/components/pwa-runtime/ShowClockBar";
+import { TvTimerPanel } from "@/components/pwa-runtime/OpenMicFlatscreenRuntime";
+import type { ShowClock } from "@/lib/openmic/show-clock";
+
+// The StageTime app's own colour tokens (copied from the published layout's wrapper), so the pieces look as they do live.
+const THEME = {
+  "--background": "#09090b",
+  "--foreground": "#f4f4f5",
+  "--muted": "#18181b",
+  "--muted-foreground": "#a1a1aa",
+  "--border": "#27272a",
+  "--primary": "#f87171",
+  "--primary-foreground": "#0a0a0a",
+  backgroundColor: "#09090b",
+  color: "#f4f4f5",
+} as CSSProperties;
+
+const controls = { onStart: () => {}, onStop: () => {}, onReset: () => {}, busy: false };
+const running = (remainingMs: number): ShowClock => ({ kind: "running", index: 1, remainingMs, totalMs: 180000, onDeckIndex: 2 });
+const idle: ShowClock = { kind: "idle", nextIndex: 2, nextMs: 180000 };
+const done: ShowClock = { kind: "idle", nextIndex: -1, nextMs: 0 };
+
+const TV: { label: string; ms: number; running: boolean }[] = [
+  { label: "TV: running 1:37", ms: 97000, running: true },
+  { label: "TV: 25 s left", ms: 25000, running: true },
+  { label: "TV: 8 s left", ms: 8000, running: true },
+  { label: "TV: over time", ms: -12000, running: true },
+  { label: "TV: on deck, waiting", ms: 180000, running: false },
+];
+
+const BARS: { label: string; clock: ShowClock; started: boolean }[] = [
+  { label: "Host bar: before the show", clock: idle, started: false },
+  { label: "Host bar: running 2:41", clock: running(161000), started: true },
+  { label: "Host bar: last 10 s", clock: running(8000), started: true },
+  { label: "Host bar: over time", clock: running(-15000), started: true },
+  { label: "Host bar: between comics", clock: idle, started: true },
+  { label: "Host bar: that's the show", clock: done, started: true },
+];
+
+export function DevPreview() {
+  return (
+    <div style={THEME} className="min-h-dvh p-6">
+      <p className="mb-6 text-sm text-muted-foreground">Dev preview: fixed states, never shown in production.</p>
+      <p className="mb-2 text-sm font-semibold">Header clock (above the avatar)</p>
+      <div className="mb-8 inline-flex flex-col items-center gap-1 rounded-xl border p-3">
+        <HeaderClock />
+        <span className="grid h-11 w-11 place-items-center rounded-full bg-primary/20 text-[15px] font-semibold text-primary">TJ</span>
+        <span className="text-[12px] font-semibold text-muted-foreground">Test</span>
+      </div>
+      <p className="mb-2 text-sm font-semibold">TV timer panel (44rem wide on the TV)</p>
+      <div className="mb-8 flex flex-wrap gap-4">
+        {TV.map((t) => (
+          <div key={t.label}>
+            <p className="mb-1 text-xs text-muted-foreground">{t.label}</p>
+            <div className="origin-top-left scale-50" style={{ width: "22rem", height: "21rem" }}>
+              <TvTimerPanel name="Evan Hales" ms={t.ms} totalMs={t.running ? 180000 : t.ms} running={t.running} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mb-2 text-sm font-semibold">Host clock bar (phone width)</p>
+      <div className="flex flex-wrap gap-4">
+        {BARS.map((b) => (
+          <div key={b.label}>
+            <p className="mb-1 text-xs text-muted-foreground">{b.label}</p>
+            {/* A transformed parent makes the bar's fixed position relative to this box, so several can sit on one page. */}
+            <div className="relative h-56 w-[22rem] overflow-hidden rounded-2xl border bg-black/40" style={{ transform: "translateZ(0)" }}>
+              <ShowClockBar clock={b.clock} started={b.started} controls={controls} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

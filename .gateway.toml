@@ -18,6 +18,7 @@ timeout_s  = 600
 commands = ["npm run lint", "npm run typecheck", "npm test"]
 
 [limits]
-max_retries    = 2        # Qwen retries before Claude hears about a failure
+max_retries    = 1        # one retry (two attempts): in 79 logged tasks no third attempt ever passed (2026-11-08)
+task_budget_s  = 240      # a first attempt that took longer than this gets no retry; the task goes to cloud DeepSeek
 max_file_bytes = 200000   # skip files bigger than this when sending context to Qwen
 tail_lines     = 60       # how many lines of test output Claude sees

@@ -43,7 +43,7 @@ export function ShowClockBar({ clock, started, controls }: { clock: ShowClock; s
         {digits ? (
           <p className={"flex-1 text-[2.75rem] font-black leading-none tabular-nums tracking-tight " + (hot ? "text-red-400" : "text-white")}>{digits}</p>
         ) : (
-          <p className="flex-1 text-xl font-black text-white">That&apos;s the show</p>
+          <p className="flex-1 text-base font-black leading-tight text-white">That&apos;s the show</p>
         )}
         {controls && (
           <>
