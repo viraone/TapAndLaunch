@@ -9,15 +9,19 @@ import { formatCountdown, tvTimer, type TvTimer } from "@/lib/openmic/tv-timer";
 import { useLineup, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
- * The show's flyer full screen for a flat-screen TV at the venue (block view "tv", its own page, e.g. /tv). A black
- * page with the flyer kept whole, portrait or landscape, and nothing else but the timer box. The timer box in its own right-hand column reads
+ * The show's flyer full screen for a flat-screen TV at the venue (block view "tv", its own page, e.g. /tv). A page
+ * with a blurred copy of the flyer filling the background and the flyer kept whole, portrait or landscape, and nothing else but the timer box. The timer box in its own right-hand column reads
  * the same lineup, spotlight and estimates as the comics' phones and the hosts' Home.
  */
 export function OpenMicFlatscreenRuntime({ config }: { config: OpenMicSignupBlockConfig }) {
   const client = useOpenMicClient(config);
   return (
     <div className="fixed inset-0 z-[100] flex overflow-hidden bg-black text-white">
-      <div className="flex min-w-0 flex-1 items-center justify-center">
+      {config.flyer_url ? (
+        // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
+        <img src={config.flyer_url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-3xl" />
+      ) : null}
+      <div className="relative flex min-w-0 flex-1 items-center justify-center">
         {config.flyer_url ? (
           // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
           <img src={config.flyer_url} alt={`${config.show_name ?? "The show"} flyer`} className="h-full w-auto max-w-full object-contain" />
@@ -56,7 +60,7 @@ export function TvTimerPanel({ timer }: { timer: TvTimer }) {
   const over = timer.kind === "on" && timer.remainingMs < 0;
   const progress = timer.kind === "on" ? Math.max(0, Math.min(100, 100 * (1 - timer.remainingMs / timer.totalMs))) : 0;
   return (
-    <div className="flex w-[34rem] shrink-0 items-end p-8">
+    <div className="relative flex w-[34rem] shrink-0 items-end p-8">
       <div className="w-full rounded-3xl bg-black/80 p-8 ring-1 ring-white/20">
       {timer.kind === "on" ? (
         <>
