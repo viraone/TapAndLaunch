@@ -1,11 +1,20 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
+import { showDateFor } from "@/lib/openmic/window";
+import { useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { estimateStartTimes } from "@/lib/openmic/start-times";
+import { formatCountdown, tvTimer, type TvTimer } from "@/lib/openmic/tv-timer";
+import { useLineup, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
  * The show's flyer full screen for a flat-screen TV at the venue (block view "tv", its own page, e.g. /tv). A black
- * page with the flyer kept whole, portrait or landscape, and the show's address along the bottom. First version: the
- * flyer only, no countdown.
+ * page with the flyer kept whole, portrait or landscape, and the show's address along the bottom. The timer box in the
+ * corner reads the same lineup, spotlight and estimates as the comics' phones and the hosts' Home.
  */
 export function OpenMicFlatscreenRuntime({ config }: { config: OpenMicSignupBlockConfig }) {
+  const client = useOpenMicClient(config);
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black text-white">
       {config.flyer_url ? (
@@ -14,7 +23,58 @@ export function OpenMicFlatscreenRuntime({ config }: { config: OpenMicSignupBloc
       ) : (
         <p className="text-2xl font-semibold text-white/70">No flyer yet.</p>
       )}
+      {client ? <TvTimerBox client={client} config={config} /> : null}
       <p className="absolute bottom-6 left-8 text-lg font-semibold text-white/70">stagetimepnw.tapandlaunch.com</p>
+    </div>
+  );
+}
+
+/** A clock that ticks every second, for the countdown. */
+function useSecond(): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return now;
+}
+
+function TvTimerBox({ client, config }: { client: NonNullable<ReturnType<typeof useOpenMicClient>>; config: OpenMicSignupBlockConfig }) {
+  const window_ = windowOf(config);
+  const now = useSecond();
+  const { feed } = useLineup(config.lineup_url, client, undefined, true);
+  const { spotlight } = useSpotlight(client);
+  if (!feed || feed.lineup.length === 0) return null;
+  const showDay = ymd(showDateFor(window_, now));
+  const startLabels = estimateStartTimes({ lineup: feed.lineup, spotlight, showDate: showDay, timeZone: window_.timeZone, now });
+  return <TvTimerPanel timer={tvTimer({ lineup: feed.lineup, spotlight, showDate: showDay, startLabels, now })} />;
+}
+
+/** The corner box itself, pure so it can be rendered in a test. */
+export function TvTimerPanel({ timer }: { timer: TvTimer }) {
+  const over = timer.kind === "on" && timer.remainingMs < 0;
+  const progress = timer.kind === "on" ? Math.max(0, Math.min(100, 100 * (1 - timer.remainingMs / timer.totalMs))) : 0;
+  return (
+    <div className="absolute bottom-8 right-8 w-[34rem] rounded-3xl bg-black/80 p-8 ring-1 ring-white/20">
+      {timer.kind === "on" ? (
+        <>
+          <p className="text-xl font-semibold uppercase tracking-[0.3em] text-white/60">On stage</p>
+          <p className="mt-1 truncate text-5xl font-bold">{timer.name}</p>
+          <p className={`mt-2 text-7xl font-bold tabular-nums ${over ? "text-red-500" : "text-white"}`}>{formatCountdown(timer.remainingMs)}</p>
+          <div className="mt-4 h-3 w-full rounded-full bg-white/15">
+            <div className={`h-3 rounded-full ${over ? "bg-red-500" : "bg-white"}`} style={{ width: `${progress}%` }} />
+          </div>
+        </>
+      ) : null}
+      {timer.nextName ? (
+        <div className={timer.kind === "on" ? "mt-6" : ""}>
+          <p className="text-xl font-semibold uppercase tracking-[0.3em] text-white/60">Next up</p>
+          <p className="mt-1 flex items-baseline justify-between gap-4">
+            <span className="truncate text-3xl font-semibold">{timer.nextName}</span>
+            {timer.nextAt ? <span className="shrink-0 text-3xl tabular-nums text-white/70">{timer.nextAt}</span> : null}
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }
