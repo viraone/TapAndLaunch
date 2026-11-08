@@ -12,8 +12,13 @@ import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, 
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { isLineupPreviewer } from "@/lib/openmic/preview-emails";
 import { setSignedInName } from "@/lib/openmic/signed-in-name";
-import { canSeeOnDeckRow, canTapOnDeck, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
-import { putOnDeck } from "@/lib/openmic/spotlight-actions";
+import { canTapOnDeck, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { pushUpNext } from "@/lib/openmic/spotlight-actions";
+import { finishedLabel, finishedRecord, showClock, type ShowClock } from "@/lib/openmic/show-clock";
+import { resetClock, startClock, stopClock } from "@/lib/openmic/show-clock-actions";
+import { formatCountdown } from "@/lib/openmic/tv-timer";
+import { useSecond } from "@/lib/openmic/use-second";
+import { ShowClockBar } from "./ShowClockBar";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
 import { noHangLock } from "@/lib/supabase/no-hang-lock";
 import { HostInbox, HostInboxView } from "./OpenMicHostInbox";
@@ -404,7 +409,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
         {phase === "host" && user && (
           <>
             <HostInbox client={client} user={user} timeZone={window_.timeZone} />
-            {(config.lineup_always === true || (showDayOn && isLineupTime(window_, now))) && <HostLineup client={client} config={config} viewerEmail={user.email} />}
+            {(config.lineup_always === true || (showDayOn && isLineupTime(window_, now))) && <HostLineup client={client} config={config} viewerEmail={user.email} hostName={hostName} />}
           </>
         )}
 
@@ -1049,13 +1054,29 @@ function ShowDayScreen({
   const state = showDayState({ signedIn, requested, feed, failed, lineupTime });
   // The hosts' spotlight (Remote tab): when it lands on this comic's own row, the page says so and buzzes the phone.
   // The system notification comes as a push from the server (OpenMicPushOptIn), which also reaches a closed app.
-  const { spotlight } = useSpotlight(lineupTime && state === "selected" ? client : null);
+  // Every comic looking at the lineup follows the show clock, not only the selected ones.
+  const { spotlight } = useSpotlight(lineupTime ? client : null);
+  const second = useSecond();
   const mineAt = feed?.lineup.findIndex((e) => e.mine) ?? -1;
   const showDate = ymd(showDateFor(window, now));
   const upNext = state === "selected" && mineAt >= 0 && spotlightIndex(spotlight, feed!.lineup, showDate) === mineAt;
   // From the hosts' highlight: the row after it is on deck, so each later row can show a live estimate. Without a
   // usable spotlight every row keeps its sheet time (see start-times.ts).
-  const startLabels = feed ? estimateStartTimes({ lineup: feed.lineup, spotlight, showDate, timeZone: window.timeZone, now }) : undefined;
+  const startLabels = feed ? estimateStartTimes({ lineup: feed.lineup, spotlight, showDate, timeZone: window.timeZone, now: second }) : undefined;
+  const started = !!feed && spotlightIndex(spotlight, feed.lineup, showDate) !== -1;
+  const clock = feed ? showClock({ lineup: feed.lineup, spotlight, showDate, now: second }) : null;
+  const live: LiveLineup | undefined =
+    feed && clock && started
+      ? {
+          clock,
+          started,
+          performingIndex: clock.kind === "running" ? clock.index : -1,
+          onDeckIndex: clock.kind === "running" ? clock.onDeckIndex : clock.nextIndex,
+          over: clock.kind === "running" && clock.remainingMs < 0,
+          livePill: clock.kind === "running" ? formatCountdown(clock.remainingMs) : undefined,
+          finished: feed.lineup.map((entry, i) => finishedLabel(finishedRecord(spotlight?.sets, i, entry.name), entry.set_length)),
+        }
+      : undefined;
   useEffect(() => {
     if (!upNext) return;
     try {
@@ -1077,11 +1098,15 @@ function ShowDayScreen({
       lineupTime={lineupTime}
       upNext={upNext}
       startLabels={startLabels}
+      live={live}
       optIn={optIn}
       dismissKey={`openmic-in-dismissed:${userId ?? "anon"}:${dateLabel}`}
     />
   );
 }
+
+/** What the show clock adds to the comics' lineup once the show has started. */
+export type LiveLineup = { clock: ShowClock; started: boolean; performingIndex: number; onDeckIndex: number; over: boolean; livePill?: string; finished: (string | null)[] };
 
 /** Show day (Thu 10 PM to Fri 9:40 PM): the comic's own status, then the lineup. */
 export function ShowDay({
@@ -1093,6 +1118,7 @@ export function ShowDay({
   lineupTime,
   upNext,
   startLabels,
+  live,
   optIn,
   dismissKey,
 }: {
@@ -1106,6 +1132,8 @@ export function ShowDay({
   upNext?: boolean;
   /** Live start times from the spotlight, one per lineup row (start-times.ts). */
   startLabels?: StartLabel[];
+  /** The show clock once the show has started: highlights, countdown and finished rows. */
+  live?: LiveLineup;
   /** The "Get buzzed when you're up next" card (OpenMicPushOptIn), under the night's status card. */
   optIn?: ReactNode;
   /** Where the "You're in!" card remembers it was dismissed (per person, per show day). */
@@ -1226,7 +1254,19 @@ export function ShowDay({
       {optIn}
 
       {lineupTime && config.show_lineup !== false && feed?.posted && feed.lineup.length > 0 && (
-        <LineupList feed={feed} startLabels={startLabels} />
+        <>
+          <LineupList
+            feed={feed}
+            startLabels={startLabels}
+            performingIndex={live?.performingIndex}
+            onDeckIndex={live?.onDeckIndex}
+            over={live?.over}
+            livePill={live?.livePill}
+            finished={live?.finished}
+          />
+          {live && <div className="h-24" aria-hidden="true" />}
+          {live && <ShowClockBar clock={live.clock} started={live.started} />}
+        </>
       )}
     </div>
   );
@@ -1357,20 +1397,18 @@ export function LineupList({
   );
 }
 
-/** The hosts' Home, from the time the lineup goes up until requests reopen: the same list the comics see, under
- * the inbox, so a host needn't open the Remote just to read the order. No row is "mine" for a host. */
-function HostLineup({ client, config, viewerEmail }: { client: SupabaseClient; config: OpenMicSignupBlockConfig; viewerEmail?: string | null }) {
+/** The hosts' Home: the same list the comics see, with the show clock. START puts the next comic on stage (and buzzes
+ * the one after them, now on deck), STOP ends the set and records it, RESET clears the show. Only the hosts in
+ * TAP_ON_DECK_EMAILS get the buttons; other hosts watch the same clock. */
+function HostLineup({ client, config, viewerEmail, hostName }: { client: SupabaseClient; config: OpenMicSignupBlockConfig; viewerEmail?: string | null; hostName?: string }) {
   const { feed, failed } = useLineup(config.lineup_url, client, undefined, true);
-  // The hosts' Home follows the same spotlight as the comics' screen and the venue board, so its times stay live
-  // even when a host isn't on show day.
   const { spotlight } = useSpotlight(client);
-  const now = useNow();
+  const now = useSecond();
   const window_ = windowOf(config);
   const showYmd = ymd(showDateFor(window_, now));
-  const canTap = canTapOnDeck(viewerEmail);
-  const seesOnDeck = canSeeOnDeckRow(viewerEmail);
+  const canControl = canTapOnDeck(viewerEmail);
   const [status, setStatus] = useState("");
-  const tapping = useRef(false);
+  const [busy, setBusy] = useState(false);
   const startLabels = feed
     ? estimateStartTimes({ lineup: feed.lineup, spotlight, showDate: showYmd, timeZone: window_.timeZone, now })
     : undefined;
@@ -1397,26 +1435,59 @@ function HostLineup({ client, config, viewerEmail }: { client: SupabaseClient; c
       </div>
     );
   }
-  // Tapping the row that is already on deck does nothing; the guard also stops a second tap while one is saving.
-  const onDeck = spotlightIndex(spotlight, feed.lineup, showYmd);
-  const tap = async (entry: LineupEntry, index: number) => {
-    if (tapping.current || index === onDeck) return;
-    tapping.current = true;
+  const clock = showClock({ lineup: feed.lineup, spotlight, showDate: showYmd, hostName, now });
+  const started = spotlightIndex(spotlight, feed.lineup, showYmd) !== -1;
+  const finished = started ? feed.lineup.map((entry, i) => finishedLabel(finishedRecord(spotlight?.sets, i, entry.name), entry.set_length)) : undefined;
+  const run = async (action: () => Promise<string | null>, after?: () => void) => {
+    if (busy) return;
+    setBusy(true);
     try {
-      const { data } = await client.auth.getSession();
-      setStatus(await putOnDeck({ client, lineup: feed.lineup, showDate: showYmd, name: entry.name, sessionToken: data.session?.access_token }));
+      const problem = await action();
+      setStatus(problem ? "That did not save. Check the connection and try again." : "");
+      if (!problem) after?.();
     } finally {
-      tapping.current = false;
+      setBusy(false);
     }
   };
+  const controls = canControl
+    ? {
+        busy,
+        onStart: () => {
+          if (clock.kind !== "idle" || clock.nextIndex === -1) return;
+          const index = clock.nextIndex;
+          void run(
+            () => startClock(client, showYmd, feed.lineup, index),
+            () => {
+              // The comic after the one who just walked on is now on deck: buzz them.
+              const next = feed.lineup[index + 1];
+              if (next) void client.auth.getSession().then(({ data }) => pushUpNext(next.name, data.session?.access_token));
+            },
+          );
+        },
+        onStop: () => {
+          if (clock.kind !== "running" || !spotlight) return;
+          void run(() => stopClock(client, spotlight));
+        },
+        onReset: () => void run(() => resetClock(client, showYmd)),
+      }
+    : undefined;
   return (
-    <div className="mt-4">
-      {canTap && status && (
+    <div className="mt-4 pb-28">
+      {status && (
         <p className="mb-2 text-sm font-medium text-muted-foreground" role="status">
           {status}
         </p>
       )}
-      <LineupList feed={feed} startLabels={startLabels} onTap={canTap ? (entry, index) => void tap(entry, index) : undefined} onDeckIndex={seesOnDeck ? onDeck : undefined} />
+      <LineupList
+        feed={feed}
+        startLabels={startLabels}
+        performingIndex={clock.kind === "running" ? clock.index : -1}
+        onDeckIndex={clock.kind === "running" ? clock.onDeckIndex : clock.nextIndex}
+        over={clock.kind === "running" && clock.remainingMs < 0}
+        livePill={clock.kind === "running" ? formatCountdown(clock.remainingMs) : undefined}
+        finished={finished}
+      />
+      <ShowClockBar clock={clock} started={started} controls={controls} />
     </div>
   );
 }
