@@ -1069,14 +1069,14 @@ function ShowDayScreen({
   // usable spotlight every row keeps its sheet time (see start-times.ts).
   const startLabels = feed ? estimateStartTimes({ lineup: feed.lineup, spotlight, showDate, timeZone: window.timeZone, now: second }) : undefined;
   const started = !!feed && spotlightIndex(spotlight, feed.lineup, showDate) !== -1;
-  const clock = feed ? showClock({ lineup: feed.lineup, spotlight, showDate, now: second }) : null;
+  const clock = feed ? showClock({ lineup: feed.lineup, spotlight, showDate, hostRow: config.host_row === true, now: second }) : null;
   const live: LiveLineup | undefined =
     feed && clock && started
       ? {
           clock,
           started,
           performingIndex: clock.kind === "running" ? clock.index : -1,
-          onDeckIndex: clock.kind === "running" ? clock.onDeckIndex : clock.nextIndex,
+          onDeckIndex: onDeckFor(clock, feed.lineup.length, config.host_row === true),
           over: clock.kind === "running" && clock.remainingMs < 0,
           livePill: clock.kind === "running" ? formatCountdown(clock.remainingMs) : undefined,
           progress: clockProgress(clock),
