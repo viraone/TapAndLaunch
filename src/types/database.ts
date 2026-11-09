@@ -575,6 +575,8 @@ export interface OpenMicSignupBlockConfig {
   lineup_from_minutes?: number;
   /** true shows the venue lineup board at any time, ignoring the Thursday-to-Friday reveal window; missing means the window applies. */
   lineup_always?: boolean;
+  /** true: row 1 of the lineup is always the hosts. It carries a HOSTS tag, START begins on it, and ON DECK shows on row 2 until a clock runs; missing means off. */
+  host_row?: boolean;
   /** One-off: requests stay closed until this moment (ISO 8601 with offset, e.g. "2026-10-24T12:00:00-07:00") even
    * once the weekly window says open. Expires by itself. */
   closed_until?: string;

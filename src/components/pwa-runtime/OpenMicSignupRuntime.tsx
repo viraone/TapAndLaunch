@@ -14,7 +14,7 @@ import { isLineupPreviewer } from "@/lib/openmic/preview-emails";
 import { setSignedInName } from "@/lib/openmic/signed-in-name";
 import { canTapOnDeck, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { pushUpNext } from "@/lib/openmic/spotlight-actions";
-import { clockProgress, finishedLabel, finishedRecord, showClock, type ShowClock } from "@/lib/openmic/show-clock";
+import { clockProgress, finishedLabel, finishedRecord, onDeckFor, showClock, type ShowClock } from "@/lib/openmic/show-clock";
 import { resetClock, startClock, stopClock } from "@/lib/openmic/show-clock-actions";
 import { formatCountdown } from "@/lib/openmic/tv-timer";
 import { useSecond } from "@/lib/openmic/use-second";
@@ -1258,11 +1258,12 @@ export function ShowDay({
             feed={feed}
             startLabels={startLabels}
             performingIndex={live?.performingIndex}
-            onDeckIndex={live?.onDeckIndex}
+            onDeckIndex={live ? live.onDeckIndex : config.host_row === true && feed.lineup.length > 1 ? 1 : undefined}
             over={live?.over}
             livePill={live?.livePill}
             progress={live?.progress}
             finished={live?.finished}
+            hostRow={config.host_row === true}
           />
         </>
       )}
@@ -1286,6 +1287,7 @@ export function LineupList({
   progress,
   finished,
   size,
+  hostRow,
 }: {
   feed: LineupFeed;
   startLabels?: StartLabel[];
@@ -1303,6 +1305,8 @@ export function LineupList({
   /** Per row, how a finished comic did ("2:50", "+0:40") or null; a non-null entry dims the row. */
   finished?: (string | null)[];
   size?: "default" | "board";
+  /** The first row is always the hosts: it carries a HOSTS tag (unless it is performing or on deck). */
+  hostRow?: boolean;
 }) {
   const big = size === "board";
   useEffect(() => {
@@ -1372,6 +1376,7 @@ export function LineupList({
                 </span>
               )}
               {onDeck && <span className={`${tag} bg-[#fbbf24] text-black`}>On deck</span>}
+              {hostRow === true && i === 0 && !performing && !onDeck && <span className={`${tag} bg-white/15 text-foreground dark:text-white`}>Hosts</span>}
               <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (big ? "md:w-10 md:text-2xl " : "") + (performing ? "text-primary" : onDeck ? "text-[#fbbf24]" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
               <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug tracking-tight text-foreground dark:text-white " + (big ? "md:text-4xl 2xl:text-5xl md:font-bold " : "") + (accent ? "font-bold" : "font-medium")}>
                 {entry.name}
@@ -1458,7 +1463,8 @@ function HostLineup({ client, config, viewerEmail, hostName }: { client: Supabas
       </div>
     );
   }
-  const clock = showClock({ lineup: feed.lineup, spotlight, showDate: showYmd, hostName, now });
+  const hostRow = config.host_row === true;
+  const clock = showClock({ lineup: feed.lineup, spotlight, showDate: showYmd, hostName, hostRow, now });
   const started = spotlightIndex(spotlight, feed.lineup, showYmd) !== -1;
   const finished = started ? feed.lineup.map((entry, i) => finishedLabel(finishedRecord(spotlight?.sets, i, entry.name), entry.set_length)) : undefined;
   const run = async (action: () => Promise<string | null>, after?: () => void) => {
@@ -1505,11 +1511,12 @@ function HostLineup({ client, config, viewerEmail, hostName }: { client: Supabas
         feed={feed}
         startLabels={startLabels}
         performingIndex={clock.kind === "running" ? clock.index : -1}
-        onDeckIndex={clock.kind === "running" ? clock.onDeckIndex : clock.nextIndex}
+        onDeckIndex={onDeckFor(clock, feed.lineup.length, hostRow)}
         over={clock.kind === "running" && clock.remainingMs < 0}
         livePill={clock.kind === "running" ? formatCountdown(clock.remainingMs) : undefined}
         progress={clockProgress(clock)}
         finished={finished}
+        hostRow={hostRow}
       />
       <ShowClockBar clock={clock} started={started} controls={controls} />
     </div>

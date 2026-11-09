@@ -17,8 +17,9 @@ export type ShowClock =
   | { kind: "running"; index: number; remainingMs: number; totalMs: number; onDeckIndex: number };
 
 /** Which row the first START goes to: row 0, unless row 0 is the host's own name (the host opens the show untimed). */
-export function firstComicIndex(lineup: LineupEntry[], hostName: string | null | undefined): number {
+export function firstComicIndex(lineup: LineupEntry[], hostName: string | null | undefined, hostRow = false): number {
   if (lineup.length === 0) return -1;
+  if (hostRow) return 0;
   const host = (hostName ?? "").trim().toLowerCase();
   if (!host) return 0;
   const first = lineup[0]!.name.trim().toLowerCase();
@@ -32,16 +33,23 @@ function idleFor(lineup: LineupEntry[], nextIndex: number): ShowClock {
 }
 
 /** The clock right now. A spotlight for another show day, or one started more than 3 hours ago, counts as nothing. */
-export function showClock(input: { lineup: LineupEntry[]; spotlight: Spotlight | null; showDate: string; hostName?: string | null; now: Date }): ShowClock {
-  const { lineup, spotlight, showDate, hostName, now } = input;
+export function showClock(input: { lineup: LineupEntry[]; spotlight: Spotlight | null; showDate: string; hostName?: string | null; hostRow?: boolean; now: Date }): ShowClock {
+  const { lineup, spotlight, showDate, hostName, hostRow, now } = input;
   const at = spotlightIndex(spotlight, lineup, showDate);
   const startMs = spotlight ? parseSetAt(spotlight.set_at) : Number.NaN;
   const age = now.getTime() - startMs;
   const fresh = Number.isFinite(startMs) && age <= ANCHOR_MAX_AGE_MS && age >= -ANCHOR_MAX_FUTURE_MS;
-  if (at === -1 || !fresh) return idleFor(lineup, firstComicIndex(lineup, hostName));
+  if (at === -1 || !fresh) return idleFor(lineup, firstComicIndex(lineup, hostName, hostRow));
   if (spotlight!.stopped_at) return idleFor(lineup, at + 1);
   const totalMs = setMinutes(lineup[at]!.set_length) * MINUTE_MS;
   return { kind: "running", index: at, remainingMs: startMs + totalMs - now.getTime(), totalMs, onDeckIndex: at + 1 < lineup.length ? at + 1 : -1 };
+}
+
+/** The row to ring as ON DECK. With the host row on, row 0 is the hosts, so until a clock runs the first comic (row 1) is on deck. */
+export function onDeckFor(clock: ShowClock, lineupLength: number, hostRow: boolean): number {
+  if (clock.kind === "running") return clock.onDeckIndex;
+  if (hostRow && clock.nextIndex === 0) return lineupLength > 1 ? 1 : -1;
+  return clock.nextIndex;
 }
 
 /** The finished set for a row: by position and name, else by name alone (the host moved rows), else undefined. */

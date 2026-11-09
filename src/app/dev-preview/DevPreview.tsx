@@ -4,7 +4,9 @@ import type { CSSProperties } from "react";
 import { HeaderClock } from "@/components/pwa-runtime/HeaderClock";
 import { ShowClockBar } from "@/components/pwa-runtime/ShowClockBar";
 import { TvTimerPanel } from "@/components/pwa-runtime/OpenMicFlatscreenRuntime";
+import { LineupList } from "@/components/pwa-runtime/OpenMicSignupRuntime";
 import type { ShowClock } from "@/lib/openmic/show-clock";
+import type { LineupFeed } from "@/lib/openmic/selection";
 
 // The StageTime app's own colour tokens (copied from the published layout's wrapper), so the pieces look as they do live.
 const THEME = {
@@ -31,6 +33,8 @@ const TV: { label: string; ms: number; running: boolean }[] = [
   { label: "TV: over time", ms: -12000, running: true },
   { label: "TV: on deck, waiting", ms: 180000, running: false },
 ];
+
+const HOST_ROW_FEED: LineupFeed = { show_date: "2026-11-13", posted: true, me: null, lineup: [{ name: "Nick Cody, Noah Rubin, Viradeth", set_length: "5 min", start_time: "7:00 PM" }, { name: "Karen", set_length: "3 min", start_time: "7:05 PM" }, { name: "Bob", set_length: "3 min", start_time: "7:08 PM" }, { name: "Dana", set_length: "3 min", start_time: "7:11 PM" }] };
 
 const BARS: { label: string; clock: ShowClock; started: boolean }[] = [
   { label: "Host bar: before the show", clock: idle, started: false },
@@ -73,6 +77,21 @@ export function DevPreview() {
             </div>
           </div>
         ))}
+      </div>
+      <p className="mb-2 mt-8 text-sm font-semibold">Lineup with host row</p>
+      <div className="flex flex-wrap gap-4">
+        <div>
+          <p className="mb-1 text-xs text-muted-foreground">Before START (hosts row, Karen on deck)</p>
+          <div className="max-w-[430px]">
+            <LineupList feed={HOST_ROW_FEED} hostRow onDeckIndex={1} />
+          </div>
+        </div>
+        <div>
+          <p className="mb-1 text-xs text-muted-foreground">Hosts on stage</p>
+          <div className="max-w-[430px]">
+            <LineupList feed={HOST_ROW_FEED} hostRow performingIndex={0} onDeckIndex={1} livePill="4:12" progress={16} />
+          </div>
+        </div>
       </div>
     </div>
   );

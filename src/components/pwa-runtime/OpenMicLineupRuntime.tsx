@@ -6,7 +6,7 @@ import type { OpenMicSignupBlockConfig } from "@/types/database";
 import type { LineupFeed } from "@/lib/openmic/selection";
 import { LINEUP_FROM_MINUTES, formatShowDate, formatWeekTime, isShowDay, lineupVisible, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { spotlightIndex, useSpotlight, ymd, type SetRecord } from "@/lib/openmic/spotlight";
-import { clockProgress, finishedLabel, finishedRecord, showClock, type ShowClock } from "@/lib/openmic/show-clock";
+import { clockProgress, finishedLabel, finishedRecord, onDeckFor, showClock, type ShowClock } from "@/lib/openmic/show-clock";
 import { formatCountdown } from "@/lib/openmic/tv-timer";
 import { useSecond } from "@/lib/openmic/use-second";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
@@ -90,7 +90,7 @@ function LineupPage({
   const highlighted = feed ? spotlightIndex(spotlight, feed.lineup, showDay) : -1;
   // The same live estimates as the comics' screen and the hosts' Home, from the hosts' highlight.
   const startLabels = feed ? estimateStartTimes({ lineup: feed.lineup, spotlight, showDate: showDay, timeZone: window_.timeZone, now }) : undefined;
-  const clock = feed ? showClock({ lineup: feed.lineup, spotlight, showDate: showDay, now: second }) : null;
+  const clock = feed ? showClock({ lineup: feed.lineup, spotlight, showDate: showDay, hostRow: config.host_row === true, now: second }) : null;
 
   return (
     <div
@@ -141,7 +141,7 @@ function LineupPage({
         ) : !feed.posted || feed.lineup.length === 0 ? (
           <Notice title="We're putting the lineup together" body="Check back soon." />
         ) : (
-          <LineupBoard feed={feed} started={highlighted !== -1} clock={clock ?? { kind: "idle", nextIndex: -1, nextMs: 0 }} startLabels={startLabels} sets={spotlight?.sets} />
+          <LineupBoard feed={feed} started={highlighted !== -1} clock={clock ?? { kind: "idle", nextIndex: -1, nextMs: 0 }} startLabels={startLabels} sets={spotlight?.sets} hostRow={config.host_row === true} />
         )}
       </main>
     </div>
@@ -165,6 +165,7 @@ function LineupBoard({
   clock,
   startLabels,
   sets,
+  hostRow,
 }: {
   feed: LineupFeed;
   /** The hosts have pressed START this show (a clock row exists for today). */
@@ -172,9 +173,11 @@ function LineupBoard({
   clock: ShowClock;
   startLabels?: StartLabel[];
   sets?: SetRecord[];
+  /** The first row is always the hosts (config.host_row): ON DECK shows on row 2 before START. */
+  hostRow?: boolean;
 }) {
   const performingIndex = clock.kind === "running" ? clock.index : -1;
-  const onDeckIndex = clock.kind === "running" ? clock.onDeckIndex : clock.nextIndex;
+  const onDeckIndex = onDeckFor(clock, feed.lineup.length, hostRow === true);
   const over = clock.kind === "running" && clock.remainingMs < 0;
   const livePill = clock.kind === "running" ? formatCountdown(clock.remainingMs) : undefined;
   const finished = started ? feed.lineup.map((entry, i) => finishedLabel(finishedRecord(sets, i, entry.name), entry.set_length)) : undefined;
@@ -207,7 +210,8 @@ function LineupBoard({
           feed={feed}
           startLabels={startLabels}
           performingIndex={performingIndex}
-          onDeckIndex={started ? onDeckIndex : undefined}
+          onDeckIndex={started || hostRow === true ? onDeckIndex : undefined}
+          hostRow={hostRow}
           over={over}
           livePill={livePill}
           progress={clockProgress(clock)}

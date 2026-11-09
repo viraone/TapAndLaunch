@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clockProgress, finishedLabel, finishedRecord, firstComicIndex, showClock } from "./show-clock";
+import { clockProgress, finishedLabel, finishedRecord, firstComicIndex, onDeckFor, showClock } from "./show-clock";
 import type { LineupEntry } from "@/lib/openmic/selection";
 import type { Spotlight } from "@/lib/openmic/spotlight";
 
@@ -97,5 +97,32 @@ describe("clockProgress", () => {
   });
   it("stops at 100 once over time", () => {
     expect(clockProgress({ kind: "running", index: 1, remainingMs: -15000, totalMs: 180000, onDeckIndex: 2 })).toBe(100);
+  });
+});
+
+describe("host row", () => {
+  const hostLineup = [entry("Nick Cody", "5 min"), entry("Karen", "3 min"), entry("Bob", "3 min")];
+
+  it("firstComicIndex starts at row 0 with the host row on", () => {
+    expect(firstComicIndex(hostLineup, "Nick Cody", true)).toBe(0);
+    expect(firstComicIndex(hostLineup, null, true)).toBe(0);
+    expect(firstComicIndex([], "Nick Cody", true)).toBe(-1);
+  });
+
+  it("showClock is idle on row 0 with the host row on", () => {
+    expect(showClock({ lineup: hostLineup, spotlight: null, showDate, hostName: "Nick Cody", hostRow: true, now: new Date("2026-11-14T02:30:00.000Z") })).toEqual({ kind: "idle", nextIndex: 0, nextMs: 300000 });
+  });
+
+  it("showClock without the host row still starts at row 1", () => {
+    expect(showClock({ lineup: hostLineup, spotlight: null, showDate, hostName: "Nick Cody", now: new Date("2026-11-14T02:30:00.000Z") })).toEqual({ kind: "idle", nextIndex: 1, nextMs: 180000 });
+  });
+
+  it("onDeckFor shows row 1 until a clock runs with the host row on", () => {
+    expect(onDeckFor({ kind: "idle", nextIndex: 0, nextMs: 0 }, 3, true)).toBe(1);
+    expect(onDeckFor({ kind: "idle", nextIndex: 0, nextMs: 0 }, 1, true)).toBe(-1);
+    expect(onDeckFor({ kind: "idle", nextIndex: 0, nextMs: 0 }, 3, false)).toBe(0);
+    expect(onDeckFor({ kind: "idle", nextIndex: 2, nextMs: 0 }, 3, true)).toBe(2);
+    expect(onDeckFor({ kind: "idle", nextIndex: -1, nextMs: 0 }, 3, true)).toBe(-1);
+    expect(onDeckFor({ kind: "running", index: 0, remainingMs: 1000, totalMs: 300000, onDeckIndex: 1 }, 3, true)).toBe(1);
   });
 });
