@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clockProgress, finishedLabel, finishedRecord, firstComicIndex, onDeckFor, showClock } from "./show-clock";
+import { anchorFresh, clockProgress, finishedLabel, finishedRecord, firstComicIndex, onDeckFor, showClock } from "./show-clock";
 import type { LineupEntry } from "@/lib/openmic/selection";
 import type { Spotlight } from "@/lib/openmic/spotlight";
 
@@ -97,6 +97,19 @@ describe("clockProgress", () => {
   });
   it("stops at 100 once over time", () => {
     expect(clockProgress({ kind: "running", index: 1, remainingMs: -15000, totalMs: 180000, onDeckIndex: 2 })).toBe(100);
+  });
+});
+
+describe("anchorFresh", () => {
+  const now = new Date("2026-11-14T03:30:00.000Z");
+  it("is true for a START one minute ago", () => {
+    expect(anchorFresh({ ...running, set_at: "2026-11-14T03:29:00.000Z" }, now)).toBe(true);
+  });
+  it("is false for a START four hours ago", () => {
+    expect(anchorFresh({ ...running, set_at: "2026-11-13T23:30:00.000Z" }, now)).toBe(false);
+  });
+  it("is false with no spotlight", () => {
+    expect(anchorFresh(null, now)).toBe(false);
   });
 });
 

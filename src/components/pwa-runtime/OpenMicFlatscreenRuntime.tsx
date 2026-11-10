@@ -6,7 +6,7 @@ import { showDateFor } from "@/lib/openmic/window";
 import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { applyComicMinutes } from "@/lib/openmic/set-minutes";
 import { formatCountdown, timerTone } from "@/lib/openmic/tv-timer";
-import { showClock } from "@/lib/openmic/show-clock";
+import { anchorFresh, showClock } from "@/lib/openmic/show-clock";
 import { useLineup, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
@@ -49,9 +49,9 @@ function TvTimerBox({ client, config }: { client: NonNullable<ReturnType<typeof 
   const feed = useMemo(() => applyComicMinutes(sheetFeed, spotlight, config.host_row === true), [sheetFeed, spotlight, config.host_row]);
   if (!feed || feed.lineup.length === 0) return null;
   const showDay = ymd(showDateFor(window_, now));
-  // No box before the first START (nothing to count yet) and none after the last STOP.
-  if (spotlightIndex(spotlight, feed.lineup, showDay) === -1) return null;
-  const clock = showClock({ lineup: feed.lineup, spotlight, showDate: showDay, now });
+  // No box before the first START (nothing to count yet), none after the last STOP, and none when the last START is hours old (a leftover from another day).
+  if (spotlightIndex(spotlight, feed.lineup, showDay) === -1 || !anchorFresh(spotlight, now)) return null;
+  const clock = showClock({ lineup: feed.lineup, spotlight, showDate: showDay, hostRow: config.host_row === true, now });
   if (clock.kind === "running") {
     return <TvTimerPanel name={feed.lineup[clock.index]!.name} ms={clock.remainingMs} totalMs={clock.totalMs} running />;
   }

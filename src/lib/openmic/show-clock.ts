@@ -32,6 +32,13 @@ function idleFor(lineup: LineupEntry[], nextIndex: number): ShowClock {
   return { kind: "idle", nextIndex: entry ? nextIndex : -1, nextMs: entry ? setMinutes(entry.set_length) * MINUTE_MS : 0 };
 }
 
+/** Whether the last START is recent enough to count as the show running now (the same test showClock uses). A START from hours ago is a leftover from another day. */
+export function anchorFresh(spotlight: Spotlight | null, now: Date): boolean {
+  const startMs = spotlight ? parseSetAt(spotlight.set_at) : Number.NaN;
+  const age = now.getTime() - startMs;
+  return Number.isFinite(startMs) && age <= ANCHOR_MAX_AGE_MS && age >= -ANCHOR_MAX_FUTURE_MS;
+}
+
 /** The clock right now. A spotlight for another show day, or one started more than 3 hours ago, counts as nothing. */
 export function showClock(input: { lineup: LineupEntry[]; spotlight: Spotlight | null; showDate: string; hostName?: string | null; hostRow?: boolean; now: Date }): ShowClock {
   const { lineup, spotlight, showDate, hostName, hostRow, now } = input;
