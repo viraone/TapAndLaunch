@@ -67,8 +67,8 @@ export function estimateStartTimes(input: {
     // The clock's comic has finished; the next one walks on when the hosts press START, so no earlier than now.
     next = Math.max(stopped + CHANGEOVER_MS, nowMs);
   } else {
-    // The clock's comic is on stage since the anchor: their actual start to the minute; the rows after them follow.
-    labels[at] = { text: formatClock(new Date(Math.floor(anchor / MINUTE_MS) * MINUTE_MS), timeZone), estimated: false };
+    // The clock's comic is on stage since the anchor: their row shows the time right now (the show's time zone); the rows after them follow.
+    labels[at] = { text: formatClock(now, timeZone), estimated: false };
     next = Math.max(anchor + setMinutes(lineup[at]!.set_length) * MINUTE_MS + CHANGEOVER_MS, nowMs);
   }
   for (let i = at + 1; i < lineup.length; i++) {

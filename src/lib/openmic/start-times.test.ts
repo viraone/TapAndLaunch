@@ -29,7 +29,7 @@ describe("estimateStartTimes", () => {
     const result = labels(spotlightAt(1, "Katie Hildebrand", "2026-11-07T03:05:30Z"), "2026-11-07T03:06:00Z");
     expect(result).toEqual([
       { text: "7:00 PM", estimated: false },
-      { text: "7:05 PM", estimated: false },
+      { text: "7:06 PM", estimated: false },
       { text: "~7:09 PM", estimated: true },
       { text: "~7:13 PM", estimated: true },
       { text: "~7:17 PM", estimated: true },
@@ -53,7 +53,7 @@ describe("estimateStartTimes", () => {
       { text: "7:05 PM", estimated: false },
       { text: "7:08 PM", estimated: false },
       { text: "7:11 PM", estimated: false },
-      { text: "7:05 PM", estimated: false },
+      { text: "7:06 PM", estimated: false },
     ]);
   });
 
@@ -135,7 +135,7 @@ describe("estimateStartTimes", () => {
     const result = labels(spotlightAt(2, "Masih Ahmad", "2026-11-07T00:16:00Z"), "2026-11-07T03:06:00Z");
     expect(result[0]).toEqual({ text: "7:00 PM", estimated: false });
     expect(result[1]).toEqual({ text: "7:05 PM", estimated: false });
-    expect(result[2]).toEqual({ text: "4:16 PM", estimated: false });
+    expect(result[2]).toEqual({ text: "7:06 PM", estimated: false });
     expect(result.slice(3)).toEqual([
       { text: "~7:06 PM", estimated: true },
       { text: "~7:10 PM", estimated: true },
@@ -144,7 +144,7 @@ describe("estimateStartTimes", () => {
 
   it("still estimates from a clock 90 seconds in the future", () => {
     const result = labels(spotlightAt(2, "Masih Ahmad", "2026-11-07T03:07:30Z"), "2026-11-07T03:06:00Z");
-    expect(result[2]).toEqual({ text: "7:07 PM", estimated: false });
+    expect(result[2]).toEqual({ text: "7:06 PM", estimated: false });
     expect(result.slice(3)).toEqual([
       { text: "~7:11 PM", estimated: true },
       { text: "~7:15 PM", estimated: true },
