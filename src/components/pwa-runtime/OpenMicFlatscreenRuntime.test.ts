@@ -80,15 +80,17 @@ describe("TvTimerPanel", () => {
     expect(html).not.toContain("bg-red-500");
   });
 
-  it("turns solid red and counts up past the set length, with no label", () => {
+  it("turns white with black digits and counts up past the set length, with no label, no red and no flashing", () => {
     const html = renderToStaticMarkup(createElement(TvTimerPanel, { name: "Karen Young", ms: -12000, totalMs: 180000, running: true }));
 
     expect(html).toContain("+0:12");
-    expect(html).toContain("bg-red-500");
-    expect(html).toContain("animate-[pulse_1s_ease-in-out_infinite]");
+    expect(html).toContain("bg-white");
+    expect(html).toContain("text-black");
     expect(html).toContain("width:100%");
     expect(html).toContain("text-[11rem]");
     expect(html).not.toContain("Over time");
     expect(html).not.toContain("Wrap");
+    expect(html).not.toContain("bg-red");
+    expect(html).not.toContain("animate-");
   });
 });

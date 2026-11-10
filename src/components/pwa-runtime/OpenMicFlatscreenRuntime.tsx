@@ -63,12 +63,12 @@ const TONE = {
   calm: { panel: "bg-[#0c0c0e] ring-1 ring-white/10", name: "text-white", digits: "text-white", next: "text-white/60", track: "bg-white/10", bar: "bg-primary" },
   warn: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black" },
   urgent: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black" },
-  over: { panel: "bg-red-800", name: "text-white", digits: "text-white", next: "text-white/80", track: "bg-white/30", bar: "bg-white" },
+  over: { panel: "bg-white", name: "text-zinc-900", digits: "text-black", next: "text-zinc-600", track: "bg-black/20", bar: "bg-black" },
 } as const;
 
 /** The corner box itself, pure so it can be rendered in a test. Not running: the next comic's name leads, with their set
  *  length as a pill and who follows. Running: the countdown fills the box; the whole box turns amber for the last 30
- *  seconds (the light) and solid red, counting up, past the set length. No words on amber or red: the colour says it.
+ *  seconds (the light) and white with black digits, counting up, past the set length. No words on amber or white: the colour says it.
  *  Sized for a comic reading it from the stage, across a bar. */
 export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: string; next?: string | null; ms: number; totalMs: number; running: boolean }) {
   if (!running) {
@@ -92,7 +92,6 @@ export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: strin
   return (
     <div className="relative flex w-[44rem] shrink-0 items-center p-8">
       <div className={`relative w-full overflow-hidden rounded-[2rem] p-10 ${t.panel}`}>
-        {tone === "over" ? <span aria-hidden="true" className="absolute inset-0 animate-[pulse_1s_ease-in-out_infinite] bg-red-500 motion-reduce:animate-none" /> : null}
         <div className="relative">
           <div className="flex h-10 items-center justify-between gap-6">
             {tone === "calm" ? (
