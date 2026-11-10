@@ -16,10 +16,10 @@ export type ShowClock =
   /** A comic is on stage; remainingMs goes negative past their set length. onDeckIndex -1 = last comic. */
   | { kind: "running"; index: number; remainingMs: number; totalMs: number; onDeckIndex: number };
 
-/** Which row the first START goes to: row 0, unless row 0 is the host's own name (the host opens the show untimed). */
+/** Which row the first START goes to: row 0, unless row 0 is the host's own name (the host opens the show untimed). With the host row on, row 0 is always the hosts, so START begins on row 1. */
 export function firstComicIndex(lineup: LineupEntry[], hostName: string | null | undefined, hostRow = false): number {
   if (lineup.length === 0) return -1;
-  if (hostRow) return 0;
+  if (hostRow) return lineup.length > 1 ? 1 : 0;
   const host = (hostName ?? "").trim().toLowerCase();
   if (!host) return 0;
   const first = lineup[0]!.name.trim().toLowerCase();

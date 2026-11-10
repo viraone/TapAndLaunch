@@ -42,6 +42,7 @@ const NAV_ICONS: Record<string, string> = {
   settings: "Settings",
   plus: "Plus",
   pencil: "Pencil",
+  timer: "Timer",
 };
 
 /** How the app opens once someone adds it to their phone's home screen. */

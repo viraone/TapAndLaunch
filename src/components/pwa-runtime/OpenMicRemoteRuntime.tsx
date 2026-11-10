@@ -61,7 +61,7 @@ export function OpenMicRemoteRuntime({ config }: { config: OpenMicSignupBlockCon
   if (!user || !member) {
     return (
       <div className="mx-auto w-full max-w-md px-4 pb-12 pt-8">
-        <h1 className="text-3xl font-black tracking-tight">Remote</h1>
+        <h1 className="text-3xl font-black tracking-tight">Timer</h1>
         <div className="mt-6 rounded-2xl border bg-muted/60 p-6 text-center">
           <Lock className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />
           <h2 className="mt-3 text-xl font-bold">{user ? "The remote is for the hosts" : "Sign in to use the remote"}</h2>

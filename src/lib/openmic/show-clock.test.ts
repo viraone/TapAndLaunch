@@ -103,14 +103,15 @@ describe("clockProgress", () => {
 describe("host row", () => {
   const hostLineup = [entry("Nick Cody", "5 min"), entry("Karen", "3 min"), entry("Bob", "3 min")];
 
-  it("firstComicIndex starts at row 0 with the host row on", () => {
-    expect(firstComicIndex(hostLineup, "Nick Cody", true)).toBe(0);
-    expect(firstComicIndex(hostLineup, null, true)).toBe(0);
+  it("firstComicIndex starts at row 1 (after the hosts row) with the host row on", () => {
+    expect(firstComicIndex(hostLineup, "Nick Cody", true)).toBe(1);
+    expect(firstComicIndex(hostLineup, null, true)).toBe(1);
     expect(firstComicIndex([], "Nick Cody", true)).toBe(-1);
+    expect(firstComicIndex([entry("Nick Cody", "5 min")], "Nick Cody", true)).toBe(0);
   });
 
-  it("showClock is idle on row 0 with the host row on", () => {
-    expect(showClock({ lineup: hostLineup, spotlight: null, showDate, hostName: "Nick Cody", hostRow: true, now: new Date("2026-11-14T02:30:00.000Z") })).toEqual({ kind: "idle", nextIndex: 0, nextMs: 300000 });
+  it("showClock is idle on row 1 with the host row on, so START begins on the first comic", () => {
+    expect(showClock({ lineup: hostLineup, spotlight: null, showDate, hostName: "Nick Cody", hostRow: true, now: new Date("2026-11-14T02:30:00.000Z") })).toEqual({ kind: "idle", nextIndex: 1, nextMs: 180000 });
   });
 
   it("showClock without the host row still starts at row 1", () => {
