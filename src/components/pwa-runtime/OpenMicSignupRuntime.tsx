@@ -136,7 +136,7 @@ export function SignupHeader({
           <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">{showDate}</h1>
         </div>
         {showStartTime && (
-          <p className={`ml-auto shrink-0 self-end pb-1 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-foreground ${hidePill ? "relative z-10 translate-y-[26px] bg-background pl-2" : ""}`}>Start time</p>
+          <p className={`ml-auto shrink-0 self-end pb-1 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-foreground ${hidePill ? "translate-y-[21px]" : ""}`}>Start time</p>
         )}
       </div>
       {!hidePill && (
@@ -357,12 +357,12 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
 
   return (
     <div className={pinned ? PINNED_PAGE : "mx-auto w-full max-w-md px-4 pb-12 pt-8"}>
-      <div className={pinned ? "shrink-0" : undefined}>
+      <div className={pinned ? (showStartTime ? "shrink-0 pb-[5px]" : "shrink-0") : undefined}>
       <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} showStartTime={showStartTime} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
 
       </div>
 
-      <div className={pinned ? PINNED_SCROLL : "mt-6"}>
+      <div className={pinned ? PINNED_SCROLL + (showStartTime ? " [&>*:first-child]:-mt-[5px]" : "") : "mt-6"}>
         {phase === "loading" && (
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
