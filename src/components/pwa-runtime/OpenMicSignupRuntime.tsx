@@ -1409,7 +1409,12 @@ export function LineupList({
                 }
               >
                 {result && <Check className={"h-3.5 w-3.5 shrink-0 " + (big ? "md:h-6 md:w-6" : "")} aria-hidden="true" />}
-                {result ? null : (startLabels?.[i]?.text ?? entry.start_time)}
+                {result ? null : (
+                  <span className="flex flex-col items-end leading-none">
+                    {!performing && !(hostRow && i === 0) && <span className={"mb-1 text-[9px] font-black uppercase tracking-[0.2em] opacity-70 " + (big ? "md:text-sm" : "")}>Est.</span>}
+                    <span>{(startLabels?.[i]?.text ?? entry.start_time).replace(/^~/, "")}</span>
+                  </span>
+                )}
               </span>
               {performing && progress !== undefined && (
                 <span aria-hidden="true" className={"pointer-events-none absolute inset-x-4 bottom-1.5 h-[3px] overflow-hidden rounded-full bg-white/10 " + (big ? "md:bottom-3 md:h-[5px]" : "")}>

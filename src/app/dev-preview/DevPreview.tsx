@@ -93,6 +93,12 @@ export function DevPreview() {
             <LineupList feed={HOST_ROW_FEED} hostRow performingIndex={0} onDeckIndex={1} livePill="4:12" progress={16} />
           </div>
         </div>
+        <div>
+          <p className="mb-1 text-xs text-muted-foreground">Show running (Karen done, Bob live, Dana waiting)</p>
+          <div className="max-w-[430px]">
+            <LineupList feed={HOST_ROW_FEED} hostRow performingIndex={2} onDeckIndex={3} livePill="2:10" progress={30} finished={[null, "done", null, null]} />
+          </div>
+        </div>
       </div>
       <p className="mb-2 mt-8 text-sm font-semibold">Comic set length (Timer tab)</p>
       <div className="flex flex-wrap gap-4">
