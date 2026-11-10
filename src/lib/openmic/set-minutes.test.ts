@@ -5,9 +5,12 @@ import type { Spotlight } from "@/lib/openmic/spotlight";
 import {
   applyComicMinutes,
   comicMinutes,
+  eachMinutes,
   formatClockMinutes,
+  nameKey,
   parseClockMinutes,
   setComicMinutes,
+  setEachMinutes,
 } from "./set-minutes";
 
 const spot = (over: Partial<Spotlight>): Spotlight => ({ show_date: null, position: null, name: "", set_at: "", set_by: "", ...over });
@@ -119,6 +122,115 @@ describe("set-minutes", () => {
     expect(result.lineup.map((e) => e.start_time)).toEqual(["TBD", "TBD"]);
   });
 
+  it("nameKey", () => {
+    expect(nameKey("  Tess  Jones 1 ")).toBe("tess jones 1");
+  });
+
+  it("eachMinutes", () => {
+    const each = (m: Record<string, number>) => ({ for: "2026-11-13", minutes: m });
+    const s = spot({ set_each: each({ karen: 6, bad: 0, huge: 99, frac: 2.5 }) });
+    expect(eachMinutes(s, "2026-11-13")).toEqual({ karen: 6 });
+    expect(eachMinutes(s, "2026-11-14")).toEqual({});
+    expect(eachMinutes(spot({ set_each: null }), "2026-11-13")).toEqual({});
+    expect(eachMinutes(null, "2026-11-13")).toEqual({});
+  });
+
+  it("applies one comic's own minutes", () => {
+    const lineup = [
+      row("Viradeth", "5 min", "7:00 PM"),
+      row("Karen", "3 min", "7:05 PM"),
+      row("Evan", "3 min", "7:08 PM"),
+      row("Test", "3 min", "7:11 PM"),
+    ];
+    const result = applyComicMinutes(feedOf(lineup), spot({ set_each: { for: "2026-11-13", minutes: { evan: 7 } } }), true)!;
+    expect(result.lineup.map((e) => e.set_length)).toEqual(["5 min", "3 min", "7 min", "3 min"]);
+    expect(result.lineup.map((e) => e.start_time)).toEqual(["7:00 PM", "7:05 PM", "7:08 PM", "7:15 PM"]);
+  });
+
+  it("everyone-number plus single comics", () => {
+    const lineup = [
+      row("Viradeth", "5 min", "7:00 PM"),
+      row("Karen", "3 min", "7:05 PM"),
+      row("Evan", "3 min", "7:08 PM"),
+      row("Test", "3 min", "7:11 PM"),
+    ];
+    const result = applyComicMinutes(
+      feedOf(lineup),
+      spot({ set_minutes: 4, set_minutes_for: "2026-11-13", set_each: { for: "2026-11-13", minutes: { karen: 6, test: 2 } } }),
+      true,
+    )!;
+    expect(result.lineup.map((e) => e.set_length)).toEqual(["5 min", "6 min", "4 min", "2 min"]);
+    expect(result.lineup.map((e) => e.start_time)).toEqual(["7:00 PM", "7:05 PM", "7:11 PM", "7:15 PM"]);
+  });
+
+  it("returns the same feed when the single-comic map is for another date and there is no everyone-number", () => {
+    const feed = feedOf([row("A", "5 min", "7:00 PM")]);
+    expect(applyComicMinutes(feed, spot({ set_each: { for: "2026-11-14", minutes: { a: 7 } } }), true)).toBe(feed);
+  });
+
+  it("ignores the host row for single-comic minutes", () => {
+    const lineup = [
+      row("Viradeth", "5 min", "7:00 PM"),
+      row("Karen", "3 min", "7:05 PM"),
+      row("Evan", "3 min", "7:08 PM"),
+      row("Test", "3 min", "7:11 PM"),
+    ];
+    const result = applyComicMinutes(feedOf(lineup), spot({ set_each: { for: "2026-11-13", minutes: { viradeth: 9 } } }), true)!;
+    expect(result.lineup.map((e) => e.set_length)).toEqual(["5 min", "3 min", "3 min", "3 min"]);
+  });
+
+  it("applies single-comic minutes with the host row off", () => {
+    const lineup = [
+      row("Viradeth", "5 min", "7:00 PM"),
+      row("Karen", "3 min", "7:05 PM"),
+      row("Evan", "3 min", "7:08 PM"),
+      row("Test", "3 min", "7:11 PM"),
+    ];
+    const result = applyComicMinutes(feedOf(lineup), spot({ set_each: { for: "2026-11-13", minutes: { viradeth: 9 } } }), false)!;
+    expect(result.lineup.map((e) => e.set_length)).toEqual(["9 min", "3 min", "3 min", "3 min"]);
+    expect(result.lineup.map((e) => e.start_time)).toEqual(["7:00 PM", "7:09 PM", "7:12 PM", "7:15 PM"]);
+  });
+
+  it("me follows the comic's own number", () => {
+    const lineup = [
+      row("Viradeth", "5 min", "7:00 PM"),
+      row("Karen", "3 min", "7:05 PM"),
+      row("Evan", "3 min", "7:08 PM", true),
+      row("Test", "3 min", "7:11 PM"),
+    ];
+    const me = { selected: true, set_length: "3 min", start_time: "7:08 PM" };
+    const result = applyComicMinutes(feedOf(lineup, me), spot({ set_each: { for: "2026-11-13", minutes: { evan: 7 } } }), true)!;
+    expect(result.me).toEqual({ selected: true, set_length: "7 min", start_time: "7:08 PM" });
+  });
+
+  it("setEachMinutes", async () => {
+    const calls: unknown[] = [];
+    const fake = (error: { message: string } | null) =>
+      ({
+        from: (table: string) => ({
+          update: (values: unknown) => {
+            calls.push([table, values]);
+            return { eq: async () => ({ error }) };
+          },
+        }),
+      }) as unknown as SupabaseClient;
+
+    calls.length = 0;
+    expect(await setEachMinutes(fake(null), "2026-11-13", { karen: 6 }, "Evan", 7)).toBeNull();
+    expect(calls[0]).toEqual(["lineup_spotlight", { set_each: { for: "2026-11-13", minutes: { karen: 6, evan: 7 } } }]);
+
+    calls.length = 0;
+    await setEachMinutes(fake(null), "2026-11-13", { karen: 6 }, "  KAREN ", null);
+    expect(calls[0]).toEqual(["lineup_spotlight", { set_each: null }]);
+
+    calls.length = 0;
+    await setEachMinutes(fake(null), "2026-11-13", {}, "Evan", 99);
+    expect(calls[0]).toEqual(["lineup_spotlight", { set_each: { for: "2026-11-13", minutes: { evan: 15 } } }]);
+
+    calls.length = 0;
+    expect(await setEachMinutes(fake({ message: "nope" }), "2026-11-13", {}, "Evan", 7)).toBe("nope");
+  });
+
   it("setComicMinutes", async () => {
     const calls: unknown[] = [];
     const fake = (error: { message: string } | null) =>
@@ -145,7 +257,7 @@ describe("set-minutes", () => {
 
     calls.length = 0;
     await setComicMinutes(fake(null), "2026-11-13", null);
-    expect(calls[0]).toEqual(["lineup_spotlight", { set_minutes: null, set_minutes_for: null }]);
+    expect(calls[0]).toEqual(["lineup_spotlight", { set_minutes: null, set_minutes_for: null, set_each: null }]);
 
     calls.length = 0;
     expect(await setComicMinutes(fake({ message: "nope" }), "2026-11-13", 4)).toBe("nope");

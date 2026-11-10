@@ -7,9 +7,9 @@ import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Home, Loader2, Lock,
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, showDateFor } from "@/lib/openmic/window";
 import { setSpotlight, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
-import { applyComicMinutes, comicMinutes, setComicMinutes } from "@/lib/openmic/set-minutes";
+import { applyComicMinutes, comicMinutes, eachMinutes, nameKey, setComicMinutes, setEachMinutes } from "@/lib/openmic/set-minutes";
 import { setMinutes } from "@/lib/openmic/start-times";
-import { CompSetLength } from "./CompSetLength";
+import { CompSetPicker } from "./CompSetPicker";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { upNextStatus } from "@/lib/openmic/push";
 import { useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
@@ -96,6 +96,7 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
   /** The lineup list in the tray under the pad, folded away by default so the pad has the screen. */
   const [listOpen, setListOpen] = useState(false);
   const [lengthError, setLengthError] = useState<string | null>(null);
+  const [target, setTarget] = useState("");
 
   const lineup = feed?.lineup ?? [];
   const current = spotlightIndex(spotlight, lineup, showYmd);
@@ -103,13 +104,21 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
   // The hosts' one number for every comic. It is stored against the sheet's show date so the feed and this page agree.
   const lengthDate = sheetFeed?.show_date ?? showYmd;
   const dictated = comicMinutes(spotlight, lengthDate);
+  const each = eachMinutes(spotlight, lengthDate);
   const sheetMinutes = setMinutes(sheetFeed?.lineup[config.host_row === true ? 1 : 0]?.set_length ?? "");
+  // Everyone but the hosts row, each with the number they have right now (the feed already carries the hosts' numbers).
+  const targets = lineup
+    .slice(config.host_row === true ? 1 : 0)
+    .map((entry) => ({ key: nameKey(entry.name), name: entry.name, minutes: setMinutes(entry.set_length), custom: nameKey(entry.name) in each }));
+  const pickedTarget = targets.find((t) => t.key === target) ?? null;
 
   async function changeMinutes(minutes: number | null) {
     if (saving) return;
     setSaving(true);
     setLengthError(null);
-    const problem = await setComicMinutes(client, lengthDate, minutes);
+    const problem = pickedTarget
+      ? await setEachMinutes(client, lengthDate, each, pickedTarget.name, minutes)
+      : await setComicMinutes(client, lengthDate, minutes);
     setSaving(false);
     if (problem) setLengthError("That didn't save. Check the connection and try again.");
   }
@@ -170,7 +179,7 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
             <MoreVertical className="h-6 w-6" aria-hidden="true" />
           </button>
         </div>
-        <CompSetLength minutes={dictated} fallback={sheetMinutes} saving={saving} error={lengthError} onChange={(minutes) => void changeMinutes(minutes)} />
+        <CompSetPicker targets={targets} selected={pickedTarget ? pickedTarget.key : ""} onSelect={setTarget} allMinutes={dictated} fallback={sheetMinutes} hasOverrides={dictated !== null || Object.keys(each).length > 0} saving={saving} error={lengthError} onChange={(minutes) => void changeMinutes(minutes)} />
 
         {/* What the pad is pointing at: the highlighted comic, the one the board shows solid. */}
         <div className="mt-5 flex items-center justify-between gap-3">

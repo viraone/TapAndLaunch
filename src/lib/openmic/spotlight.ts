@@ -27,6 +27,8 @@ export interface Spotlight {
   /** Minutes every comic gets tonight when the hosts dictate one on the Timer tab; null = use the sheet's lengths. Only counts when set_minutes_for is the show date. */
   set_minutes?: number | null;
   set_minutes_for?: string | null;
+  /** Single comics' lengths the hosts dictated tonight, by lower-cased name; only counts when `for` is the show date. */
+  set_each?: { for: string; minutes: Record<string, number> } | null;
 }
 
 /** The hosts who may put a comic on deck by tapping the comic's row on the hosts' Home. */
@@ -75,7 +77,7 @@ export function useSpotlight(client: SupabaseClient | null): { spotlight: Spotli
     if (!client) return;
     let cancelled = false;
     const load = async () => {
-      const { data, error } = await client.from("lineup_spotlight").select("show_date, position, name, set_at, set_by, stopped_at, sets, set_minutes, set_minutes_for").eq("id", 1).maybeSingle();
+      const { data, error } = await client.from("lineup_spotlight").select("show_date, position, name, set_at, set_by, stopped_at, sets, set_minutes, set_minutes_for, set_each").eq("id", 1).maybeSingle();
       if (cancelled) return;
       if (error || !data) {
         setFailed(true);

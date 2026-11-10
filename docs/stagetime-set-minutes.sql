@@ -15,3 +15,9 @@ grant update (set_minutes, set_minutes_for) on public.lineup_spotlight to authen
 
 -- 3. Take it back (comics' lengths go back to the sheet): the app ignores a null set_minutes.
 -- update public.lineup_spotlight set set_minutes = null, set_minutes_for = null where id = 1;
+
+-- 4. (added 2026-11-09) One comic's own length: a jsonb map {"for": "<show date>", "minutes": {"<lower-cased name>": 7}}. Run this
+-- BEFORE deploying the picker version of the Timer tab (the clock query names set_each). Same column-grant rule as above.
+alter table public.lineup_spotlight add column if not exists set_each jsonb;
+grant update (set_each) on public.lineup_spotlight to authenticated;
+-- Take it back: update public.lineup_spotlight set set_each = null where id = 1;
