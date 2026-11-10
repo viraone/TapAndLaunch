@@ -1325,7 +1325,7 @@ export function LineupList({
         {feed.lineup.map((entry, i) => {
           const performing = i === performingIndex;
           const onDeck = !performing && i === onDeckIndex;
-          const result = finished?.[i] ?? null;
+          const result = performing ? null : (finished?.[i] ?? null);
           const accent = performing || onDeck;
           const fill = performing
             ? over
@@ -1404,12 +1404,12 @@ export function LineupList({
               <span
                 className={
                   "flex w-24 shrink-0 items-center justify-end gap-1.5 whitespace-nowrap text-right text-[17px] font-bold tabular-nums " +
-                  (result ? (result.startsWith("+") ? "text-red-400" : "text-muted-foreground") : performing ? "text-primary" : onDeck ? "text-[#fbbf24]" : "text-foreground/75") +
+                  (result ? "text-muted-foreground" : performing ? "text-primary" : onDeck ? "text-[#fbbf24]" : "text-foreground/75") +
                   (big ? " md:w-44 md:text-4xl 2xl:w-56 2xl:text-5xl" : "")
                 }
               >
                 {result && <Check className={"h-3.5 w-3.5 shrink-0 " + (big ? "md:h-6 md:w-6" : "")} aria-hidden="true" />}
-                {result ?? startLabels?.[i]?.text ?? entry.start_time}
+                {result ? null : (startLabels?.[i]?.text ?? entry.start_time)}
               </span>
               {performing && progress !== undefined && (
                 <span aria-hidden="true" className={"pointer-events-none absolute inset-x-4 bottom-1.5 h-[3px] overflow-hidden rounded-full bg-white/10 " + (big ? "md:bottom-3 md:h-[5px]" : "")}>
