@@ -35,9 +35,10 @@ export function CompSetPicker({
   // The picked comic's full name is repeated here because the picker cuts a long name short on a phone.
   const sub = target ? `${target.name} · ${target.custom ? "Just this comic" : "Same as everyone"}` : allMinutes !== null ? "Set by the hosts tonight" : hasOverrides ? "From the sheet, some changed" : "From the sheet";
   const resetLabel = target ? (target.custom ? "Same as everyone" : null) : hasOverrides ? "Back to the sheet" : null;
-  const step = "flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-2xl font-bold text-white transition active:scale-95 disabled:opacity-40";
+  const step = "flex h-11 w-11 items-center justify-center rounded-full bg-sky-400 text-2xl font-black text-black shadow-md transition active:scale-95 disabled:opacity-40";
   return (
-    <section aria-label="Set length for the comics" className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+    <section aria-label="Set length for the comics" className="relative mt-6 rounded-2xl border-2 border-sky-400/80 bg-sky-400/10 px-4 pb-3 pt-4 shadow-[0_0_24px_rgba(56,189,248,0.18)]">
+      <span className="absolute -top-2.5 left-4 rounded-full bg-sky-400 px-2.5 py-0.5 text-[10px] font-black uppercase leading-none tracking-[0.2em] text-black">Set length</span>
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="relative inline-block max-w-full">
@@ -49,7 +50,7 @@ export function CompSetPicker({
               value={target ? target.key : ""}
               onChange={(event) => onSelect(event.target.value)}
               disabled={saving}
-              className="max-w-full appearance-none truncate bg-transparent py-0.5 pr-6 text-[13px] font-semibold uppercase tracking-wide text-white/80 outline-none"
+              className="max-w-full appearance-none truncate bg-transparent py-0.5 pr-6 text-[14px] font-black uppercase tracking-wide text-white outline-none"
             >
               <option value="">All comics</option>
               {targets.map((t) => (
@@ -58,7 +59,7 @@ export function CompSetPicker({
                 </option>
               ))}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60" aria-hidden="true" />
+            <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-sky-400" aria-hidden="true" />
           </div>
           <p className="text-[12px] text-white/50">{sub}</p>
         </div>
