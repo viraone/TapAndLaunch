@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Home, Loader2, Lock, Menu, MoreVertical, SlidersHorizontal, Tv, Undo2 } from "lucide-react";
+import { Home, Loader2, Lock, Menu, MoreVertical, SlidersHorizontal, Tv, Undo2 } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, showDateFor } from "@/lib/openmic/window";
 import { setSpotlight, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
@@ -93,7 +93,7 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
   const [error, setError] = useState<string | null>(null);
   /** What happened on the highlighted comic's phone after the last move. */
   const [told, setTold] = useState<string | null>(null);
-  /** The lineup list in the tray under the pad, folded away by default so the pad has the screen. */
+  /** The lineup list in the tray under the keys, folded away by default. */
   const [listOpen, setListOpen] = useState(false);
   const [lengthError, setLengthError] = useState<string | null>(null);
   const [target, setTarget] = useState("");
@@ -152,15 +152,13 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
     }
   }
 
-  const next = () => void move(Math.min(current + 1, lineup.length - 1));
   const back = () => void move(current - 1);
   const canBack = !saving && current >= 0;
-  const canNext = !saving && lineup.length > 0 && current < lineup.length - 1;
   const onName = current >= 0 ? lineup[current]!.name : "Nobody";
 
   return (
     <div className="mx-auto w-full max-w-md px-3 pb-10 pt-3">
-      {/* The remote itself: one dark slab like a TV remote app, the pad in the middle. */}
+      {/* The remote itself: one dark slab like a TV remote app. */}
       <div className="rounded-[2rem] bg-[linear-gradient(180deg,#2c2c2c_0%,#232323_55%,#1d1d1d_100%)] px-4 pb-5 pt-3 text-white shadow-[0_34px_80px_-30px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,255,255,0.07)] ring-1 ring-white/[0.08]">
         <div className="mx-auto h-1.5 w-20 rounded-full bg-white/[0.13] shadow-[inset_0_1px_1px_rgba(0,0,0,0.5)]" aria-hidden="true" />
         <div className="mt-4 flex items-center justify-between">
@@ -181,7 +179,7 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
         </div>
         <CompSetPicker targets={targets} selected={pickedTarget ? pickedTarget.key : ""} onSelect={setTarget} allMinutes={dictated} fallback={sheetMinutes} hasOverrides={dictated !== null || Object.keys(each).length > 0} saving={saving} error={lengthError} onChange={(minutes) => void changeMinutes(minutes)} />
 
-        {/* What the pad is pointing at: the highlighted comic, the one the board shows solid. */}
+        {/* The highlighted comic, the one the board shows solid. */}
         <div className="mt-5 flex items-center justify-between gap-3">
           <button
             type="button"
@@ -201,36 +199,6 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
           <div className={`${ROUND_KEY_LOOK} h-[4.5rem] w-[4.5rem] shrink-0`} aria-hidden="true">
             {saving ? <Loader2 className="h-7 w-7 animate-spin" /> : <SlidersHorizontal className="h-7 w-7 text-white/70" />}
           </div>
-        </div>
-
-        {/* The pad: Left/Up = back one, Right/Down = next, the centre buzzes the highlighted comic again. */}
-        <div className="relative mx-auto mt-6 aspect-square w-full max-w-[21rem]">
-          <div className="absolute inset-0 overflow-hidden rounded-full bg-[radial-gradient(circle_at_50%_38%,#262626_0%,#1b1b1b_55%,#121212_100%)] shadow-[inset_0_3px_14px_rgba(0,0,0,0.85),inset_0_-1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.07]">
-            <PadButton side="top" onClick={back} disabled={!canBack} label="Back one">
-              <ChevronUp className={PAD_ICON} strokeWidth={2} aria-hidden="true" />
-            </PadButton>
-            <PadButton side="bottom" onClick={next} disabled={!canNext} label="Next">
-              <ChevronDown className={PAD_ICON} strokeWidth={2} aria-hidden="true" />
-            </PadButton>
-            <PadButton side="left" onClick={back} disabled={!canBack} label="Back one">
-              <ChevronLeft className={PAD_ICON} strokeWidth={2} aria-hidden="true" />
-            </PadButton>
-            <PadButton side="right" onClick={next} disabled={!canNext} label="Next">
-              <ChevronRight className={PAD_ICON} strokeWidth={2} aria-hidden="true" />
-            </PadButton>
-            {/* The thin gaps between the four keys. */}
-            <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 rotate-45 bg-[#2a2a2a]" aria-hidden="true" />
-            <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 -rotate-45 bg-[#2a2a2a]" aria-hidden="true" />
-          </div>
-          <button
-            type="button"
-            onClick={() => current >= 0 && void tell(lineup[current]!.name)}
-            disabled={saving || current < 0}
-            aria-label={current >= 0 ? `Buzz ${onName}'s phone again` : "Nobody highlighted"}
-            className="absolute left-1/2 top-1/2 flex h-[44%] w-[44%] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[radial-gradient(circle_at_50%_30%,#474747_0%,#353535_55%,#2a2a2a_100%)] text-center shadow-[0_0_0_6px_#232323,0_0_0_7px_rgba(255,255,255,0.07),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-2px_6px_rgba(0,0,0,0.5),0_14px_30px_-12px_rgba(0,0,0,0.9)] transition active:scale-[0.97] active:bg-[radial-gradient(circle_at_50%_30%,#505050_0%,#3c3c3c_55%,#2f2f2f_100%)] disabled:active:scale-100"
-          >
-            <span className="px-3 text-[13px] font-bold uppercase tracking-[0.32em] text-white/65 [text-shadow:0_1px_0_rgba(0,0,0,0.6)]">{current >= 0 ? "Buzz" : ""}</span>
-          </button>
         </div>
 
         {/* Bottom row, like the remote: back (one step) on the left, the orange home key clears the highlight. */}
@@ -257,7 +225,7 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
 
         <div className="mx-auto mt-5 h-1 w-6 rounded-full bg-white/[0.18]" aria-hidden="true" />
 
-        {/* The tray under the pad: the lineup, with the highlighted comic's row lit. */}
+        {/* The tray under the keys: the lineup, with the highlighted comic's row lit. */}
         <div className="mt-3 rounded-2xl bg-[linear-gradient(180deg,#242424,#1b1b1b)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.08]">
           <div className="flex items-center justify-between px-4 py-3">
             <p className="text-[15px] font-semibold">{listOpen ? "Lineup" : formatShowDate(showDate)}</p>
@@ -303,35 +271,6 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
   );
 }
 
-const PAD_ICON = "h-9 w-9 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]";
-/** The round keys beside the name and under the pad: a soft bevel, lit from the top, pressed in on tap. */
+/** The round keys beside the name and in the bottom row: a soft bevel, lit from the top, pressed in on tap. */
 const ROUND_KEY_LOOK = "flex items-center justify-center rounded-full bg-[linear-gradient(180deg,#3a3a3a,#2a2a2a)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_18px_-10px_rgba(0,0,0,0.9)] ring-1 ring-white/[0.06]";
 const ROUND_KEY = `${ROUND_KEY_LOOK} h-[4.5rem] w-[4.5rem] shrink-0 transition active:scale-95 active:bg-[linear-gradient(180deg,#2a2a2a,#222)]`;
-
-/** One of the four keys of the pad: a quarter of the circle, cut with a clip-path, the arrow near the rim. */
-function PadButton({ side, onClick, disabled, label, children }: { side: "top" | "bottom" | "left" | "right"; onClick: () => void; disabled: boolean; label: string; children: ReactNode }) {
-  const clip = {
-    top: "polygon(0 0, 100% 0, 50% 50%)",
-    bottom: "polygon(0 100%, 100% 100%, 50% 50%)",
-    left: "polygon(0 0, 50% 50%, 0 100%)",
-    right: "polygon(100% 0, 50% 50%, 100% 100%)",
-  }[side];
-  const place = {
-    top: "items-start justify-center pt-5",
-    bottom: "items-end justify-center pb-5",
-    left: "items-center justify-start pl-5",
-    right: "items-center justify-end pr-5",
-  }[side];
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      style={{ clipPath: clip }}
-      className={`absolute inset-0 flex text-white/80 transition-colors active:bg-white/[0.07] active:text-white disabled:text-white/20 ${place}`}
-    >
-      {children}
-    </button>
-  );
-}
