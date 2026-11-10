@@ -62,7 +62,7 @@ export function DevPreview() {
           <div key={t.label}>
             <p className="mb-1 text-xs text-muted-foreground">{t.label}</p>
             <div className="origin-top-left scale-50" style={{ width: "22rem", height: "21rem" }}>
-              <TvTimerPanel name="Evan Hales" ms={t.ms} totalMs={t.running ? 180000 : t.ms} running={t.running} />
+              <TvTimerPanel name="Evan Hales" next="Test Jones 1" ms={t.ms} totalMs={t.running ? 180000 : t.ms} running={t.running} />
             </div>
           </div>
         ))}

@@ -53,38 +53,64 @@ function TvTimerBox({ client, config }: { client: NonNullable<ReturnType<typeof 
   if (spotlightIndex(spotlight, feed.lineup, showDay) === -1 || !anchorFresh(spotlight, now)) return null;
   const clock = showClock({ lineup: feed.lineup, spotlight, showDate: showDay, hostRow: config.host_row === true, now });
   if (clock.kind === "running") {
-    return <TvTimerPanel name={feed.lineup[clock.index]!.name} ms={clock.remainingMs} totalMs={clock.totalMs} running />;
+    return <TvTimerPanel name={feed.lineup[clock.index]!.name} next={feed.lineup[clock.index + 1]?.name} ms={clock.remainingMs} totalMs={clock.totalMs} running />;
   }
   if (clock.nextIndex === -1) return null;
-  return <TvTimerPanel name={feed.lineup[clock.nextIndex]!.name} ms={clock.nextMs} totalMs={clock.nextMs} running={false} />;
+  return <TvTimerPanel name={feed.lineup[clock.nextIndex]!.name} next={feed.lineup[clock.nextIndex + 1]?.name} ms={clock.nextMs} totalMs={clock.nextMs} running={false} />;
 }
 
 const TONE = {
-  calm: { panel: "bg-[#0c0c0e]", ring: "ring-1 ring-white/10", label: "text-primary", dot: "bg-primary", digits: "text-white", bar: "bg-primary", text: "Performing" },
-  warn: { panel: "bg-[#0c0c0e]", ring: "ring-2 ring-amber-400/60", label: "text-amber-400", dot: "bg-amber-400", digits: "text-amber-400", bar: "bg-amber-400", text: "30 sec left" },
-  urgent: { panel: "bg-[#0c0c0e]", ring: "ring-2 ring-red-500/70", label: "text-red-500", dot: "bg-red-500", digits: "text-red-500", bar: "bg-red-500", text: "Wrap up" },
-  over: { panel: "bg-red-950/90", ring: "ring-2 ring-red-500", label: "text-red-500", dot: "bg-red-500", digits: "text-red-500", bar: "bg-red-500", text: "Over time" },
+  calm: { panel: "bg-[#0c0c0e] ring-1 ring-white/10", name: "text-white", digits: "text-white", next: "text-white/60", track: "bg-white/10", bar: "bg-primary" },
+  warn: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black" },
+  urgent: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black" },
+  over: { panel: "bg-red-800", name: "text-white", digits: "text-white", next: "text-white/80", track: "bg-white/30", bar: "bg-white" },
 } as const;
 
-/** The corner box itself, pure so it can be rendered in a test. Running: the live countdown and bar. Not running: the
- *  next comic and their set length, still. Sized for a comic reading it from the stage, across a bar. */
-export function TvTimerPanel({ name, ms, totalMs, running }: { name: string; ms: number; totalMs: number; running: boolean }) {
-  const t = TONE[running ? timerTone(ms) : "calm"];
-  const progress = running ? Math.max(0, Math.min(100, 100 * (1 - ms / totalMs))) : 0;
+/** The corner box itself, pure so it can be rendered in a test. Not running: the next comic's name leads, with their set
+ *  length as a pill and who follows. Running: the countdown fills the box; the whole box turns amber for the last 30
+ *  seconds (the light) and solid red, counting up, past the set length. No words on amber or red: the colour says it.
+ *  Sized for a comic reading it from the stage, across a bar. */
+export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: string; next?: string | null; ms: number; totalMs: number; running: boolean }) {
+  if (!running) {
+    return (
+      <div className="relative flex w-[44rem] shrink-0 items-center p-8">
+        <div className="w-full rounded-[2rem] bg-[#0c0c0e] p-10 ring-1 ring-white/10">
+          <p className="text-3xl font-semibold uppercase tracking-[0.3em] text-primary">On deck</p>
+          <p className="mt-6 line-clamp-2 break-words text-8xl font-black leading-[1.05]">{name}</p>
+          <div className="mt-8 flex items-center gap-5">
+            <span className="shrink-0 rounded-full bg-white px-7 py-2 text-4xl font-bold tabular-nums text-black">{`${Math.round(ms / 60000)} min`}</span>
+            {next ? <span className="min-w-0 truncate text-3xl text-white/60">{`then ${next}`}</span> : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const tone = timerTone(ms);
+  const t = TONE[tone];
+  const progress = Math.max(0, Math.min(100, 100 * (1 - ms / totalMs)));
+  const digits = formatCountdown(ms);
   return (
     <div className="relative flex w-[44rem] shrink-0 items-center p-8">
-      <div className={`w-full rounded-[2rem] p-10 ${t.panel} ${t.ring}`}>
-        <p className={`flex items-center gap-5 text-3xl font-semibold uppercase tracking-[0.3em] ${running ? t.label : "text-white/60"}`}>
-          {running ? <span className={`h-5 w-5 shrink-0 animate-pulse rounded-full ${t.dot}`} /> : null}
-          {running ? t.text : "On deck"}
-        </p>
-        <p className="mt-2 truncate text-6xl font-bold leading-tight">{name}</p>
-        <p className={`mt-4 text-[12rem] font-black leading-none tabular-nums tracking-tight ${running ? t.digits : "text-white/60"}`}>{formatCountdown(ms)}</p>
-        {running ? (
-          <div className="mt-8 h-3 w-full rounded-full bg-white/10">
-            <div className={`h-3 rounded-full ${t.bar}`} style={{ width: `${progress}%` }} />
+      <div className={`relative w-full overflow-hidden rounded-[2rem] p-10 ${t.panel}`}>
+        {tone === "over" ? <span aria-hidden="true" className="absolute inset-0 animate-[pulse_1s_ease-in-out_infinite] bg-red-500 motion-reduce:animate-none" /> : null}
+        <div className="relative">
+          <div className="flex h-10 items-center justify-between gap-6">
+            {tone === "calm" ? (
+              <p className="flex shrink-0 items-center gap-4 text-3xl font-semibold uppercase tracking-[0.2em] text-primary">
+                <span className="h-5 w-5 shrink-0 animate-pulse rounded-full bg-primary" />
+                Performing
+              </p>
+            ) : (
+              <span />
+            )}
+            {next ? <p className={`min-w-0 truncate text-2xl font-medium ${t.next}`}>{`Next: ${next}`}</p> : null}
           </div>
-        ) : null}
+          <p className={`mt-4 truncate text-6xl font-bold leading-tight ${t.name}`}>{name}</p>
+          <p className={`mt-2 font-black leading-none tabular-nums tracking-tight ${digits.length > 5 ? "text-[8rem]" : digits.length > 4 ? "text-[11rem]" : "text-[15rem]"} ${t.digits}`}>{digits}</p>
+          <div className={`mt-8 h-6 w-full rounded-full ${t.track}`}>
+            <div className={`h-6 rounded-full ${t.bar}`} style={{ width: `${progress}%` }} />
+          </div>
+        </div>
       </div>
     </div>
   );
