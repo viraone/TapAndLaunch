@@ -136,7 +136,7 @@ export function SignupHeader({
           <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">{showDate}</h1>
         </div>
         {showStartTime && (
-          <p className={`ml-auto shrink-0 self-end pb-1 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-foreground ${hidePill ? "translate-y-[26px]" : ""}`}>Start time</p>
+          <p className={`ml-auto shrink-0 self-end pb-1 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-foreground ${hidePill ? "relative z-10 translate-y-[26px] bg-background pl-2" : ""}`}>Start time</p>
         )}
       </div>
       {!hidePill && (
