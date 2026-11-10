@@ -10,6 +10,7 @@ import { clockProgress, finishedLabel, finishedRecord, onDeckFor, showClock, typ
 import { formatCountdown } from "@/lib/openmic/tv-timer";
 import { useSecond } from "@/lib/openmic/use-second";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
+import { applyComicMinutes } from "@/lib/openmic/set-minutes";
 import { LineupList, SeattleClock, useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
@@ -80,8 +81,9 @@ function LineupPage({
   lineupTime: boolean;
   preview: boolean;
 }) {
-  const { feed, failed } = useLineup(config.lineup_url, client, undefined, lineupTime);
+  const { feed: sheetFeed, failed } = useLineup(config.lineup_url, client, undefined, lineupTime);
   const { spotlight } = useSpotlight(client);
+  const feed = useMemo(() => applyComicMinutes(sheetFeed, spotlight, config.host_row === true), [sheetFeed, spotlight, config.host_row]);
   const second = useSecond();
   const showDate = showDateFor(window_, now);
   const dateLabel = formatShowDate(showDate);

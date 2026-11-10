@@ -5,6 +5,7 @@ import { HeaderClock } from "@/components/pwa-runtime/HeaderClock";
 import { ShowClockBar } from "@/components/pwa-runtime/ShowClockBar";
 import { TvTimerPanel } from "@/components/pwa-runtime/OpenMicFlatscreenRuntime";
 import { LineupList } from "@/components/pwa-runtime/OpenMicSignupRuntime";
+import { CompSetLengthDemo } from "./CompSetLengthDemo";
 import type { ShowClock } from "@/lib/openmic/show-clock";
 import type { LineupFeed } from "@/lib/openmic/selection";
 
@@ -91,6 +92,12 @@ export function DevPreview() {
           <div className="max-w-[430px]">
             <LineupList feed={HOST_ROW_FEED} hostRow performingIndex={0} onDeckIndex={1} livePill="4:12" progress={16} />
           </div>
+        </div>
+      </div>
+      <p className="mb-2 mt-8 text-sm font-semibold">Comic set length (Timer tab)</p>
+      <div className="flex flex-wrap gap-4">
+        <div className="max-w-md bg-black p-4">
+          <CompSetLengthDemo />
         </div>
       </div>
     </div>

@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Home, Loader2, Lock, Menu, MoreVertical, SlidersHorizontal, Tv, Undo2 } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, showDateFor } from "@/lib/openmic/window";
 import { setSpotlight, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { applyComicMinutes, comicMinutes, setComicMinutes } from "@/lib/openmic/set-minutes";
+import { setMinutes } from "@/lib/openmic/start-times";
+import { CompSetLength } from "./CompSetLength";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { upNextStatus } from "@/lib/openmic/push";
 import { useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
@@ -83,17 +86,33 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
   const showDate = showDateFor(window_, now);
   const showYmd = ymd(showDate);
   // The host needs the list whatever the day (a Thursday run-through, say), so this never waits for show day.
-  const { feed, failed } = useLineup(config.lineup_url, client, userId, true);
+  const { feed: sheetFeed, failed } = useLineup(config.lineup_url, client, userId, true);
   const { spotlight } = useSpotlight(client);
+  const feed = useMemo(() => applyComicMinutes(sheetFeed, spotlight, config.host_row === true), [sheetFeed, spotlight, config.host_row]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** What happened on the highlighted comic's phone after the last move. */
   const [told, setTold] = useState<string | null>(null);
   /** The lineup list in the tray under the pad, folded away by default so the pad has the screen. */
   const [listOpen, setListOpen] = useState(false);
+  const [lengthError, setLengthError] = useState<string | null>(null);
 
   const lineup = feed?.lineup ?? [];
   const current = spotlightIndex(spotlight, lineup, showYmd);
+
+  // The hosts' one number for every comic. It is stored against the sheet's show date so the feed and this page agree.
+  const lengthDate = sheetFeed?.show_date ?? showYmd;
+  const dictated = comicMinutes(spotlight, lengthDate);
+  const sheetMinutes = setMinutes(sheetFeed?.lineup[config.host_row === true ? 1 : 0]?.set_length ?? "");
+
+  async function changeMinutes(minutes: number | null) {
+    if (saving) return;
+    setSaving(true);
+    setLengthError(null);
+    const problem = await setComicMinutes(client, lengthDate, minutes);
+    setSaving(false);
+    if (problem) setLengthError("That didn't save. Check the connection and try again.");
+  }
 
   async function move(index: number) {
     if (saving) return;
@@ -151,6 +170,7 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
             <MoreVertical className="h-6 w-6" aria-hidden="true" />
           </button>
         </div>
+        <CompSetLength minutes={dictated} fallback={sheetMinutes} saving={saving} error={lengthError} onChange={(minutes) => void changeMinutes(minutes)} />
 
         {/* What the pad is pointing at: the highlighted comic, the one the board shows solid. */}
         <div className="mt-5 flex items-center justify-between gap-3">

@@ -20,6 +20,7 @@ import { formatCountdown } from "@/lib/openmic/tv-timer";
 import { useSecond } from "@/lib/openmic/use-second";
 import { ShowClockBar } from "./ShowClockBar";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
+import { applyComicMinutes } from "@/lib/openmic/set-minutes";
 import { noHangLock } from "@/lib/supabase/no-hang-lock";
 import { HostInbox, HostInboxView } from "./OpenMicHostInbox";
 import { OpenMicPushOptIn } from "./OpenMicPushOptIn";
@@ -1056,12 +1057,13 @@ function ShowDayScreen({
 }) {
   // Thursday 10 PM to Friday 6 AM nothing about selections or the lineup is shown, so nothing is fetched.
   const lineupTime = forceLineup || isLineupTime(window, now);
-  const { feed, failed } = useLineup(config.lineup_url, client, userId, lineupTime);
+  const { feed: sheetFeed, failed } = useLineup(config.lineup_url, client, userId, lineupTime);
+  // Every comic looking at the lineup follows the show clock, not only the selected ones.
+  const { spotlight } = useSpotlight(lineupTime ? client : null);
+  const feed = useMemo(() => applyComicMinutes(sheetFeed, spotlight, config.host_row === true), [sheetFeed, spotlight, config.host_row]);
   const state = showDayState({ signedIn, requested, feed, failed, lineupTime });
   // The hosts' spotlight (Remote tab): when it lands on this comic's own row, the page says so and buzzes the phone.
   // The system notification comes as a push from the server (OpenMicPushOptIn), which also reaches a closed app.
-  // Every comic looking at the lineup follows the show clock, not only the selected ones.
-  const { spotlight } = useSpotlight(lineupTime ? client : null);
   const second = useSecond();
   const mineAt = feed?.lineup.findIndex((e) => e.mine) ?? -1;
   const showDate = ymd(showDateFor(window, now));
@@ -1429,8 +1431,9 @@ export function LineupList({
  * the one after them, now on deck), STOP ends the set and records it, RESET clears the show. Only the hosts in
  * TAP_ON_DECK_EMAILS get the buttons; other hosts watch the same clock. */
 function HostLineup({ client, config, viewerEmail, hostName }: { client: SupabaseClient; config: OpenMicSignupBlockConfig; viewerEmail?: string | null; hostName?: string }) {
-  const { feed, failed } = useLineup(config.lineup_url, client, undefined, true);
+  const { feed: sheetFeed, failed } = useLineup(config.lineup_url, client, undefined, true);
   const { spotlight } = useSpotlight(client);
+  const feed = useMemo(() => applyComicMinutes(sheetFeed, spotlight, config.host_row === true), [sheetFeed, spotlight, config.host_row]);
   const now = useSecond();
   const window_ = windowOf(config);
   const showYmd = ymd(showDateFor(window_, now));

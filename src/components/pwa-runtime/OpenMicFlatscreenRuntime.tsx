@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { showDateFor } from "@/lib/openmic/window";
 import { spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { applyComicMinutes } from "@/lib/openmic/set-minutes";
 import { formatCountdown, timerTone } from "@/lib/openmic/tv-timer";
 import { showClock } from "@/lib/openmic/show-clock";
 import { useLineup, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
@@ -43,8 +44,9 @@ function useSecond(): Date {
 function TvTimerBox({ client, config }: { client: NonNullable<ReturnType<typeof useOpenMicClient>>; config: OpenMicSignupBlockConfig }) {
   const window_ = windowOf(config);
   const now = useSecond();
-  const { feed } = useLineup(config.lineup_url, client, undefined, true);
+  const { feed: sheetFeed } = useLineup(config.lineup_url, client, undefined, true);
   const { spotlight } = useSpotlight(client);
+  const feed = useMemo(() => applyComicMinutes(sheetFeed, spotlight, config.host_row === true), [sheetFeed, spotlight, config.host_row]);
   if (!feed || feed.lineup.length === 0) return null;
   const showDay = ymd(showDateFor(window_, now));
   // No box before the first START (nothing to count yet) and none after the last STOP.
