@@ -29,6 +29,7 @@ import type {
   MapBlockConfig,
   AudioBlockConfig,
   GroupChatBlockConfig,
+  VoiceChatBlockConfig,
 } from "@/types/database";
 
 /**
@@ -62,6 +63,7 @@ export type BuilderBlock =
   | { id: string; type: "stats"; config: StatsBlockConfig; minTier: string | null }
   | { id: string; type: "gallery"; config: GalleryBlockConfig; minTier: string | null }
   | { id: string; type: "files"; config: FilesBlockConfig; minTier: string | null }
+  | { id: string; type: "voice_chat"; config: VoiceChatBlockConfig; minTier: string | null }
   | { id: string; type: "web_page"; config: WebPageBlockConfig; minTier: string | null }
   | { id: string; type: "button"; config: ButtonBlockConfig; minTier: string | null }
   | { id: string; type: "quote"; config: QuoteBlockConfig; minTier: string | null }

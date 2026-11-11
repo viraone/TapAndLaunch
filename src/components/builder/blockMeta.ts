@@ -29,6 +29,7 @@ import {
   MapPin,
   Music2,
   MessagesSquare,
+  Languages,
   type LucideIcon,
 } from "lucide-react";
 import type { BlockType } from "@/types/database";
@@ -55,6 +56,7 @@ export const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   stats: Sparkles,
   gallery: GalleryHorizontalEnd,
   files: FileText,
+  voice_chat: Languages,
   web_page: Globe,
   button: MousePointerClick,
   quote: Quote,
@@ -90,6 +92,7 @@ export const BLOCK_ACCENTS: Record<BlockType, string> = {
   stats: "from-purple-400 to-indigo-500 text-white",
   gallery: "from-pink-300 to-rose-500 text-white",
   files: "from-slate-300 to-slate-500 text-slate-950",
+  voice_chat: "from-emerald-300 to-emerald-500 text-emerald-950",
   web_page: "from-cyan-400 to-sky-600 text-white",
   button: "from-indigo-300 to-violet-500 text-white",
   quote: "from-amber-200 to-orange-400 text-amber-950",
@@ -123,6 +126,7 @@ export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
   stats: "Short facts that build trust",
   gallery: "A grid of photos",
   files: "PDFs, handouts and other files to open",
+  voice_chat: "Talk in Lao and hear the answer in Lao",
   web_page: "Show another website inside the app",
   button: "A button to a page or a web address",
   quote: "One big quote and who said it",

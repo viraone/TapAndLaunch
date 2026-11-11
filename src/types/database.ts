@@ -45,7 +45,8 @@ export type BlockType =
   | "share"
   | "map"
   | "audio"
-  | "group_chat";
+  | "group_chat"
+  | "voice_chat";
 export type AnalyticsEventType =
   | "view"
   | "install"
@@ -215,6 +216,7 @@ export type BlockConfig =
   | StatsBlockConfig
   | GalleryBlockConfig
   | FilesBlockConfig
+  | VoiceChatBlockConfig
   | WebPageBlockConfig
   | ButtonBlockConfig
   | QuoteBlockConfig
@@ -284,6 +286,18 @@ export interface FilesBlockConfig {
   disabled?: boolean;
   /** Shows the block on the published site even with no files: a folder waiting for its files. */
   show_empty?: boolean;
+}
+
+/** Voice chat: the visitor speaks Lao, the reply comes back as Lao text and is read aloud in a Lao voice. */
+export interface VoiceChatBlockConfig {
+  title?: string;
+  intro?: string;
+  /** Shown as the first bubble before anyone speaks. */
+  greeting?: string;
+  /** Which of the two Lao voices reads the replies; missing means keomany. */
+  voice?: "keomany" | "chanthavong";
+  /** The owner's own words on what the assistant is for and what it should know. */
+  persona?: string;
 }
 
 /** Another website shown inside the app in a tall iframe, with a link out for sites that refuse to be framed. */

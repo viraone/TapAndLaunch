@@ -82,6 +82,8 @@ export function defaultConfigFor(type: BlockType): BlockConfig {
       return { title: "", images: [] };
     case "files":
       return { title: "Files", intro: "", items: [] };
+    case "voice_chat":
+      return { title: "Talk in Lao", intro: "Tap the button, speak Lao, and hear the answer in Lao.", greeting: "ສະບາຍດີ! ກົດປຸ່ມແລ້ວເວົ້າພາສາລາວໄດ້ເລີຍ.", voice: "keomany" };
     case "web_page":
       return { url: "", title: "", allow_location: false, height: "screen" };
     case "button":
@@ -140,6 +142,7 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   stats: "Highlights",
   gallery: "Photo gallery",
   files: "Files & downloads",
+  voice_chat: "Voice chat (Lao)",
   web_page: "Web page",
   button: "Button",
   quote: "Quote",
@@ -159,6 +162,7 @@ export const BLOCK_TYPES: BlockType[] = [
   "video",
   "audio",
   "files",
+  "voice_chat",
   "web_page",
   "button",
   "quote",

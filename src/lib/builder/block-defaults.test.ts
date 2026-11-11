@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { BLOCK_TYPES, BLOCK_TYPE_LABELS, defaultConfigFor } from "@/lib/builder/block-defaults";
 
 describe("block defaults", () => {
-  it("lists exactly thirty distinct block types, the showcase blocks last", () => {
-    expect(BLOCK_TYPES).toHaveLength(30);
+  it("lists exactly thirty-one distinct block types, the showcase blocks last", () => {
+    expect(BLOCK_TYPES).toHaveLength(31);
     expect(new Set(BLOCK_TYPES).size).toBe(BLOCK_TYPES.length);
     expect(BLOCK_TYPES.slice(-6)).toEqual(["hero", "price_list", "hours", "reviews", "stats", "gallery"]);
   });
