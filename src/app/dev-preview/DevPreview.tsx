@@ -6,8 +6,16 @@ import { ShowClockBar } from "@/components/pwa-runtime/ShowClockBar";
 import { TvTimerPanel } from "@/components/pwa-runtime/OpenMicFlatscreenRuntime";
 import { LineupList, SignupHeader } from "@/components/pwa-runtime/OpenMicSignupRuntime";
 import { CompSetPickerDemo } from "./CompSetPickerDemo";
+import { VoiceChatBlockView, type VoicePhase, type VoiceTurn } from "@/components/pwa-runtime/VoiceChatBlock";
 import type { ShowClock } from "@/lib/openmic/show-clock";
 import type { LineupFeed } from "@/lib/openmic/selection";
+
+const VOICE_PHASES: VoicePhase[] = ["idle", "recording", "thinking", "speaking"];
+const VOICE_CONFIG = { title: "Talk in Lao", intro: "Tap the button, speak Lao, and hear the answer in Lao.", greeting: "ສະບາຍດີ! ກົດປຸ່ມແລ້ວເວົ້າພາສາລາວໄດ້ເລີຍ." };
+const VOICE_TURNS: VoiceTurn[] = [
+  { role: "user", content: "ມື້ນີ້ອາກາດເປັນແນວໃດ?" },
+  { role: "assistant", content: "ຂ້ອຍບໍ່ສາມາດເບິ່ງອາກາດໄດ້, ແຕ່ຫວັງວ່າມື້ນີ້ຈະເປັນມື້ທີ່ດີຂອງເຈົ້າ." },
+];
 
 // The StageTime app's own colour tokens (copied from the published layout's wrapper), so the pieces look as they do live.
 const THEME = {
@@ -106,6 +114,15 @@ export function DevPreview() {
         <div className="w-[375px] bg-black p-4">
           <CompSetPickerDemo />
         </div>
+      </div>
+
+      <p className="mb-2 mt-8 text-sm font-semibold">Voice chat (Lao): idle, listening, thinking, speaking</p>
+      <div className="flex flex-wrap gap-4">
+        {VOICE_PHASES.map((phase) => (
+          <div key={phase} className="w-[375px] rounded-xl border">
+            <VoiceChatBlockView config={VOICE_CONFIG} live={false} initial={{ phase, turns: phase === "idle" ? [] : VOICE_TURNS }} />
+          </div>
+        ))}
       </div>
     </div>
   );

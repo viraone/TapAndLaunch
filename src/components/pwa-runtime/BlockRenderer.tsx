@@ -21,6 +21,7 @@ import type {
   StatsBlockConfig,
   GalleryBlockConfig,
   FilesBlockConfig,
+  VoiceChatBlockConfig,
   WebPageBlockConfig,
   ButtonBlockConfig,
   QuoteBlockConfig,
@@ -34,6 +35,7 @@ import type {
 } from "@/types/database";
 import { GalleryBlockView, HeroBlockView, HoursBlockView, PriceListBlockView, ReviewsBlockView, StatsBlockView } from "@/components/pwa-runtime/ShowcaseBlocks";
 import { FilesBlockView } from "@/components/pwa-runtime/FilesBlock";
+import { VoiceChatBlockView } from "@/components/pwa-runtime/VoiceChatBlock";
 import { WebPageBlock } from "@/components/pwa-runtime/WebPageBlock";
 import { ButtonBlockView, FaqBlockView, QuoteBlockView } from "@/components/pwa-runtime/ExtraBlocks";
 import { AudioBlockView, ImageTextBlockView, MapBlockView, NewsletterBlockView, ShareBlockView } from "@/components/pwa-runtime/MoreBlocks";
@@ -224,6 +226,8 @@ function BlockBody({
       return <GalleryBlockView config={block.config as GalleryBlockConfig} live={live} />;
     case "files":
       return <FilesBlockView config={block.config as FilesBlockConfig} live={live} />;
+    case "voice_chat":
+      return <VoiceChatBlockView config={block.config as VoiceChatBlockConfig} live={live} />;
     case "web_page":
       return <WebPageBlock config={block.config as WebPageBlockConfig} live={live} />;
     case "button":
