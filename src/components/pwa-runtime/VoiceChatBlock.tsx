@@ -24,9 +24,9 @@ const PHASE_LABEL: Record<VoicePhase, string> = {
   speaking: "Speaking… tap to stop · ກຳລັງເວົ້າ",
 };
 
-const MIC_BLOCKED = "Allow the microphone to talk. · ກະລຸນາອະນຸຍາດໃຫ້ໃຊ້ໄມໂຄຣໂຟນ.";
-const NOT_HEARD = "I didn't catch that. Try again. · ບໍ່ໄດ້ຍິນ, ລອງໃໝ່ອີກຄັ້ງ.";
-const TRY_AGAIN = "Something went wrong. Try again. · ມີບັນຫາ, ລອງໃໝ່ອີກຄັ້ງ.";
+const MIC_BLOCKED = "Allow the microphone to talk.\nກະລຸນາອະນຸຍາດໃຫ້ໃຊ້ໄມໂຄຣໂຟນ.";
+const NOT_HEARD = "I didn't catch that. Try again.\nບໍ່ໄດ້ຍິນ, ລອງໃໝ່ອີກຄັ້ງ.";
+const TRY_AGAIN = "Something went wrong. Try again.\nມີບັນຫາ, ລອງໃໝ່ອີກຄັ້ງ.";
 
 const USER_BUBBLE = "ml-auto w-fit max-w-[85%] rounded-2xl bg-primary px-4 py-2 text-base leading-relaxed text-primary-foreground";
 const REPLY_BUBBLE = "mr-auto w-fit max-w-[85%] rounded-2xl bg-muted px-4 py-2 text-base leading-relaxed";
@@ -174,7 +174,7 @@ export function VoiceChatBlockView({
         </button>
         <p className="text-center text-sm font-medium text-muted-foreground">{PHASE_LABEL[phase]}</p>
         {error ? (
-          <p role="alert" className="text-center text-sm font-medium text-red-500">
+          <p role="alert" className="whitespace-pre-line text-center text-sm font-medium text-red-500">
             {error}
           </p>
         ) : null}
