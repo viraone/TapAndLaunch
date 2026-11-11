@@ -21,7 +21,7 @@ export function OpenMicFlatscreenRuntime({ config }: { config: OpenMicSignupBloc
       <div className="relative flex min-w-0 flex-1 items-center justify-center">
         {config.flyer_url ? (
           // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
-          <img src={config.flyer_url} alt={`${config.show_name ?? "The show"} flyer`} className="h-full w-full object-cover object-center" />
+          <img src={config.flyer_url} alt={`${config.show_name ?? "The show"} flyer`} className="h-full w-full object-contain object-center" />
         ) : (
           <p className="text-2xl font-semibold text-white/70">No flyer yet.</p>
         )}
