@@ -142,7 +142,7 @@ export const BLOCK_DESCRIPTIONS: Record<BlockType, string> = {
 export const BLOCK_GROUPS: Array<{ label: string; types: BlockType[] }> = [
   { label: "Make it look good", types: ["hero", "stats", "gallery", "reviews"] },
   { label: "Words, pictures and prices", types: ["text", "image", "image_text", "video", "audio", "button", "quote", "faq", "files", "web_page", "price_list", "hours"] },
-  { label: "Hear from people", types: ["contact_form", "newsletter", "zoom_meeting", "canva_embed", "group_chat"] },
+  { label: "Hear from people", types: ["contact_form", "newsletter", "zoom_meeting", "canva_embed", "group_chat", "voice_chat"] },
   { label: "Sell and book", types: ["product_list", "event_calendar"] },
   { label: "Live, updated for you", types: ["listing_directory", "gas_directory", "food_directory", "open_mic_signup", "class_finder"] },
   { label: "Get found and shared", types: ["map", "share"] },
