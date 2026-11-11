@@ -30,4 +30,9 @@ describe("VoiceChatBlockView", () => {
     expect(html).toContain("Thinking");
     expect(html).toContain('disabled=""');
   });
+  it("shows Listening without asking for a second tap", () => {
+    const html = renderToStaticMarkup(createElement(VoiceChatBlockView, { config: {}, live: false, initial: { phase: "recording", turns: [] } }));
+    expect(html).toContain("Listening");
+    expect(html).not.toContain("tap to send");
+  });
 });

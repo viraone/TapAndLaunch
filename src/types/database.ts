@@ -298,6 +298,8 @@ export interface VoiceChatBlockConfig {
   voice?: "keomany" | "chanthavong";
   /** The owner's own words on what the assistant is for and what it should know. */
   persona?: string;
+  /** After each spoken reply the microphone opens again by itself, so the chat goes on without another tap. */
+  hands_free?: boolean;
 }
 
 /** Another website shown inside the app in a tall iframe, with a link out for sites that refuse to be framed. */

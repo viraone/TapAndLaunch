@@ -1,6 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { VoiceChatBlockConfig } from "@/types/database";
 import { linked } from "@/lib/builder/field-link";
 
@@ -32,6 +33,13 @@ export function VoiceChatBlockEditor({ config, onChange }: { config: VoiceChatBl
           <option value="chanthavong">Chanthavong (man)</option>
         </select>
       </div>
+      <label className="flex items-start gap-2 text-sm">
+        <Checkbox className="mt-0.5" checked={!!config.hands_free} onCheckedChange={(checked) => onChange({ ...config, hands_free: checked === true })} />
+        <span>
+          Keep listening after each reply
+          <span className="block text-xs text-neutral-400">One tap starts a whole conversation: the microphone opens again when the reply ends, and closes by itself when nobody talks.</span>
+        </span>
+      </label>
       <div className="space-y-1">
         <Label htmlFor="voice-persona">What should it help with? (optional)</Label>
         <Textarea

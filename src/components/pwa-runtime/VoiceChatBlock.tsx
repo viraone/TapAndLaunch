@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Mic, Square, Volume2 } from "lucide-react";
+import { Loader2, Mic, Volume2 } from "lucide-react";
 import type { VoiceChatBlockConfig } from "@/types/database";
 import { EditableText } from "@/components/pwa-runtime/Editable";
-import { startRecording, type Recording } from "@/lib/voice/record";
+import { startRecording, type Recording } from "@/lib/voice/recorder";
 import { encodeWav } from "@/lib/voice/wav";
 
 export type VoicePhase = "idle" | "recording" | "thinking" | "speaking";
@@ -19,7 +19,7 @@ const MAX_SECONDS = 30;
 
 const PHASE_LABEL: Record<VoicePhase, string> = {
   idle: "Tap to talk · ກົດເພື່ອເວົ້າ",
-  recording: "Listening… tap to send · ກຳລັງຟັງ",
+  recording: "Listening… · ກຳລັງຟັງ",
   thinking: "Thinking… · ກຳລັງຄິດ",
   speaking: "Speaking… tap to stop · ກຳລັງເວົ້າ",
 };
@@ -31,7 +31,7 @@ const TRY_AGAIN = "Something went wrong. Try again.\nມີບັນຫາ, ລ�
 const USER_BUBBLE = "ml-auto w-fit max-w-[85%] rounded-2xl bg-primary px-4 py-2 text-base leading-relaxed text-primary-foreground";
 const REPLY_BUBBLE = "mr-auto w-fit max-w-[85%] rounded-2xl bg-muted px-4 py-2 text-base leading-relaxed";
 
-/** The Voice chat block: one round button. Tap, speak Lao, tap again; the reply appears as text and is read aloud in Lao. */
+/** The Voice chat block: one round button. Tap and speak Lao; it sends itself when you stop talking, and the reply appears as text and is read aloud in Lao. */
 export function VoiceChatBlockView({
   config,
   live,
@@ -50,6 +50,8 @@ export function VoiceChatBlockView({
   const starting = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const player = useRef<HTMLAudioElement | null>(null);
+  /** Opens the microphone again after a reply; set after every render so it always runs the newest code. */
+  const relisten = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     return () => {
@@ -65,6 +67,15 @@ export function VoiceChatBlockView({
     const audio = new Audio(URL.createObjectURL(new Blob([encodeWav(new Float32Array(1600))], { type: "audio/wav" })));
     void audio.play().catch(() => undefined);
     player.current = audio;
+  }
+
+  /** Closes the microphone without sending anything. */
+  function stopListening() {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    recording.current?.cancel();
+    recording.current = null;
+    setPhase("idle");
   }
 
   async function finish() {
@@ -99,7 +110,10 @@ export function VoiceChatBlockView({
         return;
       }
       audio.src = `data:audio/mpeg;base64,${data.audio}`;
-      audio.onended = () => setPhase("idle");
+      audio.onended = () => {
+        setPhase("idle");
+        if (config.hands_free) relisten.current();
+      };
       audio.onerror = () => setPhase("idle");
       setPhase("speaking");
       void audio.play().catch(() => setPhase("idle"));
@@ -109,22 +123,14 @@ export function VoiceChatBlockView({
     }
   }
 
-  function onTap() {
-    if (!live) return;
-    setError(null);
-    if (phase === "recording") {
-      void finish();
-      return;
-    }
-    if (phase === "speaking") {
-      player.current?.pause();
-      setPhase("idle");
-      return;
-    }
-    if (phase !== "idle" || starting.current) return;
+  /** Opens the microphone. It sends by itself once the person stops talking, and closes quietly when nobody talks. */
+  function listen(fromTap: boolean) {
+    if (starting.current || recording.current) return;
     starting.current = true;
-    unlockPlayer();
-    void startRecording().then(
+    void startRecording((verdict) => {
+      if (verdict === "end") void finish();
+      else stopListening();
+    }).then(
       (started) => {
         starting.current = false;
         recording.current = started;
@@ -133,9 +139,36 @@ export function VoiceChatBlockView({
       },
       () => {
         starting.current = false;
-        setError(MIC_BLOCKED);
+        setPhase("idle");
+        if (fromTap) setError(MIC_BLOCKED);
       },
     );
+  }
+
+  useEffect(() => {
+    relisten.current = () => listen(false);
+  });
+
+  function onTap() {
+    if (!live) return;
+    setError(null);
+    if (phase === "recording") {
+      if (recording.current?.heard()) void finish();
+      else stopListening();
+      return;
+    }
+    if (phase === "speaking") {
+      const audio = player.current;
+      if (audio) {
+        audio.onended = null;
+        audio.pause();
+      }
+      setPhase("idle");
+      return;
+    }
+    if (phase !== "idle") return;
+    unlockPlayer();
+    listen(true);
   }
 
   return (
@@ -162,9 +195,7 @@ export function VoiceChatBlockView({
           aria-label={PHASE_LABEL[phase]}
           className={`flex h-20 w-20 items-center justify-center rounded-full shadow-lg transition active:scale-95 disabled:opacity-60 ${phase === "recording" ? "animate-pulse bg-red-600 text-white" : "bg-primary text-primary-foreground"}`}
         >
-          {phase === "recording" ? (
-            <Square className="h-8 w-8" />
-          ) : phase === "thinking" ? (
+          {phase === "thinking" ? (
             <Loader2 className="h-8 w-8 animate-spin" />
           ) : phase === "speaking" ? (
             <Volume2 className="h-8 w-8" />
