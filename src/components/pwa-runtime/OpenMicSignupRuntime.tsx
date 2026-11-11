@@ -1431,7 +1431,7 @@ export function LineupList({
                 {result && <Check className={"h-3.5 w-3.5 shrink-0 " + (big ? "md:h-6 md:w-6" : "")} aria-hidden="true" />}
                 {result ? null : (
                   <span className="flex flex-col items-end leading-none">
-                    {!performing && !(hostRow && i === 0) && <span className={"mb-1 text-[9px] font-black uppercase tracking-[0.2em] opacity-70 " + (big ? "md:text-sm" : "")}>Est.</span>}
+                    {!performing && !(hostRow && i === 0) && <span className={"mb-1 text-[9px] font-black uppercase tracking-[0.2em] " + (onDeck ? "opacity-70 " : "text-primary ") + (big ? "md:text-sm" : "")}>Est.</span>}
                     <span>{(startLabels?.[i]?.text ?? entry.start_time).replace(/^~/, "")}</span>
                   </span>
                 )}
