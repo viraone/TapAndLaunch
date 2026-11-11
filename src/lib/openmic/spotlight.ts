@@ -41,6 +41,16 @@ export function canTapOnDeck(email: string | null | undefined): boolean {
   return !!wanted && TAP_ON_DECK_EMAILS.some((allowed) => allowed.trim().toLowerCase() === wanted);
 }
 
+/** The one account that may restart the whole show (clear the clock and every finished set) at any time. */
+export const SHOW_ADMIN_EMAILS: readonly string[] = ["vxayananh@gmail.com"];
+
+/** Whether a signed-in account is the show admin. */
+export function isShowAdmin(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const wanted = email.trim().toLowerCase();
+  return !!wanted && SHOW_ADMIN_EMAILS.some((allowed) => allowed.trim().toLowerCase() === wanted);
+}
+
 /** The hosts who may see which comic is on deck highlighted on their Home lineup. */
 export const ON_DECK_ROW_EMAILS: readonly string[] = ["vxayananh@gmail.com", "nickrcody@gmail.com", "dinodadcomedy@gmail.com"];
 

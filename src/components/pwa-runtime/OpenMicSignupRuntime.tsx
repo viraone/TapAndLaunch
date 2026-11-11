@@ -12,7 +12,7 @@ import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, 
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { isLineupPreviewer } from "@/lib/openmic/preview-emails";
 import { setSignedInName } from "@/lib/openmic/signed-in-name";
-import { canTapOnDeck, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { canTapOnDeck, isShowAdmin, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { pushUpNext } from "@/lib/openmic/spotlight-actions";
 import { clockProgress, finishedLabel, finishedRecord, onDeckFor, showClock, type ShowClock } from "@/lib/openmic/show-clock";
 import { resetClock, startClock, stopClock } from "@/lib/openmic/show-clock-actions";
@@ -1526,6 +1526,7 @@ function HostLineup({ client, config, viewerEmail, hostName }: { client: Supabas
           void run(() => stopClock(client, spotlight));
         },
         onReset: () => void run(() => resetClock(client, showYmd)),
+        onRestart: isShowAdmin(viewerEmail) ? () => void run(() => resetClock(client, showYmd)) : undefined,
       }
     : undefined;
   return (

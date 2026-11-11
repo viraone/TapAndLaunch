@@ -82,7 +82,7 @@ export function DevPreview() {
             <p className="mb-1 text-xs text-muted-foreground">{b.label}</p>
             {/* A transformed parent makes the bar's fixed position relative to this box, so several can sit on one page. */}
             <div className="relative h-56 w-[22rem] overflow-hidden rounded-2xl border bg-black/40" style={{ transform: "translateZ(0)" }}>
-              <ShowClockBar clock={b.clock} started={b.started} controls={controls} />
+              <ShowClockBar clock={b.clock} started={b.started} controls={{ ...controls, onRestart: () => {} }} />
             </div>
           </div>
         ))}

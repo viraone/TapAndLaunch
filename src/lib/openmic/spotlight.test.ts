@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canSeeOnDeckRow, canTapOnDeck, spotlightIndex, ymd, type Spotlight } from "./spotlight";
+import { canSeeOnDeckRow, canTapOnDeck, isShowAdmin, spotlightIndex, ymd, type Spotlight } from "./spotlight";
 
 const lineup = [
   { name: "Viradeth", set_length: "5 min", start_time: "7:00 PM" },
@@ -43,6 +43,18 @@ describe("canTapOnDeck", () => {
     expect(canTapOnDeck(null)).toBe(false);
     expect(canTapOnDeck(undefined)).toBe(false);
     expect(canTapOnDeck("   ")).toBe(false);
+  });
+});
+
+describe("isShowAdmin", () => {
+  it("is only the one admin account, ignoring case and spaces", () => {
+    expect(isShowAdmin("vxayananh@gmail.com")).toBe(true);
+    expect(isShowAdmin("  VXAYANANH@Gmail.com  ")).toBe(true);
+    expect(isShowAdmin("nickrcody@gmail.com")).toBe(false);
+    expect(isShowAdmin("dinodadcomedy@gmail.com")).toBe(false);
+    expect(isShowAdmin(null)).toBe(false);
+    expect(isShowAdmin(undefined)).toBe(false);
+    expect(isShowAdmin("   ")).toBe(false);
   });
 });
 
