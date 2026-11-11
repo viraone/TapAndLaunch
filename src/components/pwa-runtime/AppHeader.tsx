@@ -28,7 +28,7 @@ export function AppHeader({ theme }: { theme: ThemeConfig }) {
       )}
       <div className="min-w-0">
         {title && <p className="truncate text-2xl font-extrabold leading-tight tracking-tight">{title}</p>}
-        <HeaderClock requireSignIn className={(title ? "mt-1 " : "") + "text-[15px] font-black tabular-nums leading-none tracking-tight"} />
+        <HeaderClock requireSignIn className={title ? "mt-1 text-[15px] font-black tabular-nums leading-none tracking-tight" : "text-3xl font-extrabold tabular-nums leading-none tracking-tight"} />
         {tagline && <p className="mt-0.5 line-clamp-2 text-[15px] font-medium leading-snug text-muted-foreground">{tagline}</p>}
       </div>
       {action && <HeaderCornerLink href={`/${action.page_path.replace(/^\//, "")}`} label={action.label} icon={action.icon} />}
