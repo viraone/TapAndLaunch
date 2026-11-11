@@ -25,6 +25,7 @@ export const RESERVED_PAGE_PATHS = new Set([
   "share-image",
   "sitemap.xml",
   "unsubscribe",
+  "voice-chat",
   "push",
   "report",
   "submit",
