@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { HeaderClock } from "@/components/pwa-runtime/HeaderClock";
 import { ShowClockBar } from "@/components/pwa-runtime/ShowClockBar";
 import { TvTimerPanel } from "@/components/pwa-runtime/OpenMicFlatscreenRuntime";
-import { LineupList } from "@/components/pwa-runtime/OpenMicSignupRuntime";
+import { LineupList, SignupHeader } from "@/components/pwa-runtime/OpenMicSignupRuntime";
 import { CompSetPickerDemo } from "./CompSetPickerDemo";
 import type { ShowClock } from "@/lib/openmic/show-clock";
 import type { LineupFeed } from "@/lib/openmic/selection";
@@ -80,6 +80,7 @@ export function DevPreview() {
         ))}
       </div>
       <p className="mb-2 mt-8 text-sm font-semibold">Lineup with host row</p>
+      <SignupHeader config={{} as never} showDate="Friday, Nov 13" open={false} hidePill showStartTime reopenText="" closesAt="" label="Tonight" startsIn="Starts in 2h 10m" />
       <div className="flex flex-wrap gap-4">
         <div>
           <p className="mb-1 text-xs text-muted-foreground">Before START (hosts row, Karen on deck)</p>

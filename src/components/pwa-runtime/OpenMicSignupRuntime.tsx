@@ -21,6 +21,7 @@ import { useSecond } from "@/lib/openmic/use-second";
 import { ShowClockBar } from "./ShowClockBar";
 import { estimateStartTimes, type StartLabel } from "@/lib/openmic/start-times";
 import { applyComicMinutes } from "@/lib/openmic/set-minutes";
+import { tonightHeading } from "@/lib/openmic/tonight";
 import { noHangLock } from "@/lib/supabase/no-hang-lock";
 import { HostInbox, HostInboxView } from "./OpenMicHostInbox";
 import { OpenMicPushOptIn } from "./OpenMicPushOptIn";
@@ -109,6 +110,8 @@ export function SignupHeader({
   open,
   hidePill,
   showStartTime = false,
+  label = "Next show",
+  startsIn = null,
   reopenText,
   closesAt,
 }: {
@@ -117,6 +120,8 @@ export function SignupHeader({
   open: boolean;
   hidePill: boolean;
   showStartTime?: boolean;
+  label?: string;
+  startsIn?: string | null;
   reopenText: string;
   closesAt: string;
 }) {
@@ -132,8 +137,9 @@ export function SignupHeader({
           />
         )}
         <div className="min-w-0">
-          <p className="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Next show</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">{label}</p>
           <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">{showDate}</h1>
+          {startsIn && <p className="mt-1.5 text-[13px] font-bold tabular-nums leading-none text-muted-foreground">{startsIn}</p>}
         </div>
         {showStartTime && (
           <p className={`ml-auto shrink-0 self-end pb-1 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-foreground ${hidePill ? "translate-y-[21px]" : ""}`}>Start time</p>
@@ -246,6 +252,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   const now = useNow();
   const open = isWindowOpen(window_, now);
   const showDate = formatShowDate(showDateFor(window_, now));
+  const heading = tonightHeading(showDateFor(window_, now), window_.timeZone, now);
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [user, setUser] = useState<User | null>(null);
@@ -358,7 +365,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   return (
     <div className={pinned ? PINNED_PAGE : "mx-auto w-full max-w-md px-4 pb-12 pt-8"}>
       <div className={pinned ? (showStartTime ? "shrink-0 pb-[5px]" : "shrink-0") : undefined}>
-      <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} showStartTime={showStartTime} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
+      <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} showStartTime={showStartTime} label={heading.label} startsIn={heading.startsIn} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
 
       </div>
 
@@ -1311,6 +1318,17 @@ export function LineupList({
   hostRow?: boolean;
 }) {
   const big = size === "board";
+  // The set length most rows share: its pill is drawn quieter, so a different length stands out.
+  const commonLength = useMemo(() => {
+    const counts = new Map<string, number>();
+    let best = "";
+    for (const e of feed.lineup) {
+      const n = (counts.get(e.set_length) ?? 0) + 1;
+      counts.set(e.set_length, n);
+      if (n > (counts.get(best) ?? 0)) best = e.set_length;
+    }
+    return best;
+  }, [feed.lineup]);
   useEffect(() => {
     if (performingIndex === undefined || performingIndex < 0) return;
     document.getElementById(`openmic-row-${performingIndex}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -1395,7 +1413,9 @@ export function LineupList({
                     ? over
                       ? "bg-red-500 px-3 py-1 text-[15px] font-bold text-white ring-red-400"
                       : "bg-primary px-3 py-1 text-[15px] font-bold text-primary-foreground ring-primary"
-                    : "bg-background/60 px-2.5 py-1 text-[13px] font-semibold text-muted-foreground ring-white/10") +
+                    : entry.set_length === commonLength
+                      ? "bg-transparent px-2.5 py-1 text-[13px] font-medium text-muted-foreground/60 ring-white/5"
+                      : "bg-background/60 px-2.5 py-1 text-[13px] font-semibold text-foreground ring-white/20") +
                   (big ? " md:px-6 md:py-2 md:text-3xl 2xl:text-4xl md:font-bold md:text-white md:bg-white/10 md:ring-white/25" : "")
                 }
               >
