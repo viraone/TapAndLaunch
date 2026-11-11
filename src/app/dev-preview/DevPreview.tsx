@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { HeaderClock } from "@/components/pwa-runtime/HeaderClock";
 import { ShowClockBar } from "@/components/pwa-runtime/ShowClockBar";
 import { TvTimerPanel } from "@/components/pwa-runtime/OpenMicFlatscreenRuntime";
-import { LineupList, SignupHeader } from "@/components/pwa-runtime/OpenMicSignupRuntime";
+import { EmailStep, LineupList, SignupHeader } from "@/components/pwa-runtime/OpenMicSignupRuntime";
 import { CompSetPickerDemo } from "./CompSetPickerDemo";
 import { VoiceChatBlockView, type VoicePhase, type VoiceTurn } from "@/components/pwa-runtime/VoiceChatBlock";
 import type { ShowClock } from "@/lib/openmic/show-clock";
@@ -86,6 +86,10 @@ export function DevPreview() {
             </div>
           </div>
         ))}
+      </div>
+      <p className="mb-2 mt-8 text-sm font-semibold">Sign-up email card (phone width)</p>
+      <div className="w-[22rem] rounded-2xl border bg-background p-4">
+        <EmailStep client={null as never} email="" setEmail={() => {}} open onSent={() => {}} />
       </div>
       <p className="mb-2 mt-8 text-sm font-semibold">Lineup with host row</p>
       <SignupHeader config={{} as never} showDate="Friday, Nov 13" open={false} hidePill showStartTime reopenText="" closesAt="" label="Tonight" startsIn="Starts in 2h 10m" />

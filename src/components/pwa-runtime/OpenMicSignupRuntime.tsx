@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { Bell, Check, ChevronRight, CircleCheck, Loader2, Mail, Mic, X } from "lucide-react";
+import { ArrowRight, Bell, Check, ChevronRight, Loader2, Mail, Mic, X } from "lucide-react";
 import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupEntry, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
 import { applyRemovals, readLineupRemoved, type LineupRemoved } from "@/lib/openmic/removed";
 import { formatClock } from "@/lib/format-date";
@@ -458,7 +458,7 @@ export function ClosedSignedOut({ reopenText, note, onSignIn }: { reopenText: st
   );
 }
 
-function EmailStep({
+export function EmailStep({
   client,
   email,
   setEmail,
@@ -486,47 +486,43 @@ function EmailStep({
   }
 
   return (
-    <form onSubmit={send} className="rounded-2xl border bg-muted/60 p-5">
-      <h2 className="text-lg font-bold">{open ? "Request your spot" : "Sign in to see your status"}</h2>
-      <p className="mt-1.5 text-lg leading-snug text-muted-foreground">
-        Enter your email. We&apos;ll send a 6-digit code — no password needed.
+    <form onSubmit={send} className="pt-2">
+      <h2 className="text-[28px] font-extrabold leading-tight tracking-tight">{open ? "Request your spot" : "Sign in to see your status"}</h2>
+      <p className="mt-2 text-[17px] leading-snug text-muted-foreground">
+        {open ? "First time or returning, enter your email. We'll send a 6-digit code, no password." : "Enter your email. We'll send a 6-digit code, no password."}
       </p>
-      <label htmlFor="openmic-email" className="mt-4 block text-sm font-medium">
-        Email
-      </label>
-      <input
-        id="openmic-email"
-        type="email"
-        required
-        autoComplete="email"
-        inputMode="email"
-        value={email}
-        onChange={(e) => {
-          setEmail(e.target.value.trim());
-          setInvalid(false);
-        }}
-        onInvalid={() => setInvalid(true)}
-        aria-invalid={invalid}
-        placeholder="you@example.com"
-        className={`mt-1.5 h-14 w-full rounded-xl border bg-background px-4 text-lg outline-none focus:border-primary ${
-          invalid ? "border-red-500 ring-2 ring-red-500/30" : ""
-        }`}
-      />
+      <div className="relative mt-5">
+        <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" aria-hidden="true" />
+        <input
+          id="openmic-email"
+          type="email"
+          required
+          autoComplete="email"
+          inputMode="email"
+          aria-label="Email"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value.trim());
+            setInvalid(false);
+          }}
+          onInvalid={() => setInvalid(true)}
+          aria-invalid={invalid}
+          placeholder="you@example.com"
+          className={`h-14 w-full rounded-2xl border bg-muted/60 pl-12 pr-4 text-lg outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30 ${
+            invalid ? "border-red-500 ring-2 ring-red-500/30" : ""
+          }`}
+        />
+      </div>
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <button
         type="submit"
         disabled={busy}
-        className={`mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-xl ${CTA} text-lg font-bold disabled:opacity-60`}
+        className={`mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl ${CTA} text-lg font-bold disabled:opacity-60`}
       >
-        {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mail className="h-5 w-5" />}
+        {busy && <Loader2 className="h-5 w-5 animate-spin" />}
         Send my code
+        {!busy && <ArrowRight className="h-5 w-5" aria-hidden="true" />}
       </button>
-      {open && (
-        <div className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
-          <CircleCheck className="h-6 w-6 shrink-0 text-emerald-400" aria-hidden="true" />
-          <p className="text-lg font-bold leading-snug">First time or returning, please enter in your email.</p>
-        </div>
-      )}
     </form>
   );
 }
