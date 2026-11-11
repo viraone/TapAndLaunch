@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { HeaderClock } from "@/components/pwa-runtime/HeaderClock";
 import { ShowClockBar } from "@/components/pwa-runtime/ShowClockBar";
 import { TvTimerPanel } from "@/components/pwa-runtime/OpenMicFlatscreenRuntime";
-import { EmailStep, LineupList, SignupHeader } from "@/components/pwa-runtime/OpenMicSignupRuntime";
+import { CodeStep, EmailStep, LineupList, RequestForm, SignupHeader } from "@/components/pwa-runtime/OpenMicSignupRuntime";
 import { CompSetPickerDemo } from "./CompSetPickerDemo";
 import { VoiceChatBlockView, type VoicePhase, type VoiceTurn } from "@/components/pwa-runtime/VoiceChatBlock";
 import type { ShowClock } from "@/lib/openmic/show-clock";
@@ -90,6 +90,14 @@ export function DevPreview() {
       <p className="mb-2 mt-8 text-sm font-semibold">Sign-up email card (phone width)</p>
       <div className="w-[22rem] rounded-2xl border bg-background p-4">
         <EmailStep client={null as never} email="" setEmail={() => {}} open onSent={() => {}} />
+      </div>
+      <p className="mb-2 mt-8 text-sm font-semibold">Sign-up code screen (phone width)</p>
+      <div className="w-[22rem] rounded-2xl border bg-background p-4">
+        <CodeStep client={null as never} email="you@example.com" onBack={() => {}} onVerified={() => {}} autoFocus={false} />
+      </div>
+      <p className="mb-2 mt-8 text-sm font-semibold">Sign-up request form (phone width)</p>
+      <div className="w-[22rem] rounded-2xl border bg-background p-4">
+        <RequestForm client={null as never} user={{ id: "preview", email: "you@example.com" } as never} profile={{ stage_name: "", instagram: "", performed_before: null }} onRequested={() => {}} onProfileSaved={() => {}} />
       </div>
       <p className="mb-2 mt-8 text-sm font-semibold">Lineup with host row</p>
       <SignupHeader config={{} as never} showDate="Friday, Nov 13" open={false} hidePill showStartTime reopenText="" closesAt="" label="Tonight" startsIn="Starts in 2h 10m" />

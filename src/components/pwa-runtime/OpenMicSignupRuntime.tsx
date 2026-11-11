@@ -527,16 +527,19 @@ export function EmailStep({
   );
 }
 
-function CodeStep({
+export function CodeStep({
   client,
   email,
   onBack,
   onVerified,
+  autoFocus = true,
 }: {
   client: SupabaseClient;
   email: string;
   onBack: () => void;
   onVerified: (user: User) => void;
+  /** The dev preview turns this off so the page does not jump to the code box. */
+  autoFocus?: boolean;
 }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -600,10 +603,10 @@ function CodeStep({
         e.preventDefault();
         if (code.length === CODE_LENGTH) void verify(code);
       }}
-      className="rounded-2xl border bg-muted/60 p-5"
+      className="pt-2"
     >
-      <h2 className="text-lg font-bold">Check your email</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <h2 className="text-[28px] font-extrabold leading-tight tracking-tight">Check your email</h2>
+      <p className="mt-2 text-[17px] leading-snug text-muted-foreground">
         We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>. It works for 1 hour —
         check spam if you don&apos;t see it.
       </p>
@@ -611,7 +614,7 @@ function CodeStep({
         ref={codeInput}
         aria-label="6-digit code"
         aria-invalid={wrong}
-        autoFocus
+        autoFocus={autoFocus}
         inputMode="numeric"
         autoComplete="one-time-code"
         pattern="[0-9]*"
@@ -625,8 +628,8 @@ function CodeStep({
         }}
         placeholder="••••••"
         className={
-          "mt-4 h-16 w-full rounded-xl border bg-background text-center font-mono text-3xl tracking-[0.5em] outline-none " +
-          (wrong ? "border-red-500 ring-2 ring-red-500/30" : "focus:border-primary")
+          "mt-5 h-16 w-full rounded-2xl border bg-muted/60 text-center font-mono text-3xl tracking-[0.5em] outline-none transition " +
+          (wrong ? "border-red-500 ring-2 ring-red-500/30" : "focus:border-primary focus:ring-2 focus:ring-primary/30")
         }
       />
       {wrong ? (
@@ -641,10 +644,11 @@ function CodeStep({
       <button
         type="submit"
         disabled={busy || code.length !== CODE_LENGTH}
-        className={`mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-xl ${CTA} text-lg font-bold disabled:opacity-60`}
+        className={`mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl ${CTA} text-lg font-bold disabled:opacity-60`}
       >
         {busy && <Loader2 className="h-5 w-5 animate-spin" />}
         Continue
+        {!busy && <ArrowRight className="h-5 w-5" aria-hidden="true" />}
       </button>
       <div className="mt-2 flex justify-between text-[17px] text-foreground dark:text-white">
         <button type="button" onClick={onBack} className="-ml-1 flex min-h-11 items-center px-1 underline-offset-2 hover:underline">
@@ -666,7 +670,7 @@ function CodeStep({
 /** One screen, as in the mockup: details (pre-filled from the account after
  * the first time), both agreements and the button. Changed details are saved
  * back to the account in the same tap. */
-function RequestForm({
+export function RequestForm({
   client,
   user,
   profile,
@@ -747,9 +751,10 @@ function RequestForm({
   }
 
   return (
-    <form onSubmit={request} className="space-y-5 rounded-2xl border bg-muted/60 p-5">
+    <form onSubmit={request} className="space-y-5 pt-2">
+      <h2 className="text-[28px] font-extrabold leading-tight tracking-tight">Your details</h2>
       <div>
-        <label htmlFor="openmic-name" className="block text-sm font-semibold">
+        <label htmlFor="openmic-name" className="block text-[15px] font-semibold">
           Stage name <span className="text-primary">*</span>
         </label>
         <input
@@ -760,11 +765,11 @@ function RequestForm({
           value={stageName}
           onChange={(e) => setStageName(e.target.value)}
           placeholder="Your name"
-          className="mt-1.5 h-12 w-full rounded-xl border bg-background px-4 text-base outline-none focus:border-primary"
+          className="mt-2 h-14 w-full rounded-2xl border bg-muted/60 px-4 text-lg outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30"
         />
       </div>
       <div>
-        <label htmlFor="openmic-ig" className="block text-sm font-semibold">
+        <label htmlFor="openmic-ig" className="block text-[15px] font-semibold">
           Instagram <span className="font-normal text-muted-foreground">(optional)</span>
         </label>
         <input
@@ -775,11 +780,11 @@ function RequestForm({
           value={instagram}
           onChange={(e) => setInstagram(e.target.value)}
           placeholder="@handle"
-          className="mt-1.5 h-12 w-full rounded-xl border bg-background px-4 text-base outline-none focus:border-primary"
+          className="mt-2 h-14 w-full rounded-2xl border bg-muted/60 px-4 text-lg outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30"
         />
       </div>
       <fieldset>
-        <legend className="text-sm font-semibold">
+        <legend className="text-[15px] font-semibold">
           Performed at this show before? <span className="text-primary">*</span>
         </legend>
         <div className="mt-2 grid grid-cols-2 gap-2">
@@ -790,16 +795,16 @@ function RequestForm({
               role="radio"
               aria-checked={performed === v}
               onClick={() => setPerformed(v)}
-              className={`flex h-12 items-center gap-3 rounded-xl border px-4 text-base font-medium ${
-                performed === v ? "border-primary bg-primary/10" : "bg-background"
+              className={`flex h-14 items-center gap-3 rounded-2xl border px-4 text-lg font-medium transition ${
+                performed === v ? "border-primary bg-primary/10" : "bg-muted/60"
               }`}
             >
               <span
-                className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
+                className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
                   performed === v ? "border-primary" : "border-muted-foreground/60"
                 }`}
               >
-                {performed === v && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                {performed === v && <span className="h-2 w-2 rounded-full bg-primary" />}
               </span>
               {v ? "Yes" : "No"}
             </button>
@@ -819,13 +824,14 @@ function RequestForm({
       <button
         type="submit"
         disabled={busy || !ready}
-        className={`flex h-14 w-full items-center justify-center gap-2 rounded-xl ${CTA} text-lg font-bold disabled:opacity-50`}
+        className={`flex h-14 w-full items-center justify-center gap-2 rounded-2xl ${CTA} text-lg font-bold disabled:opacity-50`}
       >
         {busy && <Loader2 className="h-5 w-5 animate-spin" />}
         Request my spot
+        {!busy && <ArrowRight className="h-5 w-5" aria-hidden="true" />}
       </button>
       {!ready && !busy && (
-        <p className="-mt-2 text-center text-xs text-muted-foreground">
+        <p className="-mt-2 text-center text-sm text-muted-foreground">
           {stageName.trim() === "" || performed === null ? "Fill in the starred fields" : "Tick both boxes to continue"}
         </p>
       )}
@@ -915,12 +921,12 @@ function Agreement({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-xl border bg-muted/40 p-4 text-sm leading-6">
+    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border bg-muted/40 p-4 text-[15px] leading-6">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-1 h-4 w-4 shrink-0 accent-[var(--primary)]"
+        className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--primary)]"
       />
       <span className="text-muted-foreground">{children}</span>
     </label>
