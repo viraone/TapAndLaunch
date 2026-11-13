@@ -6,10 +6,12 @@ import type { User } from "@supabase/supabase-js";
 import { Home, Loader2, Lock, Menu, MoreVertical, SlidersHorizontal, Tv, Undo2 } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, showDateFor } from "@/lib/openmic/window";
-import { setSpotlight, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { isShowAdmin, setSpotlight, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { applyComicMinutes, comicMinutes, eachMinutes, nameKey, setComicMinutes, setEachMinutes } from "@/lib/openmic/set-minutes";
 import { setMinutes } from "@/lib/openmic/start-times";
 import { CompSetPicker } from "./CompSetPicker";
+import { RestartShowButton } from "./RestartShowButton";
+import { resetClock } from "@/lib/openmic/show-clock-actions";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { upNextStatus } from "@/lib/openmic/push";
 import { useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
@@ -77,10 +79,10 @@ export function OpenMicRemoteRuntime({ config }: { config: OpenMicSignupBlockCon
       </div>
     );
   }
-  return <Remote client={client} config={config} userId={user.id} />;
+  return <Remote client={client} config={config} userId={user.id} viewerEmail={user.email ?? null} />;
 }
 
-function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typeof useOpenMicClient>>; config: OpenMicSignupBlockConfig; userId: string }) {
+function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<ReturnType<typeof useOpenMicClient>>; config: OpenMicSignupBlockConfig; userId: string; viewerEmail: string | null }) {
   const window_ = windowOf(config);
   const now = useNow();
   const showDate = showDateFor(window_, now);
@@ -154,6 +156,15 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
 
   const back = () => void move(current - 1);
   const canBack = !saving && current >= 0;
+  async function restartShow() {
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    const problem = await resetClock(client, showYmd);
+    setSaving(false);
+    if (problem) return setError("That didn't save. Check the connection and try again.");
+    setTold("Show restarted");
+  }
   const onName = current >= 0 ? lineup[current]!.name : "Nobody";
 
   return (
@@ -266,6 +277,7 @@ function Remote({ client, config, userId }: { client: NonNullable<ReturnType<typ
             </ol>
           )}
         </div>
+        {isShowAdmin(viewerEmail) && <RestartShowButton busy={saving} onRestart={() => void restartShow()} />}
       </div>
     </div>
   );

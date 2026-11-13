@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { HeaderClock } from "@/components/pwa-runtime/HeaderClock";
 import { ShowClockBar } from "@/components/pwa-runtime/ShowClockBar";
+import { RestartShowButton } from "@/components/pwa-runtime/RestartShowButton";
 import { TvTimerPanel } from "@/components/pwa-runtime/OpenMicFlatscreenRuntime";
 import { CodeStep, EmailStep, LineupList, RequestForm, SignupHeader } from "@/components/pwa-runtime/OpenMicSignupRuntime";
 import { CompSetPickerDemo } from "./CompSetPickerDemo";
@@ -82,10 +83,14 @@ export function DevPreview() {
             <p className="mb-1 text-xs text-muted-foreground">{b.label}</p>
             {/* A transformed parent makes the bar's fixed position relative to this box, so several can sit on one page. */}
             <div className="relative h-56 w-[22rem] overflow-hidden rounded-2xl border bg-black/40" style={{ transform: "translateZ(0)" }}>
-              <ShowClockBar clock={b.clock} started={b.started} controls={{ ...controls, onRestart: () => {} }} />
+              <ShowClockBar clock={b.clock} started={b.started} controls={controls} />
             </div>
           </div>
         ))}
+      </div>
+      <p className="mb-2 mt-8 text-sm font-semibold">Timer tab: admin Restart button (phone width)</p>
+      <div className="w-[22rem] rounded-[2rem] bg-[#232323] px-4 pb-5 pt-3 text-white">
+        <RestartShowButton busy={false} onRestart={() => {}} />
       </div>
       <p className="mb-2 mt-8 text-sm font-semibold">Sign-up email card (phone width)</p>
       <div className="w-[22rem] rounded-2xl border bg-background p-4">

@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { ShowClock } from "@/lib/openmic/show-clock";
 import { formatCountdown } from "@/lib/openmic/tv-timer";
 
@@ -9,8 +8,6 @@ export type ShowClockControls = {
   onStart: () => void;
   onStop: () => void;
   onReset: () => void;
-  /** Only the show admin gets this: clears the clock and every finished set at any time. Shown as a small pill on the bar's top edge. */
-  onRestart?: () => void;
   /** A save is in flight: both buttons sit dim until it returns. */
   busy: boolean;
 };
@@ -33,12 +30,6 @@ export function ShowClockBar({ clock, started, controls }: { clock: ShowClock; s
   const litStop = "border-transparent bg-white text-black active:opacity-80";
   const dim = "border-white/15 bg-transparent text-white/40";
   const button = "min-w-[4.75rem] rounded-2xl border-2 px-4 py-5 text-base font-black tracking-wider disabled:cursor-default";
-  const [armed, setArmed] = useState(false);
-  useEffect(() => {
-    if (!armed) return;
-    const t = setTimeout(() => setArmed(false), 4000);
-    return () => clearTimeout(t);
-  }, [armed]);
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 px-3">
       <div
@@ -49,26 +40,6 @@ export function ShowClockBar({ clock, started, controls }: { clock: ShowClock; s
         role="status"
         aria-live="polite"
       >
-        {controls?.onRestart && (
-          <button
-            type="button"
-            className={
-              "absolute -top-[1.125rem] right-5 rounded-full border-2 px-3 py-1.5 text-[11px] font-black uppercase leading-none tracking-[0.15em] shadow-md disabled:opacity-40 " +
-              (armed ? "border-transparent bg-white text-black" : "border-white/35 bg-[#1f1f24] text-white/80")
-            }
-            disabled={controls.busy}
-            onClick={() => {
-              if (!armed) {
-                setArmed(true);
-                return;
-              }
-              setArmed(false);
-              controls.onRestart?.();
-            }}
-          >
-            {armed ? "Tap again to restart" : "Restart"}
-          </button>
-        )}
         {digits ? (
           <p className={"flex-1 text-[2.75rem] font-black leading-none tabular-nums tracking-tight " + (hot ? "text-red-400" : "text-white")}>{digits}</p>
         ) : (

@@ -2,13 +2,9 @@ import { describe, expect, it } from "vitest"; import { createElement } from "re
 const controls = { onStart: () => {}, onStop: () => {}, onReset: () => {}, busy: false };
 function render(props: Parameters<typeof ShowClockBar>[0]) { return renderToStaticMarkup(createElement(ShowClockBar, props)); }
 describe("ShowClockBar", () => {
-  it("shows no Restart pill unless the controls carry onRestart", () => {
+  it("has no Restart pill on the bar", () => {
     const html = render({ clock: { kind: "idle", nextIndex: 1, nextMs: 180000 }, started: false, controls });
     expect(html).not.toContain(">Restart<");
-  });
-  it("shows the Restart pill for the admin, beside STOP and START", () => {
-    const html = render({ clock: { kind: "idle", nextIndex: 1, nextMs: 180000 }, started: false, controls: { ...controls, onRestart: () => {} } });
-    expect(html).toContain(">Restart<");
     expect(html).toContain(">STOP<");
     expect(html).toContain(">START<");
   });
