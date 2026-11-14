@@ -53,7 +53,7 @@ function TvTimerBox({ client, config }: { client: NonNullable<ReturnType<typeof 
   if (spotlightIndex(spotlight, feed.lineup, showDay) === -1 || !anchorFresh(spotlight, now)) return null;
   const clock = showClock({ lineup: feed.lineup, spotlight, showDate: showDay, hostRow: config.host_row === true, now });
   if (clock.kind === "running") {
-    return <TvTimerPanel name={feed.lineup[clock.index]!.name} next={feed.lineup[clock.index + 1]?.name} nextLength={feed.lineup[clock.index + 1]?.set_length} ms={clock.remainingMs} totalMs={clock.totalMs} running />;
+    return <TvTimerPanel name={feed.lineup[clock.index]!.name} next={feed.lineup[clock.index + 1]?.name} ms={clock.remainingMs} totalMs={clock.totalMs} running />;
   }
   if (clock.nextIndex === -1) return null;
   return <TvTimerPanel name={feed.lineup[clock.nextIndex]!.name} next={feed.lineup[clock.nextIndex + 1]?.name} ms={clock.nextMs} totalMs={clock.nextMs} running={false} />;
@@ -70,7 +70,7 @@ const TONE = {
  *  length as a pill and who follows. Running: the countdown fills the box; the whole box turns amber for the last 30
  *  seconds (the light) and solid red with white digits, counting up, past the set length. No words on amber or red: the colour says it.
  *  Sized for a comic reading it from the stage, across a bar. */
-export function TvTimerPanel({ name, next, nextLength, ms, totalMs, running }: { name: string; next?: string | null; nextLength?: string | null; ms: number; totalMs: number; running: boolean }) {
+export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: string; next?: string | null; ms: number; totalMs: number; running: boolean }) {
   if (!running) {
     return (
       <div className="relative flex w-[46rem] shrink-0 items-center p-3">
@@ -114,10 +114,7 @@ export function TvTimerPanel({ name, next, nextLength, ms, totalMs, running }: {
           </div>
           {next ? (
             <div className={`mt-6 rounded-3xl px-7 py-5 ${t.deck}`}>
-              <div className="flex items-center justify-between gap-4">
-                <span className={`shrink-0 rounded-full px-6 py-2 text-3xl font-black uppercase tracking-[0.25em] ${t.tag}`}>On deck</span>
-                {nextLength ? <span className={`shrink-0 text-4xl font-bold tabular-nums ${t.deckName}`}>{nextLength}</span> : null}
-              </div>
+              <span className={`inline-block rounded-full px-6 py-2 text-3xl font-black uppercase tracking-[0.25em] ${t.tag}`}>On deck</span>
               <p className={`mt-3 line-clamp-2 break-words text-7xl font-black leading-[1.02] ${t.deckName}`}>{next}</p>
             </div>
           ) : null}
