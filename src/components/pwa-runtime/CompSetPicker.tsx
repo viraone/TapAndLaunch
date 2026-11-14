@@ -35,50 +35,47 @@ export function CompSetPicker({
   // The picked comic's full name is repeated here because the picker cuts a long name short on a phone.
   const sub = target ? `${target.name} · ${target.custom ? "Just this comic" : "Same as everyone"}` : allMinutes !== null ? "Set by the hosts tonight" : hasOverrides ? "From the sheet, some changed" : "From the sheet";
   const resetLabel = target ? (target.custom ? "Same as everyone" : null) : hasOverrides ? "Back to the sheet" : null;
-  const step = "flex h-11 w-11 items-center justify-center rounded-full bg-sky-400 text-2xl font-black text-black shadow-md transition active:scale-95 disabled:opacity-40";
+  const step = "flex h-14 w-14 items-center justify-center rounded-full bg-sky-400 text-3xl font-black text-black shadow-md transition active:scale-95 disabled:opacity-40";
   return (
-    <section aria-label="Set length for the comics" className="relative mt-6 rounded-2xl border-2 border-sky-400/80 bg-sky-400/10 px-4 pb-3 pt-4 shadow-[0_0_24px_rgba(56,189,248,0.18)]">
+    <section aria-label="Set length for the comics" className="relative mt-6 rounded-2xl border-2 border-sky-400/80 bg-sky-400/10 px-4 pb-4 pt-5 shadow-[0_0_24px_rgba(56,189,248,0.18)]">
       <span className="absolute -top-2.5 left-4 rounded-full bg-sky-400 px-2.5 py-0.5 text-[10px] font-black uppercase leading-none tracking-[0.2em] text-black">Set length</span>
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="relative inline-block max-w-full">
-            <label htmlFor="comic-sets-target" className="sr-only">
-              Who the set length is for
-            </label>
-            <select
-              id="comic-sets-target"
-              value={target ? target.key : ""}
-              onChange={(event) => onSelect(event.target.value)}
-              disabled={saving}
-              className="max-w-full appearance-none truncate bg-transparent py-0.5 pr-6 text-[14px] font-black uppercase tracking-wide text-white outline-none"
-            >
-              <option value="">All comics</option>
-              {targets.map((t) => (
-                <option key={t.key} value={t.key}>
-                  {`${t.name} · ${t.minutes} min`}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-sky-400" aria-hidden="true" />
-          </div>
-          <p className="text-[12px] text-white/50">{sub}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <button type="button" aria-label="One minute less" disabled={saving || shown <= MIN_COMIC_MINUTES} onClick={() => onChange(shown - 1)} className={step}>
-            −
-          </button>
-          <span className="min-w-[4.5rem] text-center text-2xl font-black tabular-nums text-white">{shown} min</span>
-          <button type="button" aria-label="One minute more" disabled={saving || shown >= MAX_COMIC_MINUTES} onClick={() => onChange(shown + 1)} className={step}>
-            +
-          </button>
-        </div>
+      <p className="text-[17px] font-bold text-white">How long is each set?</p>
+      <div className="relative mt-3">
+        <label htmlFor="comic-sets-target" className="sr-only">
+          Who the set length is for
+        </label>
+        <select
+          id="comic-sets-target"
+          value={target ? target.key : ""}
+          onChange={(event) => onSelect(event.target.value)}
+          disabled={saving}
+          className="h-12 w-full appearance-none rounded-xl border border-white/20 bg-black/30 px-4 pr-11 text-[17px] font-bold text-white outline-none focus:border-sky-400"
+        >
+          <option value="">All comics (everyone)</option>
+          {targets.map((t) => (
+            <option key={t.key} value={t.key}>
+              {`${t.name} · ${t.minutes} min`}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-sky-400" aria-hidden="true" />
       </div>
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <button type="button" aria-label="One minute less" disabled={saving || shown <= MIN_COMIC_MINUTES} onClick={() => onChange(shown - 1)} className={step}>
+          −
+        </button>
+        <span className="text-center text-4xl font-black tabular-nums text-white">{shown} min</span>
+        <button type="button" aria-label="One minute more" disabled={saving || shown >= MAX_COMIC_MINUTES} onClick={() => onChange(shown + 1)} className={step}>
+          +
+        </button>
+      </div>
+      <p className="mt-3 text-center text-[14px] text-white/60">{sub}</p>
       {resetLabel && (
         <button
           type="button"
           disabled={saving}
           onClick={() => onChange(null)}
-          className="mt-2 text-[13px] font-semibold text-sky-400 underline-offset-2 active:underline disabled:opacity-40"
+          className="mt-3 flex h-11 w-full items-center justify-center rounded-xl border border-sky-400/60 text-[15px] font-bold text-sky-400 active:bg-sky-400/10 disabled:opacity-40"
         >
           {resetLabel}
         </button>

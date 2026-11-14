@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
-import { Home, Loader2, Lock, Menu, MoreVertical, SlidersHorizontal, Tv, Undo2 } from "lucide-react";
+import { Home, Loader2, Lock, Tv, Undo2 } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, showDateFor } from "@/lib/openmic/window";
 import { isShowAdmin, setSpotlight, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
@@ -95,8 +95,6 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
   const [error, setError] = useState<string | null>(null);
   /** What happened on the highlighted comic's phone after the last move. */
   const [told, setTold] = useState<string | null>(null);
-  /** The lineup list in the tray under the keys, folded away by default. */
-  const [listOpen, setListOpen] = useState(false);
   const [lengthError, setLengthError] = useState<string | null>(null);
   const [target, setTarget] = useState("");
 
@@ -178,59 +176,37 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
             <Tv className="h-4 w-4" aria-hidden="true" />
             Lineup board
           </p>
-          <button
-            type="button"
-            onClick={() => setListOpen((v) => !v)}
-            aria-expanded={listOpen}
-            aria-label={listOpen ? "Hide the lineup" : "Show the lineup"}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition active:scale-95 active:bg-white/10"
-          >
-            <MoreVertical className="h-6 w-6" aria-hidden="true" />
-          </button>
+          <span className="flex w-10 justify-end">{saving ? <Loader2 className="h-5 w-5 animate-spin text-white/70" aria-hidden="true" /> : null}</span>
         </div>
         <CompSetPicker targets={targets} selected={pickedTarget ? pickedTarget.key : ""} onSelect={setTarget} allMinutes={dictated} fallback={sheetMinutes} hasOverrides={dictated !== null || Object.keys(each).length > 0} saving={saving} error={lengthError} onChange={(minutes) => void changeMinutes(minutes)} />
 
-        {/* The highlighted comic, the one the board shows solid. */}
-        <div className="mt-5 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => setListOpen((v) => !v)}
-            aria-label="Lineup list"
-            className={ROUND_KEY}
-          >
-            <Menu className="h-7 w-7" aria-hidden="true" />
-          </button>
-          <div className="min-w-0 flex-1 text-center">
-            <p className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.22em] text-white/45">Highlighted now</p>
-            <p className="mt-0.5 line-clamp-2 break-words text-[22px] font-black leading-tight tracking-tight [text-shadow:0_2px_12px_rgba(0,0,0,0.6)]">{onName}</p>
-            <p className="min-h-5 text-sm font-medium tabular-nums text-white/50">
-              {current >= 0 ? `${current + 1} of ${lineup.length}${lineup[current]!.start_time ? ` · ${lineup[current]!.start_time}` : ""}` : lineup.length > 0 ? `${lineup.length} on the lineup` : ""}
-            </p>
-          </div>
-          <div className={`${ROUND_KEY_LOOK} h-[4.5rem] w-[4.5rem] shrink-0`} aria-hidden="true">
-            {saving ? <Loader2 className="h-7 w-7 animate-spin" /> : <SlidersHorizontal className="h-7 w-7 text-white/70" />}
-          </div>
+        {/* Who is on the board now. */}
+        <div className="mt-6 text-center">
+          <p className="whitespace-nowrap text-[13px] font-bold uppercase tracking-[0.22em] text-white/55">On the board now</p>
+          <p className="mt-1 line-clamp-2 break-words text-[30px] font-black leading-tight tracking-tight [text-shadow:0_2px_12px_rgba(0,0,0,0.6)]">{onName}</p>
+          <p className="min-h-5 text-base font-medium tabular-nums text-white/60">
+            {current >= 0 ? `${current + 1} of ${lineup.length}${lineup[current]!.start_time ? ` · ${lineup[current]!.start_time}` : ""}` : lineup.length > 0 ? `${lineup.length} on the lineup` : ""}
+          </p>
         </div>
 
-        {/* Bottom row, like the remote: back (one step) on the left, the orange home key clears the highlight. */}
-        <div className="mt-5 flex items-center justify-between">
+        <div className="mt-5 grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={back}
             disabled={!canBack}
-            aria-label="Back one"
-            className={`${ROUND_KEY} disabled:opacity-40`}
+            className="flex h-16 items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(180deg,#3a3a3a,#2a2a2a)] text-lg font-bold text-white ring-1 ring-white/10 transition active:scale-[0.98] disabled:opacity-40"
           >
-            <Undo2 className="h-7 w-7" aria-hidden="true" />
+            <Undo2 className="h-6 w-6" aria-hidden="true" />
+            Back one
           </button>
           <button
             type="button"
             onClick={() => void move(-1)}
             disabled={saving || current < 0}
-            aria-label="Clear the highlight"
-            className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-[radial-gradient(circle_at_50%_28%,#ff7a45_0%,#ff5a1f_55%,#e94c15_100%)] text-white shadow-[0_14px_34px_-10px_rgba(255,90,31,0.75),inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-2px_6px_rgba(0,0,0,0.25)] transition active:scale-95 disabled:opacity-40 disabled:shadow-none"
+            className="flex h-16 items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(180deg,#ff7a45,#e94c15)] text-lg font-bold text-white transition active:scale-[0.98] disabled:opacity-40"
           >
-            <Home className="h-8 w-8" aria-hidden="true" />
+            <Home className="h-6 w-6" aria-hidden="true" />
+            Clear
           </button>
         </div>
 
@@ -239,11 +215,12 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
         {/* The tray under the keys: the lineup, with the highlighted comic's row lit. */}
         <div className="mt-3 rounded-2xl bg-[linear-gradient(180deg,#242424,#1b1b1b)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.08]">
           <div className="flex items-center justify-between px-4 py-3">
-            <p className="text-[15px] font-semibold">{listOpen ? "Lineup" : formatShowDate(showDate)}</p>
+            <p className="text-[15px] font-semibold">{`Lineup · ${formatShowDate(showDate)}`}</p>
             <p className="text-sm text-white/55" aria-live="polite">
               {error ? <span className="font-semibold text-red-400">{error}</span> : told ?? (lineup.length > 0 ? `${lineup.length} comics` : "")}
             </p>
           </div>
+          {lineup.length > 0 ? <p className="px-4 pb-3 text-sm text-white/60">Tap a comic to put them on the board. Tap again to take them off.</p> : null}
           {!feed && !failed && (
             <div className="flex justify-center py-8" role="status" aria-label="Loading the lineup">
               <Loader2 className="h-6 w-6 animate-spin text-white/60" />
@@ -251,7 +228,7 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
           )}
           {!feed && failed && <p className="px-4 pb-5 text-center text-base text-white/60">We couldn&apos;t load the lineup. Try again in a minute.</p>}
           {feed && lineup.length === 0 && <p className="px-4 pb-5 text-center text-base text-white/60">Nobody is on the lineup in the sheet yet.</p>}
-          {lineup.length > 0 && listOpen && (
+          {lineup.length > 0 && (
             <ol className="border-t border-white/10" aria-label="Lineup">
               {lineup.map((entry, i) => {
                 const on = i === current;
@@ -282,7 +259,3 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
     </div>
   );
 }
-
-/** The round keys beside the name and in the bottom row: a soft bevel, lit from the top, pressed in on tap. */
-const ROUND_KEY_LOOK = "flex items-center justify-center rounded-full bg-[linear-gradient(180deg,#3a3a3a,#2a2a2a)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_18px_-10px_rgba(0,0,0,0.9)] ring-1 ring-white/[0.06]";
-const ROUND_KEY = `${ROUND_KEY_LOOK} h-[4.5rem] w-[4.5rem] shrink-0 transition active:scale-95 active:bg-[linear-gradient(180deg,#2a2a2a,#222)]`;

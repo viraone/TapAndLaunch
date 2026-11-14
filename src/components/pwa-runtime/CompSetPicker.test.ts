@@ -28,6 +28,7 @@ describe("CompSetPicker", () => {
   it("default: nothing dictated, all comics", () => {
     const out = html();
     expect(out).toContain("All comics");
+    expect(out).toContain("How long is each set?");
     expect(out).toContain("3 min");
     expect(out).toContain("From the sheet");
     expect(out).toContain("Karen · 3 min");
