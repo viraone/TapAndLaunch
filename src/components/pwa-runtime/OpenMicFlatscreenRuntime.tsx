@@ -60,7 +60,7 @@ function TvTimerBox({ client, config }: { client: NonNullable<ReturnType<typeof 
 }
 
 const TONE = {
-  calm: { panel: "bg-[#0c0c0e] ring-1 ring-white/10", name: "text-white", digits: "text-white", next: "text-white/60", track: "bg-white/10", bar: "bg-primary" },
+  calm: { panel: "bg-[#0c0c0e] ring-1 ring-white/10", name: "text-white", digits: "text-white", next: "text-white", track: "bg-white/10", bar: "bg-primary" },
   warn: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black" },
   urgent: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black" },
   over: { panel: "bg-white", name: "text-zinc-900", digits: "text-black", next: "text-zinc-600", track: "bg-black/20", bar: "bg-black" },
@@ -102,7 +102,7 @@ export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: strin
             ) : (
               <span />
             )}
-            {next ? <p className={`min-w-0 truncate text-2xl font-medium ${t.next}`}>{`Next: ${next}`}</p> : null}
+            {next ? <p className={`min-w-0 truncate text-3xl font-semibold ${t.next}`}>{`Next: ${next}`}</p> : null}
           </div>
           <p className={`mt-4 truncate text-6xl font-bold leading-tight ${t.name}`}>{name}</p>
           <p className={`mt-2 font-black leading-none tabular-nums tracking-tight ${digits.length > 5 ? "text-[8rem]" : digits.length > 4 ? "text-[11rem]" : "text-[15rem]"} ${t.digits}`}>{digits}</p>
