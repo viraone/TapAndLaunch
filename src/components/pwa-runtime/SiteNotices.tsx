@@ -43,7 +43,7 @@ function useLocalFlag(storageKey: string, okValue: string): [boolean, (value: bo
 /** A line across the top of every page ("Tickets for Friday are on sale"), with a link; the visitor can close it. */
 export function AnnouncementBar({ theme, preview = false }: { theme: ThemeConfig; preview?: boolean }) {
   const a = theme.announcement;
-  const key = `tl-announcement:${a?.text ?? ""}`;
+  const key = `tl-announcement:${a?.text ?? ""}${a?.reshow === "daily" ? `:${new Date().toLocaleDateString("en-CA")}` : ""}`;
   const [storedClosed, setStoredClosed] = useLocalFlag(key, "closed");
   const closed = !preview && storedClosed;
   if (!a?.enabled || !a.text?.trim() || closed) return null;
