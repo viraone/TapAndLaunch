@@ -20,9 +20,13 @@ export function OpenMicFlatscreenRuntime({ config }: { config: OpenMicSignupBloc
     <div className="fixed inset-0 z-[100] flex overflow-hidden bg-black text-white">
       <div className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden">
         {config.flyer_url ? (
-          // The flyer is stretched to fill the whole column (a little taller than its own shape, nothing cut off).
-          // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
-          <img src={config.flyer_url} alt={`${config.show_name ?? "The show"} flyer`} className="h-full w-full object-fill" />
+          <>
+            {/* The flyer is made in the column's own shape, so on the TV it fills it. On a screen of another shape a blurred copy fills the gap instead of stretching it. */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL */}
+            <img src={config.flyer_url} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-125 object-cover blur-3xl brightness-50" />
+            {/* eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL */}
+            <img src={config.flyer_url} alt={`${config.show_name ?? "The show"} flyer`} className="relative h-full w-full object-contain object-center" />
+          </>
         ) : (
           <p className="text-2xl font-semibold text-white/70">No flyer yet.</p>
         )}

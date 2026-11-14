@@ -17,12 +17,13 @@ describe("OpenMicFlatscreenRuntime", () => {
     expect(html).toContain("Read The Room flyer");
   });
 
-  it("stretches the flyer to fill its whole column, with no black bands and no blurred copy", () => {
+  it("shows the flyer uncropped and unstretched, with a blurred copy behind it to fill any gap", () => {
     const html = render({ view: "tv", flyer_url: "https://example.com/flyer.jpg", show_name: "Read The Room" });
 
-    expect(html.split("<img").length - 1).toBe(1);
-    expect(html).toContain("object-fill");
-    expect(html).not.toContain("blur-");
+    expect(html.split("<img").length - 1).toBe(2);
+    expect(html).toContain("object-contain");
+    expect(html).toContain("blur-3xl");
+    expect(html).not.toContain("object-fill");
   });
 
   it("says there is no flyer yet when none is set", () => {
