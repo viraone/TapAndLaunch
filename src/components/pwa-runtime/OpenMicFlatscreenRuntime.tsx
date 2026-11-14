@@ -63,12 +63,12 @@ const TONE = {
   calm: { panel: "bg-[#0c0c0e] ring-1 ring-white/10", name: "text-white", digits: "text-white", next: "text-white", track: "bg-white/10", bar: "bg-primary", deck: "bg-white/[0.07]", tag: "bg-white text-black", deckName: "text-white" },
   warn: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black", deck: "bg-black/15", tag: "bg-black text-amber-400", deckName: "text-amber-950" },
   urgent: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black", deck: "bg-black/15", tag: "bg-black text-amber-400", deckName: "text-amber-950" },
-  over: { panel: "bg-white", name: "text-zinc-900", digits: "text-black", next: "text-zinc-600", track: "bg-black/20", bar: "bg-black", deck: "bg-black/[0.07]", tag: "bg-black text-white", deckName: "text-zinc-900" },
+  over: { panel: "bg-red-600", name: "text-white", digits: "text-white", next: "text-white", track: "bg-black/25", bar: "bg-white", deck: "bg-black/20", tag: "bg-white text-red-700", deckName: "text-white" },
 } as const;
 
 /** The corner box itself, pure so it can be rendered in a test. Not running: the next comic's name leads, with their set
  *  length as a pill and who follows. Running: the countdown fills the box; the whole box turns amber for the last 30
- *  seconds (the light) and white with black digits, counting up, past the set length. No words on amber or white: the colour says it.
+ *  seconds (the light) and solid red with white digits, counting up, past the set length. No words on amber or red: the colour says it.
  *  Sized for a comic reading it from the stage, across a bar. */
 export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: string; next?: string | null; ms: number; totalMs: number; running: boolean }) {
   if (!running) {
