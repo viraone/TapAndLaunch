@@ -102,4 +102,12 @@ describe("TvTimerPanel", () => {
     const html = renderToStaticMarkup(createElement(TvTimerPanel, { name: "Karen Young", ms: 40000, totalMs: 45000, running: true }));
     expect(html.split("-translate-x-1/2").length - 1).toBe(1);
   });
+
+  it("shows the next comic's set length on the right of the ON DECK strip, with the name big below", () => {
+    const html = renderToStaticMarkup(createElement(TvTimerPanel, { name: "Karen Young", next: "Evan Hales", nextLength: "5 min", ms: 120000, totalMs: 180000, running: true }));
+    expect(html).toContain(">On deck<");
+    expect(html).toContain(">5 min<");
+    expect(html).toContain("text-7xl font-black");
+    expect(html).toContain("Evan Hales");
+  });
 });
