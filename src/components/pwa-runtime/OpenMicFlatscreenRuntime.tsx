@@ -60,10 +60,10 @@ function TvTimerBox({ client, config }: { client: NonNullable<ReturnType<typeof 
 }
 
 const TONE = {
-  calm: { panel: "bg-[#0c0c0e] ring-1 ring-white/10", name: "text-white", digits: "text-white", next: "text-white", track: "bg-white/10", bar: "bg-primary", deck: "bg-white/[0.07]", tag: "bg-white text-black", deckName: "text-white" },
-  warn: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black", deck: "bg-black/15", tag: "bg-black text-amber-400", deckName: "text-amber-950" },
-  urgent: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black", deck: "bg-black/15", tag: "bg-black text-amber-400", deckName: "text-amber-950" },
-  over: { panel: "bg-red-600", name: "text-white", digits: "text-white", next: "text-white", track: "bg-black/25", bar: "bg-white", deck: "bg-black/20", tag: "bg-white text-red-700", deckName: "text-white" },
+  calm: { panel: "bg-[#0c0c0e] ring-1 ring-white/10", name: "text-white", digits: "text-white", next: "text-white", track: "bg-white/10", bar: "bg-primary", deck: "bg-white/[0.07]", tag: "bg-white text-black", deckName: "text-white", tick: "bg-white" },
+  warn: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black", deck: "bg-black/15", tag: "bg-black text-amber-400", deckName: "text-amber-950", tick: "bg-black/50" },
+  urgent: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black", deck: "bg-black/15", tag: "bg-black text-amber-400", deckName: "text-amber-950", tick: "bg-black/50" },
+  over: { panel: "bg-red-600", name: "text-white", digits: "text-white", next: "text-white", track: "bg-black/25", bar: "bg-white", deck: "bg-black/20", tag: "bg-white text-red-700", deckName: "text-white", tick: "bg-white/60" },
 } as const;
 
 /** The corner box itself, pure so it can be rendered in a test. Not running: the next comic's name leads, with their set
@@ -87,7 +87,8 @@ export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: strin
   }
   const tone = timerTone(ms);
   const t = TONE[tone];
-  const progress = Math.max(0, Math.min(100, 100 * (1 - ms / totalMs)));
+  const left = tone === "over" ? 100 : Math.max(0, Math.min(100, (100 * ms) / totalMs));
+  const ticks = tone === "over" ? [] : [60000, 30000].filter((at) => at < totalMs).map((at) => (100 * at) / totalMs);
   const digits = formatCountdown(ms);
   return (
     <div className="relative flex w-[46rem] shrink-0 items-center p-3">
@@ -105,8 +106,11 @@ export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: strin
           </div>
           <p className={`mt-4 line-clamp-2 break-words text-7xl font-bold leading-[1.05] ${t.name}`}>{name}</p>
           <p className={`mt-2 font-black leading-none tabular-nums tracking-tight ${digits.length > 5 ? "text-[9rem]" : digits.length > 4 ? "text-[12rem]" : "text-[16rem]"} ${t.digits}`}>{digits}</p>
-          <div className={`mt-8 h-6 w-full rounded-full ${t.track}`}>
-            <div className={`h-6 rounded-full ${t.bar}`} style={{ width: `${progress}%` }} />
+          <div className={`relative mt-8 h-8 w-full rounded-full ${t.track}`}>
+            <div className={`h-8 rounded-full ${t.bar}`} style={{ width: `${left}%` }} />
+            {ticks.map((pct) => (
+              <span key={pct} className={`absolute inset-y-0 w-1.5 -translate-x-1/2 rounded-full ${t.tick}`} style={{ left: `${pct}%` }} />
+            ))}
           </div>
           {next ? (
             <div className={`mt-8 flex items-center gap-6 rounded-3xl px-7 py-5 ${t.deck}`}>

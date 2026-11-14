@@ -34,7 +34,8 @@ describe("TvTimerPanel", () => {
     expect(html).toContain(">On deck<");
     expect(html).toContain("Evan Hales");
     expect(html).toContain("2:00");
-    expect(html).toContain("width:33.33");
+    expect(html).toContain("width:66.66");
+    expect(html.split("-translate-x-1/2").length - 1).toBe(2);
     expect(html).toContain("bg-primary");
     expect(html).toContain("text-[16rem]");
     expect(html).not.toContain("bg-amber-400");
@@ -86,6 +87,7 @@ describe("TvTimerPanel", () => {
     const html = renderToStaticMarkup(createElement(TvTimerPanel, { name: "Karen Young", ms: -12000, totalMs: 180000, running: true }));
 
     expect(html).toContain("+0:12");
+    expect(html).not.toContain("-translate-x-1/2");
     expect(html).toContain("bg-red-600");
     expect(html).toContain("text-white");
     expect(html).toContain("width:100%");
@@ -93,5 +95,10 @@ describe("TvTimerPanel", () => {
     expect(html).not.toContain("Over time");
     expect(html).not.toContain("Wrap");
     expect(html).not.toContain("animate-");
+  });
+
+  it("shows only the 0:30 tick when the set is shorter than a minute", () => {
+    const html = renderToStaticMarkup(createElement(TvTimerPanel, { name: "Karen Young", ms: 40000, totalMs: 45000, running: true }));
+    expect(html.split("-translate-x-1/2").length - 1).toBe(1);
   });
 });
