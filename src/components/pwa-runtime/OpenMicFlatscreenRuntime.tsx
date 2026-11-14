@@ -73,7 +73,7 @@ const TONE = {
 export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: string; next?: string | null; ms: number; totalMs: number; running: boolean }) {
   if (!running) {
     return (
-      <div className="relative flex w-[52rem] shrink-0 items-center p-5">
+      <div className="relative flex w-[46rem] shrink-0 items-center p-3">
         <div className="w-full rounded-[2rem] bg-[#0c0c0e] p-10 ring-1 ring-white/10">
           <p className="text-3xl font-semibold uppercase tracking-[0.3em] text-primary">On deck</p>
           <p className="mt-6 line-clamp-2 break-words text-8xl font-black leading-[1.05]">{name}</p>
@@ -90,8 +90,8 @@ export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: strin
   const progress = Math.max(0, Math.min(100, 100 * (1 - ms / totalMs)));
   const digits = formatCountdown(ms);
   return (
-    <div className="relative flex w-[52rem] shrink-0 items-center p-5">
-      <div className={`relative w-full overflow-hidden rounded-[2rem] p-8 ${t.panel}`}>
+    <div className="relative flex w-[46rem] shrink-0 items-center p-3">
+      <div className={`relative w-full overflow-hidden rounded-[2rem] p-6 ${t.panel}`}>
         <div className="relative">
           <div className="flex h-12 items-center justify-between gap-6">
             {tone === "calm" ? (
@@ -104,7 +104,7 @@ export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: strin
             )}
           </div>
           <p className={`mt-4 line-clamp-2 break-words text-7xl font-bold leading-[1.05] ${t.name}`}>{name}</p>
-          <p className={`mt-2 font-black leading-none tabular-nums tracking-tight ${digits.length > 5 ? "text-[9rem]" : digits.length > 4 ? "text-[12rem]" : "text-[17rem]"} ${t.digits}`}>{digits}</p>
+          <p className={`mt-2 font-black leading-none tabular-nums tracking-tight ${digits.length > 5 ? "text-[9rem]" : digits.length > 4 ? "text-[12rem]" : "text-[16rem]"} ${t.digits}`}>{digits}</p>
           <div className={`mt-8 h-6 w-full rounded-full ${t.track}`}>
             <div className={`h-6 rounded-full ${t.bar}`} style={{ width: `${progress}%` }} />
           </div>
