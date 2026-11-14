@@ -26,13 +26,14 @@ const html = (over: Partial<Parameters<typeof CompSetPicker>[0]> = {}) =>
 
 describe("CompSetPicker", () => {
   it("default: nothing dictated, all comics", () => {
-    const out = html();
+    const out = html({ defaultOpen: true });
     expect(out).toContain("All comics");
     expect(out).toContain("How long is each set?");
     expect(out).toContain("3 min");
     expect(out).toContain("From the sheet");
-    expect(out).toContain("Karen · 3 min");
-    expect(out).toContain("Test Jones 1 · 7 min");
+    expect(out).toContain("Karen");
+    expect(out).toContain("Test Jones 1");
+    expect(out).toContain(">7 min<");
     expect(out).not.toContain("Back to the sheet");
   });
 
@@ -47,7 +48,8 @@ describe("CompSetPicker", () => {
     const out = html({ selected: "test jones 1" });
     expect(out).toContain("Just this comic");
     expect(out).toContain("Same as everyone");
-    expect(out).toContain('<option value="test jones 1" selected="">');
+    expect(html({ selected: "test jones 1", defaultOpen: true })).toContain('aria-selected="true"');
+    expect(out).toContain("Test Jones 1 · 7 min");
     expect(out).toMatch(/tabular-nums text-white">7 min</);
   });
 
@@ -66,5 +68,10 @@ describe("CompSetPicker", () => {
     const out = html({ error: "Try again now" });
     expect(out).toContain('role="alert"');
     expect(out).toContain("Try again now");
+  });
+
+  it("the list is closed until the box is tapped", () => {
+    expect(html()).not.toContain('role="listbox"');
+    expect(html({ defaultOpen: true })).toContain('role="listbox"');
   });
 });
