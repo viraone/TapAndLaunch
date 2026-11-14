@@ -60,10 +60,10 @@ function TvTimerBox({ client, config }: { client: NonNullable<ReturnType<typeof 
 }
 
 const TONE = {
-  calm: { panel: "bg-[#0c0c0e] ring-1 ring-white/10", name: "text-white", digits: "text-white", next: "text-white", track: "bg-white/10", bar: "bg-primary" },
-  warn: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black" },
-  urgent: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black" },
-  over: { panel: "bg-white", name: "text-zinc-900", digits: "text-black", next: "text-zinc-600", track: "bg-black/20", bar: "bg-black" },
+  calm: { panel: "bg-[#0c0c0e] ring-1 ring-white/10", name: "text-white", digits: "text-white", next: "text-white", track: "bg-white/10", bar: "bg-primary", deck: "bg-white/[0.07]", tag: "bg-white text-black", deckName: "text-white" },
+  warn: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black", deck: "bg-black/15", tag: "bg-black text-amber-400", deckName: "text-amber-950" },
+  urgent: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black", deck: "bg-black/15", tag: "bg-black text-amber-400", deckName: "text-amber-950" },
+  over: { panel: "bg-white", name: "text-zinc-900", digits: "text-black", next: "text-zinc-600", track: "bg-black/20", bar: "bg-black", deck: "bg-black/[0.07]", tag: "bg-black text-white", deckName: "text-zinc-900" },
 } as const;
 
 /** The corner box itself, pure so it can be rendered in a test. Not running: the next comic's name leads, with their set
@@ -73,7 +73,7 @@ const TONE = {
 export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: string; next?: string | null; ms: number; totalMs: number; running: boolean }) {
   if (!running) {
     return (
-      <div className="relative flex w-[44rem] shrink-0 items-center p-8">
+      <div className="relative flex w-[52rem] shrink-0 items-center p-5">
         <div className="w-full rounded-[2rem] bg-[#0c0c0e] p-10 ring-1 ring-white/10">
           <p className="text-3xl font-semibold uppercase tracking-[0.3em] text-primary">On deck</p>
           <p className="mt-6 line-clamp-2 break-words text-8xl font-black leading-[1.05]">{name}</p>
@@ -90,25 +90,30 @@ export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: strin
   const progress = Math.max(0, Math.min(100, 100 * (1 - ms / totalMs)));
   const digits = formatCountdown(ms);
   return (
-    <div className="relative flex w-[44rem] shrink-0 items-center p-8">
-      <div className={`relative w-full overflow-hidden rounded-[2rem] p-10 ${t.panel}`}>
+    <div className="relative flex w-[52rem] shrink-0 items-center p-5">
+      <div className={`relative w-full overflow-hidden rounded-[2rem] p-8 ${t.panel}`}>
         <div className="relative">
-          <div className="flex h-10 items-center justify-between gap-6">
+          <div className="flex h-12 items-center justify-between gap-6">
             {tone === "calm" ? (
-              <p className="flex shrink-0 items-center gap-4 text-3xl font-semibold uppercase tracking-[0.2em] text-primary">
-                <span className="h-5 w-5 shrink-0 animate-pulse rounded-full bg-primary" />
+              <p className="flex shrink-0 items-center gap-4 text-4xl font-semibold uppercase tracking-[0.2em] text-primary">
+                <span className="h-6 w-6 shrink-0 animate-pulse rounded-full bg-primary" />
                 Performing
               </p>
             ) : (
               <span />
             )}
-            {next ? <p className={`min-w-0 truncate text-3xl font-semibold ${t.next}`}>{`Next: ${next}`}</p> : null}
           </div>
-          <p className={`mt-4 truncate text-6xl font-bold leading-tight ${t.name}`}>{name}</p>
-          <p className={`mt-2 font-black leading-none tabular-nums tracking-tight ${digits.length > 5 ? "text-[8rem]" : digits.length > 4 ? "text-[11rem]" : "text-[15rem]"} ${t.digits}`}>{digits}</p>
+          <p className={`mt-4 line-clamp-2 break-words text-7xl font-bold leading-[1.05] ${t.name}`}>{name}</p>
+          <p className={`mt-2 font-black leading-none tabular-nums tracking-tight ${digits.length > 5 ? "text-[9rem]" : digits.length > 4 ? "text-[12rem]" : "text-[17rem]"} ${t.digits}`}>{digits}</p>
           <div className={`mt-8 h-6 w-full rounded-full ${t.track}`}>
             <div className={`h-6 rounded-full ${t.bar}`} style={{ width: `${progress}%` }} />
           </div>
+          {next ? (
+            <div className={`mt-8 flex items-center gap-6 rounded-3xl px-7 py-5 ${t.deck}`}>
+              <span className={`shrink-0 rounded-full px-6 py-2 text-3xl font-black uppercase tracking-[0.25em] ${t.tag}`}>On deck</span>
+              <p className={`min-w-0 line-clamp-2 break-words text-5xl font-extrabold leading-[1.05] ${t.deckName}`}>{next}</p>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

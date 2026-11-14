@@ -65,13 +65,13 @@ export function DevPreview() {
         <span className="grid h-11 w-11 place-items-center rounded-full bg-primary/20 text-[15px] font-semibold text-primary">TJ</span>
         <span className="text-[12px] font-semibold text-muted-foreground">Test</span>
       </div>
-      <p className="mb-2 text-sm font-semibold">TV timer panel (44rem wide on the TV)</p>
+      <p className="mb-2 text-sm font-semibold">TV timer panel (52rem wide on the TV)</p>
       <div className="mb-8 flex flex-wrap gap-4">
         {TV.map((t) => (
           <div key={t.label}>
             <p className="mb-1 text-xs text-muted-foreground">{t.label}</p>
-            <div className="origin-top-left scale-50" style={{ width: "22rem", height: "21rem" }}>
-              <TvTimerPanel name="Evan Hales" next="Test Jones 1" ms={t.ms} totalMs={t.running ? 180000 : t.ms} running={t.running} />
+            <div className="origin-top-left scale-50" style={{ width: "26rem", height: "27rem" }}>
+              <TvTimerPanel name="Evan Hales" next="Sterling Washington" ms={t.ms} totalMs={t.running ? 180000 : t.ms} running={t.running} />
             </div>
           </div>
         ))}

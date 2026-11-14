@@ -31,13 +31,14 @@ describe("TvTimerPanel", () => {
 
     expect(html).toContain("Performing");
     expect(html).toContain("Karen Young");
-    expect(html).toContain("Next: Evan Hales");
+    expect(html).toContain(">On deck<");
+    expect(html).toContain("Evan Hales");
     expect(html).toContain("2:00");
     expect(html).toContain("width:33.33");
     expect(html).toContain("bg-primary");
-    expect(html).toContain("text-[15rem]");
+    expect(html).toContain("text-[17rem]");
     expect(html).not.toContain("bg-amber-400");
-    expect(html).not.toContain("On deck");
+    expect(html).not.toContain("text-8xl");
   });
 
   it("leads with the next comic's name between comics, with the set length as a pill and no clock", () => {
@@ -57,7 +58,7 @@ describe("TvTimerPanel", () => {
     const running = renderToStaticMarkup(createElement(TvTimerPanel, { name: "Evan Hales", ms: 120000, totalMs: 180000, running: true }));
 
     expect(idle).not.toContain("then ");
-    expect(running).not.toContain("Next:");
+    expect(running).not.toContain("On deck");
   });
 
   it("turns the whole box amber with 30 seconds left, with no label", () => {
@@ -66,7 +67,8 @@ describe("TvTimerPanel", () => {
     expect(html).toContain("0:25");
     expect(html).toContain("bg-amber-400");
     expect(html).toContain("text-black");
-    expect(html).toContain("Next: Evan Hales");
+    expect(html).toContain(">On deck<");
+    expect(html).toContain("Evan Hales");
     expect(html).not.toContain("30 sec left");
     expect(html).not.toContain("Performing");
   });
@@ -87,7 +89,7 @@ describe("TvTimerPanel", () => {
     expect(html).toContain("bg-white");
     expect(html).toContain("text-black");
     expect(html).toContain("width:100%");
-    expect(html).toContain("text-[11rem]");
+    expect(html).toContain("text-[12rem]");
     expect(html).not.toContain("Over time");
     expect(html).not.toContain("Wrap");
     expect(html).not.toContain("bg-red");
