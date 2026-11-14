@@ -25,7 +25,7 @@ const STATUS_LABEL: Record<string, { label: string; tone: "good" | "warn" | "bad
 const TYPE_COLOR: Record<FitnessClassType, string> = { pilates: "bg-pink-600", yoga: "bg-emerald-600", lifting: "bg-blue-600", spin: "bg-amber-500", climbing: "bg-orange-800" };
 
 /** What needs doing on FitnessNav, with the steps to follow. Added to the board's list once by key; ticks are kept. */
-// Nothing seeded right now. The "add the Anthropic key" item was dropped on Oct 6: the local Qwen model stays the reader.
+// Nothing seeded right now. The "add the Anthropic key" item was dropped on Oct 6: the local model stays the reader (the Mac Studio's DeepSeek model since Nov 14).
 const TODOS: SeededTodo[] = [];
 const TODO_SECTIONS = ["Reader", "Studios", "Mine"];
 
@@ -91,7 +91,7 @@ const BUILT: Array<{ when: string; items: string[] }> = [
       "Downtown Seattle, Belltown, Pioneer Square and Chinatown-International District searched: 9 studios added. Fixed a second case of one page mixing locations: Breathe Hot Yoga (Capitol Hill, now with Belltown) and Flow Fitness (Fremont, now with South Lake Union) were showing every club's classes under one name.",
       "Next to Capitol Hill: 11 studios added (Central District, Eastlake, South Lake Union, Montlake), each checked against its own calendar. Also fixed: Seattle Strength Queen Anne was showing classes from five other locations; it now keeps only its own.",
       "Experience Momentum (Fremont) reads from its Mindbody schedule: 39 classes live. JETSET, Coeur, Cambio and Studio Jacks are marked with why they can't be read; Seed stays in the list until it posts classes.",
-      "The reader runs every night at 10 PM instead of 10 AM, still on the local Qwen model, so the page is fresh by morning.",
+      "The reader runs every night at 10 PM instead of 10 AM, on the Mac Studio's model, so the page is fresh by morning.",
       "Claude as the reader is built but parked: no key for now; the local model does the job.",
       "This board.",
     ],
@@ -125,7 +125,7 @@ const ROADMAP: Array<{ title: string; detail: string; status: "done" | "waiting"
   { title: "Two live studios still mix locations", detail: "Done Oct 7. HIIT Lab and The Grinning Yogi Capitol Hill list every club on one page; the reader now walks their Momence day buttons properly (the dots under a day's number hid them) and dates a past Sunday as this month, so the `location` filter could go on. HIIT Lab West Seattle added on the same widget.", status: "done" },
   { title: "South Seattle, West Seattle and the central leftovers", detail: "Done Oct 7. 24 studios added: Club Pilates (Mount Baker, West Seattle), SOL Yoga, StarCycle, Vitality Pilates Mount Baker, Breathe West Seattle, YogaSix, Pure Barre Columbia City, F45 Queen Anne, barre3 and HIIT Lab West Seattle, Core Havn, Hot Yoga Now, Yoga On Beacon, Columbia City Yoga and more. Week-grid gyms (Loft, Vice, Rainier Health, RHF CrossFit, Delridge, South Seattle CrossFit, West Seattle Pilates and Fitness) added later the same day; still held back: 777 Strength (Open Gym blocks only), SODO Fitness Mechanics (unverified), Rocket (programming-only rows), Rosefit (open gym and appointments), Inspire West Seattle (identical to Ballard), one-day reads (GymSmithy, VSAC, Magnolia CrossFit, West Seattle Health Club, The Seattle Gym, Muok Boxing), Inner Alchemy (workshops). 41 studios have no readable schedule or block robots (Fuerte, PUSH, Boston Street, BT Strong, CrossFit West Seattle, Emerald City Athletics, Flyer Fitness, Opus Movement, Momentum SODO and more).", status: "done" },
   { title: "Mariana Tek studios read exactly", detail: "Five of the busiest studios, from their widget's own data. Done Oct 6.", status: "done" },
-  { title: "Faster reads with Claude", detail: "Built and parked Oct 6: the local Qwen model stays the reader. An Anthropic key in the job's .env turns it on any time; the 95-minute run would drop to minutes.", status: "later" },
+  { title: "Faster reads with Claude", detail: "Built and parked Oct 6: the local model stays the reader (the Mac Studio's DeepSeek model since Nov 14). An Anthropic key in the job's .env turns it on any time; the 95-minute run would drop to minutes.", status: "later" },
   { title: "Studios that still don't read", detail: "Done Oct 6. Experience Momentum now reads from its Mindbody page (39 classes). The rest can't be read for good reasons: JETSET isn't open yet, Coeur opens Nov 9, Cambio and Studio Jacks are appointments only, Seed's calendar has no classes posted (the job keeps checking). Posto and Bouldering Project block readers.", status: "done" },
   { title: "Speed-ups for the model path", detail: "Trim menus and footers before the model reads a page; skip days that haven't changed; a smaller model for clean pages. After about 60 studios.", status: "later" },
   { title: "More booking-system readers", detail: "Mindbody, Walla, Momence, WellnessLiving, Glofox: the same exact-data trick as Mariana Tek.", status: "later" },

@@ -3,6 +3,7 @@ Default model for this project: Sonnet. Use Opus only when I say 'use Opus'.
 @AGENTS.md
 
 # Qwen Gateway — operating rules for the orchestrator
+(Historical name: the worker is DeepSeek V4-Flash on the Mac Studio. There is no Qwen model on the MacBook or the Studio since 2026-11-14.)
 
 ## Before any coding task
 Read the stack status: a hook prints it with every message (if it's missing, run `bash ~/.claude/skills/stack/stack.sh status`). If beezer or the `Studio model` line is OFF, run `/stack on beezer` and wait for it before delegating. Trust the latest status, not what you remember. The `Qwen server` line no longer matters for this project.
