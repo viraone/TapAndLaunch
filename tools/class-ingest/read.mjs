@@ -1,10 +1,10 @@
 // FitnessNav class reader. Runs on the owner's Mac (not in the cloud), every night at 10 PM (see install-daily.sh):
 // for each studio it finds the class schedule page (following the studio's own links, a few common schedule addresses,
-// and booking widgets in frames), clicks through day tabs, has the local model (Ollama) list the classes, and keeps only
+// and booking widgets in frames), clicks through day tabs, has the Studio model (DeepSeek on the Mac Studio) list the classes, and keeps only
 // classes whose name and start time appear on the page. Saves to out/ only; nothing goes to a database yet.
 // Usage: node read.mjs studios.json out-dir [--only "name"]
 // ANTHROPIC_API_KEY (env or .env here): read with Claude (FN_CLAUDE_MODEL, default claude-haiku-4-5), 10 studios at a time;
-// without it, the local Ollama model, 3 at a time. FN_PARALLEL overrides; FN_CACHE=where schedule pages are remembered.
+// without it, the Studio model, 3 at a time. FN_PARALLEL overrides; FN_CACHE=where schedule pages are remembered.
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -13,18 +13,19 @@ import { chromium } from "playwright";
 import robotsParser from "robots-parser";
 import Anthropic from "@anthropic-ai/sdk";
 import { makeHelpers } from "./helpers.mjs";
+import { studioChat, studioUp, STUDIO_MODEL } from "../studio-chat.mjs";
 
 const [studiosFile, outDir] = process.argv.slice(2);
 const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1].toLowerCase() : null;
 fs.mkdirSync(outDir, { recursive: true });
 // Which model reads the pages. With an ANTHROPIC_API_KEY (in the environment or this folder's .env) it is Claude, hosted:
-// seconds per page and many studios at once. Without one it is the local model (Ollama), which takes minutes per page.
+// seconds per page and many studios at once. Without one it is the Studio model (DeepSeek on the Mac Studio).
 const envFile = path.join(path.dirname(fileURLToPath(import.meta.url)), ".env");
 if (fs.existsSync(envFile)) for (const l of fs.readFileSync(envFile, "utf8").split("\n")) { const m = /^([A-Z0-9_]+)=(.*)$/.exec(l.trim()); if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, ""); }
 const HOSTED = !!process.env.ANTHROPIC_API_KEY;
 const claude = HOSTED ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 }) : null;
 const CLAUDE_MODEL = process.env.FN_CLAUDE_MODEL ?? "claude-haiku-4-5";
-const MODEL = "qwen3.8:27b";
+const MODEL = STUDIO_MODEL;
 // Tokens sent to and received from Claude this run, for the cost line at the end.
 const usage = { input: 0, output: 0, calls: 0 };
 // How many studios are read at the same time. Hosted, the model is not a bottleneck, so many; local, the browsing of one
@@ -577,11 +578,11 @@ async function ask(studio, text) {
       if (attempt === 1) await new Promise((r) => setTimeout(r, 5000));
     }
   }
-  // Hosted and still failing (the key, the network, the service): the local model is the fallback when it is running.
+  // Hosted and still failing (the key, the network, the service): the Studio model is the fallback when it is running.
   if (HOSTED) {
     try {
-      const up = await fetch("http://localhost:11434/api/tags", { signal: AbortSignal.timeout(3000) }).then((r) => r.ok).catch(() => false);
-      if (up) { dbg("falling back to the local model"); return await askOllama(studio, text); }
+      const up = await studioUp();
+      if (up) { dbg("falling back to the Studio model"); return await askStudio(studio, text); }
     } catch {}
   }
   return { is: false, classes: [], failed: true };
@@ -628,28 +629,15 @@ async function askClaude(studio, text) {
 }
 
 async function askOnce(studio, text) {
-  return HOSTED ? askClaude(studio, text) : askOllama(studio, text);
+  return HOSTED ? askClaude(studio, text) : askStudio(studio, text);
 }
 
-async function askOllama(studio, text) {
-  // Streamed: Node's fetch gives up after 5 minutes of silence before the first byte, which happens when this waits in line
-  // behind another request to the model. With streaming the first bytes arrive straight away.
-  const res = await fetch("http://localhost:11434/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: MODEL, stream: true, think: false, format: SCHEMA, options: { temperature: 0, num_ctx: 24576, num_predict: 6000 }, messages: [{ role: "user", content: prompt(studio, text) }] }), signal: AbortSignal.timeout(6 * 60 * 1000 * PARALLEL) });
-  if (!res.ok || !res.body) return { is: false, classes: [] };
-  let content = "";
-  let buf = "";
-  const decoder = new TextDecoder();
-  for await (const chunk of res.body) {
-    buf += decoder.decode(chunk, { stream: true });
-    let nl;
-    while ((nl = buf.indexOf("\n")) >= 0) {
-      const line = buf.slice(0, nl).trim();
-      buf = buf.slice(nl + 1);
-      if (!line) continue;
-      try { content += JSON.parse(line).message?.content ?? ""; } catch {}
-    }
-  }
-  try { const j = JSON.parse(content); return { is: !!j.is_schedule, classes: j.classes ?? [] }; } catch { return { is: false, classes: [] }; }
+async function askStudio(studio, text) {
+  try {
+    const content = await studioChat({ prompt: prompt(studio, text), schema: SCHEMA, maxTokens: 6000, timeoutMs: 6 * 60 * 1000 * PARALLEL });
+    const j = JSON.parse(content);
+    return { is: !!j.is_schedule, classes: j.classes ?? [] };
+  } catch { return { is: false, classes: [] }; }
 }
 
 // ---- checking the answer against the page ----
@@ -934,6 +922,6 @@ if (HOSTED) {
   const est = (usage.input / 1e6) * 1 + (usage.output / 1e6) * 5;
   console.log(`All ${studios.length} studios in ${mins} min (${PARALLEL} at a time, ${CLAUDE_MODEL}): ${usage.calls} requests, ${usage.input.toLocaleString()} tokens in, ${usage.output.toLocaleString()} out, about $${est.toFixed(2)}.`);
 } else {
-  console.log(`All ${studios.length} studios in ${mins} min (${PARALLEL} at a time, local ${MODEL}).`);
+  console.log(`All ${studios.length} studios in ${mins} min (${PARALLEL} at a time, Studio ${MODEL}).`);
 }
 await browser.close();

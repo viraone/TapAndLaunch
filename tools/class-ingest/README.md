@@ -6,7 +6,7 @@ on one page, by day. Google has no class schedules, so this job reads each studi
 1. finds the schedule (the studio's own links, common addresses like `/schedule`, booking widgets inside frames),
    preferring the link named after the studio's neighborhood (chains list every location);
 2. opens it in a headless browser, clicks through day tabs ("Mon 5" … "Sat 10") so one-day-at-a-time widgets give the week;
-3. has the local model (Ollama, `qwen3.8:27b`) list the classes: date, start/end, name, instructor, spots;
+3. has the Studio model (DeepSeek V4-Flash on the Mac Studio) list the classes: date, start/end, name, instructor, spots;
 4. keeps only classes whose name and start time appear on the page;
 5. sorts each class into a type (`classify.mjs`) and marks online ones;
 6. writes `out/`, rebuilds a preview page (`fitnessnav.html`), and saves to the live database when `.env` is set (`save.mjs`).

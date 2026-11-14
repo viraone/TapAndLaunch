@@ -1,6 +1,6 @@
 #!/bin/bash
 # FitnessNav's nightly run (started by launchd at 5 AM, see install-daily.sh): reads every studio's class schedule,
-# then rebuilds the preview page. Keeps the Mac awake while it works, starts Ollama if needed, logs to ~/Library/Logs/fitnessnav.log.
+# then rebuilds the preview page. Keeps the Mac awake while it works, logs to ~/Library/Logs/fitnessnav.log.
 set -u
 cd "$(dirname "$0")"
 LOG="$HOME/Library/Logs/fitnessnav.log"
@@ -18,11 +18,6 @@ NODE="$(command ls -d "$HOME"/.nvm/versions/node/*/bin/node 2>/dev/null | sort -
   fi
   [ -x "$NODE" ] || { echo "node not found"; exit 1; }
   [ -d node_modules/playwright ] || { echo "Packages missing in $(pwd): run ./install-daily.sh again."; exit 1; }
-  if ! curl -s -m 3 http://localhost:11434/api/tags >/dev/null; then
-    echo "Starting Ollama…"
-    open -a Ollama 2>/dev/null || (nohup ollama serve >/dev/null 2>&1 &)
-    for i in $(seq 1 30); do sleep 2; curl -s -m 3 http://localhost:11434/api/tags >/dev/null && break; done
-  fi
   # A fresh folder each run, so a studio that fails today doesn't keep yesterday's classes.
   rm -rf out.new && mkdir out.new
   ONLY=()

@@ -3,25 +3,26 @@
 //   1. checks the site's robots.txt (and skips the site if it asks bots to stay away),
 //   2. opens the home page in a real headless browser, finds the Menu page and opens that too (so
 //      JavaScript-built menus are read, which a server-side fetch can't do),
-//   3. has a local model (Ollama, default qwen3.8:27b) read the page text into sections / dishes / prices,
+//   3. has the Studio model (DeepSeek V4-Flash on the Mac Studio) read the page text into sections / dishes / prices,
 //      (a menu that is a PDF, or pictures of the menu, is read too: the model copies the words off each picture first),
 //   4. throws away anything that doesn't appear on the page, and
 //   5. saves the result for review (out/), and to the database only when run with --write.
-// See README.md. Nothing here costs money; it needs Ollama running and the Mac awake.
+// See README.md. Nothing here costs money; it needs the Mac Studio's model server running and this Mac awake.
 
 import { readFileSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import robotsParser from "robots-parser";
-import { buildHappyHourPrompt, buildPrompt, chunkText, findHappyHourLink, findMenuLink, findMoreLinks, isDue, findPdfMenuLinks, HAPPY_HOUR_SCHEMA, happyHourExcerpts, joinTranscripts, MENU_SCHEMA, mentionsHappyHour, orderQueue, mergePhotoReadings, mergeSections, pdfItemsToLines, sameSite, sanitizeHappyHour, sanitizeMenu, selectMenuImages, TRANSCRIBE_PROMPT, tileGrid, webUrl } from "./lib.mjs";
+import { buildHappyHourPrompt, buildPrompt, chunkText, findHappyHourLink, findMenuLink, findMoreLinks, isDue, findPdfMenuLinks, HAPPY_HOUR_SCHEMA, happyHourExcerpts, joinTranscripts, MENU_SCHEMA, mentionsHappyHour, orderQueue, mergePhotoReadings, mergeSections, pdfItemsToLines, sameSite, sanitizeHappyHour, sanitizeMenu, selectMenuImages, tileGrid, webUrl } from "./lib.mjs";
 import { findVeganOptions } from "./vegan.mjs";
+import { studioChat, studioUp, STUDIO_MODEL, STUDIO_URL } from "../studio-chat.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
 // ---------- options ----------
 function parseArgs(argv) {
-  const o = { near: false, lat: 47.7063, lng: -122.3254, site: "https://livebitesnow.tapandlaunch.com", limit: 20, write: false, force: false, model: "qwen3.8:27b", maxMinutes: 180, ollama: "http://localhost:11434", delayMs: 2500, ids: null, names: null, refreshDays: 14, photos: true, happyOnly: false };
+  const o = { near: false, lat: 47.7063, lng: -122.3254, site: "https://livebitesnow.tapandlaunch.com", limit: 20, write: false, force: false, model: STUDIO_MODEL, maxMinutes: 180, delayMs: 2500, ids: null, names: null, refreshDays: 14, photos: true, happyOnly: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
@@ -39,7 +40,7 @@ function parseArgs(argv) {
     else if (a === "--no-photos") o.photos = false;
     else if (a === "--happy-only") o.happyOnly = true;
     else if (a === "--help") {
-      console.log("node run.mjs [--limit 20] [--near --lat 47.70 --lng -122.32] [--names 'pho an,taco del mar'] [--ids uuid,uuid] [--write] [--force] [--model qwen3.8:27b] [--max-minutes 180] [--no-photos] [--happy-only]\nWithout --write nothing is saved to the database (results are written to out/ for review).");
+      console.log("node run.mjs [--limit 20] [--near --lat 47.70 --lng -122.32] [--names 'pho an,taco del mar'] [--ids uuid,uuid] [--write] [--force] [--model NAME] [--max-minutes 180] [--no-photos] [--happy-only]\nWithout --write nothing is saved to the database (results are written to out/ for review).");
       process.exit(0);
     } else throw new Error(`Unknown option ${a}`);
   }
@@ -365,39 +366,19 @@ async function cutTiles(browser, pic) {
   }
 }
 
-/** Has the vision model copy the words off one picture. */
-async function transcribe(base64) {
-  const res = await fetch(`${opts.ollama}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: opts.model,
-      stream: false,
-      think: false,
-      options: { temperature: 0, num_ctx: 16384 },
-      messages: [{ role: "user", content: TRANSCRIBE_PROMPT, images: [base64] }],
-    }),
-    signal: AbortSignal.timeout(10 * 60 * 1000),
-  });
-  if (!res.ok) throw new Error(`Model error ${res.status}`);
-  return (await res.json()).message?.content ?? "";
+// The Studio model reads text, not pictures, so a menu that exists only as an image cannot be read: nothing is read ("" is what every caller already treats as no text).
+let warnedPictures = false;
+async function transcribe() {
+  if (!warnedPictures) { warnedPictures = true; console.log("Picture-only menus are skipped: the Studio model reads text, not images."); }
+  return "";
 }
 
 // ---------- the model ----------
 async function askModel(name, text) {
-  const body = {
-    model: opts.model,
-    stream: false,
-    think: false,
-    format: MENU_SCHEMA,
-    options: { temperature: 0, num_ctx: 24576 },
-    messages: [{ role: "user", content: buildPrompt(name, text) }],
-  };
   for (let attempt = 0; attempt < 2; attempt++) {
-    const res = await fetch(`${opts.ollama}/api/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(15 * 60 * 1000) });
-    if (!res.ok) throw new Error(`Model error ${res.status}`);
+    const content = await studioChat({ prompt: buildPrompt(name, text), schema: MENU_SCHEMA, maxTokens: 12000, timeoutMs: 15 * 60 * 1000, model: opts.model });
     try {
-      const parsed = JSON.parse((await res.json()).message.content);
+      const parsed = JSON.parse(content);
       return { is_menu: !!parsed.is_menu, sections: Array.isArray(parsed.sections) ? parsed.sections : [] };
     } catch {
       // malformed JSON: ask once more
@@ -525,19 +506,10 @@ async function processMenu(browser, place, seen) {
 
 // ---------- happy hour ----------
 async function askHappyHour(name, excerpt) {
-  const body = {
-    model: opts.model,
-    stream: false,
-    think: false,
-    format: HAPPY_HOUR_SCHEMA,
-    options: { temperature: 0, num_ctx: 16384 },
-    messages: [{ role: "user", content: buildHappyHourPrompt(name, excerpt) }],
-  };
   for (let attempt = 0; attempt < 2; attempt++) {
-    const res = await fetch(`${opts.ollama}/api/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(10 * 60 * 1000) });
-    if (!res.ok) throw new Error(`Model error ${res.status}`);
+    const content = await studioChat({ prompt: buildHappyHourPrompt(name, excerpt), schema: HAPPY_HOUR_SCHEMA, maxTokens: 3000, timeoutMs: 10 * 60 * 1000, model: opts.model });
     try {
-      const parsed = JSON.parse((await res.json()).message.content);
+      const parsed = JSON.parse(content);
       return Array.isArray(parsed.windows) ? parsed.windows : [];
     } catch {
       // malformed JSON: ask once more
@@ -724,9 +696,7 @@ async function saveHappyHour(place, h, missStatus) {
 
 // ---------- main ----------
 async function main() {
-  const tags = await fetch(`${opts.ollama}/api/tags`, { signal: AbortSignal.timeout(5000) }).then((r) => r.json()).catch(() => null);
-  if (!tags) throw new Error(`Ollama isn't running at ${opts.ollama}. Start it (open the Ollama app) and try again.`);
-  if (!tags.models.some((m) => m.name === opts.model)) throw new Error(`Model ${opts.model} isn't installed in Ollama. Installed: ${tags.models.map((m) => m.name).join(", ")}`);
+  if (!(await studioUp())) throw new Error(`The Studio model server isn't answering at ${STUDIO_URL}. Check that the Mac Studio is on and try again.`);
 
   const places = await candidates();
   console.log(`${opts.write ? "WRITING to the LIVE database" : "DRY RUN (nothing is saved to the database)"} | model ${opts.model} | ${places.length} restaurants | limit ${opts.maxMinutes} min`);

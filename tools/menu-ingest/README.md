@@ -5,7 +5,7 @@ Reads restaurant menus into LiveBitesNow's own menu screen, for free, with a loc
 For each restaurant that has a website the job:
 1. checks the site's `robots.txt` and skips the site if it asks bots to stay away;
 2. opens the home page in a real headless browser (so menus built by JavaScript are read), finds the Menu page and opens it;
-3. gives the page text to a local model in Ollama (default `qwen3.8:27b`) to turn into sections, dishes, prices and descriptions;
+3. gives the page text to the Mac Studio's model (DeepSeek V4-Flash, through tools/studio-chat.mjs) to turn into sections, dishes, prices and descriptions;
 4. **throws away anything that isn't found on the page** (the model can't invent dishes), cleans prices, and rejects the whole
    menu if it is too small or too much of it can't be verified;
 5. saves it. The app then shows it in its own menu screen. Restaurants with no saved menu fall back to showing their website.
@@ -16,7 +16,7 @@ the app says where the menu came from and that it may be out of date.
 
 ## One-time setup
 1. `cd tools/menu-ingest && npm install` (already done on this Mac).
-2. Ollama must be installed with a model: `ollama list` should show `qwen3.8:27b`.
+2. The Mac Studio must be on with its model server running (the key is read from ~/.config/omlx-studio/api_key, or STUDIO_API_KEY).
 3. To **save** results (not needed for dry runs) create `tools/menu-ingest/.env` with the LIVE database settings:
    ```
    SUPABASE_URL=https://<your live project>.supabase.co
@@ -37,10 +37,10 @@ Run after the app version with the menu screen is live:
 node run.mjs --write --limit 20
 ```
 Useful options: `--names "a,b"`, `--ids uuid,uuid`, `--force` (re-read even if recent), `--lat/--lng` (dry runs: which area), `--near` (with --lat/--lng and --write: only restaurants within ~2.5 miles of that point),
-`--max-minutes 180`, `--model qwen3.8:27b`.
+`--max-minutes 180`, `--model NAME`.
 
 ## Every day at 10 AM (optional)
-`./install-nightly.sh` turns on a 10:00 AM daily run (change `RUN_HOUR` / `RUN_MINUTE` at the top of that script to move it) (it keeps the Mac awake while it works and starts Ollama if needed).
+`./install-nightly.sh` turns on a 10:00 AM daily run (change `RUN_HOUR` / `RUN_MINUTE` at the top of that script to move it) (it keeps the Mac awake while it works).
 macOS won't let a background job read `~/Desktop`, so the installer copies the job to `~/.livebites-menu-job` and the schedule
 runs it from there. **Run `./install-nightly.sh` again after changing anything in this folder** (it re-copies the files).
 `./install-nightly.sh remove` turns it off. Log: `~/Library/Logs/menu-ingest.log`. If the Mac is off, nothing breaks:
@@ -73,7 +73,7 @@ Check a few against the real page before trusting a new site: "not during specia
 2. **`run.mjs --happy-only`** is the fast pass (about 10 to 20 seconds a place): home page, plus the menu page if the home page doesn't mention happy hour, then the
    model only if a page says "happy hour". Order: places never checked first, then the oldest checks; bars and pubs before other restaurants; chains and
    quick-service spots (McDonald's, coffee shops, bakeries…) are skipped.
-3. **`run.mjs`** is the slow menu pass (menus + happy hours) for what is due.
+3. **`run.mjs`** is the slow menu pass (menus + happy hours) for what is due. Menus that exist only as pictures (an image or a scanned PDF) are skipped, because the Studio model reads text, not images.
 4. **`report.mjs`** sends a push notification to the owner's phone ("LiveBites: 9 happy hours found. Read 120 places… 31 places have a happy hour now").
    `node report.mjs --print` shows it without sending.
 

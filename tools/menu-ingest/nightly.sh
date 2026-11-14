@@ -1,6 +1,6 @@
 #!/bin/bash
 # Daily run (10 AM) of the menu + happy hour job (started by launchd, see install-nightly.sh). Keeps the Mac awake while it works,
-# starts Ollama if it isn't running, and logs to ~/Library/Logs/menu-ingest.log.
+# and logs to ~/Library/Logs/menu-ingest.log.
 set -u
 cd "$(dirname "$0")"
 LOG="$HOME/Library/Logs/menu-ingest.log"
@@ -11,11 +11,6 @@ NODE="$(command ls -d "$HOME"/.nvm/versions/node/*/bin/node 2>/dev/null | sort -
 {
   echo "=== $(date) ==="
   if [ ! -f .env ]; then echo "No tools/menu-ingest/.env (live database keys). See README.md."; exit 1; fi
-  if ! curl -s -m 3 http://localhost:11434/api/tags >/dev/null; then
-    echo "Starting Ollama…"
-    open -a Ollama 2>/dev/null || (nohup ollama serve >/dev/null 2>&1 &)
-    for i in $(seq 1 30); do sleep 2; curl -s -m 3 http://localhost:11434/api/tags >/dev/null && break; done
-  fi
   # caffeinate -i keeps the Mac from sleeping while the job runs; each step stops itself.
   [ -x "$NODE" ] || { echo "node not found"; exit 1; }
   [ -d node_modules/playwright ] || { echo "Packages missing in $(pwd): run ./install-nightly.sh again."; exit 1; }
