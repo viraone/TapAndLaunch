@@ -39,7 +39,8 @@ describe("TvTimerPanel", () => {
     expect(html).toContain("bg-primary");
     expect(html).toContain("text-[16rem]");
     expect(html).not.toContain("bg-amber-400");
-    expect(html).not.toContain("text-8xl");
+    expect(html).not.toContain("px-7 py-2 text-4xl");
+    expect(html).toContain("text-8xl font-black");
   });
 
   it("leads with the next comic's name between comics, with the set length as a pill and no clock", () => {

@@ -104,16 +104,16 @@ export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: strin
               <span />
             )}
           </div>
-          <p className={`mt-4 line-clamp-2 break-words text-7xl font-bold leading-[1.05] ${t.name}`}>{name}</p>
-          <p className={`mt-2 font-black leading-none tabular-nums tracking-tight ${digits.length > 5 ? "text-[9rem]" : digits.length > 4 ? "text-[12rem]" : "text-[16rem]"} ${t.digits}`}>{digits}</p>
-          <div className={`relative mt-8 h-8 w-full rounded-full ${t.track}`}>
+          <p className={`mt-3 line-clamp-2 break-words text-8xl font-black leading-[1.02] ${t.name}`}>{name}</p>
+          <p className={`mt-1 mb-1 font-black leading-none tabular-nums tracking-tight ${digits.length > 5 ? "text-[9rem]" : digits.length > 4 ? "text-[12rem]" : "text-[16rem]"} ${t.digits}`}>{digits}</p>
+          <div className={`relative mt-0 h-8 w-full rounded-full ${t.track}`}>
             <div className={`h-8 rounded-full ${t.bar}`} style={{ width: `${left}%` }} />
             {ticks.map((pct) => (
               <span key={pct} className={`absolute inset-y-0 w-1.5 -translate-x-1/2 rounded-full ${t.tick}`} style={{ left: `${pct}%` }} />
             ))}
           </div>
           {next ? (
-            <div className={`mt-8 flex items-center gap-6 rounded-3xl px-7 py-5 ${t.deck}`}>
+            <div className={`mt-6 flex items-center gap-6 rounded-3xl px-7 py-5 ${t.deck}`}>
               <span className={`shrink-0 rounded-full px-6 py-2 text-3xl font-black uppercase tracking-[0.25em] ${t.tag}`}>On deck</span>
               <p className={`min-w-0 line-clamp-2 break-words text-5xl font-extrabold leading-[1.05] ${t.deckName}`}>{next}</p>
             </div>
