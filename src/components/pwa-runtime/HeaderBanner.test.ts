@@ -3,8 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { HeaderBanner } from "./HeaderBanner";
 
-const render = (banner: { title: string; url: string; label?: string; sub?: string; button?: string }) =>
-  renderToStaticMarkup(createElement(HeaderBanner, { banner }));
+const render = (banner: { title: string; url: string; label?: string; sub?: string; button?: string }, corner?: React.ReactNode) =>
+  renderToStaticMarkup(createElement(HeaderBanner, { banner, corner }));
 
 describe("HeaderBanner", () => {
   it("shows all optional parts and the link attributes", () => {
@@ -21,5 +21,12 @@ describe("HeaderBanner", () => {
     const html = render({ title: "Thanksgiving Leftovers", url: "https://example.com/x" });
     expect(html).not.toContain("uppercase");
     expect(html).not.toContain("rounded-full");
+  });
+
+  it("shows the corner and reserves space for it", () => {
+    const html = render({ title: "Thanksgiving Leftovers", url: "https://example.com/x" }, createElement("span", null, "CORNER"));
+    expect(html).toContain("CORNER");
+    expect(html).toContain("absolute");
+    expect(html).toContain("min-h-10");
   });
 });

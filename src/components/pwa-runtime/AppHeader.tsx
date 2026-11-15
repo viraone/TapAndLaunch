@@ -23,23 +23,25 @@ export function AppHeader({ theme }: { theme: ThemeConfig }) {
   const action = theme.header_action?.page_path ? theme.header_action : undefined;
   const banner = isHeaderBannerActive(theme.header_banner, new Date()) ? theme.header_banner : undefined;
 
+  if (banner) {
+    return (
+      <header className="border-b border-border/70 bg-background px-4 py-4">
+        <HeaderBanner banner={banner} corner={action ? <HeaderCornerLink href={`/${action.page_path.replace(/^\//, "")}`} label={action.label} icon={action.icon} /> : undefined} />
+      </header>
+    );
+  }
+
   return (
     <header className="flex items-center gap-4 border-b border-border/70 bg-background px-4 py-4">
-      {banner ? (
-        <HeaderBanner banner={banner} />
-      ) : (
-        <>
-          {logo && (
-            // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
-            <img src={logo} alt="" className="h-16 w-16 shrink-0 rounded-2xl bg-white object-cover shadow-sm ring-1 ring-black/10" />
-          )}
-          <div className="min-w-0">
-            {title && <p className="truncate text-2xl font-extrabold leading-tight tracking-tight">{title}</p>}
-            <HeaderClock requireSignIn className={title ? "mt-1 text-[15px] font-black tabular-nums leading-none tracking-tight" : "text-3xl font-extrabold tabular-nums leading-none tracking-tight"} />
-            {tagline && <p className="mt-0.5 line-clamp-2 text-[15px] font-medium leading-snug text-muted-foreground">{tagline}</p>}
-          </div>
-        </>
+      {logo && (
+        // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
+        <img src={logo} alt="" className="h-16 w-16 shrink-0 rounded-2xl bg-white object-cover shadow-sm ring-1 ring-black/10" />
       )}
+      <div className="min-w-0">
+        {title && <p className="truncate text-2xl font-extrabold leading-tight tracking-tight">{title}</p>}
+        <HeaderClock requireSignIn className={title ? "mt-1 text-[15px] font-black tabular-nums leading-none tracking-tight" : "text-3xl font-extrabold tabular-nums leading-none tracking-tight"} />
+        {tagline && <p className="mt-0.5 line-clamp-2 text-[15px] font-medium leading-snug text-muted-foreground">{tagline}</p>}
+      </div>
       {action && <HeaderCornerLink href={`/${action.page_path.replace(/^\//, "")}`} label={action.label} icon={action.icon} />}
     </header>
   );

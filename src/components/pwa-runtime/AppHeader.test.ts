@@ -38,4 +38,11 @@ describe("AppHeader", () => {
     expect(html).toContain(LOGO);
     expect(html).not.toContain("Thanksgiving Leftovers");
   });
+
+  it("shows the corner link inside the banner", () => {
+    const html = render({ header_logo_url: LOGO, header_action: { label: "Profile", icon: "user", page_path: "profile" }, header_banner: { title: "Thanksgiving Leftovers", url: "https://example.com/x" } });
+    expect(html).toContain('href="/profile"');
+    expect(html).toContain("Thanksgiving Leftovers");
+    expect(html).not.toContain(LOGO);
+  });
 });

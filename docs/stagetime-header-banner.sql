@@ -7,8 +7,8 @@ update apps
 set theme = jsonb_set(theme, '{header_banner}', '{
   "label": "Food drive · Fri Nov 27",
   "title": "Thanksgiving Leftovers",
-  "sub": "Free with a food donation",
-  "button": "Tickets",
+  "sub": "Free with a food donation · Ballard Food Bank",
+  "button": "Get tickets →",
   "url": "https://www.eventbrite.com/e/thanksgiving-leftovers-tickets-2004679289720",
   "until": "2026-11-27"
 }'::jsonb)
