@@ -9,7 +9,6 @@ set theme = jsonb_set(theme, '{header_banner}', '{
   "title": "Thanksgiving Leftovers",
   "sub": "Free with a food donation · Ballard Food Bank",
   "button": "Get tickets →",
-  "big": "27",
   "chips": [
     {"text": "Seating 6:30 · Show 7:30", "icon": "clock"},
     {"text": "Karaoke after", "icon": "mic"}
