@@ -25,4 +25,17 @@ describe("AppHeader", () => {
   it("renders nothing when the theme asks for no header", () => {
     expect(render({})).toBe("");
   });
+
+  it("shows the banner instead of the logo when the banner is active", () => {
+    const html = render({ header_logo_url: LOGO, header_banner: { title: "Thanksgiving Leftovers", url: "https://example.com/x" } });
+    expect(html).toContain("Thanksgiving Leftovers");
+    expect(html).toContain('href="https://example.com/x"');
+    expect(html).not.toContain(LOGO);
+  });
+
+  it("shows the logo when the banner is expired", () => {
+    const html = render({ header_logo_url: LOGO, header_banner: { title: "Thanksgiving Leftovers", url: "https://example.com/x", until: "2000-01-01" } });
+    expect(html).toContain(LOGO);
+    expect(html).not.toContain("Thanksgiving Leftovers");
+  });
 });

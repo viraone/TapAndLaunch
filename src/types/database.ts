@@ -130,6 +130,8 @@ export interface ThemeConfig {
   /** A round icon link in the header's top-right corner, on every page, for everyone: StageTime's Profile, which
    * moved out of the bottom bar. Icon names are the tab bar's (BottomNav.tsx). */
   header_action?: { label: string; icon: string; page_path: string };
+  /** A tappable banner that takes the logo's place in the header until `until` (YYYY-MM-DD, Seattle date, last day shown). */
+  header_banner?: { label?: string; title: string; sub?: string; button?: string; url: string; until?: string };
   /** Set once the owner has saved their colours in App settings, so the "Get live" checklist can tick that step. */
   looks_confirmed?: boolean;
   /** `show_if`: the tab appears only once that browser switch is on (lib/pwa/nav-flags.ts), e.g. StageTime's Hosts tab.

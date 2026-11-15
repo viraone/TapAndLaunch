@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { HeaderClock } from "@/components/pwa-runtime/HeaderClock";
 import { ShowClockBar } from "@/components/pwa-runtime/ShowClockBar";
 import { RestartShowButton } from "@/components/pwa-runtime/RestartShowButton";
@@ -10,6 +11,7 @@ import { CompSetPickerDemo } from "./CompSetPickerDemo";
 import { VoiceChatBlockView, type VoicePhase, type VoiceTurn } from "@/components/pwa-runtime/VoiceChatBlock";
 import type { ShowClock } from "@/lib/openmic/show-clock";
 import type { LineupFeed } from "@/lib/openmic/selection";
+import type { ThemeConfig } from "@/types/database";
 
 const VOICE_PHASES: VoicePhase[] = ["idle", "recording", "thinking", "speaking"];
 const VOICE_CONFIG = { title: "Talk in Lao", intro: "Tap the button, speak Lao, and hear the answer in Lao.", greeting: "ສະບາຍດີ! ກົດປຸ່ມແລ້ວເວົ້າພາສາລາວໄດ້ເລີຍ." };
@@ -45,6 +47,11 @@ const TV: { label: string; ms: number; running: boolean }[] = [
 ];
 
 const HOST_ROW_FEED: LineupFeed = { show_date: "2026-11-13", posted: true, me: null, lineup: [{ name: "Nick Cody, Noah Rubin, Viradeth", set_length: "5 min", start_time: "7:00 PM" }, { name: "Karen", set_length: "3 min", start_time: "7:05 PM" }, { name: "Bob", set_length: "3 min", start_time: "7:08 PM" }, { name: "Dana", set_length: "3 min", start_time: "7:11 PM" }] };
+
+const HEADER_THEME: ThemeConfig = {
+  header_banner: { label: "Food drive · Fri Nov 27", title: "Thanksgiving Leftovers", sub: "Free with a food donation", button: "Tickets", url: "https://www.eventbrite.com/e/thanksgiving-leftovers-tickets-2004679289720", until: "2099-01-01" },
+  header_action: { label: "Profile", icon: "user", page_path: "profile" },
+};
 
 const BARS: { label: string; clock: ShowClock; started: boolean }[] = [
   { label: "Host bar: before the show", clock: idle, started: false },
@@ -140,6 +147,10 @@ export function DevPreview() {
             <VoiceChatBlockView config={VOICE_CONFIG} live={false} initial={{ phase, turns: phase === "idle" ? [] : VOICE_TURNS }} />
           </div>
         ))}
+      </div>
+      <p className="mb-2 mt-8 text-sm font-semibold">Header banner (phone width)</p>
+      <div className="w-[22rem] overflow-hidden rounded-2xl border bg-black">
+        <AppHeader theme={HEADER_THEME} />
       </div>
     </div>
   );
