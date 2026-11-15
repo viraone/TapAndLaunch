@@ -11,8 +11,7 @@ set theme = jsonb_set(theme, '{header_banner}', '{
   "button": "Get tickets →",
   "image": "https://tapandlaunch.com/promos/thanksgiving-leftovers.jpg",
   "chips": [
-    {"text": "Seating 6:30 · Show 7:30", "icon": "clock"},
-    {"text": "Karaoke after", "icon": "mic"}
+    {"text": "Seating 6:30 · Show 7:30", "icon": "clock"}
   ],
   "url": "https://www.eventbrite.com/e/thanksgiving-leftovers-tickets-2004679289720",
   "until": "2026-11-27"
