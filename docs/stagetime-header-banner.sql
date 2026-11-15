@@ -7,7 +7,6 @@ update apps
 set theme = jsonb_set(theme, '{header_banner}', '{
   "title": "Thanksgiving Leftovers",
   "sub": "Free with a food donation · Ballard Food Bank",
-  "button": "Get tickets →",
   "image": "https://tapandlaunch.com/promos/thanksgiving-leftovers.jpg",
   "url": "https://www.eventbrite.com/e/thanksgiving-leftovers-tickets-2004679289720",
   "until": "2026-11-27"
