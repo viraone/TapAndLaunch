@@ -103,6 +103,23 @@ export function SeattleClock({
   );
 }
 
+export function SignupStatusPill({ open, closesAt, reopenText, className = "" }: { open: boolean; closesAt: string; reopenText: string; className?: string }) {
+  return (
+    <div
+      role="status"
+      className={`${className ? className + " " : ""}inline-flex max-w-full items-center gap-2 rounded-full border px-4 py-2.5 text-[11px] font-semibold min-[375px]:text-xs min-[420px]:text-[13px] ${
+        open ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-300"
+      }`}
+    >
+      <span className="relative flex h-3 w-3">
+        {open && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+        <span className={`relative inline-flex h-3 w-3 rounded-full ${open ? "bg-emerald-400" : "bg-amber-400"}`} />
+      </span>
+      {open ? `Sign-up open · closes ${closesAt.replace(":00 ", " ")}` : `Sign ups are closed - reopens ${reopenText}`}
+    </div>
+  );
+}
+
 /** The show, its date, and the Open/Closed pill. Shared by the page and the local preview. */
 export function SignupHeader({
   config,
@@ -114,6 +131,7 @@ export function SignupHeader({
   startsIn = null,
   reopenText,
   closesAt,
+  pillBelow = false,
 }: {
   config: OpenMicSignupBlockConfig;
   showDate: string;
@@ -124,6 +142,7 @@ export function SignupHeader({
   startsIn?: string | null;
   reopenText: string;
   closesAt: string;
+  pillBelow?: boolean;
 }) {
   return (
     <header>
@@ -145,20 +164,7 @@ export function SignupHeader({
           <p className={`ml-auto shrink-0 self-end pb-1 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-foreground ${hidePill ? "translate-y-[21px]" : ""}`}>Start time</p>
         )}
       </div>
-      {!hidePill && (
-        <div
-          role="status"
-          className={`${config.logo_url || startsIn || showStartTime ? "mt-4 " : ""}inline-flex max-w-full items-center gap-2 rounded-full border px-4 py-2.5 text-[11px] font-semibold min-[375px]:text-xs min-[420px]:text-[13px] ${
-            open ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-300"
-          }`}
-        >
-          <span className="relative flex h-3 w-3">
-            {open && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
-            <span className={`relative inline-flex h-3 w-3 rounded-full ${open ? "bg-emerald-400" : "bg-amber-400"}`} />
-          </span>
-          {open ? `Sign-up open · closes ${closesAt.replace(":00 ", " ")}` : `Sign ups are closed - reopens ${reopenText}`}
-        </div>
-      )}
+      {!hidePill && !pillBelow && <SignupStatusPill open={open} closesAt={closesAt} reopenText={reopenText} className={config.logo_url || startsIn || showStartTime ? "mt-4" : ""} />}
     </header>
   );
 }
@@ -365,7 +371,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   return (
     <div className={pinned ? PINNED_PAGE : "mx-auto w-full max-w-md px-4 pb-12 pt-4"}>
       <div className={pinned ? (showStartTime ? "shrink-0 pb-[5px]" : "shrink-0") : undefined}>
-      <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} showStartTime={showStartTime} label={heading.label} startsIn={heading.startsIn} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
+      <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} showStartTime={showStartTime} label={heading.label} startsIn={heading.startsIn} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} pillBelow />
 
       </div>
 
@@ -433,6 +439,8 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
           <RequestedCard requestId={request.id} showDate={showDate} config={config} />
         ))}
 
+        {!hidePill && <SignupStatusPill open={open} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} reopenText={reopenLabel(window_, now)} className="mt-5" />}
+
       </div>
     </div>
   );
@@ -486,7 +494,7 @@ export function EmailStep({
   }
 
   return (
-    <form onSubmit={send} className="relative mt-7 rounded-3xl border-2 border-primary/70 bg-primary/10 px-4 pb-4 pt-6 shadow-[0_0_28px_rgba(248,113,113,0.22)]">
+    <form onSubmit={send} className="relative mt-4 rounded-3xl border-2 border-primary/70 bg-primary/10 px-4 pb-4 pt-6 shadow-[0_0_28px_rgba(248,113,113,0.22)]">
       <span className="absolute -top-2.5 left-4 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-black uppercase leading-none tracking-[0.2em] text-black">{open ? "Sign up here" : "Sign in"}</span>
       <h2 className="text-[28px] font-extrabold leading-tight tracking-tight">{open ? "Request your spot" : "Sign in to see your status"}</h2>
       <p className="mt-2 text-[17px] leading-snug text-muted-foreground">
