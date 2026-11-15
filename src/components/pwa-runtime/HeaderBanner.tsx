@@ -26,16 +26,17 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
   const big = banner.big?.trim();
   const image = banner.image?.trim();
   const chips = (banner.chips ?? []).filter((chip) => chip.text.trim());
+  const fullBleed = Boolean(image) && !label && chips.length === 0 && !buttonText;
 
   return (
     <div className="relative">
-      <a href={banner.url} target="_blank" rel="noopener noreferrer" className={`relative block overflow-hidden rounded-3xl bg-[linear-gradient(155deg,#ffbe55_0%,#f2a33a_45%,#e8862a_100%)] text-[#1d1424] ${image ? "p-3.5" : "px-[18px] pb-4 pt-[18px]"}`}>
+      <a href={banner.url} target="_blank" rel="noopener noreferrer" className={`relative block overflow-hidden rounded-3xl bg-[linear-gradient(155deg,#ffbe55_0%,#f2a33a_45%,#e8862a_100%)] text-[#1d1424] ${fullBleed ? "" : image ? "p-3.5" : "px-[18px] pb-4 pt-[18px]"}`}>
         {big && !image && (
           <span aria-hidden="true" className="pointer-events-none absolute -right-1.5 top-[58px] select-none text-[150px] font-extrabold leading-none tracking-[-0.06em] text-white/30">
             {big}
           </span>
         )}
-        {(label || corner) && (
+        {!fullBleed && (label || corner) && (
           <span className={`relative block${corner ? (label ? " pr-12" : " min-h-10 pr-12") : ""}`}>
             {label && (
               <span className="inline-block max-w-full truncate rounded-full bg-white px-3 py-1.5 align-top text-[12.5px] font-bold uppercase tracking-[0.1em] text-[#1d1424]">
@@ -48,7 +49,7 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
         {image && (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={image} alt={title} width={1200} height={1142} decoding="async" className="relative mt-3 block h-auto w-full rounded-2xl ring-1 ring-black/10" />
+            <img src={image} alt={title} width={1200} height={1142} decoding="async" className={fullBleed ? "relative block h-auto w-full" : "relative mt-3 block h-auto w-full rounded-2xl ring-1 ring-black/10"} />
           </>
         )}
         <span className={image ? "sr-only" : `${label || corner ? "mt-5 " : ""}relative block text-[34px] font-extrabold leading-none tracking-[-0.035em]`}>{title}</span>

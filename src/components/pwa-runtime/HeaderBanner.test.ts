@@ -75,4 +75,17 @@ describe("HeaderBanner", () => {
     const html2 = render({ title: "T", url: "https://example.com/x" });
     expect(html2).not.toContain("<img");
   });
+
+  it("fills the card edge to edge when image has no label, chips, or button", () => {
+    const html = render({ title: "Show", url: "https://example.com", image: "/x.jpg" });
+    expect(html).toContain('class="relative block h-auto w-full"');
+    expect(html).not.toContain("p-3.5");
+    expect(html).not.toContain("mt-3");
+  });
+
+  it("keeps padding and rounding when image has a button", () => {
+    const html = render({ title: "Show", url: "https://example.com", image: "/x.jpg", button: "Tickets →" });
+    expect(html).toContain("rounded-2xl");
+    expect(html).toContain("p-3.5");
+  });
 });
