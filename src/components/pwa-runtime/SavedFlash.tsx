@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Check } from "lucide-react";
 
 /** A big card in the middle of the screen that says something was saved, then goes away by itself. It never blocks taps. */
-export function SavedFlash({ message, onDone, ms = 2300 }: { message: string; onDone: () => void; ms?: number }) {
+export function SavedFlash({ message, onDone, ms = 2200 }: { message: string; onDone: () => void; ms?: number }) {
   useEffect(() => {
     const id = setTimeout(onDone, ms);
     return () => clearTimeout(id);
