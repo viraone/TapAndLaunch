@@ -38,7 +38,7 @@ export function FilesBlockView({ config, live }: { config: FilesBlockConfig; liv
                 </span>
                 <span className="min-w-0 flex-1">
                   <EditableText as="span" path={["items", i, "label"]} value={item.label} fallback={fileName(item.url)} placeholder={fileName(item.url)} className="line-clamp-2 block text-[15px] font-semibold leading-snug" />
-                  <EditableText as="span" path={["items", i, "note"]} value={item.note} placeholder="A short note" className="mt-0.5 block text-sm leading-snug text-muted-foreground" />
+                  <EditableText as="span" path={["items", i, "note"]} value={item.note} placeholder="A short note" className="mt-0.5 block text-sm font-semibold leading-snug text-foreground" />
                 </span>
                 <Lock className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
               </div>
@@ -54,7 +54,7 @@ export function FilesBlockView({ config, live }: { config: FilesBlockConfig; liv
                 </span>
                 <span className="min-w-0 flex-1">
                   <EditableText as="span" path={["items", i, "label"]} value={item.label} fallback={fileName(item.url)} placeholder={fileName(item.url)} className="line-clamp-2 block text-[15px] font-semibold leading-snug" />
-                  <EditableText as="span" path={["items", i, "note"]} value={item.note} placeholder="A short note" className="mt-0.5 block text-sm leading-snug text-muted-foreground" />
+                  <EditableText as="span" path={["items", i, "note"]} value={item.note} placeholder="A short note" className="mt-0.5 block text-sm font-semibold leading-snug text-foreground" />
                 </span>
                 <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
               </a>
@@ -81,7 +81,7 @@ export function FilesBlockView({ config, live }: { config: FilesBlockConfig; liv
             </span>
             <span className="min-w-0 flex-1">
               <EditableText as="span" path={["title"]} value={config.title} placeholder="Files" className="block text-lg font-extrabold tracking-tight @lg:text-2xl" />
-              <EditableText as="span" path={["intro"]} value={config.intro} placeholder="A line under the title" className="mt-0.5 block text-sm text-muted-foreground" />
+              <EditableText as="span" path={["intro"]} value={config.intro} placeholder="A line under the title" className="mt-0.5 block text-sm font-semibold text-foreground" />
             </span>
             <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-bold text-primary">{count}</span>
             <ChevronDown className={`h-5 w-5 shrink-0 text-muted-foreground transition ${open ? "rotate-180" : ""}`} aria-hidden="true" />
