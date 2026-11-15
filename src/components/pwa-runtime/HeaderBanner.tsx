@@ -26,7 +26,7 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
   const big = banner.big?.trim();
   const image = banner.image?.trim();
   const chips = (banner.chips ?? []).filter((chip) => chip.text.trim());
-  const fullBleed = Boolean(image) && !label && chips.length === 0 && !buttonText;
+  const fullBleed = Boolean(image) && !label && chips.length === 0;
 
   return (
     <div className="relative">
@@ -78,8 +78,8 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
           </span>
         )}
         {buttonText && (
-          <span className={`relative flex items-center justify-between rounded-full bg-[#1d1424] py-1.5 pl-5 pr-1.5 ${image ? "mt-3" : "mt-4"}`}>
-            <span className="text-[15.5px] font-bold tracking-tight text-white">{buttonText}</span>
+          <span className={`relative flex items-center justify-between rounded-full bg-[#1d1424] py-1.5 pl-5 pr-1.5 ${fullBleed ? "mx-3.5 mb-3.5 mt-3" : image ? "mt-3" : "mt-4"}`}>
+            <span className="pr-2 text-[15.5px] font-bold leading-tight tracking-tight text-white">{buttonText}</span>
             <span className="flex size-[42px] items-center justify-center rounded-full bg-white text-[#1d1424]">
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M7 17 17 7" />
