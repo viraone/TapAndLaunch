@@ -137,7 +137,7 @@ export function SignupHeader({
           />
         )}
         <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-x-2.5"><p className="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">{label}</p>
+          <div className="flex flex-wrap items-baseline gap-x-2"><p className="text-2xl font-black tracking-tight text-primary sm:text-3xl">{label}</p>
           <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{showDate}</h1></div>
           {startsIn && <p className="mt-1.5 text-[13px] font-bold tabular-nums leading-none text-muted-foreground">{startsIn}</p>}
         </div>
