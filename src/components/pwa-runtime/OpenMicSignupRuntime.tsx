@@ -486,13 +486,15 @@ export function EmailStep({
   }
 
   return (
-    <form onSubmit={send} className="pt-2">
+    <form onSubmit={send} className="relative mt-7 rounded-3xl border-2 border-primary/70 bg-primary/10 px-4 pb-4 pt-6 shadow-[0_0_28px_rgba(248,113,113,0.22)]">
+      <span className="absolute -top-2.5 left-4 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-black uppercase leading-none tracking-[0.2em] text-black">{open ? "Sign up here" : "Sign in"}</span>
       <h2 className="text-[28px] font-extrabold leading-tight tracking-tight">{open ? "Request your spot" : "Sign in to see your status"}</h2>
       <p className="mt-2 text-[17px] leading-snug text-muted-foreground">
         {open ? "First time or returning, enter your email. We'll send a 6-digit code, no password." : "Enter your email. We'll send a 6-digit code, no password."}
       </p>
-      <div className="relative mt-5">
-        <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" aria-hidden="true" />
+      <label htmlFor="openmic-email" className="mt-5 block text-[15px] font-bold text-foreground">Your email</label>
+      <div className="relative mt-2">
+        <Mail className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-primary" aria-hidden="true" />
         <input
           id="openmic-email"
           type="email"
@@ -508,9 +510,7 @@ export function EmailStep({
           onInvalid={() => setInvalid(true)}
           aria-invalid={invalid}
           placeholder="you@example.com"
-          className={`h-14 w-full rounded-2xl border bg-muted/60 pl-12 pr-4 text-lg outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30 ${
-            invalid ? "border-red-500 ring-2 ring-red-500/30" : ""
-          }`}
+          className={`h-16 w-full rounded-2xl border-2 bg-white pl-12 pr-4 text-xl font-semibold text-black outline-none transition placeholder:font-normal placeholder:text-zinc-500 focus:border-primary focus:ring-4 focus:ring-primary/40 ${invalid ? "border-red-500 ring-4 ring-red-500/30" : "border-white"}`}
         />
       </div>
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
