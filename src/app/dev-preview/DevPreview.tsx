@@ -1,6 +1,7 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
+import { SavedFlash } from "@/components/pwa-runtime/SavedFlash";
 import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { HeaderClock } from "@/components/pwa-runtime/HeaderClock";
 import { ShowClockBar } from "@/components/pwa-runtime/ShowClockBar";
@@ -63,8 +64,11 @@ const BARS: { label: string; clock: ShowClock; started: boolean }[] = [
 ];
 
 export function DevPreview() {
+  const [flash, setFlash] = useState(false);
   return (
     <div style={THEME} className="min-h-dvh p-6">
+      <button type="button" onClick={() => setFlash(true)} className="mb-4 rounded-lg bg-sky-400 px-4 py-2 font-bold text-black">Show saved card</button>
+      {flash && <SavedFlash message="Set Evan Hales to 2 min" onDone={() => setFlash(false)} />}
       <p className="mb-6 text-sm text-muted-foreground">Dev preview: fixed states, never shown in production.</p>
       <p className="mb-2 text-sm font-semibold">Header clock (above the avatar)</p>
       <div className="mb-8 inline-flex flex-col items-center gap-1 rounded-xl border p-3">

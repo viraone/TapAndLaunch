@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { Home, Loader2, Lock, Tv, Undo2 } from "lucide-react";
@@ -11,7 +11,9 @@ import { isShowAdmin, setSpotlight, spotlightIndex, useSpotlight, ymd } from "@/
 import { applyComicMinutes, comicMinutes, eachMinutes, nameKey, setComicMinutes, setEachMinutes } from "@/lib/openmic/set-minutes";
 import { setMinutes } from "@/lib/openmic/start-times";
 import { CompSetPicker } from "./CompSetPicker";
+import { SavedFlash } from "./SavedFlash";
 import { RestartShowButton } from "./RestartShowButton";
+import { hapticSuccess } from "@/lib/haptics";
 import { resetClock } from "@/lib/openmic/show-clock-actions";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { upNextStatus } from "@/lib/openmic/push";
@@ -97,7 +99,9 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
   /** What happened on the highlighted comic's phone after the last move. */
   const [told, setTold] = useState<string | null>(null);
   const [lengthError, setLengthError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<{ id: number; text: string } | null>(null);
   const [target, setTarget] = useState("");
+  const clearSaved = useCallback(() => setSaved(null), []);
 
   const lineup = feed?.lineup ?? [];
   const current = spotlightIndex(spotlight, lineup, showYmd);
@@ -127,7 +131,8 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
       toast.error("That didn't save. Try again.");
       return false;
     }
-    toast.success(minutes === null ? (pickedTarget ? `${who} is back to the same as everyone` : "Back to the sheet's lengths") : `Set ${who} to ${minutes} min`);
+    setSaved({ id: Date.now(), text: minutes === null ? (pickedTarget ? `${who} is back to the same as everyone` : "Back to the sheet's lengths") : `Set ${who} to ${minutes} min` });
+    hapticSuccess();
     return true;
   }
 
@@ -187,6 +192,7 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
           <span className="flex w-10 justify-end">{saving ? <Loader2 className="h-5 w-5 animate-spin text-white/70" aria-hidden="true" /> : null}</span>
         </div>
         <CompSetPicker targets={targets} selected={pickedTarget ? pickedTarget.key : ""} onSelect={setTarget} allMinutes={dictated} fallback={sheetMinutes} hasOverrides={dictated !== null || Object.keys(each).length > 0} saving={saving} error={lengthError} onChange={(minutes) => changeMinutes(minutes)} />
+        {saved && <SavedFlash key={saved.id} message={saved.text} onDone={clearSaved} />}
 
         {/* Who is on the board now. */}
         <div className="mt-6 text-center">
