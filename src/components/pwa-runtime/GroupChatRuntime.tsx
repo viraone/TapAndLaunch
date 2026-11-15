@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { ArrowUp, ImagePlus, Loader2, X } from "lucide-react";
 import type { GroupChatBlockConfig } from "@/types/database";
 import type { ChatPerson } from "@/lib/chat/mentions";
 import { PushOptIn } from "./PushOptIn";
+import { shrinkPhoto } from "@/lib/chat/shrink-photo";
 import { GroupChatMessageList, type GroupChatMessage } from "./GroupChatMessageList";
 
 /**
@@ -104,6 +105,9 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
   const [messages, setMessages] = useState<GroupChatMessage[]>([]);
   const [people, setPeople] = useState<ChatPerson[]>([]);
   const [text, setText] = useState("");
+  const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   // Where the caret is in `text`, so typing an @ can show names for the word being finished.
   const [caret, setCaret] = useState(0);
   const [mentionDismissed, setMentionDismissed] = useState(false);
@@ -495,17 +499,43 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
     }
   };
 
+  const clearPhoto = () => {
+    if (photo) URL.revokeObjectURL(photo.url);
+    setPhoto(null);
+  };
+
+  const pickPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setPhotoBusy(true);
+    setSendError("");
+    try {
+      const blob = await shrinkPhoto(file);
+      if (photo) URL.revokeObjectURL(photo.url);
+      setPhoto({ blob, url: URL.createObjectURL(blob) });
+    } catch {
+      setSendError("That photo couldn't be opened. Try another one.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
   const send = async () => {
     const body = text.trim();
-    if (!body || sending) return;
+    if ((!body && !photo) || sending) return;
     setSending(true);
     setSendError("");
     try {
-      const res = await fetch(`${apiBase}/group-chat/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body, page: returnTo }),
-      });
+      let init: RequestInit;
+      if (photo) {
+        const form = new FormData();
+        form.append("image", photo.blob, "photo.jpg");
+        form.append("body", body);
+        form.append("page", returnTo);
+        init = { method: "POST", body: form };
+      } else {
+        init = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body, page: returnTo }) };
+      }
+      const res = await fetch(`${apiBase}/group-chat/messages`, init);
       if (res.status === 401) {
         clearChat();
         setStatus("sign_in");
@@ -522,6 +552,7 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
       setMessages((prev) => mergeMessages(prev, [message]));
       if (message.id > lastId.current) lastId.current = message.id;
       setText("");
+      clearPhoto();
     } catch {
       setSendError("Your message didn't send. Try again.");
     } finally {
@@ -734,7 +765,7 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
                 does instead of leaving the middle of the screen empty; once the messages overflow it is gone and the
                 list scrolls as usual. */}
             <div className="flex-1" aria-hidden="true" />
-            <GroupChatMessageList messages={messages} timeZone={timeZone} people={people} viewerName={viewer.display_name} />
+            <GroupChatMessageList messages={messages} timeZone={timeZone} people={people} viewerName={viewer.display_name} apiBase={apiBase} />
           </>
         )}
       </div>
@@ -771,12 +802,51 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
       )}
 
       <form
-        className="flex shrink-0 items-end gap-2 border-t border-border py-3"
+        className="flex shrink-0 flex-wrap items-end gap-2 border-t border-border py-3"
         onSubmit={(e) => {
           e.preventDefault();
           void send();
         }}
       >
+        {(photo || photoBusy) && (
+          <div className="relative basis-full">
+            {photo ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photo.url} alt="Photo to send" className="h-20 w-20 rounded-xl object-cover" />
+                <button
+                  type="button"
+                  aria-label="Remove photo"
+                  onClick={clearPhoto}
+                  className="absolute left-[4.25rem] top-[-6px] grid h-6 w-6 place-items-center rounded-full bg-background text-foreground ring-1 ring-border"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            )}
+          </div>
+        )}
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            void pickPhoto(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
+        <button
+          type="button"
+          aria-label="Add a photo"
+          disabled={sending || photoBusy}
+          onClick={() => fileInput.current?.click()}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground active:opacity-80 disabled:opacity-40"
+        >
+          <ImagePlus className="h-5 w-5" />
+        </button>
         <textarea
           ref={textarea}
           value={text}
@@ -809,7 +879,7 @@ export function GroupChatRuntime({ config }: { config: GroupChatBlockConfig }) {
         <button
           type="submit"
           aria-label="Send"
-          disabled={sending || !text.trim()}
+          disabled={sending || photoBusy || (!text.trim() && !photo)}
           className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground active:opacity-80 disabled:opacity-40"
         >
           {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-6 w-6" strokeWidth={2.5} />}

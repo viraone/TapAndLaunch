@@ -31,7 +31,7 @@ export async function notifyGroupChat(
     // "Dana (teacher): Is the mic list up yet?" — role matters to a student glancing at a locked phone.
     const who = senderRole === "teacher" ? `${senderName} (teacher)` : senderName;
     const words = body.replace(/\s+/g, " ").trim();
-    const preview = words.length > ALERT_CHARS ? `${words.slice(0, ALERT_CHARS)}…` : words;
+    const preview = words.length === 0 ? "📷 Photo" : words.length > ALERT_CHARS ? `${words.slice(0, ALERT_CHARS)}…` : words;
     const mentionedNames = new Set(mentioned.map((name) => name.toLowerCase()));
 
     const results = await Promise.allSettled(

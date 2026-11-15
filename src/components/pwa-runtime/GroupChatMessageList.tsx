@@ -15,6 +15,7 @@ export interface GroupChatMessage {
   author_name: string;
   author_role: "student" | "teacher";
   body: string;
+  has_image: boolean;
   mine: boolean;
 }
 
@@ -26,6 +27,7 @@ export function GroupChatMessageList({
   timeZone,
   people,
   viewerName,
+  apiBase,
 }: {
   messages: GroupChatMessage[];
   timeZone: string;
@@ -33,6 +35,7 @@ export function GroupChatMessageList({
   people?: ChatPerson[];
   /** The signed-in viewer's display name, used to single out a mention of themselves. */
   viewerName?: string;
+  apiBase: string;
 }) {
   const day = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
   const time = (iso: string) => new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" }).format(new Date(iso));
@@ -93,21 +96,33 @@ export function GroupChatMessageList({
               </p>
             )}
             <div
-              className={`max-w-[80%] overflow-hidden rounded-2xl ${
+              className={`max-w-[80%] overflow-hidden rounded-2xl ${m.has_image ? "w-64 " : ""}${
                 m.mine ? "ml-auto rounded-br-md bg-primary text-primary-foreground" : "mr-auto rounded-bl-md bg-muted text-foreground"
               }`}
             >
-              <p className="whitespace-pre-wrap break-words px-3.5 py-2 text-[17px] leading-snug">
-                {parts.map((part, index) =>
-                  part.mention ? (
-                    <span key={index} className={mentionClassName(part.text)}>
-                      {part.text}
-                    </span>
-                  ) : (
-                    <span key={index}>{part.text}</span>
-                  )
-                )}
-              </p>
+              {m.has_image && (
+                <a href={`${apiBase}/group-chat/image/${m.id}`} target="_blank" rel="noreferrer" className="block">
+                  <img
+                    src={`${apiBase}/group-chat/image/${m.id}`}
+                    alt={`Photo from ${m.author_name}`}
+                    loading="lazy"
+                    className="block h-64 w-full object-cover"
+                  />
+                </a>
+              )}
+              {m.body.trim() !== "" && (
+                <p className="whitespace-pre-wrap break-words px-3.5 py-2 text-[17px] leading-snug">
+                  {parts.map((part, index) =>
+                    part.mention ? (
+                      <span key={index} className={mentionClassName(part.text)}>
+                        {part.text}
+                      </span>
+                    ) : (
+                      <span key={index}>{part.text}</span>
+                    )
+                  )}
+                </p>
+              )}
             </div>
           </li>
         );

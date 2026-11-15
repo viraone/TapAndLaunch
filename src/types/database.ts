@@ -990,6 +990,7 @@ export interface Database {
           author_name: string;
           author_role: "student" | "teacher";
           body: string;
+          image_path: string | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["group_chat_messages"]["Row"]> & {
@@ -997,8 +998,11 @@ export interface Database {
           author_name: string;
           author_role: "student" | "teacher";
           body: string;
+          image_path?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["group_chat_messages"]["Row"]>;
+        Update: Partial<Database["public"]["Tables"]["group_chat_messages"]["Row"]> & {
+          image_path?: string | null;
+        };
         Relationships: [];
       };
       /** One emailed sign-in code for the group chat (migration 0051). Only the hash is stored; service-role routes
