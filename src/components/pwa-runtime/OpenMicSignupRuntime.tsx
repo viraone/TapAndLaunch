@@ -363,13 +363,13 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   }
 
   return (
-    <div className={pinned ? PINNED_PAGE : "mx-auto w-full max-w-md px-4 pb-12 pt-8"}>
+    <div className={pinned ? PINNED_PAGE : "mx-auto w-full max-w-md px-4 pb-12 pt-4"}>
       <div className={pinned ? (showStartTime ? "shrink-0 pb-[5px]" : "shrink-0") : undefined}>
       <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} showStartTime={showStartTime} label={heading.label} startsIn={heading.startsIn} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} />
 
       </div>
 
-      <div className={pinned ? PINNED_SCROLL + (showStartTime ? " [&>*:first-child]:-mt-[5px]" : "") : "mt-6"}>
+      <div className={pinned ? PINNED_SCROLL + (showStartTime ? " [&>*:first-child]:-mt-[5px]" : "") : "mt-3"}>
         {phase === "loading" && (
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
