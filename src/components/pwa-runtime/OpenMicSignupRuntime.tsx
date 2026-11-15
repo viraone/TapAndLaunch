@@ -148,7 +148,7 @@ export function SignupHeader({
       {!hidePill && (
         <div
           role="status"
-          className={`mt-4 inline-flex max-w-full items-center gap-2 rounded-full border px-4 py-2.5 text-[11px] font-semibold min-[375px]:text-xs min-[420px]:text-[13px] ${
+          className={`${config.logo_url || startsIn || showStartTime ? "mt-4 " : ""}inline-flex max-w-full items-center gap-2 rounded-full border px-4 py-2.5 text-[11px] font-semibold min-[375px]:text-xs min-[420px]:text-[13px] ${
             open ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-300"
           }`}
         >
