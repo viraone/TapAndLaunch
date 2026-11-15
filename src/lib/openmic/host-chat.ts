@@ -12,6 +12,8 @@ import { HIDE_CALENDAR_FLAG, hidesCalendarTab } from "./calendar-tab";
  */
 export const HOSTS_NAV_FLAG = "openmic-hosts";
 export const COMIC_NAV_FLAG = "openmic-comic";
+/** On for anyone signed in: tabs marked show_if "openmic-signed-in" stay hidden until the 6-digit code is verified. */
+export const SIGNED_IN_NAV_FLAG = "openmic-signed-in";
 
 /** Flips the two tab switches for whoever is signed in, and says whether they are a host (false if unknown). */
 export async function syncChatTabs(client: SupabaseClient, user: User | null): Promise<boolean> {
@@ -19,12 +21,14 @@ export async function syncChatTabs(client: SupabaseClient, user: User | null): P
     setEmailNavFlag(null);
     setNavFlag(HOSTS_NAV_FLAG, false);
     setNavFlag(COMIC_NAV_FLAG, false);
+    setNavFlag(SIGNED_IN_NAV_FLAG, false);
     setNavFlag(HIDE_CALENDAR_FLAG, false);
     setSignedInName(null);
     return false;
   }
   // A tab meant for one account (show_if "openmic-email:<address>") follows the signed-in address.
   setEmailNavFlag(user.email ?? null);
+  setNavFlag(SIGNED_IN_NAV_FLAG, true);
   setNavFlag(HIDE_CALENDAR_FLAG, hidesCalendarTab(user.email));
   // The header's corner avatar: a name another screen already stored for this person (a host's display name) stays.
   if (readSignedInName()?.id !== user.id) {
