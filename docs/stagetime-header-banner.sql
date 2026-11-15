@@ -5,7 +5,6 @@
 begin;
 update apps
 set theme = jsonb_set(theme, '{header_banner}', '{
-  "label": "Food drive · Fri Nov 27",
   "title": "Thanksgiving Leftovers",
   "sub": "Free with a food donation · Ballard Food Bank",
   "button": "Get tickets →",
