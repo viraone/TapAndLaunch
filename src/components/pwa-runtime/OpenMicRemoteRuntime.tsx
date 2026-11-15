@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { Home, Loader2, Lock, Tv, Undo2 } from "lucide-react";
+import { toast } from "sonner";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, showDateFor } from "@/lib/openmic/window";
 import { isShowAdmin, setSpotlight, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
@@ -112,15 +113,22 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
     .map((entry) => ({ key: nameKey(entry.name), name: entry.name, minutes: setMinutes(entry.set_length), custom: nameKey(entry.name) in each }));
   const pickedTarget = targets.find((t) => t.key === target) ?? null;
 
-  async function changeMinutes(minutes: number | null) {
-    if (saving) return;
+  async function changeMinutes(minutes: number | null): Promise<boolean> {
+    if (saving) return false;
     setSaving(true);
     setLengthError(null);
+    const who = pickedTarget ? pickedTarget.name : "everyone";
     const problem = pickedTarget
       ? await setEachMinutes(client, lengthDate, each, pickedTarget.name, minutes)
       : await setComicMinutes(client, lengthDate, minutes);
     setSaving(false);
-    if (problem) setLengthError("That didn't save. Check the connection and try again.");
+    if (problem) {
+      setLengthError("That didn't save. Check the connection and try again.");
+      toast.error("That didn't save. Try again.");
+      return false;
+    }
+    toast.success(minutes === null ? (pickedTarget ? `${who} is back to the same as everyone` : "Back to the sheet's lengths") : `Set ${who} to ${minutes} min`);
+    return true;
   }
 
   async function move(index: number) {
@@ -178,7 +186,7 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
           </p>
           <span className="flex w-10 justify-end">{saving ? <Loader2 className="h-5 w-5 animate-spin text-white/70" aria-hidden="true" /> : null}</span>
         </div>
-        <CompSetPicker targets={targets} selected={pickedTarget ? pickedTarget.key : ""} onSelect={setTarget} allMinutes={dictated} fallback={sheetMinutes} hasOverrides={dictated !== null || Object.keys(each).length > 0} saving={saving} error={lengthError} onChange={(minutes) => void changeMinutes(minutes)} />
+        <CompSetPicker targets={targets} selected={pickedTarget ? pickedTarget.key : ""} onSelect={setTarget} allMinutes={dictated} fallback={sheetMinutes} hasOverrides={dictated !== null || Object.keys(each).length > 0} saving={saving} error={lengthError} onChange={(minutes) => changeMinutes(minutes)} />
 
         {/* Who is on the board now. */}
         <div className="mt-6 text-center">

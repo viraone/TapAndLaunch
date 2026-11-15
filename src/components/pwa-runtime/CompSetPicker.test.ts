@@ -74,4 +74,10 @@ describe("CompSetPicker", () => {
     expect(html()).not.toContain('role="listbox"');
     expect(html({ defaultOpen: true })).toContain('role="listbox"');
   });
+
+  it("has a Set for button named after the picked comic, or everyone", () => {
+    expect(html()).toContain("Set for everyone");
+    expect(html({ selected: "karen" })).toContain("Set for Karen");
+    expect(html({ selected: "karen" })).toMatch(/disabled=""[^>]*>Set for/);
+  });
 });

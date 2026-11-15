@@ -30,16 +30,26 @@ export function CompSetPicker({
   hasOverrides: boolean;
   saving: boolean;
   error: string | null;
-  onChange: (minutes: number | null) => void;
+  onChange: (minutes: number | null) => Promise<boolean> | void;
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const [draft, setDraft] = useState<number | null>(null);
   const target = selected === "" ? undefined : targets.find((t) => t.key === selected);
-  const shown = target ? target.minutes : (allMinutes ?? fallback);
+  const current = target ? target.minutes : (allMinutes ?? fallback);
+  const shown = draft ?? current;
+  const dirty = draft !== null && draft !== current;
+  const forName = target ? target.name : "everyone";
+  const save = async () => {
+    if (draft === null) return;
+    const ok = await onChange(draft);
+    if (ok !== false) setDraft(null);
+  };
   // The picked comic's full name is repeated here because the picker cuts a long name short on a phone.
   const sub = target ? `${target.name} · ${target.custom ? "Just this comic" : "Same as everyone"}` : allMinutes !== null ? "Set by the hosts tonight" : hasOverrides ? "From the sheet, some changed" : "From the sheet";
   const resetLabel = target ? (target.custom ? "Same as everyone" : null) : hasOverrides ? "Back to the sheet" : null;
   const pick = (key: string) => {
+    setDraft(null);
     onSelect(key);
     setOpen(false);
   };
@@ -90,20 +100,28 @@ export function CompSetPicker({
         )}
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
-        <button type="button" aria-label="One minute less" disabled={saving || shown <= MIN_COMIC_MINUTES} onClick={() => onChange(shown - 1)} className={step}>
+        <button type="button" aria-label="One minute less" disabled={saving || shown <= MIN_COMIC_MINUTES} onClick={() => setDraft(shown - 1)} className={step}>
           −
         </button>
         <span className="text-center text-4xl font-black tabular-nums text-white">{shown} min</span>
-        <button type="button" aria-label="One minute more" disabled={saving || shown >= MAX_COMIC_MINUTES} onClick={() => onChange(shown + 1)} className={step}>
+        <button type="button" aria-label="One minute more" disabled={saving || shown >= MAX_COMIC_MINUTES} onClick={() => setDraft(shown + 1)} className={step}>
           +
         </button>
       </div>
       <p className="mt-3 text-center text-[14px] text-white/60">{sub}</p>
+      <button
+        type="button"
+        disabled={saving || !dirty}
+        onClick={() => void save()}
+        className="mt-4 flex min-h-14 w-full items-center justify-center rounded-xl bg-sky-400 px-4 py-2 text-center text-[18px] font-black text-black shadow-md transition active:scale-[0.98] disabled:opacity-40"
+      >
+        Set for {forName}
+      </button>
       {resetLabel && (
         <button
           type="button"
           disabled={saving}
-          onClick={() => onChange(null)}
+          onClick={() => { setDraft(null); void onChange(null); }}
           className="mt-3 flex h-11 w-full items-center justify-center rounded-xl border border-sky-400/60 text-[15px] font-bold text-sky-400 active:bg-sky-400/10 disabled:opacity-40"
         >
           {resetLabel}
