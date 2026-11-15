@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { HeaderBanner } from "./HeaderBanner";
 
-const render = (banner: { title: string; url: string; label?: string; sub?: string; button?: string; big?: string; chips?: Array<{ text: string; icon?: "clock" | "mic" }> }, corner?: React.ReactNode) =>
+const render = (banner: { title: string; url: string; label?: string; sub?: string; button?: string; big?: string; image?: string; chips?: Array<{ text: string; icon?: "clock" | "mic" }> }, corner?: React.ReactNode) =>
   renderToStaticMarkup(createElement(HeaderBanner, { banner, corner }));
 
 describe("HeaderBanner", () => {
@@ -60,5 +60,19 @@ describe("HeaderBanner", () => {
     const html = render({ title: "T", url: "https://example.com/x", label: "Food drive" });
     expect(html).toContain("linear-gradient(155deg");
     expect(html).toContain("bg-[#e8442a]");
+  });
+
+  it("shows the flyer instead of the big title and sub when image is given", () => {
+    const html = render({ title: "Thanksgiving Leftovers", url: "https://example.com/x", image: "/promos/x.jpg", sub: "Ballard Food Bank", label: "Food drive", button: "Get tickets", chips: [{ text: "Seating 6:30" }] });
+    expect(html).toContain("<img");
+    expect(html).toContain('src="/promos/x.jpg"');
+    expect(html).toContain('alt="Thanksgiving Leftovers"');
+    expect(html).toContain("sr-only");
+    expect(html).toContain("Seating 6:30");
+    expect(html).toContain("Get tickets");
+    expect(html).not.toContain("text-[34px]");
+    expect(html).not.toContain("Ballard Food Bank");
+    const html2 = render({ title: "T", url: "https://example.com/x" });
+    expect(html2).not.toContain("<img");
   });
 });

@@ -9,6 +9,7 @@ set theme = jsonb_set(theme, '{header_banner}', '{
   "title": "Thanksgiving Leftovers",
   "sub": "Free with a food donation · Ballard Food Bank",
   "button": "Get tickets →",
+  "image": "https://tapandlaunch.com/promos/thanksgiving-leftovers.jpg",
   "chips": [
     {"text": "Seating 6:30 · Show 7:30", "icon": "clock"},
     {"text": "Karaoke after", "icon": "mic"}

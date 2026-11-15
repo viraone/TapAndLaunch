@@ -49,7 +49,7 @@ const TV: { label: string; ms: number; running: boolean }[] = [
 const HOST_ROW_FEED: LineupFeed = { show_date: "2026-11-13", posted: true, me: null, lineup: [{ name: "Nick Cody, Noah Rubin, Viradeth", set_length: "5 min", start_time: "7:00 PM" }, { name: "Karen", set_length: "3 min", start_time: "7:05 PM" }, { name: "Bob", set_length: "3 min", start_time: "7:08 PM" }, { name: "Dana", set_length: "3 min", start_time: "7:11 PM" }] };
 
 const HEADER_THEME: ThemeConfig = {
-  header_banner: { label: "Food drive · Fri Nov 27", title: "Thanksgiving Leftovers", sub: "Free with a food donation · Ballard Food Bank", big: "27", chips: [{ text: "Seating 6:30 · Show 7:30", icon: "clock" }, { text: "Karaoke after", icon: "mic" }], button: "Get tickets →", url: "https://www.eventbrite.com/e/thanksgiving-leftovers-tickets-2004679289720", until: "2099-01-01" },
+  header_banner: { label: "Food drive · Fri Nov 27", title: "Thanksgiving Leftovers", sub: "Free with a food donation · Ballard Food Bank", big: "27", image: "/promos/thanksgiving-leftovers.jpg", chips: [{ text: "Seating 6:30 · Show 7:30", icon: "clock" }, { text: "Karaoke after", icon: "mic" }], button: "Get tickets →", url: "https://www.eventbrite.com/e/thanksgiving-leftovers-tickets-2004679289720", until: "2099-01-01" },
   header_action: { label: "Profile", icon: "user", page_path: "profile" },
 };
 
