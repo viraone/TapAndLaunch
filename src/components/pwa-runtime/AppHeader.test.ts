@@ -45,4 +45,15 @@ describe("AppHeader", () => {
     expect(html).toContain("Thanksgiving Leftovers");
     expect(html).not.toContain(LOGO);
   });
+
+  it("shows the banner by default", () => {
+    const html = render({ header_title: "Show", header_banner: { title: "Big show", url: "https://example.com/tix", image: "/x.jpg", until: "2099-01-01" } });
+    expect(html).toContain('href="https://example.com/tix"');
+  });
+
+  it("hideBanner shows the logo header instead", () => {
+    const html = renderToStaticMarkup(createElement(AppHeader, { theme: { header_title: "Show", header_banner: { title: "Big show", url: "https://example.com/tix", image: "/x.jpg", until: "2099-01-01" } } as ThemeConfig, hideBanner: true }));
+    expect(html).not.toContain("https://example.com/tix");
+    expect(html).toContain("Show");
+  });
 });

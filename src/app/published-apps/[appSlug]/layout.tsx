@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getPublishedApp, isTakenDown } from "@/lib/pwa/data";
 import { hostRoot } from "@/lib/tenant";
 import { ServiceWorkerRegister } from "@/components/pwa-runtime/ServiceWorkerRegister";
@@ -18,6 +18,10 @@ import { orgInGoodStanding } from "@/lib/billing/standing";
 import { readableOn } from "@/lib/pwa/color";
 import { appleTouchIconHref } from "@/lib/pwa/apple-touch-icon";
 import { fontsHref, themeAttributes, themeStyle } from "@/lib/pwa/theme-style";
+import { navFlagCookieName } from "@/lib/pwa/nav-flags";
+
+// Same key as HOSTS_NAV_FLAG in lib/openmic/host-chat.ts, which cannot be imported here (it pulls in client-only code).
+const HOSTS_NAV_FLAG = "openmic-hosts";
 
 // `params` is typed manually (Promise<{...}>) rather than via the generated
 // `LayoutProps<'/published-apps/[appSlug]'>` helper: that helper only exists after
@@ -142,6 +146,7 @@ export default async function PublishedAppLayout({
     ...themeStyle(theme),
   };
   const fonts = fontsHref(theme);
+  const hideBannerForHost = (await cookies()).get(navFlagCookieName(HOSTS_NAV_FLAG))?.value === "1";
 
   return (
     <div
@@ -160,7 +165,7 @@ export default async function PublishedAppLayout({
       <RevealObserver />
       <AnnouncementBar theme={theme} />
       {theme.show_member_bar !== false && <MemberAccountBar member={member} />}
-      {website ? <PublishedSiteHeader theme={theme} homePagePath={homePagePath} /> : <AppHeader theme={theme} />}
+      {website ? <PublishedSiteHeader theme={theme} homePagePath={homePagePath} /> : <AppHeader theme={theme} hideBanner={hideBannerForHost} />}
       <div className={`@container flex flex-1 flex-col overflow-y-auto ${website ? "mx-auto w-full max-w-6xl" : ""}`}>
         <LookProvider look={lookOf(theme)}>
           {children}

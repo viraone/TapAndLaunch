@@ -15,13 +15,13 @@ export function hasAppHeader(theme: ThemeConfig): boolean {
  * the two never drift apart. Colours come from the app's own tokens, so it
  * follows light and dark apps without extra work.
  */
-export function AppHeader({ theme }: { theme: ThemeConfig }) {
+export function AppHeader({ theme, hideBanner = false }: { theme: ThemeConfig; hideBanner?: boolean }) {
   if (!hasAppHeader(theme)) return null;
   const title = theme.header_title?.trim();
   const tagline = theme.header_tagline?.trim();
   const logo = theme.header_logo_url?.trim();
   const action = theme.header_action?.page_path ? theme.header_action : undefined;
-  const banner = isHeaderBannerActive(theme.header_banner, new Date()) ? theme.header_banner : undefined;
+  const banner = !hideBanner && isHeaderBannerActive(theme.header_banner, new Date()) ? theme.header_banner : undefined;
 
   if (banner) {
     return (
