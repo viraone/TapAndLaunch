@@ -58,7 +58,7 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
         {chips.length > 0 && (
           <span className="relative mt-3.5 flex flex-wrap gap-2">
             {chips.map((chip, i) => (
-              <span key={i} className={`inline-flex items-center gap-1.5 rounded-full px-[11px] py-1.5 text-[12.5px] font-semibold ${i === 0 ? "bg-[#1d1424]/90 text-white" : "bg-white/55 text-[#1d1424]"}`}>
+              <span key={i} className={`inline-flex items-center gap-1.5 rounded-full px-[11px] py-1.5 text-[12.5px] font-semibold bg-[#1d1424]/90 text-white`}>
                 {chip.icon && (
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     {CHIP_ICONS[chip.icon]}
