@@ -12,7 +12,7 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
   return (
     <div className="relative">
       <a href={banner.url} target="_blank" rel="noopener noreferrer" className="block rounded-3xl bg-[#f2a33a] px-[18px] pb-3.5 pt-[18px] text-[#1d1424]">
-        {(label || corner) && <span className={`block truncate text-[14px] font-bold uppercase tracking-[0.1em] text-[#4a2a05]${corner ? " min-h-10 pr-12" : ""}`}>{label}</span>}
+        {(label || corner) && <span className={`block truncate text-[14px] font-bold uppercase tracking-[0.1em] text-[#4a2a05]${corner ? (label ? " pr-12" : " min-h-10 pr-12") : ""}`}>{label}</span>}
         <span className={`${label || corner ? "mt-5 " : ""}block text-[34px] font-extrabold leading-none tracking-[-0.035em]`}>{title}</span>
         {sub && (
           <span className="mt-2.5 block text-[13.5px] font-medium leading-snug text-[#4a2a05]">
