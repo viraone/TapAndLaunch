@@ -89,6 +89,9 @@ describe("HeaderBanner", () => {
     expect(html).toContain("Tickets");
     expect(html).toContain("mx-3.5 mb-3.5 mt-3");
     expect(html).not.toContain("p-3.5");
+    expect(html).toContain("motion-safe:animate-ping");
+    expect(html).toContain("bg-[#e8442a]");
+    expect(html).toContain("stroke-dasharray");
   });
 
   it("keeps padding and rounding when image has a label and a button", () => {
