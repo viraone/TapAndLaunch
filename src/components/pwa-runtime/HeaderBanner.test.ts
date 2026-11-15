@@ -29,4 +29,12 @@ describe("HeaderBanner", () => {
     expect(html).toContain("absolute");
     expect(html).toContain("min-h-10");
   });
+
+  it("splits the sub line on the dot and drops the trailing arrow from the button", () => {
+    const html = render({ title: "T", url: "https://example.com/x", sub: "Free with a food donation · Ballard Food Bank", button: "Get tickets →" });
+    expect(html).toContain("<br/>");
+    expect(html).toContain("Ballard Food Bank");
+    expect(html).toContain("Get tickets");
+    expect(html).not.toContain("→");
+  });
 });
