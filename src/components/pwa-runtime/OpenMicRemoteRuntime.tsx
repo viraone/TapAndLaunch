@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
-import { Home, Loader2, Lock, Tv, Undo2 } from "lucide-react";
+import { Loader2, Lock, Tv } from "lucide-react";
 import { toast } from "sonner";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { formatShowDate, showDateFor } from "@/lib/openmic/window";
@@ -165,8 +165,6 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
     }
   }
 
-  const back = () => void move(current - 1);
-  const canBack = !saving && current >= 0;
   async function restartShow() {
     if (saving) return;
     setSaving(true);
@@ -201,27 +199,6 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
           <p className="min-h-5 text-base font-medium tabular-nums text-white/60">
             {current >= 0 ? `${current + 1} of ${lineup.length}${lineup[current]!.start_time ? ` · ${lineup[current]!.start_time}` : ""}` : lineup.length > 0 ? `${lineup.length} on the lineup` : ""}
           </p>
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={back}
-            disabled={!canBack}
-            className="flex h-16 items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(180deg,#3a3a3a,#2a2a2a)] text-lg font-bold text-white ring-1 ring-white/10 transition active:scale-[0.98] disabled:opacity-40"
-          >
-            <Undo2 className="h-6 w-6" aria-hidden="true" />
-            Back one
-          </button>
-          <button
-            type="button"
-            onClick={() => void move(-1)}
-            disabled={saving || current < 0}
-            className="flex h-16 items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(180deg,#ff7a45,#e94c15)] text-lg font-bold text-white transition active:scale-[0.98] disabled:opacity-40"
-          >
-            <Home className="h-6 w-6" aria-hidden="true" />
-            Clear
-          </button>
         </div>
 
         <div className="mx-auto mt-5 h-1 w-6 rounded-full bg-white/[0.18]" aria-hidden="true" />
