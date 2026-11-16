@@ -500,8 +500,7 @@ export function EmailStep({
       <p className="mt-2 text-[17px] leading-snug text-muted-foreground">
         {open ? "First time or returning, enter your email. We'll send a 6-digit code, no password." : "Enter your email. We'll send a 6-digit code, no password."}
       </p>
-      <label htmlFor="openmic-email" className="mt-5 block text-[15px] font-bold text-foreground">Your email</label>
-      <div className="relative mt-2">
+      <div className="relative mt-4">
         <Mail className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-primary" aria-hidden="true" />
         <input
           id="openmic-email"

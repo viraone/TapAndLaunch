@@ -25,9 +25,8 @@ describe("EmailStep", () => {
   it("highlights the email box", () => {
     const openHtml = render(true);
     expect(openHtml).toContain("Sign up here");
-    expect(openHtml).toContain("Your email");
+    expect(openHtml).not.toContain("Your email");
     expect(openHtml).toContain("bg-white");
-    expect(openHtml).toContain('for="openmic-email"');
     const closedHtml = render(false);
     expect(closedHtml).toContain("Sign in");
     expect(closedHtml).not.toContain("Sign up here");
