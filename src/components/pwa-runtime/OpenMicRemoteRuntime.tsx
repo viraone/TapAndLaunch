@@ -174,8 +174,6 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
     if (problem) return setError("That didn't save. Check the connection and try again.");
     setTold("Show restarted");
   }
-  const onName = current >= 0 ? lineup[current]!.name : "Nobody";
-
   return (
     <div className="mx-auto w-full max-w-md px-3 pb-10 pt-3">
       {/* The remote itself: one dark slab like a TV remote app. */}
@@ -191,17 +189,6 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
         </div>
         <CompSetPicker targets={targets} selected={pickedTarget ? pickedTarget.key : ""} onSelect={setTarget} allMinutes={dictated} fallback={sheetMinutes} hasOverrides={dictated !== null || Object.keys(each).length > 0} saving={saving} error={lengthError} onChange={(minutes) => changeMinutes(minutes)} />
         {saved && <SavedFlash key={saved.id} message={saved.text} onDone={clearSaved} />}
-
-        {/* Who is on the board now. */}
-        <div className="mt-6 text-center">
-          <p className="whitespace-nowrap text-[13px] font-bold uppercase tracking-[0.22em] text-white/55">On the board now</p>
-          <p className="mt-1 line-clamp-2 break-words text-[30px] font-black leading-tight tracking-tight [text-shadow:0_2px_12px_rgba(0,0,0,0.6)]">{onName}</p>
-          <p className="min-h-5 text-base font-medium tabular-nums text-white/60">
-            {current >= 0 ? `${current + 1} of ${lineup.length}${lineup[current]!.start_time ? ` · ${lineup[current]!.start_time}` : ""}` : lineup.length > 0 ? `${lineup.length} on the lineup` : ""}
-          </p>
-        </div>
-
-        <div className="mx-auto mt-5 h-1 w-6 rounded-full bg-white/[0.18]" aria-hidden="true" />
 
         {/* The tray under the keys: the lineup, with the highlighted comic's row lit. */}
         <div className="mt-3 rounded-2xl bg-[linear-gradient(180deg,#242424,#1b1b1b)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.08]">
