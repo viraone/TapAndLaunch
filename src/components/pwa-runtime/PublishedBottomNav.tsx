@@ -36,6 +36,8 @@ export function PublishedBottomNav({
   const goTo = (pagePath: string) => {
     const target = pagePath === homePagePath ? "/" : `/${pagePath}`;
     setTapped(pagePath);
+    // The page keeps one window scroll across tabs, so a tab opened after scrolling Home came up cut off. Start every tab at the top.
+    window.scrollTo(0, 0);
     startSwitch(() => router.push(target));
     const tap = ++latestTap.current;
     window.setTimeout(() => {
