@@ -29,6 +29,7 @@ const BodySchema = z.object({
   /** A host's access token from the show's own Supabase project. */
   token: z.string().min(20),
   messages: z.array(MessageSchema).min(1).max(12),
+  status: z.string().optional(),
 });
 
 /** The app's AI block (open_mic_signup, view "ai"), read on the server so the lineup link stays out of the page. */
@@ -88,6 +89,7 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
   if (!config) return Response.json({ error: "The AI isn't connected yet." }, { status: 404 });
 
   const token = parsed.data.token;
+  const status = (parsed.data.status ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
   const who = await comicFromToken(project, token);
   if (!who) return Response.json({ error: "Sign in again" }, { status: 401 });
   if (!(await isHostToken(project, token))) return Response.json({ error: "Not for you" }, { status: 403 });
@@ -108,6 +110,7 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
   const system = feed
     ? buildSystemPrompt(feed.lineup, feed.show_date || null)
     : `${buildSystemPrompt([], null)}\n\nThe lineup could not be loaded just now.`;
+  const systemWithStatus = status ? `${system}\n\nLive show status from the hosts' timer (trust it when asked who is on stage or on deck): ${status}` : system;
 
   // A message that is only a comic's name is on_deck, read here so it is instant and cannot be misread.
   const lastText = parsed.data.messages[parsed.data.messages.length - 1]!.content;
@@ -116,7 +119,7 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
   if (!command) {
     let answer: string;
     try {
-      answer = await askDeepSeek({ system, turns: parsed.data.messages, apiKey });
+      answer = await askDeepSeek({ system: systemWithStatus, turns: parsed.data.messages, apiKey });
     } catch (error) {
       console.error(`openmic/ai: ${error instanceof Error ? error.message : String(error)}`);
       return Response.json({ error: "The AI didn't answer. Try again." }, { status: 502 });

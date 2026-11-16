@@ -114,6 +114,8 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
 
   async function changeMinutes(minutes: number | null): Promise<boolean> {
     if (saving) return false;
+    // The buzz goes out now, inside the tap: an iPhone only buzzes for a web page while the tap that asked for it is still fresh, not after the save comes back.
+    hapticSuccess();
     setSaving(true);
     setLengthError(null);
     const who = pickedTarget ? pickedTarget.name : "everyone";
@@ -123,21 +125,21 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
     setSaving(false);
     if (problem) {
       setLengthError("That didn't save. Check the connection and try again.");
-      toast.error("That didn't save. Try again.");
+      toast.error("That didn't save. Try again.", { position: "top-center" });
       return false;
     }
     setSaved({ id: Date.now(), text: minutes === null ? (pickedTarget ? `${who} is back to the same as everyone` : "Back to the sheet's lengths") : `Set ${who} to ${minutes} min` });
-    hapticSuccess();
     return true;
   }
 
   async function restartShow() {
     if (saving) return;
+    hapticSuccess();
     setSaving(true);
     const problem = await resetClock(client, showYmd);
     setSaving(false);
-    if (problem) return void toast.error("That didn't save. Check the connection and try again.");
-    toast.success("Show restarted");
+    if (problem) return void toast.error("That didn't save. Check the connection and try again.", { position: "top-center" });
+    setSaved({ id: Date.now(), text: "Show restarted" });
   }
   return (
     <div className="mx-auto w-full max-w-md px-3 pb-10 pt-3">

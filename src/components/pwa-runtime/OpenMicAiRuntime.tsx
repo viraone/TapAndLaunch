@@ -7,9 +7,11 @@ import { Loader2, Lock, Send } from "lucide-react";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { showDateFor } from "@/lib/openmic/window";
-import { setSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { setSpotlight, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { putOnDeck, pushUpNext } from "@/lib/openmic/spotlight-actions";
 import { upNextStatus } from "@/lib/openmic/push";
+import { showClock } from "@/lib/openmic/show-clock";
+import { showStatusLine } from "@/lib/openmic/show-status";
 import { isRemovalCommand, isSpotlightCommand, planSpotlight, spotlightReply, type LineupCommand } from "@/lib/openmic/ai-commands";
 import { PINNED_PAGE, PINNED_SCROLL, useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
@@ -123,6 +125,7 @@ function Chat({ client, config, userId }: { client: SupabaseClient; config: Open
   // The host needs the list whatever the day (a Thursday run-through, say), so this never waits for show day.
   const { feed, failed } = useLineup(config.lineup_url, client, userId, true);
   const lineup = feed?.lineup ?? [];
+  const { spotlight } = useSpotlight(client);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
@@ -178,10 +181,11 @@ function Chat({ client, config, userId }: { client: SupabaseClient; config: Open
     setPending(true);
     try {
       const { data } = await client.auth.getSession();
+      const status = showStatusLine(showClock({ lineup, spotlight, showDate: showYmd, hostRow: config.host_row === true, now }), lineup, config.host_row === true);
       const res = await fetch("/openmic/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: data.session?.access_token, messages: next.slice(-12) }),
+        body: JSON.stringify({ token: data.session?.access_token, messages: next.slice(-12), status }),
       });
       const body = (await res.json().catch(() => ({}))) as { reply?: string; error?: string; command?: LineupCommand | null };
       if (!res.ok) {

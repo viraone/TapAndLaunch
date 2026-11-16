@@ -3,6 +3,7 @@ import { isHeaderBannerActive } from "@/lib/pwa/header-banner";
 import { HeaderBanner } from "./HeaderBanner";
 import { HeaderCornerLink } from "./HeaderCornerLink";
 import { HeaderClock } from "./HeaderClock";
+import { HostSwitch } from "./HostSwitch";
 
 /** Does this theme ask for a header bar? Any one of the three is enough. */
 export function hasAppHeader(theme: ThemeConfig): boolean {
@@ -23,15 +24,7 @@ export function AppHeader({ theme, hideBanner = false }: { theme: ThemeConfig; h
   const action = theme.header_action?.page_path ? theme.header_action : undefined;
   const banner = !hideBanner && isHeaderBannerActive(theme.header_banner, new Date()) ? theme.header_banner : undefined;
 
-  if (banner) {
-    return (
-      <header className="border-b border-border/70 bg-background px-4 py-4">
-        <HeaderBanner banner={banner} corner={action ? <HeaderCornerLink href={`/${action.page_path.replace(/^\//, "")}`} label={action.label} icon={action.icon} /> : undefined} />
-      </header>
-    );
-  }
-
-  return (
+  const plain = (
     <header className="flex items-center gap-4 border-b border-border/70 bg-background px-4 py-4">
       {logo && (
         // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
@@ -45,4 +38,16 @@ export function AppHeader({ theme, hideBanner = false }: { theme: ThemeConfig; h
       {action && <HeaderCornerLink href={`/${action.page_path.replace(/^\//, "")}`} label={action.label} icon={action.icon} />}
     </header>
   );
+
+  if (banner) {
+    const withBanner = (
+      <header className="border-b border-border/70 bg-background px-4 py-4">
+        <HeaderBanner banner={banner} corner={action ? <HeaderCornerLink href={`/${action.page_path.replace(/^\//, "")}`} label={action.label} icon={action.icon} /> : undefined} />
+      </header>
+    );
+    // A host who has just signed in on this browser has no hosts cookie yet, so the server drew the flyer: swap it out at once.
+    return <HostSwitch forEveryone={withBanner} forHosts={plain} />;
+  }
+
+  return plain;
 }
