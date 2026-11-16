@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { ArrowRight, Bell, Check, ChevronRight, Loader2, Mail, Mic, X } from "lucide-react";
+import { ArrowRight, Bell, Check, ChevronRight, Loader2, Mail, X } from "lucide-react";
 import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupEntry, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
 import { applyRemovals, readLineupRemoved, type LineupRemoved } from "@/lib/openmic/removed";
 import { formatClock } from "@/lib/format-date";
@@ -436,7 +436,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
         {phase === "requested" && request && (showDayOn ? (
           <ShowDayScreen client={client} userId={user?.id} stageName={profile.stage_name} signedIn requested config={config} dateLabel={showDate} window={window_} now={now} forceLineup={previewer} />
         ) : (
-          <RequestedCard requestId={request.id} showDate={showDate} config={config} />
+          <RequestedCard requestId={request.id} />
         ))}
 
         {!hidePill && <SignupStatusPill open={open} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} reopenText={reopenLabel(window_, now)} className="mt-5" />}
@@ -847,15 +847,7 @@ export function RequestForm({
   );
 }
 
-function RequestedCard({
-  requestId,
-  showDate,
-  config,
-}: {
-  requestId: number;
-  showDate: string;
-  config: OpenMicSignupBlockConfig;
-}) {
+function RequestedCard({ requestId }: { requestId: number }) {
   // Celebrate once per request: the first time this card shows after the request was made. Later visits get the
   // glow only. Per-viewer convenience, so blocked storage just means it may play again.
   const celebrateKey = `stagetime-request-celebrated-${requestId}`;
@@ -882,24 +874,11 @@ function RequestedCard({
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">What happens next</p>
         <ol className="mt-4 space-y-5 text-[15px]">
           <li className="relative pl-12">
-            <span aria-hidden className="absolute left-4 top-9 -bottom-5 w-px bg-primary/30" />
             <span aria-hidden className="absolute left-0 top-0 grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary">
               <Bell className="h-4 w-4" />
             </span>
             <span className="font-semibold text-primary">Thursday</span>
             <p className="mt-0.5">If you&apos;re selected, we&apos;ll notify you.</p>
-          </li>
-          <li className="relative pl-12">
-            <span aria-hidden className="absolute left-0 top-0 grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary">
-              <Mic className="h-4 w-4" />
-            </span>
-            <span className="font-semibold text-primary">{showDate.split(",")[0]}</span>
-            <p className="mt-0.5">
-              {config.show_name ?? "The show"}
-              {config.venue ? ` at ${config.venue}` : ""}
-              {config.show_time ? `, ${config.show_time.replace(/^Fridays\s*/i, "")}` : ""}. Not selected? You can request
-              again next week.
-            </p>
           </li>
         </ol>
       </div>
