@@ -27,21 +27,22 @@ const html = (over: Partial<Parameters<typeof CompSetPicker>[0]> = {}) =>
 describe("CompSetPicker", () => {
   it("default: nothing dictated, all comics", () => {
     const out = html({ defaultOpen: true });
-    expect(out).toContain("All comics");
-    expect(out).toContain("How long is each set?");
-    expect(out).toContain("3 min");
+    expect(out).toContain("Everyone");
+    expect(out).toContain("Tap to pick one comic instead");
+    expect(out).toContain("Set length");
+    expect(out).toContain("3<span");
     expect(out).toContain("From the sheet");
     expect(out).toContain("Karen");
     expect(out).toContain("Test Jones 1");
     expect(out).toContain(">7 min<");
-    expect(out).not.toContain("Back to the sheet");
+    expect(out).not.toContain("Reset everyone to the sheet");
   });
 
   it("allMinutes set with overrides", () => {
     const out = html({ allMinutes: 4, hasOverrides: true });
-    expect(out).toContain("4 min");
+    expect(out).toContain("4<span");
     expect(out).toContain("Set by the hosts tonight");
-    expect(out).toContain("Back to the sheet");
+    expect(out).toContain("Reset everyone to the sheet");
   });
 
   it("selected custom comic", () => {
@@ -49,8 +50,8 @@ describe("CompSetPicker", () => {
     expect(out).toContain("Just this comic");
     expect(out).toContain("Same as everyone");
     expect(html({ selected: "test jones 1", defaultOpen: true })).toContain('aria-selected="true"');
-    expect(out).toContain("Test Jones 1 · 7 min");
-    expect(out).toMatch(/tabular-nums text-white">7 min</);
+    expect(out).toContain("Tap to pick someone else");
+    expect(out).toContain("7<span");
   });
 
   it("selected non-custom comic shows Same as everyone once", () => {
@@ -75,9 +76,21 @@ describe("CompSetPicker", () => {
     expect(html({ defaultOpen: true })).toContain('role="listbox"');
   });
 
-  it("has a Set for button named after the picked comic, or everyone", () => {
-    expect(html()).toContain("Set for everyone");
-    expect(html({ selected: "karen" })).toContain("Set for Karen");
-    expect(html({ selected: "karen" })).toMatch(/disabled=""[^>]*>Set for/);
+  it("the big button says what it will do, and waits for a change", () => {
+    expect(html()).toContain("No change yet");
+    expect(html()).toMatch(/disabled=""[^>]*>No change yet/);
+    expect(html({ selected: "karen" })).toContain("No change yet");
+  });
+
+  it("counts the comics the hosts changed, next to the sheet's number", () => {
+    const out = html({ hasOverrides: true });
+    expect(out).toContain("Sheet says 3 min · 1 comic changed");
+  });
+
+  it("has one-tap lengths", () => {
+    const out = html();
+    expect(out).toContain('aria-label="Quick lengths"');
+    for (const m of [2, 3, 4, 5, 7, 10]) expect(out).toContain(`>${m}</button>`);
+    expect(out).toMatch(/aria-pressed="true"[^>]*>3<\/button>/);
   });
 });
