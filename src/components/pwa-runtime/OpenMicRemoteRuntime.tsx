@@ -6,8 +6,8 @@ import type { User } from "@supabase/supabase-js";
 import { Loader2, Lock, Tv } from "lucide-react";
 import { toast } from "sonner";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
-import { formatShowDate, showDateFor } from "@/lib/openmic/window";
-import { isShowAdmin, setSpotlight, spotlightIndex, useSpotlight, ymd } from "@/lib/openmic/spotlight";
+import { showDateFor } from "@/lib/openmic/window";
+import { isShowAdmin, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { applyComicMinutes, comicMinutes, eachMinutes, nameKey, setComicMinutes, setEachMinutes } from "@/lib/openmic/set-minutes";
 import { setMinutes } from "@/lib/openmic/start-times";
 import { CompSetPicker } from "./CompSetPicker";
@@ -16,7 +16,6 @@ import { RestartShowButton } from "./RestartShowButton";
 import { hapticSuccess } from "@/lib/haptics";
 import { resetClock } from "@/lib/openmic/show-clock-actions";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
-import { upNextStatus } from "@/lib/openmic/push";
 import { useLineup, useNow, useOpenMicClient, windowOf } from "./OpenMicSignupRuntime";
 
 /**
@@ -91,20 +90,16 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
   const showDate = showDateFor(window_, now);
   const showYmd = ymd(showDate);
   // The host needs the list whatever the day (a Thursday run-through, say), so this never waits for show day.
-  const { feed: sheetFeed, failed } = useLineup(config.lineup_url, client, userId, true);
+  const { feed: sheetFeed } = useLineup(config.lineup_url, client, userId, true);
   const { spotlight } = useSpotlight(client);
   const feed = useMemo(() => applyComicMinutes(sheetFeed, spotlight, config.host_row === true), [sheetFeed, spotlight, config.host_row]);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  /** What happened on the highlighted comic's phone after the last move. */
-  const [told, setTold] = useState<string | null>(null);
   const [lengthError, setLengthError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ id: number; text: string } | null>(null);
   const [target, setTarget] = useState("");
-  const clearSaved = useCallback(() => setSaved(null), []);
+  const clearSaved = useCallback(() => setSaved(null), [setSaved]);
 
   const lineup = feed?.lineup ?? [];
-  const current = spotlightIndex(spotlight, lineup, showYmd);
 
   // The hosts' one number for every comic. It is stored against the sheet's show date so the feed and this page agree.
   const lengthDate = sheetFeed?.show_date ?? showYmd;
@@ -136,43 +131,13 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
     return true;
   }
 
-  async function move(index: number) {
-    if (saving) return;
-    setSaving(true);
-    setError(null);
-    const problem = await setSpotlight(client, showYmd, lineup, index);
-    setSaving(false);
-    if (problem) return setError("That didn't save. Check the connection and try again.");
-    const entry = index >= 0 ? lineup[index] : undefined;
-    setTold(null);
-    if (entry) void tell(entry.name);
-  }
-
-  // The board and open phones follow the spotlight by themselves; a closed phone needs a push, sent by the server
-  // once it has checked this is a host. The line under the buttons says whether a phone was reached.
-  async function tell(name: string) {
-    try {
-      const { data } = await client.auth.getSession();
-      const res = await fetch("/openmic/up-next", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: data.session?.access_token, name }),
-      });
-      const result = res.ok ? ((await res.json()) as { sent: number; matched: number }) : null;
-      setTold(upNextStatus(name, result));
-    } catch {
-      setTold(upNextStatus(name, null));
-    }
-  }
-
   async function restartShow() {
     if (saving) return;
     setSaving(true);
-    setError(null);
     const problem = await resetClock(client, showYmd);
     setSaving(false);
-    if (problem) return setError("That didn't save. Check the connection and try again.");
-    setTold("Show restarted");
+    if (problem) return void toast.error("That didn't save. Check the connection and try again.");
+    toast.success("Show restarted");
   }
   return (
     <div className="mx-auto w-full max-w-md px-3 pb-10 pt-3">
@@ -190,48 +155,6 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
         <CompSetPicker targets={targets} selected={pickedTarget ? pickedTarget.key : ""} onSelect={setTarget} allMinutes={dictated} fallback={sheetMinutes} hasOverrides={dictated !== null || Object.keys(each).length > 0} saving={saving} error={lengthError} onChange={(minutes) => changeMinutes(minutes)} />
         {saved && <SavedFlash key={saved.id} message={saved.text} onDone={clearSaved} />}
 
-        {/* The tray under the keys: the lineup, with the highlighted comic's row lit. */}
-        <div className="mt-3 rounded-2xl bg-[linear-gradient(180deg,#242424,#1b1b1b)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-white/[0.08]">
-          <div className="flex items-center justify-between px-4 py-3">
-            <p className="text-[15px] font-semibold">{`Lineup · ${formatShowDate(showDate)}`}</p>
-            <p className="text-sm text-white/55" aria-live="polite">
-              {error ? <span className="font-semibold text-red-400">{error}</span> : told ?? (lineup.length > 0 ? `${lineup.length} comics` : "")}
-            </p>
-          </div>
-          {lineup.length > 0 ? <p className="px-4 pb-3 text-sm text-white/60">Tap a comic to put them on the board. Tap again to take them off.</p> : null}
-          {!feed && !failed && (
-            <div className="flex justify-center py-8" role="status" aria-label="Loading the lineup">
-              <Loader2 className="h-6 w-6 animate-spin text-white/60" />
-            </div>
-          )}
-          {!feed && failed && <p className="px-4 pb-5 text-center text-base text-white/60">We couldn&apos;t load the lineup. Try again in a minute.</p>}
-          {feed && lineup.length === 0 && <p className="px-4 pb-5 text-center text-base text-white/60">Nobody is on the lineup in the sheet yet.</p>}
-          {lineup.length > 0 && (
-            <ol className="border-t border-white/10" aria-label="Lineup">
-              {lineup.map((entry, i) => {
-                const on = i === current;
-                return (
-                  <li key={`${entry.name}-${i}`} className="relative after:absolute after:bottom-0 after:left-4 after:right-0 after:h-px after:bg-white/10 last:after:hidden">
-                    <button
-                      type="button"
-                      onClick={() => void move(on ? -1 : i)}
-                      aria-pressed={on}
-                      className={
-                        "flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left last:rounded-b-2xl" +
-                        (on ? " bg-primary text-primary-foreground" : " active:bg-white/10")
-                      }
-                    >
-                      <span className={"w-7 shrink-0 text-right text-[15px] font-bold tabular-nums " + (on ? "" : "text-white/50")}>{i + 1}</span>
-                      <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug " + (on ? "font-black" : "font-medium")}>{entry.name}</span>
-                      <span className={"shrink-0 text-[15px] tabular-nums " + (on ? "" : "text-white/50")}>{entry.set_length}</span>
-                      <span className={"w-[4.75rem] shrink-0 text-right text-[16px] font-semibold tabular-nums " + (on ? "" : "text-primary")}>{entry.start_time}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-        </div>
         {isShowAdmin(viewerEmail) && <RestartShowButton busy={saving} onRestart={() => void restartShow()} />}
       </div>
     </div>
