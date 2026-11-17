@@ -150,7 +150,7 @@ export default async function PublishedAppLayout({
 
   return (
     <div
-      className={`mx-auto flex min-h-dvh w-full flex-col bg-background ${website ? "" : "max-w-md"} ${dark ? "dark text-foreground" : ""} ${tabs ? (website ? "pb-[calc(env(safe-area-inset-bottom)+7.5rem)] lg:pb-0" : "pb-[calc(env(safe-area-inset-bottom)+7.5rem)]") : ""}`}
+      className={`mx-auto flex min-h-svh w-full flex-col bg-background ${website ? "" : "max-w-md"} ${dark ? "dark text-foreground" : ""} ${tabs ? (website ? "pb-[calc(env(safe-area-inset-bottom)+7.5rem)] lg:pb-0" : "pb-[calc(env(safe-area-inset-bottom)+7.5rem)]") : ""}`}
       style={style}
       {...themeAttributes(theme)}
     >
