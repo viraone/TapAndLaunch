@@ -6,6 +6,7 @@ import { hostRoot } from "@/lib/tenant";
 import { ServiceWorkerRegister } from "@/components/pwa-runtime/ServiceWorkerRegister";
 import { deployId } from "@/lib/pwa/service-worker";
 import { PublishedBottomNav } from "@/components/pwa-runtime/PublishedBottomNav";
+import { ReloadToTop } from "@/components/pwa-runtime/ReloadToTop";
 import { MemberAccountBar } from "@/components/pwa-runtime/MemberAccountBar";
 import { AppHeader } from "@/components/pwa-runtime/AppHeader";
 import { PublishedSiteHeader } from "@/components/pwa-runtime/PublishedSiteHeader";
@@ -163,6 +164,7 @@ export default async function PublishedAppLayout({
       )}
       <ServiceWorkerRegister deploy={deployId()} />
       <RevealObserver />
+      <ReloadToTop />
       <AnnouncementBar theme={theme} />
       {theme.show_member_bar !== false && <MemberAccountBar member={member} />}
       {website ? <PublishedSiteHeader theme={theme} homePagePath={homePagePath} /> : <AppHeader theme={theme} hideBanner={hideBannerForHost} />}
