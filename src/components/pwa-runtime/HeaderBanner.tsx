@@ -23,6 +23,9 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
   const button = banner.button?.trim();
   const buttonText = button ? button.replace(/\s*[→>]+\s*$/, "").trim() || button : undefined;
   const subParts = sub ? sub.split(" · ") : [];
+  // "Get Tickets · Fri Nov 27, 7:30 PM": the action on top, the details under it in smaller type.
+  const [buttonMain, ...buttonRest] = (buttonText ?? "").split(" · ");
+  const buttonDetail = buttonRest.join(" · ");
   const big = banner.big?.trim();
   const image = banner.image?.trim();
   const chips = (banner.chips ?? []).filter((chip) => chip.text.trim());
@@ -84,7 +87,10 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
                 <path d="M4 6h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4z" />
                 <path d="M14 6v12" strokeDasharray="2 2" />
               </svg>
-              {buttonText}
+              <span className="flex flex-col">
+                <span>{buttonMain}</span>
+                {buttonDetail && <span className="mt-0.5 text-[13px] font-semibold leading-tight tracking-normal text-white/75">{buttonDetail}</span>}
+              </span>
             </span>
             <span className="relative flex size-[42px] shrink-0 items-center justify-center">
               <span aria-hidden="true" className="absolute inset-0 rounded-full bg-[#e8442a] opacity-60 motion-safe:animate-ping" />
