@@ -68,6 +68,10 @@ export const PINNED_PAGE = "mx-auto flex h-[calc(100dvh-12rem)] w-full max-w-md 
 // clip-path hard-clips everything painted inside to the scroller's box. iOS Safari can paint a
 // scrolled-under row a few px past the scroller's top edge (above the pinned lineup header).
 export const PINNED_SCROLL = "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6 [clip-path:inset(0)]";
+// The sign-up page's own copies, tighter at the top: its heading is screen-reader-only, so the default 24px above and
+// 16px below it showed up as a gap under the banner.
+const SIGNUP_PINNED_PAGE = PINNED_PAGE.replace("pt-6", "pt-2");
+const SIGNUP_PINNED_SCROLL = PINNED_SCROLL.replace("mt-4", "mt-2");
 
 const CTA = "bg-[#dc2626] text-white hover:bg-[#b91c1c] active:bg-[#991b1b]";
 
@@ -369,13 +373,13 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   }
 
   return (
-    <div className={pinned ? PINNED_PAGE : "mx-auto w-full max-w-md px-4 pb-12 pt-0"}>
+    <div className={pinned ? SIGNUP_PINNED_PAGE : "mx-auto w-full max-w-md px-4 pb-12 pt-0"}>
       <div className={pinned ? (showStartTime ? "shrink-0 pb-[5px]" : "shrink-0") : undefined}>
       <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} showStartTime={showStartTime} label={heading.label} startsIn={heading.startsIn} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} pillBelow />
 
       </div>
 
-      <div className={pinned ? PINNED_SCROLL + (showStartTime ? " [&>*:first-child]:-mt-[5px]" : "") : "mt-3"}>
+      <div className={pinned ? SIGNUP_PINNED_SCROLL + (showStartTime ? " [&>*:first-child]:-mt-[5px]" : "") : "mt-3"}>
         {phase === "loading" && (
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
