@@ -857,7 +857,7 @@ function RequestedCard() {
         You&apos;re on the <span className="text-emerald-400">Request list</span>
       </h2>
       <div className="mt-5 rounded-xl bg-foreground/[0.04] p-4 text-left">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">What happens next</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white">What happens next</p>
         <ol className="mt-4 space-y-5 text-[15px]">
           <li className="relative pl-12">
             <span aria-hidden className="absolute left-0 top-0 grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary">
