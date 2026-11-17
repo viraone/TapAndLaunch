@@ -497,7 +497,7 @@ export function EmailStep({
     <form onSubmit={send} className="relative mt-4 rounded-3xl border-2 border-primary/70 bg-primary/10 px-4 pb-4 pt-6 shadow-[0_0_28px_rgba(248,113,113,0.22)]">
       <span className="absolute -top-2.5 left-4 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-black uppercase leading-none tracking-[0.2em] text-black">{open ? "Sign up here" : "Sign in"}</span>
       <h2 className="text-[28px] font-extrabold leading-tight tracking-tight">{open ? "Request your spot" : "Sign in to see your status"}</h2>
-      <p className="mt-2 text-[17px] leading-snug text-muted-foreground">
+      <p className="mt-2 text-[17px] font-semibold leading-snug text-foreground">
         {open ? "First time or returning, enter your email. We'll send a 6-digit code, no password." : "Enter your email. We'll send a 6-digit code, no password."}
       </p>
       <div className="relative mt-4">
