@@ -4,9 +4,6 @@ import { useState } from "react";
 import { Check, ChevronDown, Users } from "lucide-react";
 import { MAX_COMIC_MINUTES, MIN_COMIC_MINUTES } from "@/lib/openmic/set-minutes";
 
-/** The one-tap lengths under the number. All sit inside MIN_COMIC_MINUTES..MAX_COMIC_MINUTES. */
-const QUICK_MINUTES = [2, 3, 4, 5, 7, 10];
-
 /** One comic in the picker (the hosts row is not in the list): the number they have right now, and whether the hosts gave them their own. */
 export type CompTarget = { key: string; name: string; minutes: number; custom: boolean };
 
@@ -125,20 +122,6 @@ export function CompSetPicker({
         </button>
       </div>
       <p className="mt-3 text-center text-[13px] text-white/50">{sub}</p>
-      <div role="group" aria-label="Quick lengths" className="mt-4 flex gap-2">
-        {QUICK_MINUTES.map((m) => (
-          <button
-            key={m}
-            type="button"
-            disabled={saving}
-            aria-pressed={shown === m}
-            onClick={() => setDraft(m)}
-            className={"h-11 flex-1 rounded-xl border text-[16px] font-semibold transition active:scale-95 disabled:opacity-40 " + (shown === m ? "border-sky-400 bg-sky-900 text-white" : "border-white/10 text-white/80")}
-          >
-            {m}
-          </button>
-        ))}
-      </div>
       <button
         type="button"
         disabled={saving || !dirty}

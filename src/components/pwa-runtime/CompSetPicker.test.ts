@@ -87,10 +87,8 @@ describe("CompSetPicker", () => {
     expect(out).toContain("Sheet says 3 min · 1 comic changed");
   });
 
-  it("has one-tap lengths", () => {
+  it("has no row of quick lengths", () => {
     const out = html();
-    expect(out).toContain('aria-label="Quick lengths"');
-    for (const m of [2, 3, 4, 5, 7, 10]) expect(out).toContain(`>${m}</button>`);
-    expect(out).toMatch(/aria-pressed="true"[^>]*>3<\/button>/);
+    expect(out).not.toContain("Quick lengths");
   });
 });
