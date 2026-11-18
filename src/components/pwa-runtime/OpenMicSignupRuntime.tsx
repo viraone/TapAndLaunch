@@ -70,8 +70,8 @@ export const PINNED_PAGE = "mx-auto flex h-[calc(100dvh-12rem)] w-full max-w-md 
 export const PINNED_SCROLL = "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6 [clip-path:inset(0)]";
 // The sign-up page's own copies, tighter at the top: its heading is screen-reader-only, so the default 24px above and
 // 16px below it showed up as a gap under the banner.
-const SIGNUP_PINNED_PAGE = PINNED_PAGE.replace("pt-6", "pt-2");
-const SIGNUP_PINNED_SCROLL = PINNED_SCROLL.replace("mt-4", "mt-2");
+const SIGNUP_PINNED_PAGE = PINNED_PAGE.replace("pt-6", "pt-0");
+const SIGNUP_PINNED_SCROLL = PINNED_SCROLL.replace("mt-4", "mt-1");
 
 const CTA = "bg-[#dc2626] text-white hover:bg-[#b91c1c] active:bg-[#991b1b]";
 
