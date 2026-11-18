@@ -79,7 +79,7 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
         {image && (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={image} alt={title} width={1173} height={618} decoding="async" className={fullBleed ? "relative block h-auto w-full" : "relative mt-3 block h-auto w-full rounded-2xl ring-1 ring-black/10"} />
+            <img src={image} alt={title} width={1173} height={552} decoding="async" className={fullBleed ? "relative block h-auto w-full" : "relative mt-3 block h-auto w-full rounded-2xl ring-1 ring-black/10"} />
           </>
         )}
         <span className={image ? "sr-only" : `${label || corner ? "mt-5 " : ""}relative block text-[34px] font-extrabold leading-none tracking-[-0.035em]`}>{title}</span>
