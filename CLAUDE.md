@@ -8,7 +8,7 @@ Default model for this project: Sonnet. Use Opus only when I say 'use Opus'.
 Long detail lives in `docs/studio-worker-guide.md` (not auto-loaded). Read it before writing a Studio spec, when unsure who should get a task, or before handing over push.sh for a visual change.
 
 ## Before any coding task
-Read the stack status: a hook prints it with every message (if it's missing, run `bash ~/.claude/skills/stack/stack.sh status`). If beezer or the `Studio model` line is OFF, run `/stack on beezer` and wait for it before delegating. Trust the latest status, not what you remember. The `Qwen server` line no longer matters for this project.
+Read the stack status: a hook prints it on the first message of a session and again only when it changed; no status block on a message means nothing changed since the last one (after a /compact or if you're unsure, run `bash ~/.claude/skills/stack/stack.sh status`). If beezer or the `Studio model` line is OFF, run `/stack on beezer` and wait for it before delegating. Trust the latest status, not what you remember. The `Qwen server` line no longer matters for this project.
 
 If the Studio's model stays OFF (the Mac Studio is off or unreachable), say so and don't switch `.gateway.toml` yourself; routine work can go to DeepSeek cloud (`/pass-to-deepseek`) meanwhile.
 
