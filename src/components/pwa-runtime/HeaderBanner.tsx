@@ -33,7 +33,7 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
   // A full-width image banner puts the ticket button above the picture; every other layout keeps it at the bottom.
   const buttonOnTop = fullBleed && Boolean(buttonText);
 
-  const pillTone = buttonOnTop ? "mx-3.5 mb-2 mt-3.5 bg-white shadow-[0_4px_0_#c9c9d1,0_8px_16px_rgba(0,0,0,0.3)]" : `bg-[#1d1424] shadow-[0_4px_0_#7a3f0a,0_8px_16px_rgba(0,0,0,0.3)] ${image ? "mt-3" : "mt-4"}`;
+  const pillTone = buttonOnTop ? "mx-3.5 mb-2 mt-3.5 bg-white" : `bg-[#1d1424] shadow-[0_4px_0_#7a3f0a,0_8px_16px_rgba(0,0,0,0.3)] ${image ? "mt-3" : "mt-4"}`;
   const buttonEl = buttonText ? (
     <span className={`relative flex items-center justify-between rounded-full py-1.5 pl-5 pr-1.5 ${pillTone}`}>
       <span className={`flex items-center gap-2.5 pr-2 text-[15.5px] leading-tight tracking-tight ${buttonOnTop ? "text-[19px] font-extrabold text-black" : "font-bold text-white"}`}>
