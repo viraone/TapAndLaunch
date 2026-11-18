@@ -7,7 +7,7 @@ update apps
 set theme = jsonb_set(theme, '{header_banner}', '{
   "title": "Thanksgiving Leftovers",
   "sub": "Free with a food donation · Ballard Food Bank",
-  "image": "https://tapandlaunch.com/promos/thanksgiving-leftovers-v8.jpg",
+  "image": "https://tapandlaunch.com/promos/thanksgiving-leftovers-v9.jpg",
   "button": "Get Tickets · Fri Nov 27, 7:30 PM",
   "url": "https://www.eventbrite.com/e/thanksgiving-leftovers-tickets-2004679289720?lid=x7r08kx6mqn3&fbclid=IwY2xjawVmN7pleHRuA2FlbQIxMQBwZG9mBXNydGMGYXBwX2lkCjY2Mjg1NjgzNzkAAR-qbwCiUEi3suCWAgeqvbHqZEHfgxFBbsvJNl_Y4PYgd60Ef0oow5s96RTxDA_aem_ZylF9qMQN94P558LAnP7fw",
   "until": "2026-11-27"
