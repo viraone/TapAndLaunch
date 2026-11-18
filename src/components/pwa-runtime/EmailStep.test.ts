@@ -24,11 +24,11 @@ describe("EmailStep", () => {
 
   it("highlights the email box", () => {
     const openHtml = render(true);
-    expect(openHtml).toContain("Sign up here");
+    expect(openHtml).toContain("Sign up for Friday’s open mic");
     expect(openHtml).not.toContain("Your email");
     expect(openHtml).toContain("bg-white");
     const closedHtml = render(false);
     expect(closedHtml).toContain("Sign in");
-    expect(closedHtml).not.toContain("Sign up here");
+    expect(closedHtml).not.toContain("Sign up for Friday’s open mic");
   });
 });
