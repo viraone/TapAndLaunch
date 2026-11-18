@@ -90,7 +90,7 @@ describe("HeaderBanner", () => {
     expect(html).toContain("bg-white");
     expect(html).not.toContain("=======");
     expect(html).toContain("Tickets");
-    expect(html).toContain("mx-3.5 mb-3 mt-3.5");
+    expect(html).toContain("mx-3.5 mb-2 mt-3.5");
     expect(html.indexOf("Tickets")).toBeLessThan(html.indexOf("<img"));
     expect(html).not.toContain("p-3.5");
     expect(html).toContain("motion-safe:animate-ping");
