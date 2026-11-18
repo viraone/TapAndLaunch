@@ -42,8 +42,8 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
           <path d="M14 6v12" strokeDasharray="2 2" />
         </svg>
         <span className="flex flex-col">
-          <span>{buttonMain}</span>
-          {buttonDetail && <span className={`mt-0.5 leading-tight tracking-normal ${buttonOnTop ? "text-[15px] font-bold text-[#3b2a45]" : "text-[13px] font-semibold text-white/75"}`}>{buttonDetail}</span>}
+          <span className={buttonDetail ? (buttonOnTop ? "text-[12.5px] font-semibold text-[#3b2a45]/80" : "text-[12.5px] font-semibold text-white/75") : undefined}>{buttonMain}</span>
+          {buttonDetail && <span className={`mt-0.5 leading-tight tracking-normal font-extrabold ${buttonOnTop ? "text-[19px] text-black" : "text-[17px] text-white"}`}>{buttonDetail}</span>}
         </span>
       </span>
       <span className="relative flex size-[42px] shrink-0 items-center justify-center">
