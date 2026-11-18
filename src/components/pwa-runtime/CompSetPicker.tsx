@@ -59,7 +59,7 @@ export function CompSetPicker({
   const rowClass = (on: boolean) =>
     "flex min-h-14 w-full items-center gap-3 border-b border-white/10 px-4 py-3 text-left text-[18px] font-semibold transition active:bg-white/10 " + (on ? "bg-sky-400/15 text-white" : "text-white/90");
   const step = "flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/10 text-3xl font-bold text-white transition active:scale-95 disabled:opacity-30";
-  const label = "text-[12px] font-semibold uppercase tracking-[0.14em] text-white/50";
+  const label = "text-[13px] font-bold uppercase tracking-[0.14em] text-white/80";
   return (
     <section aria-label="Set length for the comics" className="relative mt-5 rounded-3xl bg-[#16161a] px-4 pb-4 pt-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
       <p className={label}>Who</p>
@@ -81,9 +81,9 @@ export function CompSetPicker({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[18px] font-semibold leading-tight text-white">{target ? target.name : "Everyone"}</span>
-            <span className="block truncate text-[13px] text-white/50">{target ? "Tap to pick someone else" : "Tap to pick one comic instead"}</span>
+            <span className="block truncate text-[15px] font-medium text-white/85">{target ? "Tap to pick someone else" : "Tap to pick one comic instead"}</span>
           </span>
-          <ChevronDown className={"h-6 w-6 shrink-0 text-white/50 transition " + (open ? "rotate-180" : "")} aria-hidden="true" />
+          <ChevronDown className={"h-6 w-6 shrink-0 text-white/80 transition " + (open ? "rotate-180" : "")} aria-hidden="true" />
         </button>
         {open && (
           <ul role="listbox" aria-label="Who the set length is for" className="mt-2 max-h-72 overflow-y-auto overflow-x-hidden rounded-2xl border border-white/10 bg-black/40">
@@ -99,7 +99,7 @@ export function CompSetPicker({
                 <li key={t.key} role="option" aria-selected={on}>
                   <button type="button" onClick={() => pick(t.key)} className={rowClass(on)}>
                     <span className="min-w-0 flex-1 break-words">{t.name}</span>
-                    <span className="shrink-0 tabular-nums text-white/60">{t.minutes} min</span>
+                    <span className="shrink-0 tabular-nums text-white/85">{t.minutes} min</span>
                     {on && <Check className="h-6 w-6 shrink-0 text-sky-400" aria-hidden="true" />}
                   </button>
                 </li>
@@ -115,7 +115,7 @@ export function CompSetPicker({
         </button>
         <span className="text-center text-6xl font-bold leading-none tabular-nums text-white">
           {shown}
-          <span className="ml-1.5 text-xl font-normal text-white/50">min</span>
+          <span className="ml-1.5 text-xl font-medium text-white/80">min</span>
         </span>
         <button type="button" aria-label="One minute more" disabled={saving || shown >= MAX_COMIC_MINUTES} onClick={() => setDraft(shown + 1)} className={step}>
           +
