@@ -81,7 +81,7 @@ export function CompSetPicker({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[18px] font-semibold leading-tight text-white">{target ? target.name : "Everyone"}</span>
-            <span className="block truncate text-[15px] font-medium text-white/85">{target ? "Tap to pick someone else" : "Tap to pick one comic instead"}</span>
+            <span className="block break-words text-[17px] font-medium leading-snug text-white/85">{target ? "Tap to pick someone else" : "Tap to pick one comic instead"}</span>
           </span>
           <ChevronDown className={"h-6 w-6 shrink-0 text-white/80 transition " + (open ? "rotate-180" : "")} aria-hidden="true" />
         </button>
