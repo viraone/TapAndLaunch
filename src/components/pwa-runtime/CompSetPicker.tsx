@@ -121,7 +121,7 @@ export function CompSetPicker({
           +
         </button>
       </div>
-      <p className="mt-3 text-center text-[13px] text-white/50">{sub}</p>
+      <p className="mt-3 text-center text-[15px] font-medium text-white/90">{sub}</p>
       <button
         type="button"
         disabled={saving || !dirty}
@@ -135,7 +135,7 @@ export function CompSetPicker({
           type="button"
           disabled={saving}
           onClick={() => { setDraft(null); void onChange(null); }}
-          className="mt-2 flex h-11 w-full items-center justify-center text-[14px] font-medium text-white/60 active:text-white disabled:opacity-40"
+          className="mt-2 flex h-12 w-full items-center justify-center rounded-2xl border border-white/25 text-[16px] font-semibold text-white active:bg-white/10 disabled:opacity-40"
         >
           {resetLabel}
         </button>
