@@ -85,7 +85,10 @@ describe("HeaderBanner", () => {
 
   it("keeps the flyer edge to edge with the button pill above it", () => {
     const html = render({ title: "Show", url: "https://example.com", image: "/x.jpg", button: "Tickets →" });
-    expect(html).toContain('class="relative block h-auto w-full"');
+    expect(html).toContain('class="relative block h-auto w-full rounded-3xl"');
+    expect(html).not.toContain("linear-gradient");
+    expect(html).toContain("bg-white");
+    expect(html).not.toContain("=======");
     expect(html).toContain("Tickets");
     expect(html).toContain("mx-3.5 mb-3 mt-3.5");
     expect(html.indexOf("Tickets")).toBeLessThan(html.indexOf("<img"));
