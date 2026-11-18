@@ -30,15 +30,16 @@ describe("ShowClockBar", () => {
     expect(html).toContain("border-red-500");
     expect(html).not.toContain("bg-red-950");
   });
-  it("running: a coral edge", () => {
+  it("running: the blue card", () => {
     const html = render({ clock: { kind: "running", index: 1, remainingMs: 120000, totalMs: 180000, onDeckIndex: 2 }, started: true, controls });
-    expect(html).toContain("border-primary");
+    expect(html).toContain("border-sky-400");
     expect(html).toContain("2:00");
     expect(html).not.toContain("border-red-500");
   });
-  it("between comics: a plain white edge", () => {
+  it("between comics: the blue card", () => {
     const html = render({ clock: { kind: "idle", nextIndex: 2, nextMs: 180000 }, started: true, controls });
-    expect(html).toContain("border-white/35");
+    expect(html).toContain("border-sky-400");
+    expect(html).toContain("bg-[#0e2a47]");
     expect(html).toContain("3:00");
     expect(html).not.toContain("border-primary");
   });

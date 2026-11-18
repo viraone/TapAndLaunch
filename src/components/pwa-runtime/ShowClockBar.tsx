@@ -28,14 +28,14 @@ export function ShowClockBar({ clock, started, controls }: { clock: ShowClock; s
   const startLit = !running && !!controls && !controls.busy && (!done || started);
   const litStart = "border-transparent bg-primary text-primary-foreground active:opacity-80";
   const litStop = "border-transparent bg-white text-black active:opacity-80";
-  const dim = "border-white/15 bg-transparent text-white/40";
+  const dim = "border-sky-200/30 bg-white/10 text-sky-100/70";
   const button = "min-w-[4.75rem] rounded-2xl border-2 px-4 py-5 text-base font-black tracking-wider disabled:cursor-default";
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 px-3">
       <div
         className={
           "pointer-events-auto relative mx-auto flex max-w-md items-center gap-3 rounded-3xl border-2 px-4 py-3 shadow-lg " +
-          (over ? "border-red-500 bg-red-950" : hot ? "border-red-500 bg-[#1f1f24]" : running ? "border-primary bg-[#1f1f24]" : "border-white/35 bg-[#1f1f24]")
+          (over ? "border-red-500 bg-red-950" : hot ? "border-red-500 bg-[#1f1f24]" : "border-sky-400 bg-[#0e2a47]")
         }
         role="status"
         aria-live="polite"
