@@ -379,7 +379,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
 
       </div>
 
-      <div className={pinned ? SIGNUP_PINNED_SCROLL + (showStartTime ? " [&>*:first-child]:-mt-[5px]" : "") : phase === "email" ? "-mt-[3px]" : "mt-1"}>
+      <div className={pinned ? SIGNUP_PINNED_SCROLL + (showStartTime ? " [&>*:first-child]:-mt-[5px]" : "") : phase === "email" ? "mt-3" : "mt-1"}>
         {phase === "loading" && (
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
