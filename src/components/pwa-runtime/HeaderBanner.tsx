@@ -93,7 +93,7 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
           </>
         )}
         {buttonOnTop && buttonDetail && (
-          <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-[55%] whitespace-nowrap inline-flex items-center gap-2 rounded-full bg-black/55 px-4 py-[6px] text-[13px] font-semibold uppercase leading-none tracking-[0.16em] text-white shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-1 ring-white/20 backdrop-blur-md">
+          <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-[60%] whitespace-nowrap inline-flex items-center gap-2 rounded-full bg-black/55 px-[18px] py-[7px] text-[14px] font-semibold uppercase leading-none tracking-[0.16em] text-white shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-1 ring-white/20 backdrop-blur-md">
             {splitShowDate(buttonDetail).map((part, i) => (
               <Fragment key={i}>
                 {i > 0 && <span aria-hidden="true" className="size-[4px] shrink-0 rounded-full bg-[#e8442a]" />}
