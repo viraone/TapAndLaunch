@@ -97,7 +97,7 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
             {splitShowDate(buttonDetail).map((part, i) => (
               <Fragment key={i}>
                 {i > 0 && <span aria-hidden="true" className="size-[4px] shrink-0 rounded-full bg-[#e8442a]" />}
-                <span className={i === 0 ? "font-extrabold" : "text-white/85"}>{part}</span>
+                <span className={i === 0 ? "font-extrabold" : undefined}>{part}</span>
               </Fragment>
             ))}
           </span>
