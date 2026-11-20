@@ -195,6 +195,38 @@ export function spotlightReply(plan: Extract<SpotlightPlan, { ok: true }>): stri
   return plan.performing ? `${plan.name} is on deck. ${plan.performing} is performing now.` : `${plan.name} is on deck.`;
 }
 
+/** The commands that edit the Google Sheet: add, move and swap. */
+export type SheetCommand = Extract<LineupCommand, { type: "add" | "move" | "swap" }>;
+
+export function isSheetCommand(command: LineupCommand | null): command is SheetCommand {
+  return command !== null && (command.type === "add" || command.type === "move" || command.type === "swap");
+}
+
+/** What the hosts read when they ask to undo: there is no undo, so they name the change to reverse. */
+export const UNDO_NOT_AVAILABLE = "I can't undo yet. Tell me the change to reverse, like \"move Sam below Jeff\".";
+
+/**
+ * The sheet command with every comic name replaced by the lineup's full name, so the sheet can find the row.
+ * A name that does not match exactly one comic is left as typed, and the new comic's own name is never looked up.
+ * Returns a new object and never changes the command or the lineup.
+ */
+export function resolveSheetCommand(command: SheetCommand, lineup: { name: string }[]): SheetCommand {
+  const fullName = (name: string): string => {
+    const match = matchComic(name, lineup);
+    return match.kind === "one" ? match.name : name;
+  };
+  switch (command.type) {
+    case "add":
+      return command.of === undefined ? { ...command } : { ...command, of: fullName(command.of) };
+    case "move":
+      return command.of === undefined
+        ? { ...command, name: fullName(command.name) }
+        : { ...command, name: fullName(command.name), of: fullName(command.of) };
+    case "swap":
+      return { ...command, name: fullName(command.name), other: fullName(command.other) };
+  }
+}
+
 /** The commands that change tonight's lineup right away: remove and no_show hide a comic, back puts one back. */
 export type RemovalCommand = Extract<LineupCommand, { type: "remove" | "no_show" | "back" }>;
 
@@ -315,7 +347,7 @@ export function buildSystemPrompt(lineup: { name: string; set_length: string; st
     "If the host sends only a comic's name, that means on_deck for that comic.",
     "performing: the host says a comic is performing now, on stage now, or just started.",
     "remove and no_show both take the comic off tonight's lineup; back puts a removed comic back on it.",
-    "on_deck, performing, remove, no_show and back happen right away; the other commands are previews only.",
+    "on_deck, performing, remove, no_show, back, add, move and swap happen right away; the answer you give for them is replaced by the app's own confirmation. undo is not available yet.",
     "One command per message. If a host asks for two changes at once, ask for one at a time first.",
     "Minutes are never part of a command.",
     "Do not say a change was made unless it is one of the commands that happen right away.",

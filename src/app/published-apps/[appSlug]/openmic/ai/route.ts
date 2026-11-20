@@ -5,15 +5,18 @@ import { comicFromToken, isHostToken, showProjectFor } from "@/lib/openmic/push-
 import {
   bareNameCommand,
   buildSystemPrompt,
-  EDITS_NOT_LIVE,
   isRemovalCommand,
+  isSheetCommand,
   isSpotlightCommand,
   matchComic,
   parseModelAnswer,
   previewCommand,
   removalReply,
+  resolveSheetCommand,
+  UNDO_NOT_AVAILABLE,
   type LineupCommand,
 } from "@/lib/openmic/ai-commands";
+import { editSheet } from "@/lib/openmic/sheet-edit-server";
 import { applyRemovals, readLineupRemoved } from "@/lib/openmic/removed";
 import type { LineupFeed } from "@/lib/openmic/selection";
 import { allowSearch } from "@/lib/domains/search-limit";
@@ -69,9 +72,9 @@ async function readLineup(url: string | undefined): Promise<LineupFeed | null> {
 
 /**
  * The hosts' AI tab: a chat about the lineup. Hosts only, and the model is never told about emails. remove,
- * no_show and back now change tonight's lineup right away (the client saves the overlay through
- * openmic/lineup-edit); every other accepted command still comes back as a sentence beginning "Would…", with
- * EDITS_NOT_LIVE saying where to make the change for now.
+ * no_show and back change tonight's lineup right away (the client saves the overlay through
+ * openmic/lineup-edit); add, move and swap edit the Google Sheet through the lineup-edit edge function.
+ * on_deck and performing are live on the hosts' phone.
  */
 export async function POST(request: Request, context: { params: Promise<{ appSlug: string }> }) {
   const { appSlug } = await context.params;
@@ -144,5 +147,20 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
   if (!preview.ok) return Response.json({ reply: preview.text, command: null });
   // on_deck and performing are live on the hosts' phone, so they carry no "preview only" line.
   if (isSpotlightCommand(command)) return Response.json({ reply: preview.text, command });
-  return Response.json({ reply: `${preview.text} ${EDITS_NOT_LIVE}`, command });
+
+  // add, move and swap edit the Google Sheet; the lineup feed shows the change within a minute.
+  if (isSheetCommand(command)) {
+    const result = await editSheet({
+      lineupUrl: config.lineup_url,
+      token,
+      command: resolveSheetCommand(command, feed?.lineup ?? []),
+      hostRow: config.host_row === true,
+    });
+    return Response.json({
+      reply: result.ok ? `${result.text} The lineup updates within a minute.` : result.text,
+      command: null,
+      changed: result.ok,
+    });
+  }
+  if (command.type === "undo") return Response.json({ reply: UNDO_NOT_AVAILABLE, command: null });
 }

@@ -4,11 +4,13 @@ import {
   bareNameCommand,
   buildSystemPrompt,
   isRemovalCommand,
+  isSheetCommand,
   matchComic,
   parseModelAnswer,
   planSpotlight,
   previewCommand,
   removalReply,
+  resolveSheetCommand,
   spotlightReply,
   type LineupCommand,
 } from "./ai-commands";
@@ -251,6 +253,77 @@ describe("removalReply", () => {
   });
 });
 
+describe("isSheetCommand", () => {
+  it("catches add, move and swap", () => {
+    expect(isSheetCommand({ type: "add", name: "Sam", position: "end" })).toBe(true);
+    expect(isSheetCommand({ type: "move", name: "Jason", position: "top" })).toBe(true);
+    expect(isSheetCommand({ type: "swap", name: "Jason", other: "Cody" })).toBe(true);
+  });
+
+  it("leaves the live commands, undo and a missing command alone", () => {
+    expect(isSheetCommand({ type: "remove", name: "Nate Wright" })).toBe(false);
+    expect(isSheetCommand({ type: "no_show", name: "Nate Wright" })).toBe(false);
+    expect(isSheetCommand({ type: "back", name: "Nate Wright" })).toBe(false);
+    expect(isSheetCommand({ type: "on_deck", name: "Nate Wright" })).toBe(false);
+    expect(isSheetCommand({ type: "performing", name: "Nate Wright" })).toBe(false);
+    expect(isSheetCommand({ type: "undo" })).toBe(false);
+    expect(isSheetCommand(null)).toBe(false);
+  });
+});
+
+describe("resolveSheetCommand", () => {
+  const SHEET_LINEUP = [{ name: "Nate Wright" }, { name: "Cody Clemens" }, { name: "Jason Katz" }];
+
+  it("uses the lineup's full name for both comics in a move", () => {
+    expect(resolveSheetCommand({ type: "move", name: "Jason", position: "above", of: "Nate" }, SHEET_LINEUP)).toEqual({
+      type: "move",
+      name: "Jason Katz",
+      position: "above",
+      of: "Nate Wright",
+    });
+  });
+
+  it("keeps an unknown or ambiguous name unchanged", () => {
+    expect(resolveSheetCommand({ type: "move", name: "Jason", position: "below", of: "Nobody Smith" }, SHEET_LINEUP)).toEqual({
+      type: "move",
+      name: "Jason Katz",
+      position: "below",
+      of: "Nobody Smith",
+    });
+    expect(resolveSheetCommand({ type: "move", name: "Lori", position: "above", of: "David" }, LINEUP)).toEqual({
+      type: "move",
+      name: "Lori Peck",
+      position: "above",
+      of: "David",
+    });
+  });
+
+  it("keeps the new comic's name as typed and resolves who it goes beside", () => {
+    expect(resolveSheetCommand({ type: "add", name: "Sam", position: "below", of: "Jason" }, SHEET_LINEUP)).toEqual({
+      type: "add",
+      name: "Sam",
+      position: "below",
+      of: "Jason Katz",
+    });
+  });
+
+  it("resolves both names in a swap", () => {
+    expect(resolveSheetCommand({ type: "swap", name: "Jason", other: "Cody" }, SHEET_LINEUP)).toEqual({
+      type: "swap",
+      name: "Jason Katz",
+      other: "Cody Clemens",
+    });
+  });
+
+  it("returns a new command and leaves the input alone", () => {
+    const command = { type: "move" as const, name: "Jason", position: "above" as const, of: "Nate" };
+    const result = resolveSheetCommand(command, SHEET_LINEUP);
+    expect(result).not.toBe(command);
+    expect(command).toEqual({ type: "move", name: "Jason", position: "above", of: "Nate" });
+    expect(SHEET_LINEUP).toEqual([{ name: "Nate Wright" }, { name: "Cody Clemens" }, { name: "Jason Katz" }]);
+  });
+});
+
 describe("previewCommand", () => {
   it("previews adding someone below or above someone", () => {
     expect(previewCommand({ type: "add", name: "Sam", position: "below", of: "Jeff" }, LINEUP)).toEqual({
@@ -398,7 +471,8 @@ describe("buildSystemPrompt", () => {
     const prompt = buildSystemPrompt([], null);
     expect(prompt).toContain("on_deck");
     expect(prompt).toContain("performing");
-    expect(prompt).toContain("remove, no_show and back happen right away");
+    expect(prompt).toContain("remove, no_show, back, add, move and swap happen right away");
     expect(prompt).toContain("happen right away");
+    expect(prompt).toContain("undo is not available yet");
   });
 });

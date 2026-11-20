@@ -39,8 +39,7 @@ const SAMPLE: ChatMessage[] = [
   { role: "user", content: "Add Sam below Jeff" },
   {
     role: "assistant",
-    content:
-      "Would add Sam below Jeff Morris. Lineup editing goes live after Sunday's update, so make this change in the sheet for now.",
+    content: "Added Sam below Jeff Morris, 3 min.",
   },
 ];
 
@@ -187,12 +186,17 @@ function Chat({ client, config, userId }: { client: SupabaseClient; config: Open
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: data.session?.access_token, messages: next.slice(-12), status }),
       });
-      const body = (await res.json().catch(() => ({}))) as { reply?: string; error?: string; command?: LineupCommand | null };
+      const body = (await res.json().catch(() => ({}))) as { reply?: string; error?: string; command?: LineupCommand | null; changed?: boolean };
       if (!res.ok) {
         // The server's own words (signed out, too fast, the AI didn't answer), with the question still in the box.
         setInput(text);
         setMessages([...messages, { role: "assistant", content: typeof body.error === "string" ? body.error : "The AI didn't answer. Try again." }]);
         return;
+      }
+      if (body.changed === true) {
+        // The lineup feed caches for 30 s, so reload now and again when the cache has turned over.
+        window.dispatchEvent(new CustomEvent("openmic-lineup-refresh"));
+        setTimeout(() => window.dispatchEvent(new CustomEvent("openmic-lineup-refresh")), 31000);
       }
       const command = body.command ?? null;
       const content = isSpotlightCommand(command)
@@ -239,7 +243,7 @@ function ChatScreen({
       )}
       <header className="shrink-0">
         <h1 className="text-3xl font-black tracking-tight">Lineup helper</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Ask about the lineup. Changes are previews for now.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Ask about the lineup, or tell me to add, move or remove a comic.</p>
       </header>
 
       <div className={`${PINNED_SCROLL} flex flex-col gap-2.5`} aria-live="polite">
