@@ -29,7 +29,7 @@ describe("SignupHeader start time label", () => {
   it("hides it when showStartTime is false", () => {
     expect(render({ showStartTime: false })).not.toContain("Start time");
   });
-  it("shows it when showStartTime is true", () => {
-    expect(render({ showStartTime: true })).toContain("Start time");
+  it("no longer shows it in the header, even when showStartTime is true (it sits above the lineup now)", () => {
+    expect(render({ showStartTime: true })).not.toContain("Start time");
   });
 });

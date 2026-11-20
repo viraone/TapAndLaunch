@@ -164,9 +164,6 @@ export function SignupHeader({
           <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{showDate}</h1></div>
           {startsIn && <p className="mt-1.5 text-[13px] font-bold tabular-nums leading-none text-muted-foreground">{startsIn}</p>}
         </div>
-        {showStartTime && (
-          <p className={`ml-auto shrink-0 self-end pb-1 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-foreground ${hidePill ? "translate-y-[21px]" : ""}`}>Start time</p>
-        )}
       </div>
       {!hidePill && !pillBelow && <SignupStatusPill open={open} closesAt={closesAt} reopenText={reopenText} className={config.logo_url || startsIn || showStartTime ? "mt-4" : ""} />}
     </header>
@@ -1238,6 +1235,7 @@ export function ShowDay({
 
       {lineupTime && config.show_lineup !== false && feed?.posted && feed.lineup.length > 0 && (
         <>
+          <p className="-mb-3 pr-3 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-foreground">Start time</p>
           <LineupList
             feed={feed}
             startLabels={startLabels}
