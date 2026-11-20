@@ -41,7 +41,7 @@ export function AppHeader({ theme, hideBanner = false }: { theme: ThemeConfig; h
 
   if (banner) {
     const withBanner = (
-      <header className="border-b border-border/70 bg-background px-4 pb-2 pt-4">
+      <header className="border-b border-border/70 bg-background px-4 pb-2 pt-6">
         <HeaderBanner banner={banner} corner={action ? <HeaderCornerLink href={`/${action.page_path.replace(/^\//, "")}`} label={action.label} icon={action.icon} /> : undefined} />
       </header>
     );
