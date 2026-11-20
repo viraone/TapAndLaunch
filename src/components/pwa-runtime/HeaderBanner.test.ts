@@ -83,19 +83,14 @@ describe("HeaderBanner", () => {
     expect(html).not.toContain("mt-3");
   });
 
-  it("keeps the flyer edge to edge with the button pill above it", () => {
+  it("keeps the flyer edge to edge and shows no button pill above it", () => {
     const html = render({ title: "Show", url: "https://example.com", image: "/x.jpg", button: "Tickets →" });
     expect(html).toContain('class="relative block h-auto w-full rounded-3xl"');
     expect(html).not.toContain("linear-gradient");
-    expect(html).toContain("bg-white");
-    expect(html).not.toContain("=======");
-    expect(html).toContain("Tickets");
-    expect(html).toContain("mx-3.5 mb-2 mt-3.5");
-    expect(html.indexOf("Tickets")).toBeLessThan(html.indexOf("<img"));
+    expect(html).not.toContain("bg-white");
+    expect(html).not.toContain("Tickets");
+    expect(html).not.toContain("motion-safe:animate-ping");
     expect(html).not.toContain("p-3.5");
-    expect(html).toContain("motion-safe:animate-ping");
-    expect(html).toContain("bg-[#e8442a]");
-    expect(html).toContain("stroke-dasharray");
   });
 
   it("keeps padding and rounding when image has a label and a button", () => {

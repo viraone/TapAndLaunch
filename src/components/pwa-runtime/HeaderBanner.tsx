@@ -76,7 +76,6 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
             )}
           </span>
         )}
-        {buttonOnTop && buttonEl}
         {image && (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -110,7 +109,7 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
         )}
         {!buttonOnTop && buttonEl}
       </a>
-      {corner && <div className={`absolute right-2.5 ${buttonOnTop ? "top-[86px]" : "top-2.5"}`}>{corner}</div>}
+      {corner && <div className="absolute right-2.5 top-2.5">{corner}</div>}
     </div>
   );
 }
