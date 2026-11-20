@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { HeaderBanner } from "./HeaderBanner";
+import { HeaderBanner, splitShowDate } from "./HeaderBanner";
 
 const render = (banner: { title: string; url: string; label?: string; sub?: string; button?: string; big?: string; image?: string; chips?: Array<{ text: string; icon?: "clock" | "mic" }> }, corner?: React.ReactNode) =>
   renderToStaticMarkup(createElement(HeaderBanner, { banner, corner }));
@@ -97,5 +97,33 @@ describe("HeaderBanner", () => {
     const html = render({ title: "Show", url: "https://example.com", image: "/x.jpg", label: "Food drive", button: "Tickets →" });
     expect(html).toContain("rounded-2xl");
     expect(html).toContain("p-3.5");
+  });
+
+  it("splits a show date into weekday, month, day, and time", () => {
+    expect(splitShowDate("Fri Nov 27, 7:30 PM")).toEqual(["Friday", "Nov", "27", "7:30 PM"]);
+  });
+
+  it("splits a long weekday and month into three-letter forms", () => {
+    expect(splitShowDate("Friday November 27, 7:30 PM")).toEqual(["Friday", "Nov", "27", "7:30 PM"]);
+  });
+
+  it("returns non-matching text whole as one part", () => {
+    expect(splitShowDate("Tonight at 8")).toEqual(["Tonight at 8"]);
+  });
+
+  it("shows the date chip on top of the flyer when the button has a detail", () => {
+    const html = render({ title: "Show", url: "https://example.com", image: "/x.jpg", button: "Get Tickets · Fri Nov 27, 7:30 PM" });
+    expect(html).toContain("Friday");
+    expect(html).toContain("Nov");
+    expect(html).toContain("7:30 PM");
+    expect(html).toContain("backdrop-blur-md");
+    expect(html).toContain('class="relative block h-auto w-full rounded-3xl"');
+    expect(html).not.toContain("bg-white");
+    expect(html).not.toContain("Get Tickets");
+  });
+
+  it("does not show the date chip when the button has no detail", () => {
+    const html = render({ title: "Show", url: "https://example.com", image: "/x.jpg", button: "Tickets →" });
+    expect(html).not.toContain("backdrop-blur-md");
   });
 });

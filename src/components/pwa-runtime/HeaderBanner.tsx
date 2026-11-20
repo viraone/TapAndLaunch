@@ -1,6 +1,16 @@
 import type { HeaderBanner as HeaderBannerConfig } from "@/lib/pwa/header-banner";
 import { Fragment, type ReactNode } from "react";
 
+const WEEKDAYS: Record<string, string> = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
+
+// "Fri Nov 27, 7:30 PM" -> ["Friday", "Nov", "27", "7:30 PM"]. Anything that does not match is returned whole, as one part.
+export function splitShowDate(detail: string): string[] {
+  const m = /^([A-Za-z]{3})[A-Za-z]*\.?\s+([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{1,2}),?\s+(.+)$/.exec(detail.trim());
+  if (!m) return [detail.trim()];
+  const weekday = WEEKDAYS[m[1].toLowerCase()] ?? m[1];
+  return [weekday, m[2], m[3], m[4].trim()];
+}
+
 const CHIP_ICONS = {
   clock: (
     <>
@@ -81,6 +91,16 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={image} alt={title} width={1173} height={552} decoding="async" className={fullBleed ? `relative block h-auto w-full${buttonOnTop ? " rounded-3xl" : ""}` : "relative mt-3 block h-auto w-full rounded-2xl ring-1 ring-black/10"} />
           </>
+        )}
+        {buttonOnTop && buttonDetail && (
+          <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-[3.5px] text-[10px] font-semibold uppercase leading-none tracking-[0.16em] text-white shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-1 ring-white/20 backdrop-blur-md">
+            {splitShowDate(buttonDetail).map((part, i) => (
+              <Fragment key={i}>
+                {i > 0 && <span aria-hidden="true" className="size-[3px] shrink-0 rounded-full bg-[#e8442a]" />}
+                <span className={i === 0 ? "font-extrabold" : "text-white/85"}>{part}</span>
+              </Fragment>
+            ))}
+          </span>
         )}
         <span className={image ? "sr-only" : `${label || corner ? "mt-5 " : ""}relative block text-[34px] font-extrabold leading-none tracking-[-0.035em]`}>{title}</span>
         {sub && !image && (
