@@ -61,7 +61,7 @@ function TvTimerBox({ client, config }: { client: NonNullable<ReturnType<typeof 
 }
 
 const TONE = {
-  calm: { panel: "bg-[#0c0c0e] ring-1 ring-white/10", name: "text-white", digits: "text-white", next: "text-white", track: "bg-white/10", bar: "bg-primary", deck: "bg-white/[0.07]", tag: "bg-white text-black", deckName: "text-white", tick: "bg-white" },
+  calm: { panel: "bg-[#0c0c0e] ring-4 ring-inset ring-[#FF3EA5]", name: "text-[#FFE14D]", digits: "text-white", next: "text-white", track: "bg-white/10", bar: "bg-[#FF3EA5]", deck: "bg-[#101a1f] ring-2 ring-inset ring-[#2FE6E0]", tag: "bg-[#2FE6E0] text-[#04342C]", deckName: "text-white", tick: "bg-white" },
   warn: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black", deck: "bg-black/15", tag: "bg-black text-amber-400", deckName: "text-amber-950", tick: "bg-black/50" },
   urgent: { panel: "bg-amber-400", name: "text-amber-950", digits: "text-black", next: "text-amber-950/80", track: "bg-black/20", bar: "bg-black", deck: "bg-black/15", tag: "bg-black text-amber-400", deckName: "text-amber-950", tick: "bg-black/50" },
   over: { panel: "bg-red-600", name: "text-white", digits: "text-white", next: "text-white", track: "bg-black/25", bar: "bg-white", deck: "bg-black/20", tag: "bg-white text-red-700", deckName: "text-white", tick: "bg-white/60" },
@@ -97,8 +97,8 @@ export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: strin
         <div className="relative">
           <div className="flex h-12 items-center justify-between gap-6">
             {tone === "calm" ? (
-              <p className="flex shrink-0 items-center gap-4 text-4xl font-semibold uppercase tracking-[0.2em] text-primary">
-                <span className="h-6 w-6 shrink-0 animate-pulse rounded-full bg-primary" />
+              <p className="flex shrink-0 items-center gap-4 text-4xl font-semibold uppercase tracking-[0.2em] text-[color:#FF3EA5]">
+                <span className="h-6 w-6 shrink-0 animate-pulse rounded-full bg-[#FF3EA5]" />
                 Performing
               </p>
             ) : (

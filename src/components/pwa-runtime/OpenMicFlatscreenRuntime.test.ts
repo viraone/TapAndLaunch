@@ -45,7 +45,7 @@ describe("TvTimerPanel", () => {
     expect(html).toContain("2:00");
     expect(html).toContain("width:66.66");
     expect(html.split("-translate-x-1/2").length - 1).toBe(2);
-    expect(html).toContain("bg-primary");
+    expect(html).toContain("bg-[#FF3EA5]");
     expect(html).toContain("text-[16rem]");
     expect(html).not.toContain("bg-amber-400");
     expect(html).not.toContain("px-7 py-2 text-4xl");
