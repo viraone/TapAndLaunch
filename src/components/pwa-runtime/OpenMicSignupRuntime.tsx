@@ -371,8 +371,8 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
 
   return (
     <div className={pinned ? SIGNUP_PINNED_PAGE : "mx-auto w-full max-w-md px-4 pb-12 pt-0"}>
-      <div className={pinned ? (showStartTime ? (hidePill ? "shrink-0 pb-[20px]" : "shrink-0 pb-[5px]") : "shrink-0") : undefined}>
-      <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} showStartTime={showStartTime} label={heading.label} startsIn={heading.startsIn} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} pillBelow />
+      <div className={pinned ? (showStartTime ? (hidePill ? "shrink-0 pb-2" : "shrink-0 pb-[5px]") : "shrink-0") : undefined}>
+      <SignupHeader config={config} showDate={showDate} open={open} hidePill={hidePill} showStartTime={showStartTime} label={heading.label} reopenText={reopenLabel(window_, now)} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} pillBelow />
 
       </div>
 

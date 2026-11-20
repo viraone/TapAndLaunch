@@ -116,7 +116,7 @@ export function DevPreview() {
         <RequestForm client={null as never} user={{ id: "preview", email: "you@example.com" } as never} profile={{ stage_name: "", instagram: "", performed_before: null }} onRequested={() => {}} onProfileSaved={() => {}} />
       </div>
       <p className="mb-2 mt-8 text-sm font-semibold">Lineup with host row</p>
-      <SignupHeader config={{} as never} showDate="Friday, Nov 13" open={false} hidePill showStartTime reopenText="" closesAt="" label="Tonight" startsIn="Starts in 2h 10m" />
+      <SignupHeader config={{} as never} showDate="Friday, Nov 13" open={false} hidePill showStartTime reopenText="" closesAt="" label="Tonight" />
       <div className="flex flex-wrap gap-4">
         <div>
           <p className="mb-1 text-xs text-muted-foreground">Before START (hosts row, Karen on deck)</p>
