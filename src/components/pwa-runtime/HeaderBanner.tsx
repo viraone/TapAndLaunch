@@ -93,10 +93,10 @@ export function HeaderBanner({ banner, corner }: { banner: HeaderBannerConfig; c
           </>
         )}
         {buttonOnTop && buttonDetail && (
-          <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-[3.5px] text-[10px] font-semibold uppercase leading-none tracking-[0.16em] text-white shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-1 ring-white/20 backdrop-blur-md">
+          <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap inline-flex items-center gap-2 rounded-full bg-black/55 px-3.5 py-[5px] text-[12px] font-semibold uppercase leading-none tracking-[0.16em] text-white shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-1 ring-white/20 backdrop-blur-md">
             {splitShowDate(buttonDetail).map((part, i) => (
               <Fragment key={i}>
-                {i > 0 && <span aria-hidden="true" className="size-[3px] shrink-0 rounded-full bg-[#e8442a]" />}
+                {i > 0 && <span aria-hidden="true" className="size-[4px] shrink-0 rounded-full bg-[#e8442a]" />}
                 <span className={i === 0 ? "font-extrabold" : "text-white/85"}>{part}</span>
               </Fragment>
             ))}
