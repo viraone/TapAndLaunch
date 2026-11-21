@@ -44,7 +44,7 @@ describe("CompSetPicker", () => {
     const out = html({ allMinutes: 4, hasOverrides: true });
     expect(out).toContain("4<span");
     expect(out).toContain("Set by the hosts tonight");
-    expect(out).toContain("Reset everyone to the sheet");
+    expect(out).not.toContain("Reset everyone to the sheet"); // hidden for now: SHOW_RESET_EVERYONE is false in CompSetPicker.tsx
   });
 
   it("selected custom comic", () => {

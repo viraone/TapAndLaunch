@@ -7,6 +7,9 @@ import { MAX_COMIC_MINUTES, MIN_COMIC_MINUTES } from "@/lib/openmic/set-minutes"
 /** One comic in the picker (the hosts row is not in the list): the number they have right now, and whether the hosts gave them their own. */
 export type CompTarget = { key: string; name: string; minutes: number; custom: boolean };
 
+/** The "Reset everyone to the sheet" button is hidden for now (2026-11-21). Set this to true to bring it back. */
+const SHOW_RESET_EVERYONE: boolean = false;
+
 /** The hosts' set-length control. The label is a picker: "All comics" (everyone but the hosts) or one comic. The − and + change the
  *  picked target. `allMinutes` is what the hosts dictated for everyone (null = the sheet's own lengths); `fallback` is shown while
  *  nothing is dictated, so the first tap moves from a real number. */
@@ -50,7 +53,7 @@ export function CompSetPicker({
   const sub = target
     ? target.custom ? "Just this comic" : "Same as everyone"
     : allMinutes !== null ? "Set by the hosts tonight" : hasOverrides && changed > 0 ? `Sheet says ${fallback} min · ${changed} ${changed === 1 ? "comic" : "comics"} changed` : hasOverrides ? "From the sheet, some changed" : "From the sheet";
-  const resetLabel = target ? (target.custom ? "Same as everyone" : null) : hasOverrides ? "Reset everyone to the sheet" : null;
+  const resetLabel = target ? (target.custom ? "Same as everyone" : null) : hasOverrides && SHOW_RESET_EVERYONE ? "Reset everyone to the sheet" : null;
   const pick = (key: string) => {
     setDraft(null);
     onSelect(key);
