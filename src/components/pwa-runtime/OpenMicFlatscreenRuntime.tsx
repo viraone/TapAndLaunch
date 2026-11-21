@@ -18,6 +18,8 @@ export function OpenMicFlatscreenRuntime({ config }: { config: OpenMicSignupBloc
   const client = useOpenMicClient(config);
   return (
     <div className="fixed inset-0 z-[100] flex overflow-hidden bg-black text-white">
+      {/* Every size here is in rem, drawn for a 1920px-wide screen: scale the rem with the screen so the timer keeps its size next to the flyer on any TV. */}
+      <style>{"html{font-size:calc(100vw/120)}"}</style>
       <div className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden">
         {config.flyer_url ? (
           // The flyer is made in the column's own shape, so on the TV it fills it; on a screen of another shape the gap stays black.
