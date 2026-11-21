@@ -429,7 +429,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
           ) : showDayOn ? (
             <ShowDayScreen client={client} userId={user.id} stageName={profile.stage_name} signedIn requested={false} config={config} dateLabel={showDate} window={window_} now={now} />
           ) : (
-            <ClosedCard name={profile.stage_name} reopenText={reopenLabel(window_, now)} note={config.closed_note} />
+            <ClosedCard name={profile.stage_name} reopenText={reopenLabel(window_, now)} note={(pausedLabel && config.paused_note) || config.closed_note} heading={pausedLabel ? config.paused_heading : undefined} pill={pausedLabel ? config.paused_label : undefined} />
           )
         )}
 
@@ -886,10 +886,11 @@ function RequestedCard() {
 }
 
 /** Signed in, no request, requests closed, lineup off: when they open again, in the pill's words. */
-export function ClosedCard({ name, reopenText, note }: { name: string; reopenText: string; note?: string }) {
+export function ClosedCard({ name, reopenText, note, heading, pill }: { name: string; reopenText: string; note?: string; heading?: string; pill?: string }) {
   return (
     <div className="rounded-2xl border bg-muted/60 p-6 text-center">
-      <h2 className="text-lg font-bold">Requests are closed for this week</h2>
+      {pill && <p className="mb-2 text-[13px] font-black uppercase leading-none tracking-[0.1em] text-primary">{pill}</p>}
+      <h2 className="text-lg font-bold">{heading || "Requests are closed for this week"}</h2>
       <p className="mt-2 text-[15px] text-foreground/85">
         {note ?? `${name ? `${name.split(/\s+/)[0]}, requests` : "Requests"} open again ${reopenText}.`}
       </p>

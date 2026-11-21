@@ -161,6 +161,11 @@ export function DevPreview() {
         <ClosedCard name="Sam Rivera" reopenText="Saturday 11/28" />
         <SignupStatusPill open={false} closesAt="" reopenText="Saturday 11/28" className="mt-5" />
       </div>
+      <p className="mb-2 mt-8 text-sm font-semibold">Signed-in comic, week off with its own texts</p>
+      <div className="mx-auto max-w-md">
+        <ClosedCard name="Sam Rivera" reopenText="Saturday 11/28" pill="Free Show This Friday" heading="No open mic this Friday" note="Come out for Thanksgiving Leftovers, Friday at 7:30 PM. Free admission when you bring canned food to donate. Next open mic: 12/04." />
+        <SignupStatusPill open={false} closesAt="" reopenText="Saturday 11/28" className="mt-5" />
+      </div>
     </div>
   );
 }
