@@ -32,7 +32,7 @@ const ThemeSchema = z.object({
   color_scheme: z.enum(["light", "dark"]).optional(),
   show_member_bar: z.boolean().optional(),
   looks_confirmed: z.boolean().optional(),
-  bottom_nav_style: z.enum(["compact", "tabs"]).optional(),
+  bottom_nav_style: z.enum(["compact", "tabs", "capsule"]).optional(),
   // Added later than the fields above; a key missing here was silently dropped on every Save settings.
   layout: z.enum(["app", "website"]).optional(),
   font_pair: z.string().max(30).optional(),

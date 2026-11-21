@@ -15,7 +15,7 @@ export function PublishedBottomNav({
   homePagePath,
 }: {
   items: BottomNavItem[];
-  variant?: "compact" | "tabs";
+  variant?: "compact" | "tabs" | "capsule";
   /** The home page's path: the app's root URL ("/") shows it, so its tab is
    * the active one there. */
   homePagePath?: string;

@@ -10,7 +10,7 @@ const ITEMS = [
   { label: "Shop", icon: "cart", page_path: "shop" },
 ];
 
-function render(variant: "compact" | "tabs" | undefined, activePagePath = "home") {
+function render(variant: "compact" | "tabs" | "capsule" | undefined, activePagePath = "home") {
   return renderToStaticMarkup(createElement(BottomNav, { items: ITEMS, variant, activePagePath, onNavigate: () => {} }));
 }
 
@@ -34,5 +34,15 @@ describe("BottomNav", () => {
     expect(html).toContain('d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"');
     expect(html).toContain("m9 11 1.6 1.6");
     expect(html).toContain("lucide-shopping-cart");
+  });
+
+  it("draws the capsule bar: fully rounded, the active tab in a darker capsule with no accent colour", () => {
+    const html = render("capsule");
+    expect(html).toContain("fixed inset-x-0 bottom-0");
+    expect(html).toContain("rounded-full border border-foreground/15 bg-muted/90");
+    expect(html).toMatch(/aria-current="page"[^>]*bg-background text-foreground[^>]*>.*?>Home</);
+    expect(html).not.toContain("text-primary");
+    expect(html.match(/aria-current/g)).toHaveLength(1);
+    expect(html).toContain('d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1v-9Z"');
   });
 });

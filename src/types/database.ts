@@ -145,7 +145,7 @@ export interface ThemeConfig {
   show_member_bar?: boolean;
   /** "tabs" is a tall tab bar fixed to the bottom of the screen, with large
    * icons (StageTime's look). Unset keeps the compact bar. */
-  bottom_nav_style?: "compact" | "tabs";
+  bottom_nav_style?: "compact" | "tabs" | "capsule";
   /** The bottom of every page: a line of text and the social links. */
   footer?: { text?: string; social?: Array<{ kind: string; url: string }> };
   /** A pair of fonts from `FONT_PAIRS` (headings and body); `font_family` typed by hand still wins for the body. */

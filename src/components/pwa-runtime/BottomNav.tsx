@@ -104,11 +104,38 @@ export function BottomNav({
   onNavigate,
 }: {
   items: BottomNavItem[];
-  variant?: "compact" | "tabs";
+  variant?: "compact" | "tabs" | "capsule";
   activePagePath?: string;
   onNavigate: (pagePath: string) => void;
 }) {
   if (items.length === 0) return null;
+
+  if (variant === "capsule") {
+    return (
+      // One fully rounded floating bar; the current tab sits in a darker capsule, with no accent colour.
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom)+14px)]">
+        <nav className="pointer-events-auto mx-auto flex max-w-md items-stretch gap-1 rounded-full border border-foreground/15 bg-muted/90 p-1 shadow-[0_8px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+          {items.map((item, index) => {
+            const active = item.page_path === activePagePath;
+            return (
+              <button
+                key={index}
+                type="button"
+                onClick={() => onNavigate(item.page_path)}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-[54px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1 py-1 transition active:scale-[0.97] ${
+                  active ? "bg-background text-foreground" : "text-foreground/90 [&:hover]:bg-foreground/10"
+                }`}
+              >
+                <TabIcon name={item.icon} />
+                <span className={`text-center text-[11px] leading-tight ${active ? "font-semibold" : "font-medium"}`}>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+    );
+  }
 
   if (variant === "tabs") {
     return (

@@ -128,7 +128,7 @@ export default async function PublishedAppLayout({
   const member = await getCurrentMember(published.app.id);
   const { theme } = published.app;
   const dark = theme.color_scheme === "dark";
-  const tabs = theme.bottom_nav_style === "tabs";
+  const tabs = theme.bottom_nav_style === "tabs" || theme.bottom_nav_style === "capsule";
   // A website is full width with a top menu on a laptop; on a phone it keeps the tab bar. An app is a phone-shaped
   // column everywhere. Blocks size themselves to the column (`@container`), so the same blocks serve both.
   const website = theme.layout === "website";
@@ -177,7 +177,7 @@ export default async function PublishedAppLayout({
       <div className={website ? "lg:hidden" : undefined}>
         <PublishedBottomNav
           items={theme.bottom_nav ?? []}
-          variant={tabs ? "tabs" : "compact"}
+          variant={theme.bottom_nav_style === "capsule" ? "capsule" : tabs ? "tabs" : "compact"}
           homePagePath={homePagePath}
         />
       </div>

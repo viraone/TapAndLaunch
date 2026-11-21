@@ -10,6 +10,7 @@ import { TvTimerPanel } from "@/components/pwa-runtime/OpenMicFlatscreenRuntime"
 import { ClosedCard, CodeStep, EmailStep, LineupList, RequestForm, SignupHeader, SignupStatusPill } from "@/components/pwa-runtime/OpenMicSignupRuntime";
 import { CompSetPickerDemo } from "./CompSetPickerDemo";
 import { VoiceChatBlockView, type VoicePhase, type VoiceTurn } from "@/components/pwa-runtime/VoiceChatBlock";
+import { BottomNav } from "@/components/pwa-runtime/BottomNav";
 import type { ShowClock } from "@/lib/openmic/show-clock";
 import type { LineupFeed } from "@/lib/openmic/selection";
 import type { ThemeConfig } from "@/types/database";
@@ -165,6 +166,21 @@ export function DevPreview() {
       <div className="mx-auto max-w-md">
         <ClosedCard name="Sam Rivera" reopenText="Saturday 11/28" pill="Free Show This Friday" heading="No open mic this Friday" note="Come out for Thanksgiving Leftovers, Friday at 7:30 PM. Free admission when you bring canned food to donate. Next open mic: 12/04." />
         <SignupStatusPill open={false} closesAt="" reopenText="Saturday 11/28" className="mt-5" />
+      </div>
+      <p className="mb-2 mt-8 text-sm font-semibold">Bottom bar, capsule style (StageTime hosts)</p>
+      {/* The bar is position: fixed; the transform makes this box its frame, so it stays inside the preview instead of sticking to the screen. */}
+      <div className="relative mx-auto h-28 w-full max-w-md overflow-hidden rounded-2xl border bg-background [transform:translateZ(0)]">
+        <BottomNav
+          variant="capsule"
+          activePagePath="remote"
+          onNavigate={() => {}}
+          items={[
+            { label: "Home", icon: "home", page_path: "signup" },
+            { label: "Timer", icon: "remote", page_path: "remote" },
+            { label: "Hosts", icon: "chat", page_path: "hosts" },
+            { label: "DeepSeek", icon: "ai", page_path: "ai" },
+          ]}
+        />
       </div>
     </div>
   );
