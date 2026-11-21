@@ -162,7 +162,7 @@ describe("week off (paused_until)", () => {
 
   it("names the next open mic and the reopening moment while paused", () => {
     expect(nextMicLabel(OFF, pst("2026-11-20T22:14"))).toBe("Next Open Mic 12/04/2026");
-    expect(reopenLabel(OFF, pst("2026-11-20T22:14"))).toBe("Fri 11/27 at 10:00 PM");
+    expect(reopenLabel(OFF, pst("2026-11-20T22:14"))).toBe("Friday 11/27");
     expect(formatShowDateNumeric({ year: 2026, month: 12, day: 4 })).toBe("12/04/2026");
   });
 
@@ -170,5 +170,13 @@ describe("week off (paused_until)", () => {
     expect(isPaused(RTR, pst("2026-11-20T22:14"))).toBe(false);
     expect(nextMicLabel(RTR, pst("2026-11-20T22:14"))).toBeUndefined();
     expect(isWindowOpen(RTR, pst("2026-11-20T22:14"))).toBe(true);
+  });
+
+  it("a Saturday-midnight reopening is named by its weekday and date, with no time", () => {
+    const SAT: WeeklyWindow = { ...RTR, pausedUntil: new Date("2026-11-28T00:00:00-08:00") };
+    expect(reopenLabel(SAT, pst("2026-11-20T22:14"))).toBe("Saturday 11/28");
+    expect(nextMicLabel(SAT, pst("2026-11-20T22:14"))).toBe("Next Open Mic 12/04/2026");
+    expect(isWindowOpen(SAT, pst("2026-11-27T23:59"))).toBe(false);
+    expect(isWindowOpen(SAT, pst("2026-11-28T00:00"))).toBe(true);
   });
 });

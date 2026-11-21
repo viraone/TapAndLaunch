@@ -119,7 +119,7 @@ export function SignupStatusPill({ open, closesAt, reopenText, className = "" }:
         {open && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
         <span className={`relative inline-flex h-4 w-4 rounded-full ${open ? "bg-emerald-400" : "bg-amber-400"}`} />
       </span>
-      {open ? `Sign-up open · closes ${closesAt.replace(":00 ", " ")}` : `Sign ups are closed - reopens ${reopenText}`}
+      {open ? `Sign-up open · closes ${closesAt.replace(":00 ", " ")}` : `Sign Ups Are Closed: Reopens ${reopenText}.`}
     </div>
   );
 }

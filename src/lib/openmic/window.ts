@@ -168,11 +168,11 @@ export function lineupVisible(w: WeeklyWindow, always: boolean | undefined, now:
 export function reopenLabel(w: WeeklyWindow, now: Date = new Date()): string {
   if (isPaused(w, now) && w.pausedUntil) {
     const parts = Object.fromEntries(
-      new Intl.DateTimeFormat("en-US", { timeZone: w.timeZone, weekday: "short", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })
+      new Intl.DateTimeFormat("en-US", { timeZone: w.timeZone, weekday: "long", month: "numeric", day: "numeric" })
         .formatToParts(w.pausedUntil)
         .map((p) => [p.type, p.value])
     );
-    return `${parts.weekday} ${parts.month}/${parts.day} at ${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
+    return `${parts.weekday} ${parts.month}/${parts.day}`;
   }
   if (isHeldClosed(w, now) && w.closedUntil) {
     const parts = Object.fromEntries(

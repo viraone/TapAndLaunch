@@ -13,7 +13,7 @@ describe("SignupStatusPill", () => {
 
   it("closed: amber pill", () => {
     const html = renderToStaticMarkup(createElement(SignupStatusPill, { open: false, closesAt: "", reopenText: "Fri 9:40 PM" }));
-    expect(html).toContain("Sign ups are closed - reopens Fri 9:40 PM");
+    expect(html).toContain("Sign Ups Are Closed: Reopens Fri 9:40 PM.");
     expect(html).toContain("amber");
   });
 
