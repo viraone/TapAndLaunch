@@ -29,6 +29,8 @@ describe("CompSetPicker", () => {
     const out = html({ defaultOpen: true });
     expect(out).toContain("Everyone");
     expect(out).toContain("Tap to pick one comic instead");
+    expect(out).toContain("border-sky-400/70");
+    expect(out).toContain("text-[24px]");
     expect(out).toContain("Set length");
     expect(out).toContain("3<span");
     expect(out).toContain("From the sheet");

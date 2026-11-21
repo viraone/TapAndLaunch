@@ -74,16 +74,16 @@ export function CompSetPicker({
           aria-expanded={open}
           disabled={saving}
           onClick={() => setOpen((v) => !v)}
-          className="flex min-h-16 w-full items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-3.5 py-2.5 text-left outline-none transition active:bg-black/50 disabled:opacity-40"
+          className="flex min-h-[4.5rem] w-full items-center gap-2 rounded-2xl border border-sky-400/70 bg-sky-400/[0.12] px-3 py-3 text-left outline-none transition active:bg-sky-400/25 disabled:opacity-40"
         >
-          <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-400/20 text-[15px] font-bold text-sky-300">
-            {target ? target.name.trim().charAt(0).toUpperCase() : <Users className="h-5 w-5" />}
+          <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-400/25 text-[17px] font-bold text-sky-300">
+            {target ? target.name.trim().charAt(0).toUpperCase() : <Users className="h-6 w-6" />}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[18px] font-semibold leading-tight text-white">{target ? target.name : "Everyone"}</span>
-            <span className="block break-words text-[17px] font-medium leading-snug text-white/85">{target ? "Tap to pick someone else" : "Tap to pick one comic instead"}</span>
+            <span className="block truncate text-[24px] font-bold leading-tight text-white">{target ? target.name : "Everyone"}</span>
+            <span className="block break-words text-[17px] font-semibold leading-snug text-sky-300">{target ? "Tap to pick someone else" : "Tap to pick one comic instead"}</span>
           </span>
-          <ChevronDown className={"h-6 w-6 shrink-0 text-white/80 transition " + (open ? "rotate-180" : "")} aria-hidden="true" />
+          <ChevronDown className={"h-5 w-5 shrink-0 text-sky-300 transition " + (open ? "rotate-180" : "")} aria-hidden="true" />
         </button>
         {open && (
           <ul role="listbox" aria-label="Who the set length is for" className="mt-2 max-h-72 overflow-y-auto overflow-x-hidden rounded-2xl border border-white/10 bg-black/40">
