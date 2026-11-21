@@ -47,11 +47,12 @@ describe("canTapOnDeck", () => {
 });
 
 describe("isShowAdmin", () => {
-  it("is only the one admin account, ignoring case and spaces", () => {
+  it("is only the admin accounts, ignoring case and spaces", () => {
     expect(isShowAdmin("vxayananh@gmail.com")).toBe(true);
     expect(isShowAdmin("  VXAYANANH@Gmail.com  ")).toBe(true);
     expect(isShowAdmin("nickrcody@gmail.com")).toBe(false);
-    expect(isShowAdmin("dinodadcomedy@gmail.com")).toBe(false);
+    expect(isShowAdmin("dinodadcomedy@gmail.com")).toBe(true);
+    expect(isShowAdmin("  DinoDadComedy@Gmail.com ")).toBe(true);
     expect(isShowAdmin(null)).toBe(false);
     expect(isShowAdmin(undefined)).toBe(false);
     expect(isShowAdmin("   ")).toBe(false);

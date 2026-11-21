@@ -41,10 +41,10 @@ export function canTapOnDeck(email: string | null | undefined): boolean {
   return !!wanted && TAP_ON_DECK_EMAILS.some((allowed) => allowed.trim().toLowerCase() === wanted);
 }
 
-/** The one account that may restart the whole show (clear the clock and every finished set) at any time. */
-export const SHOW_ADMIN_EMAILS: readonly string[] = ["vxayananh@gmail.com"];
+/** The accounts that may restart the whole show (clear the clock and every finished set) at any time. */
+export const SHOW_ADMIN_EMAILS: readonly string[] = ["vxayananh@gmail.com", "dinodadcomedy@gmail.com"];
 
-/** Whether a signed-in account is the show admin. */
+/** Whether a signed-in account is a show admin. */
 export function isShowAdmin(email: string | null | undefined): boolean {
   if (!email) return false;
   const wanted = email.trim().toLowerCase();
