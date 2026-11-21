@@ -886,7 +886,7 @@ function RequestedCard() {
 }
 
 /** Signed in, no request, requests closed, lineup off: when they open again, in the pill's words. */
-function ClosedCard({ name, reopenText, note }: { name: string; reopenText: string; note?: string }) {
+export function ClosedCard({ name, reopenText, note }: { name: string; reopenText: string; note?: string }) {
   return (
     <div className="rounded-2xl border bg-muted/60 p-6 text-center">
       <h2 className="text-lg font-bold">Requests are closed for this week</h2>

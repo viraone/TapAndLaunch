@@ -7,7 +7,7 @@ import { HeaderClock } from "@/components/pwa-runtime/HeaderClock";
 import { ShowClockBar } from "@/components/pwa-runtime/ShowClockBar";
 import { RestartShowButton } from "@/components/pwa-runtime/RestartShowButton";
 import { TvTimerPanel } from "@/components/pwa-runtime/OpenMicFlatscreenRuntime";
-import { CodeStep, EmailStep, LineupList, RequestForm, SignupHeader } from "@/components/pwa-runtime/OpenMicSignupRuntime";
+import { ClosedCard, CodeStep, EmailStep, LineupList, RequestForm, SignupHeader, SignupStatusPill } from "@/components/pwa-runtime/OpenMicSignupRuntime";
 import { CompSetPickerDemo } from "./CompSetPickerDemo";
 import { VoiceChatBlockView, type VoicePhase, type VoiceTurn } from "@/components/pwa-runtime/VoiceChatBlock";
 import type { ShowClock } from "@/lib/openmic/show-clock";
@@ -155,6 +155,11 @@ export function DevPreview() {
       <p className="mb-2 mt-8 text-sm font-semibold">Header banner (phone width)</p>
       <div className="w-[22rem] overflow-hidden rounded-2xl border bg-black">
         <AppHeader theme={HEADER_THEME} />
+      </div>
+      <p className="mb-2 mt-8 text-sm font-semibold">Signed-in comic, week off (paused)</p>
+      <div className="mx-auto max-w-md">
+        <ClosedCard name="Sam Rivera" reopenText="Saturday 11/28" />
+        <SignupStatusPill open={false} closesAt="" reopenText="Saturday 11/28" className="mt-5" />
       </div>
     </div>
   );
