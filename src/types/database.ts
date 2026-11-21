@@ -604,6 +604,12 @@ export interface OpenMicSignupBlockConfig {
   /** One-off week off: requests stay closed until this moment (ISO 8601 with offset, e.g. "2026-11-27T22:00:00-08:00"),
    * also across a weekly close. The signed-out card shows "Next Open Mic MM/DD/YYYY" with the email box disabled. */
   paused_until?: string;
+  /** While paused: the card's pill text instead of "Next Open Mic MM/DD/YYYY" (e.g. "Free Show This Friday"). */
+  paused_label?: string;
+  /** While paused: the card's heading instead of "Request your spot". */
+  paused_heading?: string;
+  /** While paused: the line under the heading instead of the "enter your email" line. */
+  paused_note?: string;
   /** The Subject and Message a new reminder starts with on this show's Automation screen, in place of the shared
    * wording (src/lib/automation/defaults.ts). Live on the sign-up block, next to show_name and venue. */
   reminder_default_subject?: string;

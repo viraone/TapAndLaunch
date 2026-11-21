@@ -45,4 +45,23 @@ describe("EmailStep", () => {
     expect(render(true)).not.toContain('disabled=""');
     expect(render(false)).not.toContain('disabled=""');
   });
+
+  it("paused with its own texts: shows them in place of the defaults, still disabled", () => {
+    const html = renderToStaticMarkup(createElement(EmailStep, { client: null as never, email: "", setEmail: () => {}, open: false, pausedLabel: "Next Open Mic 12/04/2026", pausedPill: "Free Show This Friday", pausedHeading: "No open mic this Friday", pausedNote: "Come out for Thanksgiving Leftovers.", onSent: () => {} }));
+    expect(html).toContain("Free Show This Friday");
+    expect(html).toContain("No open mic this Friday");
+    expect(html).toContain("Come out for Thanksgiving Leftovers.");
+    expect(html).not.toContain("Next Open Mic 12/04/2026");
+    expect(html).not.toContain("Request your spot");
+    expect(html).not.toContain("6-digit code");
+    expect(html.match(/disabled=""/g)?.length).toBe(2);
+  });
+
+  it("not paused: the paused texts are ignored", () => {
+    const html = renderToStaticMarkup(createElement(EmailStep, { client: null as never, email: "", setEmail: () => {}, open: true, pausedPill: "Free Show This Friday", pausedHeading: "No open mic this Friday", pausedNote: "Come out for Thanksgiving Leftovers.", onSent: () => {} }));
+    expect(html).not.toContain("Free Show This Friday");
+    expect(html).not.toContain("No open mic this Friday");
+    expect(html).not.toContain("Come out for Thanksgiving Leftovers.");
+    expect(html).toContain("Request your spot");
+  });
 });

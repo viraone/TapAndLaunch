@@ -396,6 +396,9 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
             setEmail={setEmail}
             open={open}
             pausedLabel={pausedLabel}
+            pausedPill={config.paused_label}
+            pausedHeading={config.paused_heading}
+            pausedNote={config.paused_note}
             onSent={() => setPhase("code")}
           />
         )}
@@ -476,6 +479,9 @@ export function EmailStep({
   setEmail,
   open,
   pausedLabel,
+  pausedPill,
+  pausedHeading,
+  pausedNote,
   onSent,
 }: {
   client: SupabaseClient;
@@ -483,6 +489,9 @@ export function EmailStep({
   setEmail: (v: string) => void;
   open: boolean;
   pausedLabel?: string;
+  pausedPill?: string;
+  pausedHeading?: string;
+  pausedNote?: string;
   onSent: () => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -502,10 +511,10 @@ export function EmailStep({
 
   return (
     <form onSubmit={send} className="relative rounded-3xl border-2 border-primary/70 bg-primary/10 px-4 pb-4 pt-4 shadow-[0_0_28px_rgba(248,113,113,0.22)]">
-      <span className={`absolute -top-3.5 left-4 rounded-full bg-primary whitespace-nowrap px-3.5 py-1.5 ${pausedLabel ? "text-[14px] min-[360px]:text-[16px] min-[375px]:text-[17px] min-[390px]:text-[18px]" : "text-[14px]"} font-black uppercase leading-none tracking-[0.1em] text-black`}>{pausedLabel ?? (open ? "Sign up for Friday’s open mic" : "Sign in")}</span>
-      <h2 className="text-[28px] font-extrabold leading-tight tracking-tight">{open || pausedLabel ? "Request your spot" : "Sign in to see your status"}</h2>
+      <span className={`absolute -top-3.5 left-4 rounded-full bg-primary whitespace-nowrap px-3.5 py-1.5 ${pausedLabel ? "text-[14px] min-[360px]:text-[16px] min-[375px]:text-[17px] min-[390px]:text-[18px]" : "text-[14px]"} font-black uppercase leading-none tracking-[0.1em] text-black`}>{(pausedLabel && pausedPill) || pausedLabel || (open ? "Sign up for Friday’s open mic" : "Sign in")}</span>
+      <h2 className="text-[28px] font-extrabold leading-tight tracking-tight">{(pausedLabel && pausedHeading) || (open || pausedLabel ? "Request your spot" : "Sign in to see your status")}</h2>
       <p className="mt-2 text-[17px] font-semibold leading-snug text-foreground">
-        {open || pausedLabel ? "First time or returning, enter your email. We'll send a 6-digit code, no password." : "Enter your email. We'll send a 6-digit code, no password."}
+        {(pausedLabel && pausedNote) || (open || pausedLabel ? "First time or returning, enter your email. We'll send a 6-digit code, no password." : "Enter your email. We'll send a 6-digit code, no password.")}
       </p>
       <div className="relative mt-4">
         <Mail className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-primary" aria-hidden="true" />
