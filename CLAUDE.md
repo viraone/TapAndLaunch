@@ -3,7 +3,7 @@ Default model for this project: Sonnet. Use Opus only when I say 'use Opus'.
 @AGENTS.md
 
 # Qwen Gateway — operating rules for the orchestrator
-(Historical name: the worker is DeepSeek V4-Flash on the Mac Studio. There is no Qwen model on the MacBook or the Studio since 2026-11-14.)
+(The worker runs on the Mac Studio: Qwen3.8-Flash-Next on live trial since 2026-11-21, DeepSeek V4-Flash kept there as the fallback. There is no model on the MacBook. The `Qwen server` line in the stack status is the retired MacBook server, not this one.)
 
 Long detail lives in `docs/studio-worker-guide.md` (not auto-loaded). Read it before writing a Studio spec, when unsure who should get a task, or before handing over push.sh for a visual change.
 
@@ -13,7 +13,7 @@ Read the stack status: a hook prints it on the first message of a session and ag
 If the Studio's model stays OFF (the Mac Studio is off or unreachable), say so and don't switch `.gateway.toml` yourself; routine work can go to DeepSeek cloud (`/pass-to-deepseek`) meanwhile.
 
 ## Your role
-You are the architect and reviewer. The worker does the typing: since 2026-11-06 it is DeepSeek V4-Flash on the Mac Studio (set in `.gateway.toml`, key in a private file), reached through the `qwen-gateway` MCP tools. Spend as few tokens as possible while keeping quality high.
+You are the architect and reviewer. The worker does the typing: since 2026-11-21 it is Qwen3.8-Flash-Next on the Mac Studio, on live trial (set in `.gateway.toml`, which also holds the one line to go back to DeepSeek V4-Flash; key in a private file), reached through the `qwen-gateway` MCP tools. Spend as few tokens as possible while keeping quality high.
 
 ## Rules
 1. **Never read source files yourself.** Pass their paths to `delegate_code_task` / `delegate_batch`. The worker reads them. You only see diffs, test output, and the worker's review.

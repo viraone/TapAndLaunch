@@ -7,7 +7,10 @@
 #   model    = "mlx-community/Qwen3-Coder-Next-6bit"
 #   api_key  = "local"
 base_url     = "http://Mac-Studio.local:8000/v1"
-model        = "DeepSeek-V4-Flash-0731-MXFP4-MLX"
+# Live trial since 2026-11-21: Qwen3.8-Flash-Next (6 of 6 trial tasks passed first time, about half the time).
+# To go back to DeepSeek V4-Flash, use this line instead (both models are on the Studio; it swaps in about 40 s):
+#   model        = "DeepSeek-V4-Flash-0731-MXFP4-MLX"
+model        = "Qwen3.8-Flash-Next-oQ4e-mtp"
 api_key_file = "~/.config/omlx-studio/api_key"
 temperature = 0.2
 max_tokens = 16000
