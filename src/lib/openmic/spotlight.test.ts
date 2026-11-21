@@ -50,9 +50,10 @@ describe("isShowAdmin", () => {
   it("is only the admin accounts, ignoring case and spaces", () => {
     expect(isShowAdmin("vxayananh@gmail.com")).toBe(true);
     expect(isShowAdmin("  VXAYANANH@Gmail.com  ")).toBe(true);
-    expect(isShowAdmin("nickrcody@gmail.com")).toBe(false);
+    expect(isShowAdmin("nickrcody@gmail.com")).toBe(true);
     expect(isShowAdmin("dinodadcomedy@gmail.com")).toBe(true);
     expect(isShowAdmin("  DinoDadComedy@Gmail.com ")).toBe(true);
+    expect(isShowAdmin("someone.else@example.com")).toBe(false);
     expect(isShowAdmin(null)).toBe(false);
     expect(isShowAdmin(undefined)).toBe(false);
     expect(isShowAdmin("   ")).toBe(false);
