@@ -8,7 +8,7 @@ import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type Li
 import { applyRemovals, readLineupRemoved, type LineupRemoved } from "@/lib/openmic/removed";
 import { formatClock } from "@/lib/format-date";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
-import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
+import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, nextMicLabel, reopenLabel, showDateFor, type WeeklyWindow } from "@/lib/openmic/window";
 import { syncChatTabs } from "@/lib/openmic/host-chat";
 import { isLineupPreviewer } from "@/lib/openmic/preview-emails";
 import { setSignedInName } from "@/lib/openmic/signed-in-name";
@@ -182,6 +182,7 @@ export function windowOf(config: OpenMicSignupBlockConfig): WeeklyWindow {
     lineupFromWeekday: config.lineup_from_weekday,
     lineupFromMinutes: config.lineup_from_minutes,
     closedUntil: config.closed_until ? new Date(config.closed_until) : undefined,
+    pausedUntil: config.paused_until ? new Date(config.paused_until) : undefined,
   };
 }
 
@@ -258,6 +259,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
   const window_ = windowOf(config);
   const now = useNow();
   const open = isWindowOpen(window_, now);
+  const pausedLabel = nextMicLabel(window_, now);
   const showDate = formatShowDate(showDateFor(window_, now));
   const heading = tonightHeading(showDateFor(window_, now), window_.timeZone, now);
 
@@ -383,16 +385,17 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
           </div>
         )}
 
-        {phase === "email" && !open && !showSignIn && (
+        {phase === "email" && !open && !showSignIn && !pausedLabel && (
           <ClosedSignedOut reopenText={reopenLabel(window_, now)} note={config.closed_note} onSignIn={() => setShowSignIn(true)} />
         )}
 
-        {phase === "email" && (open || showSignIn) && (
+        {phase === "email" && (open || showSignIn || !!pausedLabel) && (
           <EmailStep
             client={client}
             email={email}
             setEmail={setEmail}
             open={open}
+            pausedLabel={pausedLabel}
             onSent={() => setPhase("code")}
           />
         )}
@@ -472,12 +475,14 @@ export function EmailStep({
   email,
   setEmail,
   open,
+  pausedLabel,
   onSent,
 }: {
   client: SupabaseClient;
   email: string;
   setEmail: (v: string) => void;
   open: boolean;
+  pausedLabel?: string;
   onSent: () => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -486,6 +491,7 @@ export function EmailStep({
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
+    if (pausedLabel) return;
     setBusy(true);
     setError(null);
     const { error } = await sendCode(client, email);
@@ -496,10 +502,10 @@ export function EmailStep({
 
   return (
     <form onSubmit={send} className="relative rounded-3xl border-2 border-primary/70 bg-primary/10 px-4 pb-4 pt-4 shadow-[0_0_28px_rgba(248,113,113,0.22)]">
-      <span className="absolute -top-3.5 left-4 rounded-full bg-primary whitespace-nowrap px-3.5 py-1.5 text-[14px] font-black uppercase leading-none tracking-[0.1em] text-black">{open ? "Sign up for Friday’s open mic" : "Sign in"}</span>
-      <h2 className="text-[28px] font-extrabold leading-tight tracking-tight">{open ? "Request your spot" : "Sign in to see your status"}</h2>
+      <span className="absolute -top-3.5 left-4 rounded-full bg-primary whitespace-nowrap px-3.5 py-1.5 text-[14px] font-black uppercase leading-none tracking-[0.1em] text-black">{pausedLabel ?? (open ? "Sign up for Friday’s open mic" : "Sign in")}</span>
+      <h2 className="text-[28px] font-extrabold leading-tight tracking-tight">{open || pausedLabel ? "Request your spot" : "Sign in to see your status"}</h2>
       <p className="mt-2 text-[17px] font-semibold leading-snug text-foreground">
-        {open ? "First time or returning, enter your email. We'll send a 6-digit code, no password." : "Enter your email. We'll send a 6-digit code, no password."}
+        {open || pausedLabel ? "First time or returning, enter your email. We'll send a 6-digit code, no password." : "Enter your email. We'll send a 6-digit code, no password."}
       </p>
       <div className="relative mt-4">
         <Mail className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-primary" aria-hidden="true" />
@@ -507,6 +513,7 @@ export function EmailStep({
           id="openmic-email"
           type="email"
           required
+          disabled={!!pausedLabel}
           autoComplete="email"
           inputMode="email"
           aria-label="Email"
@@ -518,14 +525,14 @@ export function EmailStep({
           onInvalid={() => setInvalid(true)}
           aria-invalid={invalid}
           placeholder="you@example.com"
-          className={`h-16 w-full rounded-2xl border-2 bg-white pl-12 pr-4 text-xl font-semibold text-black outline-none transition placeholder:font-normal placeholder:text-zinc-500 focus:border-primary focus:ring-4 focus:ring-primary/40 ${invalid ? "border-red-500 ring-4 ring-red-500/30" : "border-white"}`}
+          className={`h-16 w-full rounded-2xl border-2 bg-white pl-12 pr-4 text-xl font-semibold text-black outline-none transition placeholder:font-normal placeholder:text-zinc-500 focus:border-primary focus:ring-4 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60 ${invalid ? "border-red-500 ring-4 ring-red-500/30" : "border-white"}`}
         />
       </div>
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <button
         type="submit"
-        disabled={busy}
-        className={`mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl ${CTA} text-lg font-bold disabled:opacity-60`}
+        disabled={busy || !!pausedLabel}
+        className={`mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl ${CTA} text-lg font-bold disabled:cursor-not-allowed disabled:opacity-60`}
       >
         {busy && <Loader2 className="h-5 w-5 animate-spin" />}
         Send my code

@@ -601,6 +601,9 @@ export interface OpenMicSignupBlockConfig {
   /** One-off wording for the closed screens while `closed_until` holds (signed out, signed in without a request,
    * and the not-selected card), replacing the usual "reopens after the show" line: StageTime's Halloween week. */
   closed_note?: string;
+  /** One-off week off: requests stay closed until this moment (ISO 8601 with offset, e.g. "2026-11-27T22:00:00-08:00"),
+   * also across a weekly close. The signed-out card shows "Next Open Mic MM/DD/YYYY" with the email box disabled. */
+  paused_until?: string;
   /** The Subject and Message a new reminder starts with on this show's Automation screen, in place of the shared
    * wording (src/lib/automation/defaults.ts). Live on the sign-up block, next to show_name and venue. */
   reminder_default_subject?: string;

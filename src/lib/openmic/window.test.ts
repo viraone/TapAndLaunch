@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatShowDate, formatWeekTime, isLineupTime, isShowDay, isWindowOpen, lineupVisible, reopenLabel, showDateFor, type WeeklyWindow } from "./window";
+import { formatShowDate, formatShowDateNumeric, formatWeekTime, isLineupTime, isPaused, isShowDay, isWindowOpen, lineupVisible, nextMicLabel, reopenLabel, showDateFor, type WeeklyWindow } from "./window";
 
 const RTR: WeeklyWindow = {
   timeZone: "America/Los_Angeles",
@@ -138,5 +138,37 @@ describe("one-off hold (closed_until)", () => {
     // Nov 6 is after the clocks go back: 9:40 PM PST is -08:00.
     expect(isWindowOpen(TEN, new Date("2026-11-06T21:40:00-08:00"))).toBe(true);
     expect(isWindowOpen(TEN, new Date("2026-11-06T21:39:00-08:00"))).toBe(false);
+  });
+});
+
+describe("week off (paused_until)", () => {
+  const OFF: WeeklyWindow = { ...RTR, pausedUntil: new Date("2026-11-27T22:00:00-08:00") };
+  const pst = (iso: string) => new Date(`${iso}:00-08:00`);
+
+  it("stays closed the whole week, even while the weekly window says open", () => {
+    expect(isPaused(OFF, pst("2026-11-20T22:14"))).toBe(true);
+    expect(isWindowOpen(OFF, pst("2026-11-20T22:14"))).toBe(false);
+    expect(isWindowOpen(OFF, pst("2026-11-24T12:00"))).toBe(false);
+    expect(isWindowOpen(OFF, pst("2026-11-27T21:40"))).toBe(false);
+    expect(isWindowOpen(OFF, pst("2026-11-27T21:59"))).toBe(false);
+  });
+
+  it("opens at the moment itself, for the show after", () => {
+    expect(isPaused(OFF, pst("2026-11-27T22:00"))).toBe(false);
+    expect(isWindowOpen(OFF, pst("2026-11-27T22:00"))).toBe(true);
+    expect(formatShowDate(showDateFor(OFF, pst("2026-11-27T22:00")))).toBe("Friday, Dec 4");
+    expect(nextMicLabel(OFF, pst("2026-11-27T22:00"))).toBeUndefined();
+  });
+
+  it("names the next open mic and the reopening moment while paused", () => {
+    expect(nextMicLabel(OFF, pst("2026-11-20T22:14"))).toBe("Next Open Mic 12/04/2026");
+    expect(reopenLabel(OFF, pst("2026-11-20T22:14"))).toBe("Fri 11/27 at 10:00 PM");
+    expect(formatShowDateNumeric({ year: 2026, month: 12, day: 4 })).toBe("12/04/2026");
+  });
+
+  it("changes nothing without paused_until", () => {
+    expect(isPaused(RTR, pst("2026-11-20T22:14"))).toBe(false);
+    expect(nextMicLabel(RTR, pst("2026-11-20T22:14"))).toBeUndefined();
+    expect(isWindowOpen(RTR, pst("2026-11-20T22:14"))).toBe(true);
   });
 });

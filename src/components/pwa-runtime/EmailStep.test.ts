@@ -31,4 +31,17 @@ describe("EmailStep", () => {
     expect(closedHtml).toContain("Sign in");
     expect(closedHtml).not.toContain("Sign up for Friday’s open mic");
   });
+
+  it("paused: names the next open mic and disables the email box and the button", () => {
+    const html = renderToStaticMarkup(createElement(EmailStep, { client: null as never, email: "", setEmail: () => {}, open: false, pausedLabel: "Next Open Mic 12/04/2026", onSent: () => {} }));
+    expect(html).toContain("Next Open Mic 12/04/2026");
+    expect(html).toContain("Request your spot");
+    expect(html).not.toContain("Sign up for Friday’s open mic");
+    expect(html.match(/disabled=""/g)?.length).toBe(2);
+  });
+
+  it("not paused: nothing is disabled", () => {
+    expect(render(true)).not.toContain('disabled=""');
+    expect(render(false)).not.toContain('disabled=""');
+  });
 });

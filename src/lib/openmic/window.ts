@@ -19,6 +19,9 @@ export interface WeeklyWindow {
   /** One-off: requests stay closed until this moment even if the weekly window says open (e.g. reopen Saturday
    * noon instead of Friday 9:40 PM after one show). Expires by itself; the week after, the weekly times apply. */
   closedUntil?: Date;
+  /** One-off week off: requests stay closed until this moment no matter what the weekly window says (unlike
+   * closedUntil, it also holds across a weekly close). Set it to a moment the weekly window is open. */
+  pausedUntil?: Date;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -86,8 +89,12 @@ function isWeeklyOpen(w: WeeklyWindow, now: Date): boolean {
   return (at - opens + WEEK) % WEEK < (closes - opens + WEEK) % WEEK;
 }
 
+export function isPaused(w: WeeklyWindow, now: Date = new Date()): boolean {
+  return w.pausedUntil instanceof Date && !Number.isNaN(w.pausedUntil.getTime()) && now < w.pausedUntil;
+}
+
 export function isWindowOpen(w: WeeklyWindow, now: Date = new Date()): boolean {
-  return isWeeklyOpen(w, now) && !isHeldClosed(w, now);
+  return isWeeklyOpen(w, now) && !isHeldClosed(w, now) && !isPaused(w, now);
 }
 
 /** Calendar date (local to the show) of the show that requests are for right
@@ -116,6 +123,17 @@ export function formatShowDate(date: { year: number; month: number; day: number 
   return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" }).format(
     new Date(Date.UTC(date.year, date.month - 1, date.day))
   );
+}
+
+/** "12/04/2026" for the pill on the paused sign-up card. */
+export function formatShowDateNumeric(date: { year: number; month: number; day: number }): string {
+  return `${String(date.month).padStart(2, "0")}/${String(date.day).padStart(2, "0")}/${date.year}`;
+}
+
+/** While paused: "Next Open Mic 12/04/2026", the show requests reopen for. Otherwise undefined. */
+export function nextMicLabel(w: WeeklyWindow, now: Date = new Date()): string | undefined {
+  if (!isPaused(w, now) || !w.pausedUntil) return undefined;
+  return `Next Open Mic ${formatShowDateNumeric(showDateFor(w, w.pausedUntil))}`;
 }
 
 /** Is it the show's own day (Friday)? Used while requests are closed. */
@@ -148,6 +166,14 @@ export function lineupVisible(w: WeeklyWindow, always: boolean | undefined, now:
 /** "after tonight's show" on show day, "after tomorrow's show" the night before; during a one-off hold, the
  * moment requests reopen ("Saturday at 12:00 PM"). */
 export function reopenLabel(w: WeeklyWindow, now: Date = new Date()): string {
+  if (isPaused(w, now) && w.pausedUntil) {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-US", { timeZone: w.timeZone, weekday: "short", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })
+        .formatToParts(w.pausedUntil)
+        .map((p) => [p.type, p.value])
+    );
+    return `${parts.weekday} ${parts.month}/${parts.day} at ${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
+  }
   if (isHeldClosed(w, now) && w.closedUntil) {
     const parts = Object.fromEntries(
       new Intl.DateTimeFormat("en-US", { timeZone: w.timeZone, weekday: "long", hour: "numeric", minute: "2-digit" })
