@@ -35,6 +35,7 @@ describe("EmailStep", () => {
   it("paused: names the next open mic and disables the email box and the button", () => {
     const html = renderToStaticMarkup(createElement(EmailStep, { client: null as never, email: "", setEmail: () => {}, open: false, pausedLabel: "Next Open Mic 12/04/2026", onSent: () => {} }));
     expect(html).toContain("Next Open Mic 12/04/2026");
+    expect(html).toContain("min-[375px]:text-[17px] min-[390px]:text-[18px]");
     expect(html).toContain("Request your spot");
     expect(html).not.toContain("Sign up for Friday’s open mic");
     expect(html.match(/disabled=""/g)?.length).toBe(2);
