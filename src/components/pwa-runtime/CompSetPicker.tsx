@@ -46,7 +46,9 @@ export function CompSetPicker({
   const save = async () => {
     if (draft === null) return;
     const ok = await onChange(draft);
-    if (ok !== false) setDraft(null);
+    if (ok === false) return;
+    setDraft(null);
+    setOpen(false);
   };
   const changed = targets.filter((t) => t.custom).length;
   // One short line under the number: where the number came from.
@@ -137,7 +139,7 @@ export function CompSetPicker({
         <button
           type="button"
           disabled={saving}
-          onClick={() => { setDraft(null); void onChange(null); }}
+          onClick={() => { setDraft(null); setOpen(false); void onChange(null); }}
           className="mt-2 flex h-12 w-full items-center justify-center rounded-2xl border border-white/25 text-[16px] font-semibold text-white active:bg-white/10 disabled:opacity-40"
         >
           {resetLabel}
