@@ -24,7 +24,7 @@ export function RestartShowButton({ busy, onRestart }: { busy: boolean; onRestar
         onRestart();
       }}
       className={
-        "mt-4 flex min-h-[4.5rem] w-full items-center gap-2 rounded-2xl border px-3 py-3 text-left outline-none transition disabled:opacity-40 " +
+        "mt-2 flex min-h-[4.5rem] w-full items-center gap-2 rounded-2xl border px-3 py-3 text-left outline-none transition disabled:opacity-40 " +
         (armed ? "border-white bg-white" : "border-sky-400/70 bg-sky-400/[0.12] active:bg-sky-400/25")
       }
     >

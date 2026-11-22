@@ -114,10 +114,10 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
   const dictated = comicMinutes(spotlight, lengthDate);
   const each = eachMinutes(spotlight, lengthDate);
   const sheetMinutes = setMinutes(sheetFeed?.lineup[config.host_row === true ? 1 : 0]?.set_length ?? "");
-  // Everyone but the hosts row, each with the number they have right now (the feed already carries the hosts' numbers).
+  // Everyone but the hosts row, each with the number they have right now (the feed already carries the hosts' numbers) and `base`, what they go back to without a number of their own (the hosts' everyone number, else the sheet's).
   const targets = lineup
     .slice(config.host_row === true ? 1 : 0)
-    .map((entry) => ({ key: nameKey(entry.name), name: entry.name, minutes: setMinutes(entry.set_length), custom: nameKey(entry.name) in each }));
+    .map((entry, i) => ({ key: nameKey(entry.name), name: entry.name, minutes: setMinutes(entry.set_length), custom: nameKey(entry.name) in each, base: dictated ?? setMinutes(sheetFeed?.lineup[i + (config.host_row === true ? 1 : 0)]?.set_length ?? "") }));
   const pickedTarget = targets.find((t) => t.key === target) ?? null;
 
   async function changeMinutes(minutes: number | null): Promise<boolean> {
@@ -165,7 +165,12 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
         <CompSetPicker targets={targets} selected={pickedTarget ? pickedTarget.key : ""} onSelect={pickTarget} allMinutes={dictated} fallback={sheetMinutes} hasOverrides={dictated !== null || Object.keys(each).length > 0} saving={saving} error={lengthError} onChange={(minutes) => changeMinutes(minutes)} />
         {saved && <SavedFlash key={saved.id} message={saved.text} onDone={clearSaved} />}
 
-        {isShowAdmin(viewerEmail) && <RestartShowButton busy={saving} onRestart={() => void restartShow()} />}
+        {isShowAdmin(viewerEmail) && (
+          <>
+            <p className="mt-6 px-1 text-[13px] font-bold uppercase tracking-[0.14em] text-white/80">Start over</p>
+            <RestartShowButton busy={saving} onRestart={() => void restartShow()} />
+          </>
+        )}
       </div>
     </div>
   );

@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Check, ChevronDown, Users } from "lucide-react";
 import { MAX_COMIC_MINUTES, MIN_COMIC_MINUTES } from "@/lib/openmic/set-minutes";
 
-/** One comic in the picker (the hosts row is not in the list): the number they have right now, and whether the hosts gave them their own. */
-export type CompTarget = { key: string; name: string; minutes: number; custom: boolean };
+/** One comic in the picker (the hosts row is not in the list): the number they have right now, whether the hosts gave them their own, and `base`, the number they go back to without their own (left out = the everyone number). */
+export type CompTarget = { key: string; name: string; minutes: number; custom: boolean; base?: number };
 
 /** The "Reset everyone to the sheet" button is hidden for now (2026-11-21). Set this to true to bring it back. */
 const SHOW_RESET_EVERYONE: boolean = false;
@@ -43,6 +43,10 @@ export function CompSetPicker({
   const shown = draft ?? current;
   const dirty = draft !== null && draft !== current;
   const forName = target ? target.name : "everyone";
+  // What everyone without a number of their own has, the picked comic's first name, and what that comic goes back to.
+  const everyone = allMinutes ?? fallback;
+  const first = target ? (target.name.trim().split(/\s+/)[0] ?? target.name) : "";
+  const back = target ? (target.base ?? everyone) : everyone;
   const save = async () => {
     if (draft === null) return;
     const ok = await onChange(draft);
@@ -53,9 +57,9 @@ export function CompSetPicker({
   const changed = targets.filter((t) => t.custom).length;
   // One short line under the number: where the number came from.
   const sub = target
-    ? target.custom ? "Just this comic" : "Same as everyone"
+    ? target.custom ? `Just ${first} · everyone else ${everyone} min` : "Same as everyone"
     : allMinutes !== null ? "Set by the hosts tonight" : hasOverrides && changed > 0 ? `Sheet says ${fallback} min · ${changed} ${changed === 1 ? "comic" : "comics"} changed` : hasOverrides ? "From the sheet, some changed" : "From the sheet";
-  const resetLabel = target ? (target.custom ? "Same as everyone" : null) : hasOverrides && SHOW_RESET_EVERYONE ? "Reset everyone to the sheet" : null;
+  const resetLabel = target ? (target.custom ? `Put ${first} back to ${back} min` : null) : hasOverrides && SHOW_RESET_EVERYONE ? "Reset everyone to the sheet" : null;
   const pick = (key: string) => {
     setDraft(null);
     onSelect(key);
@@ -104,7 +108,7 @@ export function CompSetPicker({
                 <li key={t.key} role="option" aria-selected={on}>
                   <button type="button" onClick={() => pick(t.key)} className={rowClass(on)}>
                     <span className="min-w-0 flex-1 break-words">{t.name}</span>
-                    <span className="shrink-0 tabular-nums text-white/85">{t.minutes} min</span>
+                    <span className={"shrink-0 tabular-nums " + (t.custom ? "rounded-full border border-white/80 px-2.5 py-0.5 font-bold text-white" : "text-white/85")}>{t.minutes} min</span>
                     {on && <Check className="h-6 w-6 shrink-0 text-sky-400" aria-hidden="true" />}
                   </button>
                 </li>
@@ -127,14 +131,18 @@ export function CompSetPicker({
         </button>
       </div>
       <p className="mt-3 text-center text-[15px] font-medium text-white/90">{sub}</p>
-      <button
-        type="button"
-        disabled={saving || !dirty}
-        onClick={() => void save()}
-        className={"mt-4 flex min-h-14 w-full items-center justify-center rounded-2xl px-4 py-2 text-center text-[18px] font-semibold transition active:scale-[0.98] " + (dirty ? "bg-sky-400 text-sky-950" : "bg-white/10 text-white/40")}
-      >
-        {dirty ? `Set ${forName} to ${shown} min` : "No change yet"}
-      </button>
+      {dirty ? (
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => void save()}
+          className="mt-4 flex min-h-14 w-full items-center justify-center rounded-2xl bg-sky-400 px-4 py-2 text-center text-[18px] font-semibold text-sky-950 transition active:scale-[0.98]"
+        >
+          {`Set ${forName} to ${shown} min`}
+        </button>
+      ) : (
+        <p className="mt-4 flex min-h-14 items-center justify-center text-center text-[16px] font-medium text-white/60">Tap − or + to change</p>
+      )}
       {resetLabel && (
         <button
           type="button"

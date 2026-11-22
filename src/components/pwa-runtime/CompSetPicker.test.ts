@@ -49,8 +49,9 @@ describe("CompSetPicker", () => {
 
   it("selected custom comic", () => {
     const out = html({ selected: "test jones 1" });
-    expect(out).toContain("Just this comic");
-    expect(out).toContain("Same as everyone");
+    expect(out).toContain("Just Test · everyone else 3 min");
+    expect(out).toContain("Put Test back to 3 min");
+    expect(out).not.toContain("Same as everyone");
     expect(html({ selected: "test jones 1", defaultOpen: true })).toContain('aria-selected="true"');
     expect(out).toContain("Tap to pick someone else");
     expect(out).toContain("7<span");
@@ -78,15 +79,27 @@ describe("CompSetPicker", () => {
     expect(html({ defaultOpen: true })).toContain('role="listbox"');
   });
 
-  it("the big button says what it will do, and waits for a change", () => {
-    expect(html()).toContain("No change yet");
-    expect(html()).toMatch(/disabled=""[^>]*>No change yet/);
-    expect(html({ selected: "karen" })).toContain("No change yet");
+  it("shows a hint instead of a button until the number changes", () => {
+    expect(html()).toContain("Tap − or + to change");
+    expect(html()).not.toContain("No change yet");
+    expect(html({ selected: "karen" })).toContain("Tap − or + to change");
   });
 
   it("counts the comics the hosts changed, next to the sheet's number", () => {
     const out = html({ hasOverrides: true });
     expect(out).toContain("Sheet says 3 min · 1 comic changed");
+  });
+
+  it("marks a comic with their own number in the list", () => {
+    const out = html({ defaultOpen: true });
+    expect(out).toMatch(/border-white\/80[^>]*>7 min</);
+    expect(out).not.toMatch(/border-white\/80[^>]*>3 min</);
+  });
+
+  it("puts a comic back to their own base number when one is given", () => {
+    const out = html({ selected: "test jones 1", targets: [{ key: "test jones 1", name: "Test Jones 1", minutes: 7, custom: true, base: 5 }] });
+    expect(out).toContain("Put Test back to 5 min");
+    expect(out).toContain("Just Test · everyone else 3 min");
   });
 
   it("has no row of quick lengths", () => {
