@@ -117,7 +117,12 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
   // Everyone but the hosts row, each with the number they have right now (the feed already carries the hosts' numbers) and `base`, what they go back to without a number of their own (the hosts' everyone number, else the sheet's).
   const targets = lineup
     .slice(config.host_row === true ? 1 : 0)
-    .map((entry, i) => ({ key: nameKey(entry.name), name: entry.name, minutes: setMinutes(entry.set_length), custom: nameKey(entry.name) in each, base: dictated ?? setMinutes(sheetFeed?.lineup[i + (config.host_row === true ? 1 : 0)]?.set_length ?? "") }));
+    .map((entry, i) => {
+      const minutes = setMinutes(entry.set_length);
+      const base = dictated ?? setMinutes(sheetFeed?.lineup[i + (config.host_row === true ? 1 : 0)]?.set_length ?? "");
+      // A number of their own that equals what they would have anyway is not shown as a change.
+      return { key: nameKey(entry.name), name: entry.name, minutes, custom: nameKey(entry.name) in each && minutes !== base, base };
+    });
   const pickedTarget = targets.find((t) => t.key === target) ?? null;
 
   async function changeMinutes(minutes: number | null): Promise<boolean> {
@@ -127,8 +132,9 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
     setSaving(true);
     setLengthError(null);
     const who = pickedTarget ? pickedTarget.name : "everyone";
+    // A comic set to the number they would have anyway gets no number of their own: their own number is cleared.
     const problem = pickedTarget
-      ? await setEachMinutes(client, lengthDate, each, pickedTarget.name, minutes)
+      ? await setEachMinutes(client, lengthDate, each, pickedTarget.name, minutes === pickedTarget.base ? null : minutes)
       : await setComicMinutes(client, lengthDate, minutes);
     setSaving(false);
     if (problem) {
