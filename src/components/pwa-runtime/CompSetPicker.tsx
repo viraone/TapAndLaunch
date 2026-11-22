@@ -140,7 +140,7 @@ export function CompSetPicker({
           {`Set ${forName} to ${shown} min`}
         </button>
       ) : (
-        <p className="mt-4 flex min-h-14 items-center justify-center text-center text-[16px] font-medium text-white/60">Tap − or + to change</p>
+        <p className="mt-4 flex min-h-14 items-center justify-center text-center text-[17px] font-semibold text-sky-300">Tap − or + to change the time</p>
       )}
       {resetLabel && (
         <button
