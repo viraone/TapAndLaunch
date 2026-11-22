@@ -43,9 +43,8 @@ export function CompSetPicker({
   const shown = draft ?? current;
   const dirty = draft !== null && draft !== current;
   const forName = target ? target.name : "everyone";
-  // What everyone without a number of their own has, the picked comic's first name, and what that comic goes back to.
+  // What everyone without a number of their own has, and what the picked comic goes back to.
   const everyone = allMinutes ?? fallback;
-  const first = target ? (target.name.trim().split(/\s+/)[0] ?? target.name) : "";
   const back = target ? (target.base ?? everyone) : everyone;
   const save = async () => {
     if (draft === null) return;
@@ -57,9 +56,9 @@ export function CompSetPicker({
   const changed = targets.filter((t) => t.custom).length;
   // One short line under the number: where the number came from.
   const sub = target
-    ? target.custom ? `Just ${first} · everyone else ${everyone} min` : "Same as everyone"
+    ? target.custom ? `Just ${target.name} · everyone else ${everyone} min` : "Same as everyone"
     : allMinutes !== null ? "Set by the hosts tonight" : hasOverrides && changed > 0 ? `Sheet says ${fallback} min · ${changed} ${changed === 1 ? "comic" : "comics"} changed` : hasOverrides ? "From the sheet, some changed" : "From the sheet";
-  const resetLabel = target ? (target.custom ? `Put ${first} back to ${back} min` : null) : hasOverrides && SHOW_RESET_EVERYONE ? "Reset everyone to the sheet" : null;
+  const resetLabel = target ? (target.custom ? `Put ${target.name} back to ${back} min` : null) : hasOverrides && SHOW_RESET_EVERYONE ? "Reset everyone to the sheet" : null;
   const pick = (key: string) => {
     setDraft(null);
     onSelect(key);
@@ -130,7 +129,7 @@ export function CompSetPicker({
           +
         </button>
       </div>
-      <p className="mt-3 text-center text-[15px] font-medium text-white/90">{sub}</p>
+      <p className="mt-3 text-balance text-center text-[15px] font-medium text-white/90">{sub}</p>
       {dirty ? (
         <button
           type="button"
@@ -148,7 +147,7 @@ export function CompSetPicker({
           type="button"
           disabled={saving}
           onClick={() => { setDraft(null); setOpen(false); void onChange(null); }}
-          className="mt-2 flex h-12 w-full items-center justify-center rounded-2xl border border-white/25 text-[16px] font-semibold text-white active:bg-white/10 disabled:opacity-40"
+          className="mt-2 flex min-h-12 w-full items-center justify-center rounded-2xl border border-white/25 px-3 py-1.5 text-balance text-center text-[16px] font-semibold leading-tight text-white active:bg-white/10 disabled:opacity-40"
         >
           {resetLabel}
         </button>

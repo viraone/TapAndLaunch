@@ -49,8 +49,8 @@ describe("CompSetPicker", () => {
 
   it("selected custom comic", () => {
     const out = html({ selected: "test jones 1" });
-    expect(out).toContain("Just Test · everyone else 3 min");
-    expect(out).toContain("Put Test back to 3 min");
+    expect(out).toContain("Just Test Jones 1 · everyone else 3 min");
+    expect(out).toContain("Put Test Jones 1 back to 3 min");
     expect(out).not.toContain("Same as everyone");
     expect(html({ selected: "test jones 1", defaultOpen: true })).toContain('aria-selected="true"');
     expect(out).toContain("Tap to pick someone else");
@@ -98,8 +98,8 @@ describe("CompSetPicker", () => {
 
   it("puts a comic back to their own base number when one is given", () => {
     const out = html({ selected: "test jones 1", targets: [{ key: "test jones 1", name: "Test Jones 1", minutes: 7, custom: true, base: 5 }] });
-    expect(out).toContain("Put Test back to 5 min");
-    expect(out).toContain("Just Test · everyone else 3 min");
+    expect(out).toContain("Put Test Jones 1 back to 5 min");
+    expect(out).toContain("Just Test Jones 1 · everyone else 3 min");
   });
 
   it("has no row of quick lengths", () => {
