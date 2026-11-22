@@ -49,6 +49,7 @@ You are the architect and reviewer. The worker does the typing: since 2026-11-21
 
 ## Spec formula (one line; the guide has the 10 lessons)
 Additive edits only; dictate the exact signatures, strings and code shape; no invented logic or test values; fence the scope and end with "send only the edits needed, then stop". Removals: first have the Studio quote the exact lines, then "delete exactly these lines, nothing else"; never "clean up whatever becomes unused". Big rewrites: new file + swap one import. Attempts are capped at two.
+A spec that sets a size (font, padding, gap, height, width) on something a person sees: try the numbers in the preview first and check 360, 375, 390 and 440 wide (guide: "Before a spec that sets a size").
 
 ## Before you hand over push.sh
 If the change touches what someone sees (a component under `src/components/pwa-runtime`, styles, copy in a view), look at it first (preview on port 3100, `/dev-preview` for timer/host bar/header clock states, screenshot, check clipping/wrapping/contrast on a dark background) and say in the recap what you saw, or "not looked at". The exact steps are in the guide.
