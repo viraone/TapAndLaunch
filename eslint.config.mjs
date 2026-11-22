@@ -18,6 +18,8 @@ const eslintConfig = defineConfig([
     ".next-phone/**",
     ".next-test/**",
     "supabase/.temp/**",
+    // Gitignored video scripts (CommonJS, so `require` is expected there).
+    "docs/private/commercial/**",
   ]),
 ]);
 
