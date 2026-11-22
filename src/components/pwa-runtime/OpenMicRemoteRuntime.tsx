@@ -10,6 +10,7 @@ import { showDateFor } from "@/lib/openmic/window";
 import { isShowAdmin, useSpotlight, ymd } from "@/lib/openmic/spotlight";
 import { applyComicMinutes, comicMinutes, eachMinutes, nameKey, setComicMinutes, setEachMinutes } from "@/lib/openmic/set-minutes";
 import { setMinutes } from "@/lib/openmic/start-times";
+import { readTimerTarget, targetKeyFor, timerTargetStore, writeTimerTarget, type TimerTarget } from "@/lib/openmic/timer-target";
 import { CompSetPicker } from "./CompSetPicker";
 import { SavedFlash } from "./SavedFlash";
 import { RestartShowButton } from "./RestartShowButton";
@@ -96,13 +97,20 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
   const [saving, setSaving] = useState(false);
   const [lengthError, setLengthError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ id: number; text: string } | null>(null);
-  const [target, setTarget] = useState("");
+  const [picked, setPicked] = useState<TimerTarget>(() => readTimerTarget(timerTargetStore()));
   const clearSaved = useCallback(() => setSaved(null), [setSaved]);
 
   const lineup = feed?.lineup ?? [];
 
   // The hosts' one number for every comic. It is stored against the sheet's show date so the feed and this page agree.
   const lengthDate = sheetFeed?.show_date ?? showYmd;
+  // The comic picked in the "Who" box, remembered in the browser for this show date so leaving the tab keeps it.
+  const target = targetKeyFor(picked, lengthDate);
+  const pickTarget = (key: string) => {
+    const next = { date: lengthDate, key };
+    setPicked(next);
+    writeTimerTarget(timerTargetStore(), next);
+  };
   const dictated = comicMinutes(spotlight, lengthDate);
   const each = eachMinutes(spotlight, lengthDate);
   const sheetMinutes = setMinutes(sheetFeed?.lineup[config.host_row === true ? 1 : 0]?.set_length ?? "");
@@ -154,7 +162,7 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
           </p>
           <span className="flex w-10 justify-end">{saving ? <Loader2 className="h-5 w-5 animate-spin text-white/70" aria-hidden="true" /> : null}</span>
         </div>
-        <CompSetPicker targets={targets} selected={pickedTarget ? pickedTarget.key : ""} onSelect={setTarget} allMinutes={dictated} fallback={sheetMinutes} hasOverrides={dictated !== null || Object.keys(each).length > 0} saving={saving} error={lengthError} onChange={(minutes) => changeMinutes(minutes)} />
+        <CompSetPicker targets={targets} selected={pickedTarget ? pickedTarget.key : ""} onSelect={pickTarget} allMinutes={dictated} fallback={sheetMinutes} hasOverrides={dictated !== null || Object.keys(each).length > 0} saving={saving} error={lengthError} onChange={(minutes) => changeMinutes(minutes)} />
         {saved && <SavedFlash key={saved.id} message={saved.text} onDone={clearSaved} />}
 
         {isShowAdmin(viewerEmail) && <RestartShowButton busy={saving} onRestart={() => void restartShow()} />}
