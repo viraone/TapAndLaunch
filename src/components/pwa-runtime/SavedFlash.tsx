@@ -11,7 +11,7 @@ export function SavedFlash({ message, onDone, ms = 2200 }: { message: string; on
   }, [message, onDone, ms]);
   return (
     <div role="status" aria-live="assertive" className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center px-6">
-      <div className="flex w-full max-w-64 flex-col items-center gap-2 rounded-2xl bg-emerald-500 px-3 py-4 text-center shadow-[0_0_30px_rgba(16,185,129,0.6)] ring-2 ring-white/90">
+      <div className="flex w-full max-w-72 flex-col items-center gap-2 rounded-2xl bg-emerald-500 px-3 py-4 text-center shadow-[0_0_30px_rgba(16,185,129,0.6)] ring-2 ring-white/90">
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-emerald-600">
           <Check className="h-6 w-6" strokeWidth={4} aria-hidden="true" />
         </span>
