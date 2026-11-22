@@ -56,7 +56,7 @@ export function CompSetPicker({
   const changed = targets.filter((t) => t.custom).length;
   // One short line under the number: where the number came from.
   const sub = target
-    ? target.custom ? `Just ${target.name} · everyone else ${everyone} min` : "Same as everyone"
+    ? target.custom ? <>Just <span className="font-semibold text-sky-300">{target.name}</span>{` · everyone else ${everyone} min`}</> : "Same as everyone"
     : allMinutes !== null ? "Set by the hosts tonight" : hasOverrides && changed > 0 ? `Sheet says ${fallback} min · ${changed} ${changed === 1 ? "comic" : "comics"} changed` : hasOverrides ? "From the sheet, some changed" : "From the sheet";
   const resetLabel = target ? (target.custom ? `Put ${target.name} back to ${back} min` : null) : hasOverrides && SHOW_RESET_EVERYONE ? "Reset everyone to the sheet" : null;
   const pick = (key: string) => {
