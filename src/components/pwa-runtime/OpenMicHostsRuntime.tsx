@@ -161,9 +161,9 @@ function HostsScreen({ client, user, timeZone }: { client: SupabaseClient; user:
               setOpen(null);
               void loadThreads();
             }}
-            className="-ml-2 flex h-11 items-center pr-2 text-[17px] text-primary"
+            className="-ml-2 flex h-12 items-center pr-2 text-[22px] font-semibold text-primary"
           >
-            <ChevronLeft className="h-7 w-7" />
+            <ChevronLeft className="h-9 w-9" />
             Comedians
           </button>
         </header>
