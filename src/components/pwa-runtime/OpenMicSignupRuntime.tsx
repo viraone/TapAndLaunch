@@ -497,10 +497,11 @@ export function EmailStep({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invalid, setInvalid] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
-    if (pausedLabel) return;
+    if (locked) return;
     setBusy(true);
     setError(null);
     const { error } = await sendCode(client, email);
@@ -509,7 +510,9 @@ export function EmailStep({
     else onSent();
   }
 
-  const compact = !!pausedLabel && !!(pausedHeading || pausedNote);
+  const custom = !!pausedLabel && !!(pausedHeading || pausedNote);
+  const compact = custom && !signInOpen;
+  const locked = !!pausedLabel && !custom;
 
   return (
     <form onSubmit={send} className="relative rounded-3xl border-2 border-primary/70 bg-primary/10 px-4 pb-4 pt-4 shadow-[0_0_28px_rgba(248,113,113,0.22)]">
@@ -525,7 +528,7 @@ export function EmailStep({
             id="openmic-email"
             type="email"
             required
-            disabled={!!pausedLabel}
+            disabled={locked}
             autoComplete="email"
             inputMode="email"
             aria-label="Email"
@@ -545,7 +548,7 @@ export function EmailStep({
       {!compact && (
         <button
           type="submit"
-          disabled={busy || !!pausedLabel}
+          disabled={busy || locked}
           className={`mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl ${CTA} text-lg font-bold disabled:cursor-not-allowed disabled:opacity-60`}
         >
           {busy && <Loader2 className="h-5 w-5 animate-spin" />}
@@ -553,6 +556,7 @@ export function EmailStep({
           {!busy && <ArrowRight className="h-5 w-5" aria-hidden="true" />}
         </button>
       )}
+      {compact && (<button type="button" onClick={() => setSignInOpen(true)} className="mt-4 text-[16px] font-semibold text-sky-400 underline underline-offset-4">Hosts: sign in here</button>)}
     </form>
   );
 }

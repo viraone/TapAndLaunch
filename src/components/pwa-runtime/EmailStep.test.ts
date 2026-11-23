@@ -57,12 +57,14 @@ describe("EmailStep", () => {
     expect(html).not.toContain('disabled=""');
     expect(html).not.toContain("Send my code");
     expect(html).not.toContain("you@example.com");
+    expect(html).toContain("Hosts: sign in here");
   });
 
   it("paused with only the pill text keeps the disabled box", () => {
     const html = renderToStaticMarkup(createElement(EmailStep, { client: null as never, email: "", setEmail: () => {}, open: false, pausedLabel: "Next Open Mic 12/04/2026", pausedPill: "Free Show This Friday", onSent: () => {} }));
     expect(html).toContain("Send my code");
     expect(html.match(/disabled=""/g)?.length).toBe(2);
+    expect(html).not.toContain("Hosts: sign in here");
   });
 
   it("not paused: the paused texts are ignored", () => {
