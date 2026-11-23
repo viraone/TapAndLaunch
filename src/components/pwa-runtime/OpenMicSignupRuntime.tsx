@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { ArrowRight, Bell, Check, ChevronRight, Loader2, Mail, X } from "lucide-react";
+import { ArrowRight, Bell, Check, ChevronRight, Loader2, Mail, MessageCircle, X } from "lucide-react";
 import { CLOSED_NIGHT_COPY, notSelectedCopy, reopenPhrase, showDayState, type LineupEntry, type LineupFeed, type ShowDayState } from "@/lib/openmic/selection";
 import { applyRemovals, readLineupRemoved, type LineupRemoved } from "@/lib/openmic/removed";
 import { formatClock } from "@/lib/format-date";
@@ -1289,6 +1290,7 @@ export function LineupList({
   feed,
   startLabels,
   onTap,
+  canTap,
   onDeckIndex,
   performingIndex,
   over,
@@ -1301,6 +1303,8 @@ export function LineupList({
   feed: LineupFeed;
   startLabels?: StartLabel[];
   onTap?: (entry: LineupEntry, index: number) => void;
+  /** With onTap: only rows this returns true for are tappable (button, pointer cursor, chat icon). Without it every row is tappable. */
+  canTap?: (entry: LineupEntry) => boolean;
   /** The comic who is next (gold ring, ON DECK). */
   onDeckIndex?: number;
   /** The comic on stage (primary ring, LIVE, live pill). */
@@ -1345,6 +1349,7 @@ export function LineupList({
           const onDeck = !performing && i === onDeckIndex;
           const result = performing ? null : (finished?.[i] ?? null);
           const accent = performing || onDeck;
+          const tappable = !!onTap && (!canTap || canTap(entry));
           const fill = performing
             ? over
               ? "bg-red-950/50"
@@ -1365,15 +1370,15 @@ export function LineupList({
               id={`openmic-row-${i}`}
               aria-current={entry.mine ? "true" : undefined}
               style={{ animationDelay: `${Math.min(i, 14) * 35}ms`, boxShadow: shadow }}
-              role={onTap ? "button" : undefined}
-              tabIndex={onTap ? 0 : undefined}
-              onClick={onTap ? () => onTap(entry, i) : undefined}
+              role={tappable ? "button" : undefined}
+              tabIndex={tappable ? 0 : undefined}
+              onClick={tappable ? () => onTap!(entry, i) : undefined}
               onKeyDown={
-                onTap
+                tappable
                   ? (event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
-                        onTap(entry, i);
+                        onTap!(entry, i);
                       }
                     }
                   : undefined
@@ -1383,7 +1388,7 @@ export function LineupList({
                 (big ? "md:gap-6 md:py-6 " : "") +
                 fill +
                 (result ? " opacity-40" : "") +
-                (onTap ? " cursor-pointer active:opacity-80" : "")
+                (tappable ? " cursor-pointer active:opacity-80" : "")
               }
             >
               {performing && (
@@ -1400,6 +1405,7 @@ export function LineupList({
               <span className={"w-6 shrink-0 text-[12px] font-bold tabular-nums " + (big ? "md:w-10 md:text-2xl " : "") + (performing ? "text-primary" : onDeck ? "text-[#fbbf24]" : "text-muted-foreground/60")}>{String(i + 1).padStart(2, "0")}</span>
               <span className={"min-w-0 flex-1 break-words text-[17px] leading-snug tracking-tight text-foreground dark:text-white " + (big ? "md:text-4xl 2xl:text-5xl md:font-bold " : "") + (accent ? "font-bold" : "font-medium")}>
                 {entry.name}
+                {tappable && <MessageCircle className="ml-2 inline-block h-4 w-4 align-text-bottom text-sky-400" aria-hidden="true" />}
                 {entry.mine && (
                   <span className="ml-2 inline-block whitespace-nowrap rounded-full bg-primary px-2 py-0.5 align-middle text-[11px] font-black uppercase leading-none tracking-wide text-primary-foreground">
                     You
@@ -1452,10 +1458,15 @@ export function LineupList({
   );
 }
 
+/** First run of "tap a comic in the lineup to message them": only Dennis AK (lower case, compared trimmed and case-insensitively). */
+const MESSAGEABLE_COMICS = ["dennis ak"];
+const isMessageable = (entry: LineupEntry) => MESSAGEABLE_COMICS.includes(entry.name.trim().toLowerCase());
+
 /** The hosts' Home: the same list the comics see, with the show clock. START puts the next comic on stage (and buzzes
  * the one after them, now on deck), STOP ends the set and records it, RESET clears the show. Only the hosts in
  * TAP_ON_DECK_EMAILS get the buttons; other hosts watch the same clock. */
 function HostLineup({ client, config, viewerEmail, hostName }: { client: SupabaseClient; config: OpenMicSignupBlockConfig; viewerEmail?: string | null; hostName?: string }) {
+  const router = useRouter();
   const { feed: sheetFeed, failed } = useLineup(config.lineup_url, client, undefined, true);
   const { spotlight } = useSpotlight(client);
   const feed = useMemo(() => applyComicMinutes(sheetFeed, spotlight, config.host_row === true), [sheetFeed, spotlight, config.host_row]);
@@ -1506,6 +1517,17 @@ function HostLineup({ client, config, viewerEmail, hostName }: { client: Supabas
       setBusy(false);
     }
   };
+  const openThread = async (entry: LineupEntry) => {
+    const { data } = await client.rpc("comedian_threads");
+    const wanted = entry.name.trim().toLowerCase();
+    const thread = ((data as { comedian_id: string; comedian_name: string }[] | null) ?? []).find((t) => t.comedian_name.trim().toLowerCase() === wanted);
+    if (!thread) {
+      setStatus(`${entry.name} has not written to the hosts yet.`);
+      return;
+    }
+    setStatus("");
+    router.push(`/hosts?part=comedians&thread=${thread.comedian_id}`);
+  };
   const controls = canControl
     ? {
         busy,
@@ -1545,6 +1567,8 @@ function HostLineup({ client, config, viewerEmail, hostName }: { client: Supabas
         progress={clockProgress(clock)}
         finished={finished}
         hostRow={hostRow}
+        onTap={canControl ? (entry) => void openThread(entry) : undefined}
+        canTap={isMessageable}
       />
       <ShowClockBar clock={clock} started={started} controls={controls} />
     </div>

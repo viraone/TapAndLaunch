@@ -50,6 +50,8 @@ const TV: { label: string; ms: number; running: boolean }[] = [
 
 const HOST_ROW_FEED: LineupFeed = { show_date: "2026-11-13", posted: true, me: null, lineup: [{ name: "Nick Cody, Noah Rubin, Viradeth", set_length: "5 min", start_time: "7:00 PM" }, { name: "Karen", set_length: "3 min", start_time: "7:05 PM" }, { name: "Bob", set_length: "3 min", start_time: "7:08 PM" }, { name: "Dana", set_length: "3 min", start_time: "7:11 PM" }] };
 
+const DENNIS_FEED: LineupFeed = { show_date: "2026-11-27", posted: true, me: null, lineup: [{ name: "Viradeth", set_length: "5 min", start_time: "7:30 PM" }, { name: "Jay Marks", set_length: "10 min", start_time: "8:05 PM" }, { name: "Dennis AK", set_length: "3 min", start_time: "8:15 PM" }, { name: "Sterling Washington", set_length: "10 min", start_time: "8:18 PM" }] };
+
 const HEADER_THEME: ThemeConfig = {
   header_banner: { title: "Thanksgiving Leftovers", sub: "Free with a food donation · Ballard Food Bank", big: "27", image: "/promos/thanksgiving-leftovers-v12.jpg", button: "Get Tickets · Fri Nov 27, 7:30 PM", url: "https://www.eventbrite.com/e/thanksgiving-leftovers-tickets-2004679289720", until: "2099-01-01" },
   header_action: { label: "Profile", icon: "user", page_path: "profile" },
@@ -137,6 +139,10 @@ export function DevPreview() {
             <LineupList feed={HOST_ROW_FEED} hostRow performingIndex={2} onDeckIndex={3} livePill="2:10" progress={30} finished={[null, "done", null, null]} />
           </div>
         </div>
+      </div>
+      <p className="mb-2 mt-8 text-sm font-semibold">Host lineup: Dennis AK is tappable (messages him)</p>
+      <div className="max-w-[430px]">
+        <LineupList feed={DENNIS_FEED} hostRow onTap={() => {}} canTap={(e) => e.name === "Dennis AK"} />
       </div>
       <p className="mb-2 mt-8 text-sm font-semibold">Comic set length (Timer tab)</p>
       <div className="flex flex-wrap gap-4">
