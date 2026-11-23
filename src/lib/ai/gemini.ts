@@ -1,9 +1,9 @@
 import type { DeepSeekTurn } from "./deepseek";
 
 /**
- * One answer from Gemini, through Google's OpenAI-shaped address. Used by StageTime's lineup helper only (Lao Voice
- * stays on DeepSeek). The caller supplies the key; this function never logs it and only puts the status, never the
- * key, in an error. The timeout is short because DeepSeek is the backup. A blank answer is asked once more.
+ * One answer from Gemini, through Google's OpenAI-shaped address. Used by StageTime's lineup helper only, as the
+ * backup to DeepSeek (Lao Voice stays on DeepSeek alone). The caller supplies the key; this function never logs it and
+ * only puts the status, never the key, in an error. A blank answer is asked once more.
  */
 export async function askGemini(input: {
   system: string;
