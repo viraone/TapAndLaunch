@@ -610,6 +610,8 @@ export interface OpenMicSignupBlockConfig {
   paused_heading?: string;
   /** While paused: the line under the heading instead of the "enter your email" line. */
   paused_note?: string;
+  /** Replaces the amber 'Sign Ups Are Closed: Reopens ...' text while the week is paused. */
+  paused_status?: string;
   /** The Subject and Message a new reminder starts with on this show's Automation screen, in place of the shared
    * wording (src/lib/automation/defaults.ts). Live on the sign-up block, next to show_name and venue. */
   reminder_default_subject?: string;

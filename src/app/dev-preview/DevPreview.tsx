@@ -164,9 +164,11 @@ export function DevPreview() {
       </div>
       <p className="mb-2 mt-8 text-sm font-semibold">Signed-in comic, week off with its own texts</p>
       <div className="mx-auto max-w-md">
-        <ClosedCard name="Sam Rivera" reopenText="Saturday 11/28" pill="Free Show This Friday" heading="No open mic this Friday" note="Come out for Thanksgiving Leftovers, Friday at 7:30 PM. Free admission when you bring canned food to donate. Next open mic: 12/04." />
-        <SignupStatusPill open={false} closesAt="" reopenText="Saturday 11/28" className="mt-5" />
+        <ClosedCard name="Sam Rivera" reopenText="Saturday 11/28" pill="Showcase This Friday" heading="No open mic this Friday" note="Friday 11/27 is Thanksgiving Leftovers, a showcase. There is no open mic and no sign-up. Next open mic: Friday 12/04." />
+        <SignupStatusPill open={false} closesAt="" reopenText="Saturday 11/28" closedText="Sign-ups for the 12/04 open mic open Saturday 11/28." className="mt-5" />
       </div>
+      <p className="mb-2 mt-8 text-sm font-semibold">Signed-out comic, week off with its own texts (phone width)</p>
+      <div className="mx-auto max-w-md"><EmailStep client={null as never} email="" setEmail={() => {}} open={false} pausedLabel="Next Open Mic 12/04/2026" pausedPill="Showcase This Friday" pausedHeading="No open mic this Friday" pausedNote="Friday 11/27 is Thanksgiving Leftovers, a showcase. There is no open mic and no sign-up. Next open mic: Friday 12/04." onSent={() => {}} /><SignupStatusPill open={false} closesAt="" reopenText="Saturday 11/28" closedText="Sign-ups for the 12/04 open mic open Saturday 11/28." className="mt-5" /></div>
       <p className="mb-2 mt-8 text-sm font-semibold">Bottom bar, capsule style (StageTime hosts)</p>
       {/* The bar is position: fixed; the transform makes this box its frame, so it stays inside the preview instead of sticking to the screen. */}
       <div className="relative mx-auto h-28 w-full max-w-md overflow-hidden rounded-2xl border bg-background [transform:translateZ(0)]">

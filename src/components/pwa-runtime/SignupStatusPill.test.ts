@@ -17,6 +17,12 @@ describe("SignupStatusPill", () => {
     expect(html).toContain("amber");
   });
 
+  it("closed with closedText: shows the replacement text", () => {
+    const html = renderToStaticMarkup(createElement(SignupStatusPill, { open: false, closesAt: "", reopenText: "Saturday 11/28", closedText: "Sign-ups for the 12/04 open mic open Saturday 11/28." }));
+    expect(html).toContain("Sign-ups for the 12/04 open mic open Saturday 11/28.");
+    expect(html).not.toContain("Sign Ups Are Closed");
+  });
+
   it("SignupHeader shows the pill unless pillBelow", () => {
     const base = { config: {} as never, showDate: "Friday, Nov 20", open: true, hidePill: false, reopenText: "", closesAt: "Thu 11:00 PM" };
     const html = renderToStaticMarkup(createElement(SignupHeader, base));

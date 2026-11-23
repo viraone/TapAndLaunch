@@ -107,7 +107,7 @@ export function SeattleClock({
   );
 }
 
-export function SignupStatusPill({ open, closesAt, reopenText, className = "" }: { open: boolean; closesAt: string; reopenText: string; className?: string }) {
+export function SignupStatusPill({ open, closesAt, reopenText, closedText, className = "" }: { open: boolean; closesAt: string; reopenText: string; closedText?: string; className?: string }) {
   return (
     <div
       role="status"
@@ -119,7 +119,7 @@ export function SignupStatusPill({ open, closesAt, reopenText, className = "" }:
         {open && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
         <span className={`relative inline-flex h-4 w-4 rounded-full ${open ? "bg-emerald-400" : "bg-amber-400"}`} />
       </span>
-      {open ? `Sign-up open · closes ${closesAt.replace(":00 ", " ")}` : `Sign Ups Are Closed: Reopens ${reopenText}.`}
+      {open ? `Sign-up open · closes ${closesAt.replace(":00 ", " ")}` : closedText || `Sign Ups Are Closed: Reopens ${reopenText}.`}
     </div>
   );
 }
@@ -446,7 +446,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
           <RequestedCard />
         ))}
 
-        {!hidePill && <SignupStatusPill open={open} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} reopenText={reopenLabel(window_, now)} className="mt-5" />}
+        {!hidePill && <SignupStatusPill open={open} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} reopenText={reopenLabel(window_, now)} closedText={pausedLabel ? config.paused_status : undefined} className="mt-5" />}
 
       </div>
     </div>
@@ -509,6 +509,8 @@ export function EmailStep({
     else onSent();
   }
 
+  const compact = !!pausedLabel && !!(pausedHeading || pausedNote);
+
   return (
     <form onSubmit={send} className="relative rounded-3xl border-2 border-primary/70 bg-primary/10 px-4 pb-4 pt-4 shadow-[0_0_28px_rgba(248,113,113,0.22)]">
       <span className={`absolute -top-3.5 left-4 rounded-full bg-primary whitespace-nowrap px-3.5 py-1.5 ${pausedLabel ? "text-[14px] min-[360px]:text-[16px] min-[375px]:text-[17px] min-[390px]:text-[18px]" : "text-[14px]"} font-black uppercase leading-none tracking-[0.1em] text-black`}>{(pausedLabel && pausedPill) || pausedLabel || (open ? "Sign up for Friday’s open mic" : "Sign in")}</span>
@@ -516,37 +518,41 @@ export function EmailStep({
       <p className="mt-2 text-[17px] font-semibold leading-snug text-foreground">
         {(pausedLabel && pausedNote) || (open || pausedLabel ? "First time or returning, enter your email. We'll send a 6-digit code, no password." : "Enter your email. We'll send a 6-digit code, no password.")}
       </p>
-      <div className="relative mt-4">
-        <Mail className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-primary" aria-hidden="true" />
-        <input
-          id="openmic-email"
-          type="email"
-          required
-          disabled={!!pausedLabel}
-          autoComplete="email"
-          inputMode="email"
-          aria-label="Email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value.trim());
-            setInvalid(false);
-          }}
-          onInvalid={() => setInvalid(true)}
-          aria-invalid={invalid}
-          placeholder="you@example.com"
-          className={`h-16 w-full rounded-2xl border-2 bg-white pl-12 pr-4 text-xl font-semibold text-black outline-none transition placeholder:font-normal placeholder:text-zinc-500 focus:border-primary focus:ring-4 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60 ${invalid ? "border-red-500 ring-4 ring-red-500/30" : "border-white"}`}
-        />
-      </div>
-      {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-      <button
-        type="submit"
-        disabled={busy || !!pausedLabel}
-        className={`mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl ${CTA} text-lg font-bold disabled:cursor-not-allowed disabled:opacity-60`}
-      >
-        {busy && <Loader2 className="h-5 w-5 animate-spin" />}
-        Send my code
-        {!busy && <ArrowRight className="h-5 w-5" aria-hidden="true" />}
-      </button>
+      {!compact && (
+        <div className="relative mt-4">
+          <Mail className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-primary" aria-hidden="true" />
+          <input
+            id="openmic-email"
+            type="email"
+            required
+            disabled={!!pausedLabel}
+            autoComplete="email"
+            inputMode="email"
+            aria-label="Email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value.trim());
+              setInvalid(false);
+            }}
+            onInvalid={() => setInvalid(true)}
+            aria-invalid={invalid}
+            placeholder="you@example.com"
+            className={`h-16 w-full rounded-2xl border-2 bg-white pl-12 pr-4 text-xl font-semibold text-black outline-none transition placeholder:font-normal placeholder:text-zinc-500 focus:border-primary focus:ring-4 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60 ${invalid ? "border-red-500 ring-4 ring-red-500/30" : "border-white"}`}
+          />
+        </div>
+      )}
+      {!compact && error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+      {!compact && (
+        <button
+          type="submit"
+          disabled={busy || !!pausedLabel}
+          className={`mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl ${CTA} text-lg font-bold disabled:cursor-not-allowed disabled:opacity-60`}
+        >
+          {busy && <Loader2 className="h-5 w-5 animate-spin" />}
+          Send my code
+          {!busy && <ArrowRight className="h-5 w-5" aria-hidden="true" />}
+        </button>
+      )}
     </form>
   );
 }
