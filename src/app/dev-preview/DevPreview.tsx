@@ -178,7 +178,7 @@ export function DevPreview() {
             { label: "Home", icon: "home", page_path: "signup" },
             { label: "Timer", icon: "remote", page_path: "remote" },
             { label: "Hosts", icon: "chat", page_path: "hosts" },
-            { label: "Gemini", icon: "ai", page_path: "ai" },
+            { label: "DeepSeek", icon: "ai", page_path: "ai" },
           ]}
         />
       </div>
