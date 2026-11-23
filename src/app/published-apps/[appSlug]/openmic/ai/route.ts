@@ -20,7 +20,7 @@ import { editSheet } from "@/lib/openmic/sheet-edit-server";
 import { applyRemovals, readLineupRemoved } from "@/lib/openmic/removed";
 import type { LineupFeed } from "@/lib/openmic/selection";
 import { allowSearch } from "@/lib/domains/search-limit";
-import { askDeepSeek } from "@/lib/ai/deepseek";
+import { askLineupAi } from "@/lib/ai/lineup-ai";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 
 const MessageSchema = z.object({
@@ -102,8 +102,9 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
     return Response.json({ error: "Slow down a little and try again." }, { status: 429 });
   }
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-  if (!apiKey) return Response.json({ error: "The AI isn't connected yet." }, { status: 503 });
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const deepseekKey = process.env.DEEPSEEK_API_KEY;
+  if (!geminiKey && !deepseekKey) return Response.json({ error: "The AI isn't connected yet." }, { status: 503 });
 
   // The hosts' removals hide comics from the model as well as from the phones. A list for another show date is ignored.
   const stored = readLineupRemoved(config.lineup_removed);
@@ -122,7 +123,7 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
   if (!command) {
     let answer: string;
     try {
-      answer = await askDeepSeek({ system: systemWithStatus, turns: parsed.data.messages, apiKey });
+      answer = await askLineupAi({ system: systemWithStatus, turns: parsed.data.messages, geminiKey, deepseekKey });
     } catch (error) {
       console.error(`openmic/ai: ${error instanceof Error ? error.message : String(error)}`);
       return Response.json({ error: "The AI didn't answer. Try again." }, { status: 502 });
