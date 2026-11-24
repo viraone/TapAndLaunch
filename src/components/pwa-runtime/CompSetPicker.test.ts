@@ -62,10 +62,11 @@ describe("CompSetPicker", () => {
     expect(out.split("Same as everyone").length - 1).toBe(1);
   });
 
-  it("minus disabled at 1, plus disabled at 15", () => {
+  it("minus disabled at 1, plus disabled at 60", () => {
     expect(html({ allMinutes: 1 })).toMatch(/aria-label="One minute less" disabled=""/);
     expect(html({ allMinutes: 1 })).not.toMatch(/aria-label="One minute more" disabled=""/);
-    expect(html({ allMinutes: 15 })).toMatch(/aria-label="One minute more" disabled=""/);
+    expect(html({ allMinutes: 60 })).toMatch(/aria-label="One minute more" disabled=""/);
+    expect(html({ allMinutes: 25 })).not.toMatch(/aria-label="One minute more" disabled=""/);
   });
 
   it("shows the error", () => {

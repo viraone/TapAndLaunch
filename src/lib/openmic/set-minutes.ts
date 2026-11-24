@@ -8,7 +8,7 @@ import type { Spotlight } from "@/lib/openmic/spotlight";
 import { setMinutes } from "@/lib/openmic/start-times";
 
 export const MIN_COMIC_MINUTES = 1;
-export const MAX_COMIC_MINUTES = 15;
+export const MAX_COMIC_MINUTES = 60;
 
 /** A name as the lookup key for one comic's number: trimmed, inner spaces collapsed, lower case. */
 export function nameKey(name: string): string {

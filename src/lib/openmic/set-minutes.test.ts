@@ -225,7 +225,11 @@ describe("set-minutes", () => {
 
     calls.length = 0;
     await setEachMinutes(fake(null), "2026-11-13", {}, "Evan", 99);
-    expect(calls[0]).toEqual(["lineup_spotlight", { set_each: { for: "2026-11-13", minutes: { evan: 15 } } }]);
+    expect(calls[0]).toEqual(["lineup_spotlight", { set_each: { for: "2026-11-13", minutes: { evan: 60 } } }]);
+
+    calls.length = 0;
+    await setEachMinutes(fake(null), "2026-11-13", {}, "Evan", 25);
+    expect(calls[0]).toEqual(["lineup_spotlight", { set_each: { for: "2026-11-13", minutes: { evan: 25 } } }]);
 
     calls.length = 0;
     expect(await setEachMinutes(fake({ message: "nope" }), "2026-11-13", {}, "Evan", 7)).toBe("nope");
@@ -249,7 +253,11 @@ describe("set-minutes", () => {
 
     calls.length = 0;
     await setComicMinutes(fake(null), "2026-11-13", 99);
-    expect(calls[0]).toEqual(["lineup_spotlight", { set_minutes: 15, set_minutes_for: "2026-11-13" }]);
+    expect(calls[0]).toEqual(["lineup_spotlight", { set_minutes: 60, set_minutes_for: "2026-11-13" }]);
+
+    calls.length = 0;
+    await setComicMinutes(fake(null), "2026-11-13", 25);
+    expect(calls[0]).toEqual(["lineup_spotlight", { set_minutes: 25, set_minutes_for: "2026-11-13" }]);
 
     calls.length = 0;
     await setComicMinutes(fake(null), "2026-11-13", 0);

@@ -1518,7 +1518,8 @@ function HostLineup({ client, config, viewerEmail, hostName }: { client: Supabas
     }
   };
   const openThread = async (entry: LineupEntry) => {
-    const { data } = await client.rpc("comedian_threads");
+    const { data, error } = await client.rpc("comedian_threads");
+    if (error) { setStatus("Could not open the thread. Check the connection and try again."); return; }
     const wanted = entry.name.trim().toLowerCase();
     const thread = ((data as { comedian_id: string; comedian_name: string }[] | null) ?? []).find((t) => t.comedian_name.trim().toLowerCase() === wanted);
     if (!thread) {
