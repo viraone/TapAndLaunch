@@ -86,9 +86,12 @@ export function useSpotlight(client: SupabaseClient | null): { spotlight: Spotli
   useEffect(() => {
     if (!client) return;
     let cancelled = false;
+    let updates = 0; // realtime updates seen so far
     const load = async () => {
+      const before = updates;
       const { data, error } = await client.from("lineup_spotlight").select("show_date, position, name, set_at, set_by, stopped_at, sets, set_minutes, set_minutes_for, set_each").eq("id", 1).maybeSingle();
       if (cancelled) return;
+      if (updates !== before) return; // a newer realtime update arrived while this was loading
       if (error || !data) {
         setFailed(true);
         return;
@@ -100,7 +103,10 @@ export function useSpotlight(client: SupabaseClient | null): { spotlight: Spotli
     const channel = client
       .channel("lineup_spotlight")
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "lineup_spotlight" }, (payload) => {
-        if (!cancelled) setSpotlight(payload.new as Spotlight);
+        if (cancelled) return;
+        updates += 1;
+        setSpotlight(payload.new as Spotlight);
+        setFailed(false);
       })
       .subscribe();
     const timer = setInterval(load, 30_000);

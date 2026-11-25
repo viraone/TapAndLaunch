@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import type { OpenMicSignupBlockConfig } from "@/types/database";
 import { showDateFor } from "@/lib/openmic/window";
 import { isShowAdmin, useSpotlight, ymd } from "@/lib/openmic/spotlight";
-import { applyComicMinutes, comicMinutes, eachMinutes, nameKey, setComicMinutes, setEachMinutes } from "@/lib/openmic/set-minutes";
+import { applyComicMinutes, comicKeys, comicMinutes, eachMinutes, nameKey, setComicMinutes, setEachMinutes } from "@/lib/openmic/set-minutes";
 import { setMinutes } from "@/lib/openmic/start-times";
 import { readTimerTarget, targetKeyFor, timerTargetStore, writeTimerTarget, type TimerTarget } from "@/lib/openmic/timer-target";
 import { CompSetPicker } from "./CompSetPicker";
@@ -115,13 +115,16 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
   const each = eachMinutes(spotlight, lengthDate);
   const sheetMinutes = setMinutes(sheetFeed?.lineup[config.host_row === true ? 1 : 0]?.set_length ?? "");
   // Everyone but the hosts row, each with the number they have right now (the feed already carries the hosts' numbers) and `base`, what they go back to without a number of their own (the hosts' everyone number, else the sheet's).
+  const keys = comicKeys(lineup.slice(config.host_row === true ? 1 : 0).map((entry) => entry.name));
   const targets = lineup
     .slice(config.host_row === true ? 1 : 0)
     .map((entry, i) => {
       const minutes = setMinutes(entry.set_length);
       const base = dictated ?? setMinutes(sheetFeed?.lineup[i + (config.host_row === true ? 1 : 0)]?.set_length ?? "");
+      const key = keys[i]!;
+      const nth = key === nameKey(entry.name) ? "" : ` (${key.slice(key.lastIndexOf("#") + 1)})`;
       // A number of their own that equals what they would have anyway is not shown as a change.
-      return { key: nameKey(entry.name), name: entry.name, minutes, custom: nameKey(entry.name) in each && minutes !== base, base };
+      return { key, name: entry.name + nth, minutes, custom: key in each && minutes !== base, base };
     });
   const pickedTarget = targets.find((t) => t.key === target) ?? null;
 
@@ -134,7 +137,7 @@ function Remote({ client, config, userId, viewerEmail }: { client: NonNullable<R
     const who = pickedTarget ? pickedTarget.name : "everyone";
     // A comic set to the number they would have anyway gets no number of their own: their own number is cleared.
     const problem = pickedTarget
-      ? await setEachMinutes(client, lengthDate, each, pickedTarget.name, minutes === pickedTarget.base ? null : minutes)
+      ? await setEachMinutes(client, lengthDate, each, pickedTarget.key, minutes === pickedTarget.base ? null : minutes)
       : await setComicMinutes(client, lengthDate, minutes);
     setSaving(false);
     if (problem) {

@@ -1261,6 +1261,13 @@ export function ShowDay({
 
       {optIn}
 
+      {lineupTime && config.show_lineup !== false && feed?.posted && feed.lineup.length === 0 && (
+        <div className="rounded-2xl border bg-muted/60 p-6">
+          <h2 className="text-xl font-bold">The lineup is empty right now</h2>
+          <p className="mt-2 text-base leading-relaxed text-muted-foreground">Check back in a few minutes.</p>
+        </div>
+      )}
+
       {lineupTime && config.show_lineup !== false && feed?.posted && feed.lineup.length > 0 && (
         <>
           <p className="-mb-3 pr-3 text-right text-[13px] font-bold uppercase tracking-[0.2em] text-foreground">Start time</p>

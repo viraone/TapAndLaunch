@@ -15,7 +15,18 @@ export function nameKey(name: string): string {
   return name.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-/** What the hosts dictated for single comics tonight, by nameKey. Only counts for this show date; anything that is not a whole number from 1 to 15 is dropped. */
+/** One key per row: the name's key, then "<key> #2", "<key> #3" when the same name comes again. */
+export function comicKeys(names: string[]): string[] {
+  const seen = new Map<string, number>();
+  return names.map((name) => {
+    const key = nameKey(name);
+    const n = (seen.get(key) ?? 0) + 1;
+    seen.set(key, n);
+    return n === 1 ? key : `${key} #${n}`;
+  });
+}
+
+/** What the hosts dictated for single comics tonight, by comicKeys. Only counts for this show date; anything that is not a whole number from MIN_COMIC_MINUTES to MAX_COMIC_MINUTES is dropped. */
 export function eachMinutes(spotlight: Spotlight | null | undefined, showDate: string): Record<string, number> {
   const each = spotlight?.set_each;
   if (!each || each.for !== showDate || !each.minutes || typeof each.minutes !== "object") return {};
@@ -61,9 +72,10 @@ export function applyComicMinutes(feed: LineupFeed | null, spotlight: Spotlight 
   const each = eachMinutes(spotlight, feed.show_date);
   if (all === null && Object.keys(each).length === 0) return feed;
   const first = hostRow ? 1 : 0;
+  const keys = comicKeys(feed.lineup.slice(first).map((entry) => entry.name));
   const lineup: LineupEntry[] = feed.lineup.map((entry, i) => {
     if (i < first) return entry;
-    const minutes = each[nameKey(entry.name)] ?? all;
+    const minutes = each[keys[i - first]!] ?? all;
     return minutes === null ? entry : { ...entry, set_length: `${minutes} min` };
   });
   const base = lineup.length > 0 ? parseClockMinutes(lineup[0]!.start_time) : null;

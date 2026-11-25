@@ -4,6 +4,7 @@ import type { LineupEntry, LineupFeed } from "@/lib/openmic/selection";
 import type { Spotlight } from "@/lib/openmic/spotlight";
 import {
   applyComicMinutes,
+  comicKeys,
   comicMinutes,
   eachMinutes,
   formatClockMinutes,
@@ -124,6 +125,21 @@ describe("set-minutes", () => {
 
   it("nameKey", () => {
     expect(nameKey("  Tess  Jones 1 ")).toBe("tess jones 1");
+  });
+
+  it("comicKeys", () => {
+    expect(comicKeys(["Evan", "Sam", "evan ", "Evan"])).toEqual(["evan", "sam", "evan #2", "evan #3"]);
+    expect(comicKeys([])).toEqual([]);
+  });
+
+  it("applyComicMinutes with two rows named the same", () => {
+    const lineup = [
+      row("Host", "5 min", "7:00 PM"),
+      row("Evan", "3 min", "7:05 PM"),
+      row("Evan", "3 min", "7:08 PM"),
+    ];
+    const result = applyComicMinutes(feedOf(lineup), spot({ set_each: { for: "2026-11-13", minutes: { "evan #2": 9 } } }), true)!;
+    expect(result.lineup.map((e) => e.set_length)).toEqual(["5 min", "3 min", "9 min"]);
   });
 
   it("eachMinutes", () => {
