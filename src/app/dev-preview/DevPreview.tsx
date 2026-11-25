@@ -46,7 +46,7 @@ const TV: { label: string; ms: number; running: boolean; name?: string }[] = [
   { label: "TV: 8 s left", ms: 8000, running: true },
   { label: "TV: over time", ms: -12000, running: true },
   { label: "TV: on deck, waiting", ms: 180000, running: false },
-  { label: "TV: before START (hosts)", ms: 300000, running: true, name: "Viradeth (HOSTS)" },
+  { label: "TV: before START (hosts)", ms: 300000, running: true, name: "Viradeth" },
 ];
 
 const HOST_ROW_FEED: LineupFeed = { show_date: "2026-11-13", posted: true, me: null, lineup: [{ name: "Nick Cody, Noah Rubin, Viradeth", set_length: "5 min", start_time: "7:00 PM" }, { name: "Karen", set_length: "3 min", start_time: "7:05 PM" }, { name: "Bob", set_length: "3 min", start_time: "7:08 PM" }, { name: "Dana", set_length: "3 min", start_time: "7:11 PM" }] };
