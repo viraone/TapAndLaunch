@@ -44,3 +44,9 @@ export function tvTimer(input: { lineup: LineupEntry[]; spotlight: Spotlight | n
   return { kind: "on", name: onStage.name, remainingMs, totalMs, ...next(at) };
 }
 
+export function hostsDefault(lineup: LineupEntry[]): { name: string; next: string | null; ms: number } | null {
+  const host = lineup[0];
+  if (!host) return null;
+  return { name: `${host.name} (HOSTS)`, next: lineup[1]?.name ?? null, ms: setMinutes(host.set_length) * 60_000 };
+}
+

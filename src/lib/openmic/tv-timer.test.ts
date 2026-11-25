@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCountdown, timerTone, tvTimer } from "./tv-timer";
+import { formatCountdown, hostsDefault, timerTone, tvTimer } from "./tv-timer";
 import type { LineupEntry } from "@/lib/openmic/selection";
 
 function entry(name: string, set_length: string): LineupEntry {
@@ -76,6 +76,27 @@ describe("timerTone", () => {
     expect(timerTone(10000)).toBe("urgent");
     expect(timerTone(0)).toBe("urgent");
     expect(timerTone(-1)).toBe("over");
+  });
+});
+
+describe("hostsDefault", () => {
+  it("shows the first entry as HOSTS with the second as next", () => {
+    const lineup: LineupEntry[] = [
+      { name: "Viradeth", set_length: "5 min", start_time: "7:30 PM" },
+      { name: "Chris Hudson", set_length: "10 min", start_time: "7:35 PM" },
+    ];
+    expect(hostsDefault(lineup)).toEqual({ name: "Viradeth (HOSTS)", next: "Chris Hudson", ms: 300000 });
+  });
+
+  it("shows null next when there is only one entry", () => {
+    const lineup: LineupEntry[] = [
+      { name: "Viradeth", set_length: "5 min", start_time: "7:30 PM" },
+    ];
+    expect(hostsDefault(lineup)).toEqual({ name: "Viradeth (HOSTS)", next: null, ms: 300000 });
+  });
+
+  it("returns null for an empty lineup", () => {
+    expect(hostsDefault([])).toBeNull();
   });
 });
 
