@@ -100,18 +100,12 @@ function LineupPage({
       // A soft wash of the show's red behind the header, so the black has depth on a big screen.
       style={{ backgroundImage: "radial-gradient(1100px 420px at 12% -12%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 65%)" }}
     >
-      <header className="relative flex items-center justify-between gap-6 px-6 py-5 md:px-12 md:py-6 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-primary after:via-primary/40 after:to-transparent">
-        <div className="flex min-w-0 items-center gap-4">
-          {config.logo_url && (
-            // eslint-disable-next-line @next/next/no-img-element -- tenant-provided storage URL
-            <img src={config.logo_url} alt={config.venue ?? ""} className="h-14 w-14 shrink-0 rounded-2xl bg-white object-cover shadow-[0_0_32px_rgba(255,255,255,0.12)] ring-1 ring-white/15 md:h-24 md:w-24" />
-          )}
-          <div className="min-w-0">
-            <h1 className="truncate text-2xl font-black tracking-tight md:text-5xl">{config.show_name ?? config.title ?? "Lineup"}</h1>
-          </div>
+      <header className="relative flex flex-col items-center gap-2 px-6 py-5 text-center md:flex-row md:justify-between md:gap-6 md:px-12 md:py-6 md:text-left after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-primary after:via-primary/40 after:to-transparent">
+        <div className="min-w-0">
+          <h1 className="text-balance text-4xl font-black leading-tight tracking-tight md:text-5xl">{config.show_name ?? config.title ?? "Lineup"}</h1>
         </div>
-        <div className="shrink-0 text-right">
-          <p className="flex items-center justify-end gap-2 text-[12px] font-bold uppercase tracking-[0.25em] text-primary md:text-sm">
+        <div className="shrink-0 md:text-right">
+          <p className="flex items-center justify-center md:justify-end gap-2 text-[12px] font-bold uppercase tracking-[0.25em] text-primary md:text-sm">
             {today && lineupTime && (
               <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
