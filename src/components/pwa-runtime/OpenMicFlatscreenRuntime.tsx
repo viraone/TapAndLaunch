@@ -52,11 +52,11 @@ function TvTimerBox({ client, config }: { client: NonNullable<ReturnType<typeof 
   const feed = useMemo(() => applyComicMinutes(sheetFeed, spotlight, config.host_row === true), [sheetFeed, spotlight, config.host_row]);
   if (!feed || feed.lineup.length === 0) return null;
   const showDay = ymd(showDateFor(window_, now));
-  // Before the first START (or when the last START is hours old, a leftover from another day) the hosts are shown as performing with their set length standing still. None after the last STOP.
+  // Before the first START (or when the last START is hours old, a leftover from another day) the hosts are shown under a HOST label with their set length standing still. None after the last STOP.
   if (spotlightIndex(spotlight, feed.lineup, showDay) === -1 || !anchorFresh(spotlight, now)) {
     const hosts = config.host_row === true ? hostsDefault(feed.lineup) : null;
     if (!hosts) return null;
-    return <TvTimerPanel name={hosts.name} next={hosts.next} ms={hosts.ms} totalMs={hosts.ms} running />;
+    return <TvTimerPanel name={hosts.name} next={hosts.next} ms={hosts.ms} totalMs={hosts.ms} running label="Host" />;
   }
   const clock = showClock({ lineup: feed.lineup, spotlight, showDate: showDay, hostRow: config.host_row === true, now });
   if (clock.kind === "running") {
@@ -77,7 +77,7 @@ const TONE = {
  *  length as a pill and who follows. Running: the countdown fills the box; the whole box turns amber for the last 30
  *  seconds (the light) and solid red with white digits, counting up, past the set length. No words on amber or red: the colour says it.
  *  Sized for a comic reading it from the stage, across a bar. */
-export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: string; next?: string | null; ms: number; totalMs: number; running: boolean }) {
+export function TvTimerPanel({ name, next, ms, totalMs, running, label = "Performing" }: { name: string; next?: string | null; ms: number; totalMs: number; running: boolean; label?: string }) {
   if (!running) {
     return (
       <div className="relative flex w-[46rem] shrink-0 items-center p-3">
@@ -105,7 +105,7 @@ export function TvTimerPanel({ name, next, ms, totalMs, running }: { name: strin
             {tone === "calm" ? (
               <p className="flex shrink-0 items-center gap-4 text-4xl font-semibold uppercase tracking-[0.2em] text-[color:#FF3EA5]">
                 <span className="h-6 w-6 shrink-0 animate-pulse rounded-full bg-[#FF3EA5]" />
-                Performing
+                {label}
               </p>
             ) : (
               <span />

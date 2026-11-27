@@ -119,4 +119,10 @@ describe("TvTimerPanel", () => {
     expect(html).toContain("Evan Hales");
     expect(html).not.toContain(" min<");
   });
+
+  it("shows the given label instead of Performing", () => {
+    const html = renderToStaticMarkup(createElement(TvTimerPanel, { name: "Karen Young", next: "Evan Hales", ms: 300000, totalMs: 300000, running: true, label: "Host" }));
+    expect(html).toContain("Host</p>");
+    expect(html).not.toContain("Performing");
+  });
 });

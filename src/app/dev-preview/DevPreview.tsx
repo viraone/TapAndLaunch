@@ -40,13 +40,13 @@ const running = (remainingMs: number): ShowClock => ({ kind: "running", index: 1
 const idle: ShowClock = { kind: "idle", nextIndex: 2, nextMs: 180000 };
 const done: ShowClock = { kind: "idle", nextIndex: -1, nextMs: 0 };
 
-const TV: { label: string; ms: number; running: boolean; name?: string }[] = [
+const TV: { label: string; ms: number; running: boolean; name?: string; badge?: string }[] = [
   { label: "TV: running 1:37", ms: 97000, running: true },
   { label: "TV: 25 s left", ms: 25000, running: true },
   { label: "TV: 8 s left", ms: 8000, running: true },
   { label: "TV: over time", ms: -12000, running: true },
   { label: "TV: on deck, waiting", ms: 180000, running: false },
-  { label: "TV: before START (hosts)", ms: 300000, running: true, name: "Viradeth" },
+  { label: "TV: before START (hosts)", ms: 300000, running: true, name: "Viradeth", badge: "Host" },
 ];
 
 const HOST_ROW_FEED: LineupFeed = { show_date: "2026-11-13", posted: true, me: null, lineup: [{ name: "Nick Cody, Noah Rubin, Viradeth", set_length: "5 min", start_time: "7:00 PM" }, { name: "Karen", set_length: "3 min", start_time: "7:05 PM" }, { name: "Bob", set_length: "3 min", start_time: "7:08 PM" }, { name: "Dana", set_length: "3 min", start_time: "7:11 PM" }] };
@@ -86,7 +86,7 @@ export function DevPreview() {
           <div key={t.label}>
             <p className="mb-1 text-xs text-muted-foreground">{t.label}</p>
             <div className="origin-top-left scale-50" style={{ width: "23rem", height: "26rem" }}>
-              <TvTimerPanel name={t.name ?? "Evan Hales"} next="Sterling Washington" ms={t.ms} totalMs={t.running ? 180000 : t.ms} running={t.running} />
+              <TvTimerPanel name={t.name ?? "Evan Hales"} next="Sterling Washington" ms={t.ms} totalMs={t.running ? 180000 : t.ms} running={t.running} label={t.badge} />
             </div>
           </div>
         ))}
