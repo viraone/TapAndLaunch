@@ -7,7 +7,7 @@ const NOISE_RATIO = 3;
 /** Sound has to stay loud this long before it counts as talking, so a click or a bump doesn't. */
 const SPEECH_MIN_MS = 150;
 /** This much quiet after talking means the person has finished. */
-export const END_SILENCE_MS = 1400;
+export const END_SILENCE_MS = 900;
 /** With no talking at all for this long, stop listening. */
 export const NO_SPEECH_MS = 8000;
 

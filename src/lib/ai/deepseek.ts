@@ -18,6 +18,7 @@ export async function askDeepSeek(input: {
   apiKey: string;
   maxTokens?: number;
   timeoutMs?: number;
+  thinking?: boolean;
 }): Promise<string> {
   const base = (process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/$/, "");
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -29,6 +30,8 @@ export async function askDeepSeek(input: {
         temperature: 0,
         max_tokens: input.maxTokens ?? 1200,
         messages: [{ role: "system", content: input.system }, ...input.turns],
+        // voice replies skip the model's reasoning to answer about a second sooner
+        ...(input.thinking === false ? { thinking: { type: "disabled" } } : {}),
       }),
       signal: AbortSignal.timeout(input.timeoutMs ?? 30_000),
     });

@@ -43,4 +43,20 @@ describe("askDeepSeek", () => {
     expect(sent.response_format).toBeUndefined();
     expect(sent.max_tokens).toBe(1200);
   });
+
+  it("disables thinking when thinking is false", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(answer("ok"));
+    vi.stubGlobal("fetch", fetchMock);
+    await askDeepSeek({ system: "s", turns: [{ role: "user", content: "hi" }], apiKey: "secret-key", thinking: false });
+    const sent = JSON.parse(fetchMock.mock.calls[0]![1].body);
+    expect(sent.thinking).toEqual({ type: "disabled" });
+  });
+
+  it("omits thinking when thinking is undefined", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(answer("ok"));
+    vi.stubGlobal("fetch", fetchMock);
+    await ask();
+    const sent = JSON.parse(fetchMock.mock.calls[0]![1].body);
+    expect(sent.thinking).toBeUndefined();
+  });
 });

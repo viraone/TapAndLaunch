@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createVad, feedVad, levelOf, type Vad, type VadVerdict } from "./vad";
+import { createVad, END_SILENCE_MS, feedVad, levelOf, type Vad, type VadVerdict } from "./vad";
 
 /** About one microphone chunk, in milliseconds. */
 const CHUNK = 85;
@@ -19,12 +19,13 @@ describe("levelOf", () => {
 });
 
 describe("feedVad", () => {
-  it("says end once someone has talked and then been quiet for 1.4 seconds", () => {
+  it("says end once someone has talked and then been quiet for END_SILENCE_MS", () => {
     const vad = createVad();
     expect(feedMany(vad, 0.001, 5)).toBe("listening");
     expect(feedMany(vad, 0.2, 10)).toBe("listening");
     expect(vad.spoke).toBe(true);
-    expect(feedMany(vad, 0.001, 16)).toBe("listening");
+    const quietChunks = Math.floor(END_SILENCE_MS / CHUNK);
+    expect(feedMany(vad, 0.001, quietChunks)).toBe("listening");
     expect(feedVad(vad, 0.001, CHUNK)).toBe("end");
   });
   it("keeps listening through a short pause in the middle of talking", () => {
@@ -32,7 +33,8 @@ describe("feedVad", () => {
     feedMany(vad, 0.2, 10);
     expect(feedMany(vad, 0.001, 10)).toBe("listening");
     expect(feedMany(vad, 0.2, 3)).toBe("listening");
-    expect(feedMany(vad, 0.001, 16)).toBe("listening");
+    const quietChunks = Math.floor(END_SILENCE_MS / CHUNK);
+    expect(feedMany(vad, 0.001, quietChunks)).toBe("listening");
     expect(feedVad(vad, 0.001, CHUNK)).toBe("end");
   });
   it("does not count one loud click as talking", () => {

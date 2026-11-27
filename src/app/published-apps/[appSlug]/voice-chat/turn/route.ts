@@ -44,7 +44,7 @@ export async function POST(request: Request, context: { params: Promise<{ appSlu
   try {
     const heard = await listen(await audio.arrayBuffer(), speech);
     if (!heard) return Response.json({ heard: "", reply: "", audio: "" });
-    const answer = await askDeepSeek({ system: voiceSystemPrompt(config.persona), turns: [...history, { role: "user", content: heard }], apiKey });
+    const answer = await askDeepSeek({ system: voiceSystemPrompt(config.persona), turns: [...history, { role: "user", content: heard }], apiKey, thinking: false });
     const reply = cleanReply(answer);
     const spoken = await speak(reply, config.voice === "chanthavong" ? "chanthavong" : "keomany", speech);
     return Response.json({ heard, reply, audio: Buffer.from(spoken).toString("base64") });
