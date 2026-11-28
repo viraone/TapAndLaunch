@@ -447,7 +447,7 @@ function OpenMicSignupLive({ config }: { config: OpenMicSignupBlockConfig }) {
           <RequestedCard />
         ))}
 
-        {!hidePill && <SignupStatusPill open={open} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} reopenText={reopenLabel(window_, now)} closedText={pausedLabel ? config.paused_status : undefined} className="mt-5" />}
+        {!hidePill && <SignupStatusPill open={open} closesAt={formatWeekTime(window_.closesWeekday, window_.closesMinutes)} reopenText={reopenLabel(window_, now)} closedText={pausedLabel ? config.paused_status : undefined} className="mt-5 w-full justify-center" />}
 
       </div>
     </div>
